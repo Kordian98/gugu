@@ -67,7 +67,13 @@ Photos or screenshots of a price list become reviewed services. Every plan (`ai.
 Flow and rules:
 - No `ANTHROPIC_API_KEY` means `configured: false`: the UI says "not configured" and `extract` returns 503 `ai_import.not_configured` without processing.
 - Errors: `ai_import.invalid_upload` (400); `image_unreadable`, `person_detected` and `pii_check_failed` (422, `errors[0].path = "images.N"`); `entitlement.quota_exceeded` (429, cap); `common.rate_limited` (429, 20/h per salon); `ai_import.extraction_failed` (502; a billed call still commits its cost).
-- Cost: reserve the worst case before the call (images × 1,600 + 2,000 input tokens, 16,000 output, at Sonnet prices × `AI_USD_TO_VND`), then commit the actual usage. One import is about 500–2,000 VND, so the Basic cap (20,000) covers several.
+- Cost: each provider attempt reserves the worst case (images × 1,600 + 2,000 input tokens, 16,000 output, at Sonnet prices × `AI_USD_TO_VND`) on the counter of the month it was taken in (`CostReservation.monthKey`, so a reservation made at 23:59 settles in that month; counters never go below 0). How each attempt settles:
+  - Success: commit the actual usage.
+  - Unusable answer (refusal, no tool call): commit the actual usage.
+  - Request may have been billed (timeout, abort, dropped connection, 5xx/529): commit the **reserved worst case**.
+  - Request provably not billed (connection refused/DNS before sending, or a 4xx rejection): release.
+  - Retries: the SDK's own retries are off (`maxRetries: 0`). `AiImportService` makes at most 2 attempts, each metered separately, and retries only connection errors, timeouts, 429 and 5xx. Classification lives in `llm/provider-errors.ts`.
+  - One import costs about 500–2,000 VND, so the Basic cap (20,000) covers several.
 - Audit: `ai_import.extracted` / `ai_import.blocked` / `ai_import.confirmed`, with counts, tokens and cost only. No content.
 - Confirm creates rows one by one through `CatalogService.create` (validation, audit, availability bump). On failure, earlier rows stay created.
 - Tests: `pii-patterns.test.ts`, `price-list-extractor.test.ts`, `ai-import.pii.test.ts` (real OCR/faces, canaries never reach the gateway), `ai-import.int.test.ts` (HTTP, tenant isolation, permission, entitlement, atomic cap), `packages/domain/src/ai-import/review.test.ts`. QA screenshots: `docs/qa/08-imp/`.
@@ -101,6 +107,7 @@ _TBD._ How to run, thresholds (PII suite 100%), how to add canary cases.
 ## Changelog
 - 2026-11-02: skeleton created.
 - 2026-11-02: roadmap X1/X5/X7 applied.
+- 2026-11-02: security-review fixes: month key stored on reservations, counters clamped at 0, provider failures settled by billing class, metered own retries (branch ai/08-imp-fix).
 - 2026-11-02: AI onboarding import implemented (branch ai/08-imp): no-PII gate, Sonnet extraction, review UI, interim Redis cost cap.
 - 2026-11-02: owner answers q31/q32/q42/q62–q65 applied (Pro plan, hard cap, import on all plans, Admin Copilot).
 - 2026-11-02: PO revision: PII firewall, Anthropic API default (Bedrock plan dropped), Haiku-first routing, `packages/contracts` (X3).

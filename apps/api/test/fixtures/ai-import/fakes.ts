@@ -51,6 +51,7 @@ export class MemoryCostMeter extends AiCostMeter {
   used = 0;
   readonly reservations = new Map<string, number>();
   readonly log: string[] = [];
+  private seq = 0;
   constructor(private readonly cap: number) {
     super();
   }
@@ -61,11 +62,11 @@ export class MemoryCostMeter extends AiCostMeter {
     if (this.used + amountVnd > this.cap) {
       return Promise.reject(new AppError(429, SUBSCRIPTION_ERRORS.quotaExceeded, "cap"));
     }
-    const id = String(this.reservations.size + 1);
+    const id = String(++this.seq);
     this.used += amountVnd;
     this.reservations.set(id, amountVnd);
     this.log.push(`reserve:${String(amountVnd)}`);
-    return Promise.resolve({ id, salonId, amountVnd });
+    return Promise.resolve({ id, salonId, amountVnd, monthKey: "test" });
   }
   commit(r: CostReservation, actualVnd: number): Promise<void> {
     this.used += actualVnd - (this.reservations.get(r.id) ?? 0);

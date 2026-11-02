@@ -25,7 +25,9 @@ import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { SubscriptionsFacade } from "../subscriptions/subscriptions.facade";
-import { AiCostMeter } from "./application/ai-cost-meter";
+import { RedisService } from "../../infrastructure/redis/redis.service";
+import { EntitlementService } from "../subscriptions/subscriptions.facade";
+import { AiCostMeter, RedisAiCostMeter } from "./application/ai-cost-meter";
 import { ANTHROPIC_CLIENT } from "./llm/price-list-extractor";
 
 const gelRow = {
@@ -189,6 +191,35 @@ describe("AI import (integration)", () => {
     await meter.commit(first, 400);
     for (const r of rest) await meter.release(r);
     expect((await meter.usage(b.salonId)).usedVnd).toBe(before + 400);
+  });
+  it("settles a reservation into the month it was taken from, across midnight", async () => {
+    class ClockedMeter extends RedisAiCostMeter {
+      at = new Date("2026-11-30T16:59:00Z"); // 23:59 on 30 Nov in Asia/Ho_Chi_Minh
+      protected override now(): Date {
+        return this.at;
+      }
+    }
+    const meter = new ClockedMeter(app.get(RedisService), app.get(EntitlementService));
+    const redis = app.get(RedisService).client;
+    const nov = `ai:cost:v1:${b.salonId}:2026-11`;
+    const dec = `ai:cost:v1:${b.salonId}:2026-12`;
+    await redis.del(nov, dec);
+
+    const r = await meter.reserve(b.salonId, 5_000);
+    expect(r.monthKey).toBe(nov);
+    meter.at = new Date("2026-11-30T17:01:00Z"); // 00:01 on 1 Dec
+    await meter.commit(r, 1_200);
+    expect(Number(await redis.get(nov))).toBe(1_200);
+    expect(await redis.get(dec)).toBeNull();
+    expect((await meter.usage(b.salonId)).usedVnd).toBe(0); // December starts clean
+
+    // A reservation whose month counter vanished (expiry) never drives the counter negative.
+    meter.at = new Date("2026-12-10T05:00:00Z");
+    const r2 = await meter.reserve(b.salonId, 4_000);
+    await redis.del(dec);
+    await meter.release(r2);
+    expect(Number(await redis.get(dec))).toBe(0);
+    await redis.del(nov, dec);
   });
 });
 

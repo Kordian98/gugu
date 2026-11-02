@@ -9,6 +9,11 @@ export interface CostReservation {
   id: string;
   salonId: string;
   amountVnd: number;
+  /**
+   * Counter the reservation was taken from (calendar month at reserve time). Settling always goes
+   * back to this counter, so a reservation made at 23:59 on the last day settles in that month.
+   */
+  monthKey: string;
 }
 
 /**
@@ -40,13 +45,18 @@ redis.call('EXPIRE', KEYS[1], ARGV[3])
 redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[4])
 return used + amount`;
 
-/** Replace the reserved amount by the actual one; idempotent (the reservation key is consumed). */
+/**
+ * Replace the reserved amount by the actual one on the reservation's own month counter; idempotent
+ * (the reservation key is consumed) and never below 0 (e.g. a counter that expired meanwhile).
+ */
 const SETTLE = `
 local reserved = redis.call('GET', KEYS[2])
 if not reserved then return 0 end
 redis.call('DEL', KEYS[2])
-redis.call('INCRBY', KEYS[1], tonumber(ARGV[1]) - tonumber(reserved))
-redis.call('EXPIRE', KEYS[1], ARGV[2])
+local used = tonumber(redis.call('GET', KEYS[1]) or '0')
+local next = used + tonumber(ARGV[1]) - tonumber(reserved)
+if next < 0 then next = 0 end
+redis.call('SET', KEYS[1], next, 'EX', ARGV[2])
 return 1`;
 
 /** Interim Redis implementation of the cap (counter per salon per calendar month, UTC+7). */
@@ -70,10 +80,11 @@ export class RedisAiCostMeter extends AiCostMeter {
   async reserve(salonId: string, amountVnd: number): Promise<CostReservation> {
     const cap = await this.entitlements.limit(salonId, "ai.monthly_cost_cap_vnd");
     const id = randomUUID();
+    const monthKey = this.monthKey(salonId);
     const result = (await this.redis.client.eval(
       RESERVE,
       2,
-      this.monthKey(salonId),
+      monthKey,
       this.reservationKey(salonId, id),
       String(amountVnd),
       String(cap === "unlimited" ? -1 : cap),
@@ -85,10 +96,11 @@ export class RedisAiCostMeter extends AiCostMeter {
         errors: [{ path: "ai.monthly_cost_cap_vnd", code: SUBSCRIPTION_ERRORS.quotaExceeded }],
       });
     }
-    return { id, salonId, amountVnd };
+    return { id, salonId, amountVnd, monthKey };
   }
 
   async commit(r: CostReservation, actualVnd: number): Promise<void> {
+    // Actual spend is recorded even if it exceeds the estimate, so the cap never hides real cost.
     await this.settle(r, Math.max(0, Math.ceil(actualVnd)));
   }
 
@@ -100,7 +112,7 @@ export class RedisAiCostMeter extends AiCostMeter {
     await this.redis.client.eval(
       SETTLE,
       2,
-      this.monthKey(r.salonId),
+      r.monthKey,
       this.reservationKey(r.salonId, r.id),
       String(amount),
       String(MONTH_TTL_SECONDS),
@@ -113,7 +125,7 @@ export class RedisAiCostMeter extends AiCostMeter {
   }
 
   /** Calendar month in Asia/Ho_Chi_Minh (UTC+7, no DST). */
-  private monthKey(salonId: string): string {
+  protected monthKey(salonId: string): string {
     const local = new Date(this.now().getTime() + 7 * 3600_000);
     const month = `${String(local.getUTCFullYear())}-${String(local.getUTCMonth() + 1).padStart(2, "0")}`;
     return `ai:cost:v1:${salonId}:${month}`;

@@ -29,7 +29,8 @@ import { OcrEngine, TesseractOcrEngine } from "./pii/ocr-engine";
       inject: [AppConfig],
       useFactory: (config: AppConfig) =>
         config.env.ANTHROPIC_API_KEY
-          ? new Anthropic({ apiKey: config.env.ANTHROPIC_API_KEY, maxRetries: 2 })
+          ? // Retries are done by AiImportService so every attempt is metered against the cap.
+            new Anthropic({ apiKey: config.env.ANTHROPIC_API_KEY, maxRetries: 0 })
           : null,
     },
   ],
