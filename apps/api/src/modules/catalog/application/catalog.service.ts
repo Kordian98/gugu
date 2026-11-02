@@ -105,7 +105,15 @@ export class CatalogService {
           ...this.fields(input),
         },
       });
-      await this.syncChildren(tx, ctx.salonId, service.id, input);
+      const staffIds =
+        input.staffIds ??
+        (
+          await tx.staffProfile.findMany({
+            where: { salonId: ctx.salonId, deletedAt: null, isBookable: true },
+            select: { id: true },
+          })
+        ).map((x) => x.id);
+      await this.syncChildren(tx, ctx.salonId, service.id, { ...input, staffIds });
       await bumpAvailabilityVersion(tx, ctx.salonId);
       await this.record(tx, ctx, "catalog.service_created", service.id);
       return toDto(
@@ -259,6 +267,7 @@ export class CatalogService {
       data: { deletedAt: now, isActive: false },
     });
 
+    if (!input.staffIds) return;
     const staffIds = [...new Set(input.staffIds)];
     await tx.staffService.deleteMany({
       where: { salonId, serviceId, variantId: null, staffId: { notIn: staffIds } },
@@ -284,7 +293,7 @@ export class CatalogService {
       });
       if (!cat) throw new AppError(400, CATALOG_ERRORS.unknownCategory, "Unknown category");
     }
-    const staffIds = [...new Set(input.staffIds)];
+    const staffIds = [...new Set(input.staffIds ?? [])];
     if (staffIds.length) {
       const n = await this.prisma.staffProfile.count({
         where: { salonId: ctx.salonId, deletedAt: null, id: { in: staffIds } },

@@ -113,7 +113,8 @@ export const staffInputSchema = z.object({
   displayName: z.string().trim().min(1).max(80),
   color: staffColorSchema.default("lilac"),
   isBookable: z.boolean().default(true),
-  serviceIds: z.array(uuidV7Schema).max(500).default([]),
+  /** Omitted on create → every active service; omitted on update → unchanged. [] = none. */
+  serviceIds: z.array(uuidV7Schema).max(500).optional(),
   /** Create the caller's own staff profile ("I also do services", solo salons). Create only. */
   linkToMe: z.boolean().default(false),
 });

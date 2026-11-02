@@ -5,6 +5,10 @@ import {
   type AvailabilityQuery,
   availabilityQuerySchema,
   availabilitySchema,
+  earliestSlotsQuerySchema,
+  earliestSlotsSchema,
+  type EarliestSlots,
+  type EarliestSlotsQuery,
   bookingParamsSchema,
   type CreateSalonBookingInput,
   createSalonBookingInputSchema,
@@ -79,6 +83,28 @@ export class SalonBookingsController {
     const scope = await this.actors.readScope(salon, user.userId);
     const ctx = await this.contexts.forSalon(salon.salonId);
     return this.queries.availability(ctx, query, { hideStaff: false, onlyStaffId: scope });
+  }
+
+  @Get("availability/earliest")
+  @RequirePermission("schedules.read")
+  @ApiOperation({
+    operationId: "bookings.salonEarliestSlots",
+    summary: "Earliest bookable start times across the booking window (CRM).",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "First free options, at most `perDay` per day.",
+    standardSchema: earliestSlotsSchema,
+  })
+  async earliest(
+    @Param({ schema: salonParamsSchema }) _p: { salonId: string },
+    @Query({ schema: earliestSlotsQuerySchema }) query: EarliestSlotsQuery,
+    @CurrentSalon() salon: SalonContext,
+    @CurrentUser() user: UserPrincipal,
+  ): Promise<EarliestSlots> {
+    const scope = await this.actors.readScope(salon, user.userId);
+    const ctx = await this.contexts.forSalon(salon.salonId);
+    return this.queries.earliest(ctx, query, { onlyStaffId: scope });
   }
 
   @Get("bookings")

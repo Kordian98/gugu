@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { uuidV7Schema } from "../common/ids";
+import { revenueKindSchema } from "../assistant/pii-free";
 import { bookingSourceSchema } from "../booking/source";
 
 /**
@@ -17,11 +18,6 @@ export const insightsQuerySchema = z
   });
 export type InsightsQuery = z.infer<typeof insightsQuerySchema>;
 
-export const revenueKindSchema = z.enum([
-  "estimated_from_bookings",
-  "recorded_offline_sale",
-  "reported_by_salon",
-]);
 
 export const metricValueSchema = z.object({
   value: z.number().nullable(),

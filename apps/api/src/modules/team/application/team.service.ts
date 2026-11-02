@@ -26,7 +26,8 @@ export type StaffFields = {
   displayName: string;
   color: (typeof STAFF_COLORS)[number];
   isBookable: boolean;
-  serviceIds: string[];
+  /** Omitted on create → every active service; on update → unchanged. */
+  serviceIds?: string[] | undefined;
   linkToMe?: boolean;
 };
 
@@ -137,7 +138,15 @@ export class TeamService {
           sortOrder: (last._max.sortOrder ?? -1) + 1,
         },
       });
-      await this.syncServices(tx, ctx.salonId, staff.id, input.serviceIds);
+      const serviceIds =
+        input.serviceIds ??
+        (
+          await tx.service.findMany({
+            where: { salonId: ctx.salonId, deletedAt: null, isActive: true },
+            select: { id: true },
+          })
+        ).map((x) => x.id);
+      await this.syncServices(tx, ctx.salonId, staff.id, serviceIds);
       await bumpAvailabilityVersion(tx, ctx.salonId);
       await this.record(tx, ctx, "team.staff_created", staff.id);
       return { id: staff.id };
@@ -152,7 +161,7 @@ export class TeamService {
         where: { id: staffId },
         data: { displayName: input.displayName, color: input.color, isBookable: input.isBookable },
       });
-      await this.syncServices(tx, ctx.salonId, staffId, input.serviceIds);
+      if (input.serviceIds) await this.syncServices(tx, ctx.salonId, staffId, input.serviceIds);
       await bumpAvailabilityVersion(tx, ctx.salonId);
       await this.record(tx, ctx, "team.staff_updated", staffId);
     });
@@ -346,8 +355,8 @@ export class TeamService {
       });
   }
 
-  private async assertServices(tx: Tx, ctx: SalonContext, serviceIds: string[]) {
-    const ids = [...new Set(serviceIds)];
+  private async assertServices(tx: Tx, ctx: SalonContext, serviceIds: string[] | undefined) {
+    const ids = [...new Set(serviceIds ?? [])];
     if (!ids.length) return;
     const n = await tx.service.count({
       where: { salonId: ctx.salonId, deletedAt: null, id: { in: ids } },
