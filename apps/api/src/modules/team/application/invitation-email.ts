@@ -19,18 +19,24 @@ const escapeHtml = (s: string): string =>
   );
 
 /**
- * Salon names are tenant-controlled. Before they reach platform mail: drop control/format
- * characters, anything that looks like a URL, domain or email, and characters outside letters,
- * digits, spaces and basic punctuation; cap the length (security review, phishing via invites).
+ * Salon names are tenant-controlled. Before they reach platform mail (security review, phishing
+ * via invites): NFKC-fold look-alikes (full-width dots/letters), drop control/format characters,
+ * URLs, emails, dotted IPs, domain names (any script) and punycode labels, then remove every
+ * remaining dot so nothing can render as a link; keep letters, digits, spaces and basic
+ * punctuation; cap the length.
  */
 export function safeSalonName(name: string): string {
   const cleaned = name
-    .normalize("NFC")
+    .normalize("NFKC")
+    .replace(/[。｡․‧・·]/gu, ".")
     .replace(/[\p{Cc}\p{Cf}]/gu, " ")
-    .replace(/\b(?:https?:\/\/|www\.)\S*/giu, " ")
-    .replace(/\S+@\S+/gu, " ")
-    .replace(/\b[\p{L}\d-]+(?:\.[\p{L}\d-]+)*\.(?:[a-z]{2,24})\b/giu, " ")
-    .replace(/[^\p{L}\p{M}\d '&().,-]/gu, " ")
+    .replace(/(?:[a-z][a-z\d+.-]*:\/\/|www\s*\.)\S*/giu, " ")
+    .replace(/\S+\s*@\s*\S+/gu, " ")
+    .replace(/\d{1,3}(?:\s*\.\s*\d{1,3}){3}/gu, " ")
+    .replace(/(?:[\p{L}\p{N}-]+\.)*xn--[\p{L}\p{N}-]*(?:\.[\p{L}\p{N}-]+)*/giu, " ")
+    .replace(/[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}/gu, " ")
+    .replace(/\./gu, " ")
+    .replace(/[^\p{L}\p{M}\d '&(),-]/gu, " ")
     .replace(/\s+/gu, " ")
     .trim();
   const short = cleaned.length > 60 ? `${cleaned.slice(0, 59).trimEnd()}…` : cleaned;

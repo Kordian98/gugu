@@ -10,6 +10,18 @@ describe("invitation email", () => {
     expect(safeSalonName("x".repeat(100))).toHaveLength(60);
     expect(safeSalonName("https://x.y")).toBe("GuGu");
   });
+  it("blocks IPs, unicode/punycode domains, spaced and full-width dots", () => {
+    expect(safeSalonName("Login 203.0.113.7 now")).toBe("Login now");
+    expect(safeSalonName("Login 203 . 0 . 113 . 7")).toBe("Login");
+    expect(safeSalonName("Spa bảo-mật.рф")).toBe("Spa");
+    expect(safeSalonName("Spa evil.xn--p1ai")).toBe("Spa");
+    expect(safeSalonName("Spa xn--80ak6aa92e.com")).toBe("Spa");
+    expect(safeSalonName("Visit example . com")).toBe("Visit example com");
+    expect(safeSalonName("Visit example\uFF0Ecom")).toBe("Visit");
+    expect(safeSalonName("Visit example\u3002com")).toBe("Visit");
+    expect(safeSalonName("Ｌｏｔｕｓ Nail")).toBe("Lotus Nail");
+    expect(safeSalonName("Mi & Nail (Q.1)")).toBe("Mi & Nail (Q 1)");
+  });
   it("keeps tenant text out of the subject", () => {
     const mail = renderInvitationEmail({
       locale: "en",
