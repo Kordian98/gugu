@@ -279,6 +279,17 @@
       "free": "Tin miễn phí",
       "costNote": "Zalo tính phí vào ví Zalo của salon; số liệu là ước tính.",
       "empty": "Chưa có hoạt động Zalo trong khoảng thời gian này."
+    },
+    "insights": {
+      "title": "Zalo",
+      "subtitle": "Trợ lý đặt lịch trong Zalo OA của salon",
+      "customers": "Khách liên hệ",
+      "bookings": "Lịch hẹn qua Zalo",
+      "conversion": "Chuyển đổi",
+      "cost": "Chi phí tin nhắn",
+      "topLost": "Lý do mất nhiều nhất: {{reason}} ({{count}})",
+      "open": "Xem thống kê Zalo",
+      "none": "Chưa có hoạt động Zalo trong kỳ này."
     }
   }
 }

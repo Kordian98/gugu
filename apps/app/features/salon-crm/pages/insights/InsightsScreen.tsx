@@ -16,6 +16,7 @@ import { PageHeader } from "../../shell/PageHeader";
 import { useBreakpoint } from "../../shell/useBreakpoint";
 import { EmptyState } from "../../ui/EmptyState";
 import { Segmented } from "../../ui/form";
+import { ZaloInsightsCard } from "./ZaloInsightsCard";
 
 /** Typographic placeholder for a metric without a value (not copy). */
 const NO_VALUE = "\u2014";
@@ -98,6 +99,7 @@ export function InsightsScreen() {
             })}
           </View>
           <Daily data={d.daily} />
+          <ZaloInsightsCard from={from} to={to} />
           <View
             style={{ flexDirection: mobile ? "column" : "row", gap: 16, alignItems: "flex-start" }}
           >

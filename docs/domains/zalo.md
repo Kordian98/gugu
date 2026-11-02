@@ -70,7 +70,7 @@ Implemented on branch `zalo/09-impl` (2026-11-02). It runs end to end against th
 5. **Reminders / updates:** job `zalo.minute` runs every 60 s and:
    - links staff bookings by phone;
    - sends due 24 h / 2 h reminders: a chat message with "Tôi sẽ đến / Đổi giờ / Hủy" buttons inside 7 days, otherwise the ZBS template `booking_reminder`;
-   - reads `booking.*` outbox events with its own cursor and tells customers about changes the salon made.
+   - changes the salon makes (confirm, cancel, move a booking) reach the customer right after the commit: the outbox relay (04-S5) delivers `booking.created` / `booking.status_changed` / `booking.rescheduled` to `ZaloBookingEventsHandler`. Delivery is at-least-once; sends dedupe on `booking_update:<eventId>`.
 6. **Tokens:** refreshed when less than 10 min is left; a 10-min job also refreshes tokens expiring within 1 h. On `token_invalid`: one forced refresh, then `needs_reauth` plus a notification.
 
 ## Configuration
@@ -122,7 +122,7 @@ Salons register their ZBS templates at Zalo with exactly these parameters: `cust
   - Funnel: sessions started in the period, followed to their end. Reaching a step = highest step ≥ it, or booked. Drop-off = reached minus next step.
   - Reminders and costs come from `zalo_send_logs`.
   - `application/stats.queries.ts` runs five indexed GROUP BY queries; no rollup table needed at current volumes.
-- **UI:** Zalo page → "Thống kê" tab (period: today / 7 days / 30 days / custom). An Insights card is planned.
+- **UI:** Zalo page → "Thống kê" tab (period: today / 7 days / 30 days / custom), plus a Zalo card on Insights (`pages/insights/ZaloInsightsCard.tsx`) with the period's headline numbers and top lost reason.
 
 ## Zalo message limits the bot works within
 - **Consultation message (tin tư vấn):** text up to 2,000 characters. Up to 5 buttons per message: 5 is the cap in SDK type definitions [3p], and a Zalo community answer confirms more than 5 isn't supported. Button title up to 100 characters; `oa.query.*` payload up to 1,000 characters [3p, eSMS docs].
@@ -141,7 +141,6 @@ Salons register their ZBS templates at Zalo with exactly these parameters: `cust
 - Real Zalo behaviour comes from documentation and SDKs, not a live OA, and must be verified in spike S-Z1. That covers endpoints, payload shapes, error codes, the webhook signature formula and button postbacks (`oa.query.hide` arriving as `user_send_text`). Only `http-zalo-client.ts` and `webhook-ingest.service.ts` should need changes.
 - Whether ZBS template buttons can post back to the OA chat is unverified. Reminders inside the 7-day window use chat buttons; template reminders rely on the template's own buttons and typed replies.
 - The bot speaks Vietnamese only. The `en` copy exists, but there is no per-salon bot language setting yet.
-- The booking-events cursor reads the outbox with a 30 s lag until the shared relay (04-S5) exists.
 - Events are locked per conversation, so two taps processed in parallel run one after the other. Their order follows lock acquisition, not the Zalo timestamp.
 - Integration tests and a running dev worker share Redis and the DB. Stop the worker before running the tests.
 - Who pays for templates sent from salon OAs is open (q83). Sends are metered and capped.

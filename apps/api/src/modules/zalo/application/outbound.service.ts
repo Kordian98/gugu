@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { AppConfig } from "../../../infrastructure/config/app-config";
-import type { Prisma } from "../../../infrastructure/prisma/generated/client";
+import { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { QueueService } from "../../../infrastructure/queue/queue.service";
 import { QUEUES } from "../../../infrastructure/queue/queues";
@@ -181,8 +181,19 @@ export class OutboundService {
     );
   }
 
+  /**
+   * Records and enqueues in one transaction. A concurrent duplicate (same dedup key from a
+   * redelivered event) loses on the unique index and counts as "already queued".
+   */
   async send(salonId: string, items: readonly OutboundItem[]): Promise<string[]> {
-    const ids = await this.record(salonId, items);
+    let ids: string[];
+    try {
+      ids = await this.prisma.$transaction((tx) => this.record(salonId, items, tx));
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
+        return [];
+      throw error;
+    }
     await this.enqueue(salonId, ids);
     return ids;
   }
