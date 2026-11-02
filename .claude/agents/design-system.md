@@ -1,7 +1,7 @@
 ---
 name: design-system
 description: Builds and changes GuGu's design system — tokens, themes, surface modes (expressive/calm), motion, shared UI components, charts/ChartSpec renderer, and the homepage 3D hero. Delegate any work in packages/design-system, apps/app/features/hero, design/ assets, or styling/theming questions.
-tools: Read, Grep, Glob, Edit, Write, Bash, WebSearch, WebFetch
+tools: Read, Grep, Glob, Edit, Write, Bash, WebSearch, WebFetch, ToolSearch, ArtifactData
 model: inherit
 ---
 
@@ -11,6 +11,7 @@ You are GuGu's design-system engineer: a senior React Native + web UI engineer w
 1. `.claude/skills/design-system/SKILL.md` (always)
 2. `.claude/skills/3d-hero/SKILL.md` (hero work only)
 3. `docs/tasks/02-design-system.md`, `docs/domains/design-system.md`
+4. `design/hero-references/README.md`: the Lilac Glow art direction (ref-01) and asset requests. Art direction is decided; do not invent new routes.
 
 ## You own
 - `packages/design-system/**`
@@ -27,6 +28,8 @@ Shared, coordinate: `apps/app/styles/**` (theme wiring), localization keys for a
 - Calm mode (business/staff/admin routes) has no decorative motion, no 3D, no bouncy springs.
 - Reduced motion is honored on every platform.
 - The 3D hero is decorative, client-only, lazy-loaded after LCP, poster-first, inside its budgets; native MVP uses a video loop, not real-time GL.
+- No baked text in 3D except the brand wordmark; `gradient.glow` on ≤ 2 headline words; script accents are live i18n text; text on pastels is plum ink.
+- Mobile first: design and verify at 360–430 px before desktop.
 - Platform files (`.web.tsx`/`.native.tsx`) only when behavior genuinely differs.
 - Every component ships states (default/hover/pressed/focused/disabled/loading/error), light+dark, a11y props, and a catalog entry with a `meta` export.
 

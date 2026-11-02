@@ -10,6 +10,7 @@ GuGu is built AI-first: most implementation work is done by AI coding agents, an
 | Domain doc | `docs/domains/<slug>.md` | Durable reference: model, invariants, flows, file map (filled in as code lands) |
 | Subagent | `.claude/agents/<slug>.md` | Domain specialist an orchestrator can delegate to |
 | Skill | `.claude/skills/<slug>/SKILL.md` | Procedures, invariants, checklists loaded on demand |
+| Tracker entries | GuGu Roadmap artifact (`roadmap-tracker` skill) | Milestone status, questions, activity log |
 | Product-agent tools | section in the spec + later `packages/agent-tools` | Which domain operations the in-product AI agent / MCP server may call |
 
 ## Subagent format (`.claude/agents/<slug>.md`)

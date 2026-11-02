@@ -21,6 +21,31 @@ description: Procedures and rules for GuGu's Zalo integration — Zalo OA OpenAP
 
 Personal Zalo accounts: there is **no API**. Support them only through links, QR codes and copy snippets.
 
+## Current constraint: no GuGu VN entity
+| Path | Status | Sender profile |
+|---|---|---|
+| Z0 links/snippets/QR | live in MVP | none |
+| ZR emulated build | default in dev/CI | `EmulatedZaloClient` |
+| Z2a salon OA inbox + free replies | first live path (pilot) | `salon_oa` |
+| Z2b salon-branded templates | after spike S-Z2; salon's ZBS Account pays | `salon_oa` |
+| Z1 central/partner OA, Zalo OTP | **blocked** (entity or partner) | `central` / `partner_oa` |
+| Z4 Mini App | **blocked** (owner verification) | n/a |
+
+Always resolve a `ZaloSenderProfile`. No code may assume a central OA exists.
+
+## Naming and attribution (cross-topic)
+- Channel ids: `zalo_template` (template messages, X2) and `zalo_cs` (consultation replies). "ZNS" is only an alias in prose.
+- Acquisition sources (X6, enum owned by topic 12):
+
+  | Source | Assigned when |
+  |---|---|
+  | `zalo_link` | snippet or share link |
+  | `qr_code` | QR |
+  | `zalo_chat` | receptionist entry from a Zalo conversation |
+  | `zalo_oa` | OA menu/CTA |
+  | `zalo_mini_app` | Mini App |
+  | `ai_agent` | agent-created booking (a draft that needs human confirmation) |
+
 ## Invariants
 - MUST NOT use unofficial personal-account automation.
 - MUST keep Zalo optional, with a fallback channel for every send.
@@ -29,7 +54,7 @@ Personal Zalo accounts: there is **no API**. Support them only through links, QR
 - MUST dedup template sends by `(entityId, eventKey, channel)`. Zalo also allows only one message per transaction.
 - MUST validate template params (Zod) and keep each template ≤400 characters.
 - MUST encrypt tokens. Never log tokens, OTP codes or bodies at info level.
-- MUST treat inbound text as untrusted input to the AI agent. Agent sends need human confirmation, except for allowlisted intents.
+- MUST NOT pass Zalo content or customer identity to any LLM (PO policy). Only aggregate agent tools are allowed. AI drafts and auto-replies (Z3) are deferred.
 - MUST NOT hardcode prices, quotas or window thresholds. They go in config.
 
 ## Procedures
@@ -49,11 +74,20 @@ Personal Zalo accounts: there is **no API**. Support them only through links, QR
 4. If the event counts as a user interaction, update the conversation's `lastUserInteractionAt`.
 5. Add tests for the processor, idempotency and tenant isolation.
 
+### Develop against the emulator (default)
+1. Run the stack via the `run-locally` skill. `provider-sink` exposes the Zalo routes, and `zalo.client=emulated` in `.env.local`.
+2. Trigger inbound events from the provider-sink UI or CLI. Inspect outbound sends at `/zalo/outbox`.
+3. Simulate the window clock and error modes (expired token, template not approved, 5xx, >5 s).
+4. Any new `ZaloClient` call gets: an emulator route, a contract test, and a request/response shape in `references/api-notes.md`.
+
+### Go live on a path
+Follow `docs/runbooks/zalo-go-live.md`: secrets, `zalo.client=http`, domain verification, sender profile, approved templates, flag on. If a code change seems needed, stop and treat it as a ZR bug.
+
 ### Connect a salon OA
 Follow the OAuth v4 OA permission flow (PKCE), then store the tokens encrypted, schedule the refresh job, and subscribe the webhook. On failure, set the status to `needs_reauth` and notify the owner. See `references/api-notes.md`.
 
 ### Expose a Zalo capability to the AI agent
-Add the tool to the registry (topic 08) with a Zod I/O schema, a permission and a read/write flag. Write tools MUST be `requiresConfirmation: true` unless they are listed in the auto-reply allowlist. Add a prompt-injection test.
+Only aggregate, non-personal outputs are allowed (counts, timings, costs, config status, with k ≥ 5 suppression on breakdowns). No message text, names, phones or UIDs. Use the `agent-tool` skill, and add a test asserting that the output contains no personal fields. Anything else waits for the policy change.
 
 ## Checklist before PR
 - [ ] Feature flag and kill switch respected; fallback channel tested.

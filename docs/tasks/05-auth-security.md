@@ -6,7 +6,8 @@
 ## 1. Scope
 
 **In**
-- Identity: phone + OTP (primary), optional email, optional Apple / Google / Zalo social login (account linking, never account creation by email match alone).
+- Identity: **booking without OTP** (name + phone guest booking, or Apple / Google / email sign-in) per roadmap X11; phone OTP only for the cases in §3.11; optional Zalo login (account linking, never account creation by email match alone).
+- Anti-abuse layer for OTP-less booking (§3.11).
 - Sessions: web (httpOnly cookies) and native (SecureStore tokens), refresh-token rotation with reuse detection, device/session list, logout everywhere.
 - Authorization: platform roles, salon roles, customer role, granular permissions, per-salon membership, staff "own data only" scoping.
 - Tenant isolation: application layer (mandatory) + PostgreSQL RLS (defense in depth).
@@ -26,7 +27,7 @@
 | # | Gap / issue in master prompt | Decision |
 |---|---|---|
 | G1 | §24 references "applicable Vietnamese privacy requirements" generically. The regime changed: **Law on Personal Data Protection No. 91/2025/QH15** took effect **1 Jan 2026**, guided by **Decree 356/2025/ND-CP**, which supersedes **Decree 13/2023/ND-CP**. | Design to Law 91 + Decree 356 concepts (consent, data subject rights, sensitive data, impact assessment dossiers, cross-border transfer). Decree 13 only as historical context. Legal review required before launch; never state "compliant" in UI or docs. |
-| G2 | OTP channel unspecified. In Vietnam, SMS OTP needs a registered **SMS brandname** via an aggregator (eSMS, VNPT, Viettel, etc.); **Zalo ZNS** OTP templates are cheaper/more reliable for Zalo users but need an approved OA + template and are phone-number delivered. | Provider abstraction `OtpSender` with ordered channels: ZNS OTP → SMS brandname → (dev only) console. Per-channel fallback after delivery failure/timeout. Channel choice logged, OTP value never logged. |
+| G2 | OTP channel unspecified, and there is **no Vietnamese legal entity** (PO decision 2026-11-02). Vietnamese operators (Viettel, Vinaphone, MobiFone) require pre-registered alphanumeric sender IDs **and** message templates; unregistered sender IDs are fully blocked since 25 Aug 2025; every message must carry the brand/app name in the body (since 12 Aug 2024). Foreign companies *can* register via international aggregators using an **international LOA (BM04)** + their home-country business registration + proof of brand ownership. | Ship OTP through a provider abstraction with a channel ladder (§3.10): SMS via a global CPaaS with a registered "GuGu" sender ID is the production baseline; Zalo Template Message OTP (channel `zalo_template`) only once topic 09 confirms a path without a VN entity; voice OTP and email OTP as fallbacks; social login to cut OTP volume. Channel choice logged, OTP value never logged. |
 | G3 | "Secure session management" undefined; web vs native storage differ. | Web: opaque session via httpOnly, Secure, SameSite=Lax cookies (`__Host-` prefix) + CSRF token for state-changing requests. Native: short-lived access JWT (≤15 min) + rotating refresh token in SecureStore. One server-side `Session` table backs both. |
 | G4 | No refresh-token rotation / theft detection. | Refresh token family; each use issues new token, old one invalidated; reuse of an invalidated token revokes the whole family and audits `session.reuse_detected`. |
 | G5 | Roles listed but no permission matrix, no rules for multi-salon users (owner of 2 salons, staff in 2 salons). | Permissions are strings (`booking:read`, `booking:write:any`, `booking:write:own`, …). Roles are permission bundles per salon membership. A user can have different roles in different salons. Active salon is selected per request (`X-Salon-Id` header / route param) and verified against membership — never trusted. Matrix in §3.4. |
@@ -44,16 +45,17 @@
 | G17 | Rate limiting only mentions OTP. | Layered limits: per phone, per IP, per device fingerprint, global OTP spend cap per hour (SMS-pumping/toll-fraud protection); CAPTCHA/Turnstile challenge on web after thresholds. |
 | G18 | Admin access not hardened. | Platform admins: separate login policy (email + TOTP/passkey mandatory), IP allowlist optional, impersonation ("view as salon") only read-only, time-boxed, reason required, audited, visible to the salon. |
 | G19 | Audit log lacks definition of "sensitive". | Enumerated audit events list (§3.7), append-only table, no updates/deletes from app role. |
+| G21 | Master prompt §10 requires a verified phone before booking. **Superseded by PO decision X11 (2026-11-02):** booking must be as frictionless as Polish booking apps. | No OTP wall at booking. Bookings carry `identity_verified=false` until proven. Abuse is handled by the anti-abuse layer and salon confirmation policies (§3.11). OTP volume drops to recovery/claim/sensitive flows. |
 | G20 | Secrets management vague. | Env via secrets manager in deploy (topic 13); `.env` only locally, `.env.example` committed; gitleaks in CI; field-level encryption key separate from DB credentials. |
 
 ## 3. Refined requirements
 
 ### 3.1 Identity & login
-- R1 Phone OTP login/registration is a single flow (`/auth/otp/request`, `/auth/otp/verify`). Responses are identical whether the phone exists or not (no enumeration).
+- R1 Account sign-in methods: Apple, Google, email magic link (no OTP), and phone OTP as an optional method (`/auth/otp/request`, `/auth/otp/verify`). Responses are identical whether the phone/email exists or not (no enumeration).
 - R2 OTP: 6 digits, CSPRNG, TTL 5 min, max 5 verify attempts per code, max 3 sends per phone per 15 min and 10 per day, resend cooldown 60 s. Stored as HMAC-SHA256(secret, phone‖code‖challengeId); constant-time compare; deleted on success.
-- R3 Booking requires a verified phone (master prompt §10). Guest browsing needs no account.
+- R3 Booking does **not** require OTP or an account (X11). Guests book with name + phone; signed-in users book in one tap. Every booking stores `identity_verified` + `identity_verification_method` (§3.11). Guest browsing needs no account.
 - R4 Optional email: verified via magic link; used for receipts and recovery, never as sole login for customers.
-- R5 Social login (Apple, Google, Zalo): link to an existing account only when the user is signed in or after phone OTP; Apple required on iOS if any other social login is offered (App Store guideline 4.8).
+- R5 Social login (Apple, Google, Zalo; reduces OTP volume — see §3.10): link to an existing account only when the user is signed in or after proving the account's email/phone; Apple required on iOS if any other social login is offered (App Store guideline 4.8).
 - R6 Salon members use the same identity; membership determines salon access. Staff invitations: single-use, expiring (72 h) token bound to the invited phone/email; accepting requires OTP on that phone.
 - R7 Platform admins: separate policy (G18).
 
@@ -113,7 +115,7 @@ The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single so
 - R24 **AI agent (08):** no standalone API key. Invoked inside a user session; server constructs `agent_on_behalf_of_user` principal with permissions = member ∩ tool allowlist ∩ entitlement `ai_agent`. Tool inputs never include `salonId`; it's injected. Write tools return a pending action that the human confirms through a normal authenticated endpoint. Per-salon rate/cost quotas. All tool calls → audit (`agent.tool_call`, args hash, result row count, no raw PII in log).
 - R25 Future external MCP access (salon connects own assistant): OAuth 2.1 with PKCE, per-salon scoped tokens, same permission strings, revocable. Not MVP.
 - R26 **Zalo (09):** webhook endpoint public but signature-verified, replay window ≤ 5 min, event-ID idempotency (Redis SETNX + DB unique), mapped to the salon by OA ID → `integration` principal with only `zalo:event:ingest`. OA access/refresh tokens encrypted (AES-256-GCM, data key wrapped by KMS), never returned by any API, refreshed by a job.
-- R27 Inbound Zalo user identities linked to customers only after phone match + explicit customer action or ZNS-delivered confirmation; never auto-merge by display name.
+- R27 Inbound Zalo user identities linked to customers only after phone match + explicit customer action or a confirmation delivered via Zalo Template Message (`zalo_template`, formerly ZNS); never auto-merge by display name.
 
 ### 3.7 Audit log
 - R28 Append-only `AuditLog` (actor principal, salonId, action, targetType, targetId, ip, userAgent, requestId, metadata JSON without secrets/OTP, createdAt). App DB role has INSERT only.
@@ -121,7 +123,7 @@ The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single so
 - R30 Salon owners see their salon's audit trail; platform admins see all.
 
 ### 3.8 Application security baseline
-- R31 Validation: Zod schemas from `packages/validation` at the edge (pipe) for every body/query/param; response DTOs whitelist fields (never return Prisma entities directly).
+- R31 Validation: Zod schemas from `packages/contracts` (schemas + inferred types + error codes) at the edge (pipe) for every body/query/param; response DTOs whitelist fields (never return Prisma entities directly).
 - R32 Rate limiting via Redis (sliding window): OTP (R2), auth endpoints, search, booking create (per user & per salon), agent messages, webhook ingress; global OTP spend circuit breaker.
 - R33 Headers: HSTS, CSP (strict; nonce for SSR pages), `X-Content-Type-Options`, `Referrer-Policy`, frame-ancestors none (except future Zalo Mini App needs — topic 09). CORS allowlist per environment.
 - R34 XSS: user text rendered as text in RN/RNW; any rich text sanitised server-side; JSON-LD serialised safely.
@@ -135,19 +137,96 @@ The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single so
 - R40 Consent records (`Consent` table: userId, purpose [`terms`, `privacy`, `marketing_push`, `marketing_zalo`, `marketing_sms`, `analytics`], version, granted/withdrawn at, channel). Marketing defaults off.
 - R41 Data subject requests: export (JSON + human-readable, async job, signed link 24 h) and deletion (G14) within documented SLA; requests audited.
 - R42 Sensitive data: avoid collecting health data; skincare/clinic notes may be health-adjacent → mark `customer:notes` as potentially sensitive, restricted, excluded from analytics and agent context unless owner opts in.
-- R43 Cross-border transfer: hosting region decision (VN vs Singapore) is an open question; if outside VN, a transfer impact assessment dossier is likely required — legal to confirm.
+- R43 Cross-border transfer: hosting is **AWS Singapore (ap-southeast-1)** (PO decision 2026-11-02). Vietnamese personal data is therefore transferred abroad; Law 91/2025 + Decree 356/2025 likely require a cross-border transfer impact assessment dossier — legal to confirm. Keep a record of processing locations (AWS region, CPaaS providers, Zalo, email provider) in the data inventory. SMS/voice providers are additional cross-border processors.
 - R44 Breach response runbook (detect → contain → notify authority/data subjects within legal deadline) documented in `docs/security.md`.
 - R45 Never state legal compliance in product copy or docs; use "designed with privacy in mind; pending legal review".
 
+### 3.10 OTP delivery strategy (no Vietnamese entity, AWS ap-southeast-1)
+
+**Constraints (verified 2026-11):**
+- Vietnamese operators require pre-registration of the alphanumeric sender ID (3–11 chars) and message templates. Viettel also requires registration of URLs inside messages; Vinaphone/MobiFone require content registration; MobiFone charges per-sender-ID fees.
+- Unregistered sender IDs are fully blocked (since 25 Aug 2025). Some providers overwrite them for best-effort delivery; Vonage notes OTP may fall back to a text-to-speech call. Don't rely on either.
+- The body must include the brand/app name: `[GuGu] Ma xac thuc cua ban la 123456. Het han sau 5 phut.` (ASCII Vietnamese to stay in one GSM-7 segment; final copy owned by 03).
+- Transactional only on the registered sender. No promotional content, no finance content.
+- **Foreign companies can register** through international CPaaS providers: international LOA (BM04, company letterhead, stamped/sealed, signed by the person named in the business license), colour copy of the home-country business registration, proof of rights to the brand name, Vietnamese + English samples. Lead time: weeks; one source reports 2–6 months. Start in T-BIZ immediately.
+- Vendors advertising "OTP in Vietnam without sender ID" exist. They're unverified grey routes → **forbidden** (deliverability, blocking and legal risk).
+
+**Channel ladder** (per challenge; ordered, configurable per environment by feature flag):
+
+| Order | Channel | When used | Status |
+|---|---|---|---|
+| 1 | `sms` via primary CPaaS (proposed AWS End User Messaging SMS, same region/account, sender-ID registration in console) | default for all phones | MVP; blocked on sender-ID approval |
+| 2 | `sms` via secondary CPaaS (Twilio Verify or Infobip) | primary fails/timeouts (no DLR in 20 s) or per-operator routing | MVP+ |
+| 3 | `voice` OTP (TTS call, vi/en) | user taps "Call me instead" after 60 s, or SMS failures | MVP+ |
+| 4 | `zalo_template` OTP (Zalo Template Message, formerly ZNS) | only when topic 09 confirms an aggregator/OA path without a VN entity | later, gated |
+| 5 | `email` OTP / magic link | users with a verified email (recovery, admins, salon staff on web) | MVP |
+| — | `console` / provider-sink | local, CI, preview environments only; hard-disabled in prod | MVP |
+
+**Reducing OTP volume:** with X11 there is no OTP at booking. OTP is used only for the flows in §3.11.3. Apple/Google/email sign-in plus long sessions (R9/R10) keep phone-OTP logins rare. Phone possession can also be proved without OTP via the confirm link (§3.11.2).
+
+**Abstraction:** `OtpChannel { id; supports(phone, locale): boolean; send(challenge): DeliveryResult; parseReceipt(webhook) }` + `OtpOrchestrator` (ladder, timeouts, per-provider circuit breaker, cost accounting per send into 12's usage metering). Provider adapters live behind `apps/api/src/modules/auth/otp/providers/*`. Adding a provider needs no auth-flow changes.
+
+**Abuse & spend protection (kept and extended):**
+- Limits from R2 + per-IP/device/ASN limits; web challenge (Turnstile) after thresholds.
+- Destination allowlist: `+84` only at launch (operator prefix validation via libphonenumber). International numbers rejected.
+- Global and per-hour spend caps per channel, with a circuit breaker that pauses SMS/voice to anomalous prefixes and alerts on-call.
+- Conversion monitoring: sends vs successful verifications per prefix/IP. A sudden drop flags SMS-pumping.
+- Provider-side fraud features enabled where available (e.g. Twilio Verify Fraud Guard, AWS protect configurations).
+
+### 3.11 Booking without OTP: identity flags and anti-abuse (X11)
+
+#### 3.11.1 Booking identity
+- Booking fields (schema owner 04; state machine 06): `identity_verified boolean NOT NULL DEFAULT false`, `identity_verification_method` enum `none | account_phone_verified | otp | confirm_link | salon_verified`, `identity_verified_at`. `salon_verified` = salon called/knows the customer. It is recorded but doesn't verify phone possession for account purposes.
+- Guest booking creates or reuses an **unverified contact** keyed by E.164 phone. It is never merged into a `User` account until possession is proven (§3.11.3). Two people typing the same phone don't see each other's data.
+- Guest self-service (cancel/reschedule) uses a signed, single-booking **manage link** (opaque token, hashed in DB, expires after the appointment, rate-limited). The link grants no access to other bookings for that phone.
+- Booking API responses never reveal whether a phone or email has an account or other bookings.
+
+#### 3.11.2 Anti-abuse layer (replaces the OTP wall)
+| Control | Rule (defaults, configurable per environment / feature flag) |
+|---|---|
+| Rate limits | Per device (install ID on native; first-party cookie on web), per IP (/24 or /64) and ASN, per phone: e.g. ≤ 3 booking attempts / 10 min / device; ≤ 3 future unverified bookings per phone platform-wide; ≤ 2 unverified bookings per phone per salon per day. |
+| Bot check | Web: Cloudflare Turnstile (invisible, escalates to interactive) on booking submit. Native: App Attest (iOS) / Play Integrity (Android) token. Spike decides the Expo module; until then, server-side risk only. |
+| Phone sanity | libphonenumber: valid `+84` mobile only at launch; reject fixed-line, invalid or known-disposable ranges. |
+| Velocity checks | Same phone in overlapping slots at different salons; many distinct names per phone; many phones per device/IP; burst bookings on one salon. A hit → `risk=high` → booking forced to `pending` (salon confirmation) or blocked plus audit `booking.abuse_suspected`. |
+| Reliability history per phone | Salon sees its own full history: visits, no-shows, late cancels. Cross-salon, only a coarse platform **reliability tier** (`new / ok / watch / blocked`) computed from counts. No other-salon names or details. Phone is stored hashed for this index. Legal review needed (personal data shared between controllers). |
+| Salon confirmation policy | `SalonSettings.bookingConfirmationPolicy`: `auto_confirm` · `confirm_unverified` · `confirm_first_time` · `confirm_all` (default per tracker q66), plus `confirm_if_tier_watch` (always on). Matching bookings start `pending` (06) with a response SLA, after which they auto-expire and notify the customer. |
+| Confirm link | Optional link in the booking confirmation message (SMS/`zalo_template`/email; 09/11 deliver). Tapping it sets `identity_verified=true, method=confirm_link` when sent to the phone (proves possession), and can confirm attendance. Salon can require it for `watch` tier. Single-use, expires, does not sign the user in. |
+| Block lists | Salon can block a phone (`customer:block`, owner/manager). Platform admins can block globally. Blocked → generic "unable to book online, please contact the salon". |
+| Monitoring | Dashboards: unverified share, pending-expiry rate, no-show rate by verification method, abuse hits. Alert on spikes. |
+
+#### 3.11.3 Where phone verification (OTP) still applies
+| Flow | Why | Alternative before OTP |
+|---|---|---|
+| Phone-OTP sign-in (optional method) | Possession proves account ownership | Apple/Google/email first |
+| Account recovery when the only verified factor is the phone | Takeover risk | Verified email link |
+| Adding or changing the account phone | Prevents attaching someone else's number | — |
+| Claiming guest bookings / unverified contact history into an account | Prevents stealing someone's booking history | Confirm link already clicked on that phone counts |
+| Sensitive changes: data export, account deletion, linking a new social login | High-impact or irreversible | Re-auth with existing strong method |
+| Salon member: first login on a new device, invitation acceptance, ownership transfer | Tenant takeover risk | Email magic link / passkey for owners |
+| Customer opts to verify for perks (skip salon confirmation, "verified" badge) | Optional | Confirm link |
+
+**Volume and cost estimate** (assumptions to validate in beta):
+- Previously: ≈ 1 OTP per new customer plus each new-device login → roughly 0.6–1.0 OTP per booking at launch.
+- Now: claims (~5–10% of guest bookers), phone-OTP sign-ins (minority, most use Apple/Google/email), salon-member device logins, recovery/sensitive changes → estimate **0.03–0.1 OTP per booking**, i.e. an order of magnitude less.
+- Cost per SMS on international routes to Vietnam: low single-digit US cents. Measure in the provider test (q to PO). Formula for the tracker: `monthly_otp_cost ≈ bookings × 0.1 × (1 + retry_rate) × price_per_sms`.
+- Note: booking confirmations/reminders by SMS (owned by 11) now dominate messaging cost, not OTP. The confirm link rides on that message, so it adds no extra sends.
+
 ## 4. Proposed technical approach
 - **Libraries:** NestJS guards + custom policy service (no heavy framework); `@casl/ability` optional if policies grow — decide in ADR. `libphonenumber-js` for phone normalisation. `jose` for JWT. `@nestjs/throttler` with Redis storage or custom sliding window. Argon2 not needed (no passwords) except admin passkeys/TOTP via `otplib` / WebAuthn (`@simplewebauthn/server`).
-- **Packages:** `packages/domain/auth` (permissions, roles, policy pure functions — shared with UI for hiding, never trusted on client), `packages/validation/auth` (Zod), `apps/api/src/modules/auth`, `.../authorization` (guards, policy, tenant context, Prisma extension), `.../audit`.
-- **OTP providers:** interface `OtpChannel { send(phone, code, locale): DeliveryResult }`; implementations `ZnsOtpChannel` (via aggregator or direct Zalo API — topic 09), `SmsBrandnameChannel` (eSMS/VNPT/etc., provider chosen by PO), `ConsoleChannel` (dev). Delivery status webhooks update `OtpChallenge.deliveryStatus`.
+- **Packages:** `packages/domain/src/auth` (permission matrix, roles, pure policy functions — shared with UI for hiding, never trusted on client), `packages/contracts/src/auth` (Zod request/response schemas, inferred types, auth error codes), `apps/api/src/modules/auth` (incl. `otp/`), `.../authorization` (guards, policy, tenant context, Prisma extension), `.../audit`. There is no `packages/validation` or `packages/types` (roadmap X3).
+- **OTP providers:** see §3.10. Interface `OtpChannel` with implementations `SmsChannel` (adapters: AWS End User Messaging SMS, Twilio Verify/Messaging, Infobip, Vonage), `VoiceOtpChannel`, `EmailOtpChannel`, `ZaloTemplateOtpChannel` (`zalo_template`, gated on topic 09), `ConsoleChannel` / provider-sink (local and CI). Delivery receipts update `OtpChallenge.deliveryStatus`.
 - **RLS:** raw SQL migrations for policies (Prisma doesn't model RLS), checked into `apps/api/prisma/migrations`; a test helper asserts every table with `salon_id` has RLS enabled.
 - **Why cookies on web + tokens on native:** cookies are immune to XSS token theft; native has no cookie jar reliability with RN fetch across platforms and SecureStore is the platform keychain.
 
 ## 5. Acceptance criteria
 - AC1 OTP request for unknown and known phone return identical status/body/timing envelope (±50 ms jitter added).
+- AC-X11a A guest can create a booking with name + phone, without OTP or account, in one request (web with Turnstile pass, native with attestation or server-risk pass); booking stored with `identity_verified=false, method=none`.
+- AC-X11b The 4th future unverified booking for one phone is rejected/forced to `pending` per policy; overlapping-slot velocity hit forces `pending` and writes an audit event.
+- AC-X11c Claiming guest bookings into an account requires OTP or a previously clicked confirm link on that phone; without it, the account sees none of them.
+- AC-X11d Clicking a valid confirm link sets `identity_verified=true, method=confirm_link`; a reused/expired link does nothing and reveals nothing.
+- AC-X11e Booking/claim responses are identical for phones with and without accounts (no enumeration).
+- AC2a With the primary SMS provider failing (provider-sink simulates timeout), the fallback channel delivers within the configured timeout and the challenge records both attempts.
+- AC2b The global OTP spend breaker trips at the configured threshold and blocks new sends to high-risk prefixes while keeping a degraded path (voice/email) for known users.
 - AC2 OTP stored hashed; DB dump contains no 6-digit codes; logs scanned in test contain no OTP.
 - AC3 6th wrong attempt locks the challenge; 4th send within 15 min returns 429 with retry-after.
 - AC4 Reusing a rotated refresh token revokes all sessions of that family and writes an audit event.
@@ -164,16 +243,16 @@ The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single so
 - AC15 Security headers present on web responses (automated check).
 
 ## 6. Dependencies
-- **01** monorepo/package boundaries; **03** localized error keys & OTP message templates; **04** schema (User, Session, SalonMember, AuditLog, Consent, OtpChallenge, encrypted IntegrationCredential); **08** agent tool catalog consumes the permission envelope; **09** Zalo signature algorithm, ZNS OTP template, OA token lifecycle; **11** account deletion/export UX & notification preferences; **12** subscription entitlements (`ai_agent`, `zalo_inbox`); **13** secrets manager, CI security scans, WAF/Cloudflare rules.
+- **01** monorepo/package boundaries; **03** localized error keys & OTP message templates; **04** schema (User, Session, SalonMember, AuditLog, Consent, OtpChallenge, encrypted IntegrationCredential); **08** agent tool catalog consumes the permission envelope; **09** Zalo signature algorithm, Zalo Template Message OTP (`zalo_template`) feasibility without a VN entity, OA token lifecycle; **11** account deletion/export UX & notification preferences; **12** subscription entitlements (`ai_agent`, `zalo_inbox`); **13** secrets manager, CI security scans, WAF/Cloudflare rules.
 
 ## 7. Suggested sub-milestones
 1. ADR: session model (cookies web / tokens native), ADR: RLS strategy. Permission matrix in `packages/domain`.
-2. Phone OTP with console + one SMS provider; sessions; refresh rotation; rate limits.
+2. Phone OTP with provider-sink + primary SMS adapter (sender-ID registration started in T-BIZ on day 0 — lead time can be weeks to months); sessions; refresh rotation; rate limits; spend breaker.
 3. Salon membership + guards + policy layer + tenant-scoped repository extension + default-deny boot check.
 4. Audit log module; staff invitations.
 5. Cross-tenant generated test suite.
 6. RLS policies + context extension + RLS tests.
-7. Social logins (Apple/Google), ZNS OTP channel (with 09).
+7. Social logins (Apple/Google), voice + email OTP fallbacks, secondary SMS adapter; `zalo_template` OTP channel once 09 confirms feasibility.
 8. Privacy: consents, export, deletion jobs; data inventory.
 9. Admin hardening (TOTP/passkey, impersonation).
 10. Agent principal envelope (with 08); Zalo webhook verification & token encryption (with 09).
@@ -190,16 +269,20 @@ Auth exposes **no data tools** to the agent beyond:
 | Tool | R/W | Permission | Notes |
 |---|---|---|---|
 | `whoami` | R | any member | Returns asking member's role, salon, permissions summary — lets the agent explain what it can't answer. |
-| `list_team_members` | R | `member:invite` or `analytics:read` | Names/roles only, no phones. |
+| `list_team_members` | R | `member:invite` or `analytics:read` | Roles + pseudonymous staff tokens only (X10: no personal data, incl. staff names, to the LLM); names re-hydrated server-side after the model call. |
+| `booking_verification_stats` | R | `analytics:read` | Aggregates: share of unverified bookings, pending-expiry and no-show rate by verification method. No phones. |
 | `audit_recent_activity` | R | `audit:read` | Owner only; summarised, no IPs. |
 Prohibited for the agent: role changes, invitations, session management, exports, Zalo token ops, any platform-admin action.
 
 ## 10. Open questions for the product owner
-1. SMS brandname provider (eSMS, VNPT, Viettel, Stringee…) and who registers the "GuGu" brandname?
-2. Will GuGu own a central Zalo OA for OTP/ZNS from day one (needs verified business entity in VN)?
-3. Hosting region: Vietnam vs Singapore (affects cross-border transfer obligations and latency).
+1. Which **non-Vietnamese entity** signs the international LOA (BM04) for the "GuGu" sender ID — and does it own (or can it prove rights to) the "GuGu" brand name? Without any registered company and brand proof, operators will reject the sender ID. (Decided: no VN entity; AWS Singapore hosting.)
+2. Primary SMS provider: AWS End User Messaging SMS (same cloud, console registration) vs Twilio Verify vs Infobip — and a secondary for failover? Recommendation: AWS primary + Twilio or Infobip secondary, final pick after a delivery/price test on Viettel/Vinaphone/MobiFone numbers.
+3. Interim plan if sender-ID approval is not done before beta. With X11, booking itself no longer needs SMS. Proposed: launch booking without SMS confirmations (email/push/`zalo_template` when available); keep OTP flows on email/voice until approval; no grey routes.
+3b. Monthly OTP budget ceiling and the spend-breaker threshold → tracker **q48** (OTP volume now ≈ 0.03–0.1 per booking, §3.11.3).
 4. Should staff see customer phone numbers by default? (Default proposed: hidden, owner can enable.)
 5. Account deletion grace period (30 days proposed) and booking-history retention period for salons.
 6. Is Zalo login wanted for customers in MVP, or only Apple/Google?
 7. Legal counsel engagement for Law 91/2025 + Decree 356/2025 review before public launch — who and when?
 8. Admin 2FA method: TOTP vs passkeys (both proposed, passkeys preferred).
+9. (X11) Default salon confirmation policy for unverified/first-time customers → tracker **q66** (rec there: instant by default, salon can switch on).
+10. (X11, tracker **q68**) May a coarse cross-salon reliability tier (no-show/late-cancel counts per hashed phone) be shown to other salons? Needs legal review (data sharing between controllers). Proposed: yes, tier only, after legal sign-off; salon-own history only until then.

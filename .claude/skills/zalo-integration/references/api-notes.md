@@ -45,6 +45,16 @@ Items marked (3p) come from third-party SDKs or docs and have not been confirmed
 - User APIs: `getUserInfo`, `authorize`, `getPhoneNumber`. The phone API needs a permission request in app management.
 - Official starter with a booking flow: `Zalo-MiniApp/zaui-restaurant`.
 
+## Operating without a VN entity (research 2026-11-02)
+- [official] OA verification routes: business registration name, a trademark protected in Vietnam (IP Office), or a trading name. A CVXT letter and stamped licences are required. Submit within 14 days of creating the OA; the legal representative confirms within 48 h; review takes 2–3 working days. The ID field accepts "Hộ chiếu", but foreign passports are not addressed.
+- [3p] In practice, verification needs a VN business registration or a VN trademark. Foreign citizens reportedly could not verify (2024). Registration needs a +84 phone. Foreign brands commonly use a local partner who owns the OA.
+- [official] OA, App and ZBS admins are **personal Zalo users**. App activation asks for phone, email, icon and domain. Integration itself is free. One ZBS Account links many OAs and Apps.
+- [3p] Activated apps can only use reviewed/approved APIs. No source found requiring a VN entity to create an App or receive OA permissions.
+- [3p] BSPs (Infobip, eSMS, 8x8): messages come from **your own verified OA**. They charge per delivered message and offer SMS failover. No shared-OA offer for foreign senders was found.
+- [official] Extensions (OA tiện ích) require a VN-registered developer with IT industry codes 6201/6202/6209/6311. Out of scope for GuGu without an entity.
+- [official blog] Mini App owner verification is mandatory: a business verifies via its OA or a business licence plus the representative's ID.
+- Unverified: whether a third-party App (GuGu) can be linked to a salon's ZBS Account (spike S-Z2); Zalo Login activation for a foreign-owned app (spike S-Z1).
+
 ## Indicative OA packages (3p, unverified)
 - 2025: Nâng cao 99k VND/month, Premium 399k/month.
 - From 2026-06-01 (per a consultancy): Cơ bản (free for verified OAs), Tiêu chuẩn (~1M/yr), Tăng trưởng (~2.5M/yr), Toàn diện (~6M/yr).

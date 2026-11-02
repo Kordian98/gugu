@@ -11,7 +11,8 @@ How the GuGu repo is put together: one Expo app, one NestJS API, shared TypeScri
 | contracts → OpenAPI → api-client pipeline | not started | — |
 | Boundary + lint + secret checks in CI | not started | — |
 | `agents:check`, ownership map, llms.txt | partial (docs only) | `.claude/skills/architecture/references/ownership.md` |
-| ADRs 0001–0005 | not started | — |
+| ADRs 0001–0007 | planned (seeds in spec §3.8) | `docs/tasks/01-architecture.md` |
+| Local git workflow (worktrees, gates, local merge) | defined (docs only) | `.claude/skills/architecture/references/git-workflow.md` |
 
 ## Map
 _Filled in as code lands: package → purpose → entry file._
@@ -32,4 +33,10 @@ See `.claude/skills/architecture/SKILL.md` → Invariants. They are not repeated
 _To be documented: request lifecycle (guard → Zod pipe → use-case → outbox → job), client data flow (hook → fetcher → API), codegen flow._
 
 ## Decisions
-_Links to accepted ADRs._
+- Hosting: AWS ap-southeast-1 (Singapore) → ADR-0007 (planned).
+- Packages: `contracts` + `domain`; no `types`/`validation` (X3) → ADR-0002 (planned).
+- Web output mode: undecided until spike S1 (X8) → ADR-0006.
+- Privacy regime: PDPL 91/2025/QH15 + Decree 356/2025/ND-CP (X1); no compliance claims.
+- Merge policy: agents merge locally after gates + reviewers; no remote yet.
+
+_Links to accepted ADRs go here._

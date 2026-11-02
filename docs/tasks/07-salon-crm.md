@@ -15,7 +15,7 @@
 - Booking operations UI on top of the booking engine (06). The UI never computes availability.
 - Customer CRM: directory, profile, visit history, notes (internal only), tags, no-show history, preferred services and staff, last visit, contact channels (phone, Zalo).
 - Management screens: salon profile, opening hours and holidays, services and variants, staff with schedules, breaks, time off and permissions, booking and cancellation policy.
-- Onboarding wizard, including AI-assisted import of a price list from a photo, PDF or pasted Zalo/Facebook message.
+- Onboarding wizard, including AI-assisted import of a price list from a photo, PDF or pasted text of a **price board** (no personal data; see the PII rule in §8).
 - Dashboard and reports: appointments, customers (new vs returning), no-show rate, utilization, popular services, staff utilization, revenue with explicit provenance labels.
 - Read-model / metrics API (`/api/v1/salons/:salonId/insights/*`), shared by dashboards and the AI agent.
 - Offline sale recording (manual "paid at salon" amount at completion). This is not payment processing.
@@ -23,7 +23,7 @@
 ### Out (owned elsewhere)
 - Slot algorithm, holds, concurrency, state machine → **06**.
 - Roles, permission enforcement, RLS → **05**. This topic defines the CRM permission *needs*; 05 owns the matrix.
-- Zalo OA connection, inbox transport, ZNS templates → **09**. This topic defines where Zalo shows up in the CRM UX.
+- Zalo OA connection, inbox transport, ZBS Template Messages (channel `zalo_template`; formerly ZNS) → **09**. This topic defines where Zalo shows up in the CRM UX.
 - AI agent runtime, LLM, conversation storage → **08**. This topic defines the read models and tool candidates.
 - Notification delivery → **11**. Attribution and commission ledger, subscriptions → **12**.
 - Visual tokens and components → **02**. This topic sets the operational UX rules that apply on top of them.
@@ -34,14 +34,15 @@
 
 | # | Gap / issue in master prompt | Decision |
 |---|---|---|
-| G1 | No mention of **walk-ins**, which are a large share of traffic in VN nail and hair shops. | Walk-in is a first-class flow: one tap creates an "in-progress now" booking with source `walk_in`, gets the next free staff, and skips customer identification (an anonymous customer can be linked later). Add `walk_in` to the acquisition sources (coordinate with 12). |
-| G2 | No mention of **phone and Zalo bookings** entered by the receptionist. That is the dominant channel today: salons use notebooks, Zalo and Excel. | "Quick add" booking, under 15 s for a returning customer: phone-number-first search, recent customers, last service prefilled. Source `phone` / `zalo_chat` / `staff_created`. |
+| G1 | No mention of **walk-ins**, which are a large share of traffic in VN nail and hair shops. | Walk-in is a first-class flow: one tap creates an "in-progress now" booking with source `walk_in`, gets the next free staff, and skips customer identification (an anonymous customer can be linked later). `walk_in` is in the single booking-source enum owned by 12 (roadmap X6). |
+| G2 | No mention of **phone and Zalo bookings** entered by the receptionist. That is the dominant channel today: salons use notebooks, Zalo and Excel. | "Quick add" booking, under 15 s for a returning customer: phone-number-first search, recent customers, last service prefilled. Source `phone` / `zalo_chat` / `staff_created` from the 12-owned enum (X6). 07 never adds values locally. |
 | G3 | "Customer CRM" has no dedupe or identity rules. Phone is the de-facto ID in VN, and customers change numbers or share family phones. | `CustomerSalonProfile` is keyed on salon + normalized E.164 phone (nullable for anonymous walk-ins). There is a merge-profiles action (owner/manager), audited. A GuGu account links to the profile when the phone is verified. |
 | G4 | The dashboard KPI list is long. The prompt asks for it to be "simple to read", but a dense KPI dashboard is the opposite of that. | The home is **Today**, not analytics: a timeline of the day plus at most 3 status chips. Analytics lives in a separate "Insights" tab with at most 4 headline numbers, each expandable. Every metric has one canonical definition (§4.6). |
-| G5 | Revenue labelling is mentioned but not modelled. | Each money figure carries a `provenance` enum: `estimated_from_bookings`, `reported_by_salon`, `recorded_offline_sale`. The UI shows a mandatory badge and tooltip. The figures never sum across provenance without a label. The words "payment" and "doanh thu đã thanh toán" are never used. |
+| G5 | Revenue labelling is mentioned but not modelled. | Each money figure carries `revenueKind: RevenueKind` (`estimated_from_bookings` | `recorded_offline_sale` | `reported_by_salon`), defined once in `packages/domain/metrics` and owned by 07 (roadmap X5). The UI shows a mandatory badge and tooltip. The figures never sum across provenance without a label. The words "payment" and "doanh thu đã thanh toán" are never used. |
 | G6 | No **multi-location** model. A chain with two branches is common. | MVP: 1 Salon = 1 location = 1 tenant. An owner may own several salons and switch between them (workspace switcher). An org-level rollup is deferred, but the data model (05/04) must allow an `Organization` parent later. |
 | G7 | Staff "performance" is undefined and could feel punitive. | Show utilization, completed appointments, rebooking rate and average rating. Staff see only their own numbers, and owner/manager see everyone's. Owners can hide ratings from staff. |
 | G8 | No offline or flaky-network behaviour for the calendar, although receptionists run it on cheap Android phones and tablets. | Read caching (TanStack Query persisted) with a visible "offline / last updated" banner. Writes require a connection in MVP: show a clear retry and never queue silently. Offline write queue is out of scope for MVP. |
+| G9a | Product owner rule (2026-11): **no personal data may be sent to any LLM** for now. | Every AI feature that needs personal data is **deferred**: paste-from-Zalo → booking draft, chat-to-booking, client search/profile/notes via the agent, agent-drafted bookings for named clients. The agent sees only aggregates and pseudonymous tokens (`staff_3`, `customer_17`), re-hydrated server-side after the model call by 08's PII firewall. Free text (notes, reviews, messages) is never sent. |
 | G9 | No AI-agent readiness, although that is a product requirement. | All dashboard numbers come from documented read-model endpoints with Zod schemas, which are also registered as agent tools (§8). Dashboards hold no business logic of their own. |
 | G10 | "Promote their business" in the vision has no screen. | Placeholder "Grow" tab with a shareable booking link and QR code (attribution source `qr_code` / `direct_link`). Promoted listings come later (12). |
 | G11 | No undo, confirmation or error policy for destructive calendar actions. | Reversible actions (move, check-in) give an inline **Undo** snackbar for 6 s. Irreversible or customer-notifying actions (cancel, no-show) get a one-step confirm sheet with the reason prefilled. |
@@ -97,7 +98,7 @@ Acceptance: a receptionist can find the next customer and check them in with **a
 | Check in / complete / no-show | 1 tap + undo | Complete can open an optional "amount received" field (offline sale). |
 | Reschedule | ≤ 4 taps | Pick the booking, choose from suggested slots or drag on desktop, notify toggle. |
 | Cancel | 2 taps | Reason chips plus a free-text note. |
-| Paste from Zalo | ≤ 3 taps | Paste a customer message ("mai 3h chiều làm gel nhé") → the AI parser (08) suggests client, service and time → the receptionist confirms. This is behind a feature flag and needs a subscription. Without it, the paste fills the notes field. |
+| Paste from Zalo | ≤ 3 taps | **DEFERRED (PII rule, G9a).** The message would contain personal data, so for now the paste only fills the notes field and nothing is sent to an LLM. Later: an AI parser suggests client, service and time and the receptionist confirms. This is behind a feature flag and needs a subscription. Without it, the paste fills the notes field. |
 
 ### 3.5 Customer CRM
 - Directory: search, filters (tag, last visit range, no-show ≥ N, new/returning, birthday this month), sort by last visit or visits. Virtualized list on mobile, table on desktop.
@@ -115,7 +116,7 @@ Acceptance: a receptionist can find the next customer and check them in with **a
 ### 3.7 Onboarding wizard (target: first bookable state in under 10 minutes)
 1. Business basics: name, category, phone, address with a map pin.
 2. Hours: template presets ("9:00–21:00 every day" is common).
-3. Services: **Import** (photo or PDF of the price board, or pasted text from Zalo/Facebook → AI extraction (08) → editable table with confidence highlighting) **or** pick from category templates **or** add manually.
+3. Services: **Import** (photo or PDF of the price board, or pasted price-board text → AI extraction (08); the client strips phone numbers and names before upload and the server PII-scans and rejects input that contains them → editable table with confidence highlighting) **or** pick from category templates **or** add manually.
 4. Team: "Just me" or add staff (name plus services).
 5. Photos: logo, cover, gallery (optional, can skip).
 6. Go live: show the share link and QR code, plus an optional Zalo OA connect step (09).
@@ -134,13 +135,21 @@ Every list and panel ships all three states, with a localized copy key per scree
 - Skeletons match the final layout, with no spinners on full screens.
 - Errors are human, localized and give a retry. Server error codes map to i18n keys (03).
 
-### 3.10 Revenue provenance (hard rule)
+### 3.10 Revenue kinds (hard rule, roadmap X5)
+`RevenueKind` lives in `packages/domain/metrics/revenue-kind.ts` (owner: 07). 08 and 12 import it and never redefine it.
 - `estimated_from_bookings`: the sum of booking price snapshots for completed bookings (ranges use the min price, flagged).
 - `reported_by_salon`: periodic totals the salon enters manually (optional "daily close" form).
 - `recorded_offline_sale`: an amount entered at completion for a specific booking.
 - The UI badge text is "Ước tính / Estimated", "Salon báo cáo / Reported" or "Đã ghi nhận tại salon / Recorded at salon". None of these may be labelled payment, paid, or verified.
 
-### 3.11 Accessibility and readability
+### 3.11 Calm mode inherits the GuGu brand
+The visual reference `design/hero-references/ref-01-homepage-lilac-diorama.png` (lilac/pink, gen-z) drives the **expressive** marketing surfaces (02). The CRM uses **calm** mode: it is the same product with the volume turned down.
+- **Kept from the brand:** the type families (the display serif only for page titles and the Insights headline numbers; UI sans for everything else), radii (large rounded cards, pill buttons and chips), the deep plum/near-black primary button, the lilac accent for selection, focus, the active nav item and the current-time line, and soft pink/lilac tints for status and service colour stripes.
+- **Dropped in calm mode:** 3D, glass and iridescent effects, gradients on text, handwritten script accents, decorative stickers and hearts, large hero imagery, and parallax or ambient motion. Motion is limited to functional transitions (≤ 200 ms, reduced-motion respected).
+- **Surfaces:** a warm off-white background and white cards with hairline borders instead of shadows. Lilac is used only as an accent, never as a large fill behind dense data.
+- **Implementation:** the same tokens through the `calm` surface mode from 02. No CRM-only colours; any new need goes back to 02 as a token request.
+
+### 3.12 Accessibility and readability
 - Minimum body text 16 px on mobile, a 44 pt touch target, WCAG AA contrast, and status never shown by colour alone (icon plus label).
 - Vietnamese copy is short and conversational ("Khách đã đến" rather than "Xác nhận check-in khách hàng").
 - One primary action per screen, no modal stacking (at most one sheet), and destructive actions sit apart from primary ones.
@@ -184,13 +193,14 @@ features/salon-crm/
 - `SalonReportedRevenue(salonId, periodStart, periodEnd, amountVnd, reportedBy)`.
 - Hand both entities to 04 for the schema.
 
-### 4.6 Metric registry (single source of truth)
+### 4.6 Metric catalogue (layered on read models, roadmap X7)
+Layering: **04 read-model registry** (backend queries + permission + tenant scope + untrusted-field flags) → **07 metric catalogue** (this section; every metric references one or more read models and adds definition, unit, grain and `revenueKind`) → **08 tool registry** (generates agent tools from read models and metrics). 07 does not query tables directly for metrics; it goes through 04 read models. The interfaces are fixed in roadmap Step 3 (`A0`).
 `packages/domain/metrics/registry.ts` holds a typed list of metric definitions:
-`{ key, labelKey (i18n), definitionKey (i18n), unit, provenance?, grain, dimensions[], permission, query handler name }`.
+`{ key, readModels[] (04 ids), labelKey (i18n), definitionKey (i18n), unit, revenueKind?, grain, dimensions[], permission, query handler name }`.
 Used by:
 1. API: `GET /insights/metrics/:key?from&to&groupBy` validated against the registry.
 2. Dashboards: render cards from the registry.
-3. AI agent (08): tool descriptions are generated from the registry, so there is one definition for both humans and the LLM.
+3. AI agent (08): the 08 tool registry generates tools from the catalogue and the read models, so there is one definition for both humans and the LLM.
 
 Initial metrics:
 
@@ -205,9 +215,9 @@ Initial metrics:
 | `utilization.salon` | Booked staff-minutes / available staff-minutes (schedules minus breaks and time off). |
 | `utilization.staff` | Same, per staff. |
 | `services.popular` | Completed BookingService count by service and variant. |
-| `revenue.estimated` | Sum of price snapshots, completed bookings. Provenance `estimated_from_bookings`. |
-| `revenue.offline_recorded` | Sum of OfflineSale. Provenance `recorded_offline_sale`. |
-| `revenue.reported` | Sum of SalonReportedRevenue. Provenance `reported_by_salon`. |
+| `revenue.estimated` | Sum of price snapshots, completed bookings. Kind `estimated_from_bookings`. |
+| `revenue.offline_recorded` | Sum of OfflineSale. Kind `recorded_offline_sale`. |
+| `revenue.reported` | Sum of SalonReportedRevenue. Kind `reported_by_salon`. |
 | `bookings.by_source` | Count by attribution source (from 12). |
 | `rebooking.rate` | Customers completing again within N days (default 60). |
 
@@ -216,7 +226,7 @@ All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_C
 ### 4.7 Zalo touchpoints (contracts for 09)
 - Client profile: `zaloLinkState` (not_linked / follower / linked) and an "Open chat" deeplink or in-app inbox thread.
 - Booking detail: a "Send confirmation via Zalo" status from the notification log (11/09).
-- Inbox: a thread list keyed to `CustomerSalonProfile`, with a "Create booking from this chat" action that prefills from the message (AI parse, 08).
+- Inbox: a thread list keyed to `CustomerSalonProfile`, with a "Create booking from this chat" action that prefills only the client (no AI). AI parsing of chat text is **deferred** (G9a).
 - All of these degrade gracefully when Zalo is not connected.
 
 ### 4.8 Permissions needed (input for 05)
@@ -233,7 +243,7 @@ All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_C
 5. **Calendar mobile:** the staff switcher and agenda render 200 bookings/day at 60 fps target on a mid-range Android (FlashList).
 6. **Tenant isolation:** every CRM endpoint returns 404 for a resource of another salon (integration test per endpoint, shared with 05).
 7. **Internal notes:** none of the customer-facing endpoints serialize `CustomerNote` (contract test scanning DTOs plus an E2E).
-8. **Revenue labels:** every money value in the UI has a provenance badge, and a lint/test fails if a money component renders without `provenance`.
+8. **Revenue labels:** every money value in the UI has a revenue-kind badge, and a lint/test fails if a money component renders without `revenueKind`.
 9. **Metric registry:** every dashboard number comes from a registry key, and the same key is callable through the agent tool layer with identical results (snapshot test).
 10. **Onboarding:** a fresh salon reaches "bookable" (at least 1 service, hours, 1 staff) in a timed usability test under 10 minutes. AI import produces an editable draft and never publishes without confirmation.
 11. **States:** every screen has empty, loading and error states (checklist plus Storybook/visual stories).
@@ -249,14 +259,14 @@ All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_C
 | 01 | Monorepo, app routing groups, api-client generation |
 | 02 | Tokens and components; the operational density variant ("calm" UI mode) |
 | 03 | i18n keys, VND and date formatting, error-code mapping |
-| 04 | Schema: CustomerSalonProfile, CustomerNote, tags, OfflineSale, SalonReportedRevenue, salon_daily_stats |
+| 04 | Read-model registry that the metric catalogue builds on (X7). Schema: CustomerSalonProfile, CustomerNote, tags, OfflineSale, SalonReportedRevenue, salon_daily_stats |
 | 05 | Permission matrix (§4.8), tenant guard, audit log for merge, export and notes |
 | 06 | Calendar feed, create/reschedule/cancel/status endpoints, conflict suggestions, walk-in "start now" |
-| 08 | AI import of price lists, chat-to-booking parse, assistant panel, tools from the metric registry |
+| 08 | PII firewall (tokenisation and re-hydration), AI price-list import (no personal data), assistant panel, tools from the metric catalogue. Chat-to-booking parse is deferred. |
 | 09 | Inbox, Zalo link state, OA connect step in onboarding |
 | 10 | Public profile preview, share link |
 | 11 | Customer notification on salon-side changes, notification log status |
-| 12 | Acquisition sources (`walk_in`, `phone`, `zalo_chat` added), subscription gating for the AI and Inbox features, feature flags |
+| 12 | Owns the booking-source enum (X6). The CRM uses `walk_in`, `phone`, `zalo_chat`, `staff_created`, `qr_code`, `direct_link`, and `ai_agent` for agent-drafted bookings. Also: subscription gating for the AI and Inbox features, feature flags |
 | 13 | Playwright E2E, device test matrix |
 
 ---
@@ -271,7 +281,7 @@ All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_C
 6. **M7.6 Onboarding wizard** (manual and template paths), with the setup checklist on Today.
 7. **M7.7 CRM:** directory, profile, notes, tags, merge, consent flags.
 8. **M7.8 Metric registry and Insights,** plus OfflineSale and the reported revenue form.
-9. **M7.9 AI hooks:** price-list import, paste-from-Zalo parse, assistant panel entry (with 08).
+9. **M7.9 AI hooks:** price-list import (no personal data), assistant panel entry over aggregate and tokenised tools (with 08). Paste-from-Zalo parse is deferred until the PII rule changes.
 10. **M7.10 Zalo surfaces:** inbox, link state, chat-to-booking (with 09).
 
 M7.1–M7.5 map to Phase 2 of the master plan. M7.7–M7.8 belong late in Phase 2 or Phase 3. M7.9–M7.10 come after 08 and 09 foundations.
@@ -280,24 +290,20 @@ M7.1–M7.5 map to Phase 2 of the master plan. M7.7–M7.8 belong late in Phase 
 
 ## 8. Product AI-agent surface
 
-These tools are generated from the metric registry plus explicit CRM tools. Every tool is tenant-scoped by the server from the session (never from model input) and permission-checked as the asking member.
+Per X7, 08 generates these from the 04 read-model registry and the 07 metric catalogue. The CRM-specific read tools below map to 04 read models. Every tool is tenant-scoped by the server from the session (never from model input) and permission-checked as the asking member.
 
-| Tool | R/W | Input | Permission | Confirmation |
-|---|---|---|---|---|
-| `insights.get_metric` | R | `{ key, from, to, groupBy? }` | per metric (`insights.view_all` / `revenue.view`) | — |
-| `insights.list_metrics` | R | `{}` | any member | — |
-| `calendar.get_day` | R | `{ date, staffId? }` | `calendar.view_all` / `view_own` | — |
-| `bookings.search` | R | `{ from?, to?, status?, clientPhone?, staffId? }` | `calendar.view_all` | — |
-| `clients.search` | R | `{ query, tag? }` | `client.view` | — |
-| `clients.get_profile` | R | `{ clientId }` (notes excluded unless `client.notes.read`) | `client.view` | — |
-| `clients.at_risk` | R | `{ limit }` | `client.view` | — |
-| `availability.suggest_slots` | R | `{ serviceId, variantId?, staffId?, date }` → 06 | `booking.create` | — |
-| `bookings.create_draft` | W | `{ clientId or phone+name, items[], startAt, staffId? }` | `booking.create` | **required** (human taps confirm) |
-| `bookings.reschedule_draft` | W | `{ bookingId, newStartAt }` | `booking.update` | **required** |
-| `services.import_draft` | W | `{ sourceMediaId or text }` → draft table | `service.manage` | **required** |
-| `clients.add_note` | W | `{ clientId, body }` | `client.notes.write` | **required** |
+| Tool | R/W | Input / output | Permission | PII level | Confirmation |
+|---|---|---|---|---|---|
+| `insights.get_metric` | R | `{ key, from, to, groupBy? }`. `groupBy=staff` returns tokens (`staff_3`) | per metric (`insights.view_all` / `revenue.view`) | aggregate | — |
+| `insights.list_metrics` | R | `{}` | any member | none | — |
+| `calendar.get_day_summary` | R | `{ date, staffToken? }` → counts by hour, status, and staff token | `calendar.view_all` / `view_own` | aggregate + tokens | — |
+| `services.popular` | R | `{ from, to }` → service names + counts (service names are business data, not PII) | `insights.view_all` | aggregate | — |
+| `clients.segment_counts` | R | `{ segment: new\|returning\|at_risk\|vip }` → counts and tokenised list (`customer_17`, last visit, visits). No names or phones | `client.view` | aggregate + tokens | — |
+| `availability.suggest_slots` | R | `{ serviceId, variantId?, staffToken?, date }` → 06 | `booking.create` | tokens | — |
+| `services.import_draft` | W | `{ sourceMediaId or text }` of a price board, PII-scanned and rejected if it contains phones or names → draft table | `service.manage` | none (rejected if found) | **required** |
+| ~~`bookings.search`~~, ~~`clients.search`~~, ~~`clients.get_profile`~~, ~~`clients.add_note`~~, ~~`bookings.create_draft`~~, ~~`bookings.reschedule_draft`~~ | — | **Deferred (G9a)**: these need names, phones, notes or free text | — | — | — |
 
-Rules: the agent never sees other salons. Money results always include `provenance`. Notes, reviews and Zalo message text are passed as untrusted content (quoted), and they are never treated as instructions. Every call is audited (08/05).
+**PII rule (G9a):** every read model or metric exposed to the agent MUST be aggregate or tokenised. Tokens are stable within a conversation, mapped and re-hydrated server-side by 08's firewall, and never derived from names or phones. Each 04 read model used by a tool declares `piiLevel: none | aggregate | tokenised`, and a test fails if a tool output contains names, phones, emails, notes, review or message text. The source `ai_agent` (X6) is reserved for when agent booking drafts return. Rules: the agent never sees other salons. Money results always include `revenueKind`. Every call is audited (08/05).
 
 ---
 
@@ -310,7 +316,7 @@ Rules: the agent never sees other salons. Money results always include `provenan
 | Skill | `.claude/skills/salon-crm/SKILL.md` | created (UX rules, metric rules, procedures) |
 | Domain doc | `docs/domains/salon-crm.md` | skeleton, to be filled as code lands |
 | Metric registry | `packages/domain/metrics/registry.ts` | to implement in M7.8. It is the shared source for dashboards and agent tools. |
-| ADR candidates | `docs/adr/` | (a) metric registry as the single source for dashboards and agent; (b) revenue provenance model; (c) OLTP queries first, rollups later |
+| ADR candidates | `docs/adr/` | (a) metric registry as the single source for dashboards and agent; (b) `RevenueKind` model; (c) OLTP queries first, rollups later |
 
 ---
 
@@ -324,3 +330,4 @@ Rules: the agent never sees other salons. Money results always include `provenan
 6. **Walk-in without a phone number:** allow fully anonymous walk-ins (proposed: yes, linkable later)?
 7. **Devices:** are we targeting shared reception tablets (needs fast staff switching / PIN lock) at launch?
 8. **AI features in the free tier:** is the price-list import in onboarding free (an acquisition hook) while the assistant chat is subscription-only? Proposed: yes.
+9. **PII rule exit criteria:** what would allow personal data to reach an LLM later (legal review, DPA with the provider, explicit salon/customer consent)? Until then, the deferred items in §8 stay off.

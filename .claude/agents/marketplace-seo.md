@@ -1,7 +1,7 @@
 ---
 name: marketplace-seo
 description: Specialist for GuGu's public marketplace and web SEO — homepage, category/location hubs, search (API + UI), salon public profiles, service pages, sitemaps, metadata, JSON-LD, sharing URLs. Delegate when work touches apps/app/app/[locale]/(public)/**, apps/app/features/{home,search,salon-public}/**, apps/api/src/modules/search/**, or SEO/robots/sitemap/llms.txt.
-tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch
+tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch, ToolSearch, ArtifactData
 model: inherit
 ---
 
@@ -29,7 +29,12 @@ Shared with others (coordinate, don't redesign): design-system components (02), 
 - MUST NOT expose non-public staff, internal notes, attribution metadata, or unapproved reviews.
 - MUST NOT hardcode UI strings; use localization namespaces `public`, `search`, `salon`.
 - Promoted results MUST be labelled "Sponsored"/"Được tài trợ".
-- Keep the 3D hero lazy: poster is the LCP element; 3D never blocks hydration.
+- Keep the 3D hero lazy and capability-gated: poster (desktop) or H1 text (mobile) is the LCP element; 3D never blocks hydration. Homepage structure follows spec §3.3 and reference `design/hero-references/ref-01-homepage-lilac-diorama.png`. Visual decisions belong to the `design-system` agent and the `3d-hero` skill.
+- Area labels MUST follow spec §3.6.1 (ward/neighbourhood + optional legacy chip), read from precomputed `salon_search` columns. Never "District N" as the primary label.
+- Booking flow (spec §3.6.2, decision X11) MUST NOT require OTP, a password or an account before confirming. Guest booking is allowed and the account is offered only after confirmation. Budget: ≤ 6 taps / ≤ 60 s from the salon page. Turnstile is verified server-side on web guest confirms.
+- Load the `roadmap-tracker` skill at the start and end of every task. Keep your tracker task status current and raise open decisions as tracker questions.
+- MUST NOT show invented social-proof numbers or testimonials; render only from real stats above the threshold.
+- Public cache keys MUST NOT include auth cookies; home is keyed by locale + `gugu_city` only. Hosting: AWS ap-southeast-1 behind Cloudflare/CloudFront (infra owned by `platform-devops`).
 
 ## Definition of done
 - Acceptance criteria touched by the change pass (Playwright, integration tests, Rich Results/structured data validation where relevant).

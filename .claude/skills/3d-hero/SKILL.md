@@ -5,7 +5,7 @@ description: Procedures, asset pipeline and performance budgets for GuGu's homep
 
 # 3D hero
 
-The homepage hero is a stylized 3D beauty-salon scene. It is **decorative**: the page (headline, search, categories) must work and rank without it. Spec: `docs/tasks/02-design-system.md` §5.
+The homepage hero is a glossy isometric 3D beauty-salon diorama in the **Lilac Glow** style (ref-01: `design/hero-references/README.md`). Zones: Nails, Hair, Skin care, Spa/massage, Reception. It must feel **alive** but is **decorative**: the page (headline, search, categories) must work and rank without it. Spec: `docs/tasks/02-design-system.md` §5 (composition §5.0, aliveness §5.5, HERO-2 brief §5.6).
 
 ## When to use
 - Processing new hero references or updating the hero brief.
@@ -20,6 +20,19 @@ The homepage hero is a stylized 3D beauty-salon scene. It is **decorative**: the
 - MUST fall back to poster on: reduced motion, `saveData`, slow `effectiveType`, no WebGL2, low `deviceMemory`/cores, or fps below threshold.
 - Native MVP: MUST use `expo-video` loop (muted, looped) with poster → static image fallback. Real-time native GL (`@react-three/native` / `react-native-wgpu`) only behind a feature flag after device-lab profiling.
 - Every third-party asset MUST have its license recorded in `design/hero-assets/LICENSES.md`.
+- MUST NOT bake text into 3D except the brand wordmark. Zone labels/slogans are DOM i18n text; hotspot links are real `<a>` elements also listed as a keyboard-reachable link row.
+- Mobile-first: headline + search card visible in the first viewport at 360×740; diorama uses `cam_mobile_tight`.
+- Aliveness is tiered (T0 static / T1 lite / T2 full); transmission ("jelly" glass) only on T2, max 2 meshes; FPS < 30 for 2 s drops one tier.
+
+## Aliveness tiers
+| Tier | When | What runs |
+|---|---|---|
+| T0 Static | reduced motion, saveData, slow network, no WebGL2 | poster + state-change micro-interactions only |
+| T1 Lite | mobile / ≤ 4 cores / ≤ 4 GB | R3F, matcap jelly, idle loops at reduced rate, DPR ≤ 1.5, scroll camera, gyro opt-in |
+| T2 Full | capable desktop | transmission jelly (≤ 2), DPR ≤ 2, all idle loops, pointer parallax |
+| Native | iOS/Android | video loop of the same diorama; category chips instead of hotspots |
+
+Idle loops: named glTF actions (`nails_idle`, `hair_idle`, `skin_idle`, `spa_idle`, `steam`, `flicker`, `plants`), one shared `AnimationMixer`, ≤ 3 skinned characters (≤ 20 bones), sprites ≤ 50, no physics.
 
 ## Budgets (CI-enforced)
 | Item | Budget |
@@ -41,7 +54,8 @@ The homepage hero is a stylized 3D beauty-salon scene. It is **decorative**: the
 3. Produce a storyboard (key frames) and get PO approval before modeling.
 
 ### 2. Asset pipeline
-1. Blender: model low-poly/stylized, bake lighting + AO into textures, no realtime shadows; keep materials ≤ 8.
+0. Follow the HERO-2 brief (spec §5.6): object/camera/hit-mesh/action naming, review gates (clay storyboard → textured stills → playblast → optimization).
+1. Blender: model low-poly/stylized, bake lighting + AO into textures, no realtime shadows; keep materials ≤ 8. Export a T1 (lite) and a T2 (full) `.glb`.
 2. Export glTF 2.0 (`.glb`).
 3. Optimize with `gltf-transform` (CLI): dedup, prune, weld, merge materials, Draco or Meshopt geometry, KTX2 textures (UASTC for normal maps, ETC1S for color), resize to budget.
 4. Render poster from the exact frame-0 camera; export AVIF + WebP.
@@ -53,8 +67,8 @@ The homepage hero is a stylized 3D beauty-salon scene. It is **decorative**: the
 1. `HeroPoster` (server-safe) renders immediately.
 2. After LCP/idle, capability check → `import('./HeroScene')`.
 3. `HeroScene`: R3F `<Canvas>` with `frameloop="demand"` driven by visibility; drei loaders with KTX2/Draco/Meshopt decoders self-hosted.
-4. Interaction: subtle pointer parallax; gyro on mobile only after user gesture; optional hotspots link to category routes (real `<a>` links outside the canvas for a11y/SEO).
-5. FPS monitor → downgrade to poster if sustained below threshold.
+4. Interaction: pointer parallax ≤ 3° (T2); gyro on mobile only after user gesture; scroll-driven camera along `cam_scroll_path` (no scroll-jacking); zone hotspots raycast on `hit_*` meshes → emissive glow + camera ease + DOM label pill with a real `<a>` to the category route.
+5. FPS monitor → drop one tier when sustained < 30 fps for 2 s.
 
 ### 4. Native implementation
 1. Poster image → `expo-video` loop when visible; pause when off-screen/app backgrounded.

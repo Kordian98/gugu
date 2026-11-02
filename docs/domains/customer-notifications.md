@@ -9,6 +9,9 @@ Status: skeleton — no code yet. Fill each section as code lands.
 - **Channel plan** — the resolved list of channels (with fallbacks) for one recipient of one event.
 - **Idempotency key** — `sha256(event_type|entity_id|entity_version|recipient_id|channel|variant)`.
 - **Transactional vs marketing** — marketing needs consent and respects quiet hours.
+- **`zalo_template`** — channel id for ZBS Template Message (formerly ZNS), adapter owned by the zalo domain.
+- **SMS route** — country → ordered provider list (config); provider-agnostic adapters.
+- **`vi-ascii`** — diacritic-free SMS template variant used when `vi` exceeds the segment budget (UCS-2 = 70 chars/segment).
 
 ## Invariants
 - Notifications are produced only via the outbox.
@@ -16,7 +19,7 @@ Status: skeleton — no code yet. Fill each section as code lands.
 - Every event × channel has vi and en templates.
 - Reviews: one per completed booking, own booking, within 30 days.
 - Account deletion anonymizes; bookings are never hard-deleted.
-- AI moderation can only suggest or move to `pending_review`.
+- Moderation is rule-based (keywords, phone/email/URL patterns, report threshold) + manual queue; automatic actions only move to `pending_review`. No personal data, review text included, is sent to any LLM.
 
 ## Data model
 _TBD — link Prisma models and migrations._

@@ -42,7 +42,8 @@
 | G7 | Search by "staff name" exposes staff PII. | Only staff with `public_profile = true` (display name + photo) are indexed. |
 | G8 | "Open now" requires timezone + special hours + holidays. | Computed server-side in salon TZ (default Asia/Ho_Chi_Minh) from opening hours + special hours + holidays; cached per salon per 15 min. |
 | G9 | Homepage list is long (12 blocks) and conflicts with "don't overload". | IA in §3.3: 6 blocks above footer on mobile; others are progressive/personalized. Recently viewed + recommended are client-hydrated (not in SSR HTML) to keep pages cacheable. |
-| G10 | 3D hero vs SEO/LCP. | Hero ships a server-rendered H1, search bar, and a static poster image as LCP element; 3D canvas lazy-loads after hydration (contract with 02, §3.3). |
+| G10 | 3D hero vs SEO/LCP. | Hero ships a server-rendered H1, search card, and a static poster image; 3D canvas lazy-loads after hydration (contract with 02, §3.3). On mobile the LCP element is the H1 text. |
+| G20 | Product-owner reference (ref-01) uses pre-reform "District 1, HCMC" labels and shows social-proof numbers. | Labels follow §3.6.1 (ward/neighbourhood + optional legacy chip); social proof is shown only from real stats above a threshold (engineering rule: no fake data). |
 | G11 | URL scheme only partially defined (`/vi/salon/lotus-beauty`). Localized slugs? Category/location URLs? | Full URL scheme in §3.2. Path segments stay English-keyword constant across locales (`/vi/salon/…`, `/en/salon/…`); content slugs are unaccented Vietnamese (`/vi/c/nail/ho-chi-minh/phuong-ben-thanh`). Slug history table → 301 redirects on rename. |
 | G12 | Canonical salon identifier vs slug — not specified how they relate. | Canonical id = UUID; public slug is unique per platform and mutable with history; `gugu.vn/s/{shortId}` short links for QR/sharing redirect to the canonical localized URL. Subdomains (`lotus.gugu.vn`) later = 301 to canonical path; never the canonical. |
 | G13 | Locale detection for `/` root not defined; risk of cloaking. | `/` → 302 to `/vi` or `/en` by persisted cookie, then `Accept-Language`, default `vi`. Crawlers get the same logic; every page carries hreflang + `x-default` → `/vi`. |
@@ -90,16 +91,54 @@ api/ (Expo API routes only for: sitemap.xml, robots.txt, llms.txt, og image rend
 - Slugs: lowercase, unaccented, `đ→d`, hyphenated, ≤ 60 chars; uniqueness enforced in DB; history in `slug_redirects` → 301.
 - These paths are the contract for universal links/app links (13): every public URL must resolve to a native screen.
 
-### 3.3 Homepage IA (mobile order; desktop = 12-col grid, same order)
-1. **Hero** (02 owns visuals): H1 (localized, SSR text), search bar (service/salon) + location chip, 3–5 category quick chips. Poster image is LCP; 3D scene lazy-mounted after `requestIdleCallback`, skipped on `prefers-reduced-motion`, `saveData`, low-memory devices, and native (native gets poster/video per 02).
-2. **Categories** row (from DB, ordered by admin).
-3. **Near you / Popular in {city}** — salon cards (SSR for city from cookie or default HCMC).
-4. **Trending services** — service cards with price-from.
-5. **Featured salons** (curated/promoted slot — labelled "Sponsored" when promoted, per 12).
-6. **Popular neighborhoods** — links to category×location hubs (also internal linking for SEO).
-7. Client-only, below fold: Recently viewed (local storage), Recommended (if signed in), Promotions, Editorial.
-8. Footer: locale switch, city links, categories, for-business, legal.
-- Mobile: bottom tab bar (Explore, Search, Bookings, Favorites, Profile). Desktop: top nav with search collapsed into header after scroll.
+### 3.3 Homepage IA (aligned with reference `design/hero-references/ref-01-homepage-lilac-diorama.png`)
+Visual analysis and art direction: `design/hero-references/README.md` (topic 02). This section owns structure, data, SSR/client split and behaviour; 02 owns look, motion and the 3D scene.
+
+**Blocks (desktop order, as in the reference)**
+| # | Block | Content | Data source | Render |
+|---|---|---|---|---|
+| H0 | Header | logo; nav Discover / Beauty services / For professionals; search icon; Sign in; Get started | static + auth state | SSR shell; auth buttons swapped client-side (avatar when signed in) |
+| H1 | Hero copy | eyebrow ("Beauty for a brighter you"), H1 ("Your beauty era starts here." with gradient accent word), subtitle | localization `public.home.hero.*` | SSR (H1 is the SEO heading) |
+| H2 | Hero CTAs | primary **Explore beauty →** → `/{locale}/search` (or nearest hub when city known); secondary **Become a beauty pro** → `/{locale}/for-business` | static | SSR |
+| H3 | Trust chips | Verified professionals · Easy booking · Real reviews | static copy; each links to an explainer anchor | SSR |
+| H4 | 3D diorama | salon diorama (nails / hair / skin care zones, GuGu signage) | 02 assets | **poster image SSR** (LCP candidate on desktop); 3D canvas client-only, lazy (see gating below) |
+| H5 | Search card | tabs **Book a treatment / Find salons**; rows location → service → date; CTA **Find my glow →** | categories + locations from API; defaults from cookie | SSR with defaults; pickers are client bottom sheets (mobile) / popovers (desktop) |
+| B1 | Category tiles | Nails, Hair, Skin, Brows, Lashes, Massage (first tile highlighted) + "more" | `ServiceCategory` (DB, admin-ordered, icon asset key) | SSR |
+| B2 | Social proof | avatar stack + count ("10K+") + quote ("Self care looks good on you.") | real platform stats (12) and a consented review or brand line | SSR; **hidden** when stat below configured threshold — no invented numbers or fake testimonials |
+| B3 | "The spots everyone is saving" | salon cards: cover, favourite heart, name, rating + count, area label (§3.6.1), "From {price} ₫", **Book now**; prev/next + **View all salons** | `marketplace.saved_trending` read model: most-favourited/booked salons in the selected city over last 30 days; curated fallback during cold start | SSR per (locale, city); heart state client-side |
+| B4 | "Your next glow-up" | editorial carousel (looks, tips, campaigns) | editorial content (12 / repo markdown, open question) | SSR first 3 cards, rest lazy |
+| B5 | Popular neighborhoods | links to category×location hubs | location read model | SSR (internal linking) |
+| B6 | Trending services | service cards with from-price | search events / bookings (12) | SSR per city |
+| B7 | Personalised | Recently viewed, Recommended for you, Near you (geolocation), Promotions | local storage / auth / geo | **client-only**, below fold, skeleton placeholders |
+| F | Footer | locale switch, cities, categories, for-business, legal | static + DB | SSR |
+Decorative handwritten doodles ("More self love please", "Good beauty brighter you") are imagery (`aria-hidden`), supplied per locale by 02 or omitted; if rendered as text they come from localization.
+
+**Mobile order & behaviour (360–430 px)**
+1. Compact header: logo, search icon, Sign in (or avatar). Nav links move into a menu; "Get started" becomes part of the menu.
+2. Eyebrow + H1 (2–3 lines, fluid type) + subtitle (max 2 lines).
+3. Primary CTA **Explore beauty** full width; **Become a beauty pro** as secondary/text button beneath.
+4. Trust chips: single horizontally scrollable row.
+5. Diorama visual at ~16:10, full bleed, poster first. The **search card overlaps its bottom edge** (as in the reference) and is the first interactive element after the CTAs. The overlap stays within the first two viewports.
+6. Category tiles: horizontal scroll-snap row (~3.5 tiles visible); the social proof card follows as its own slim block.
+7. Spots carousel: horizontal snap, card width ~80% of the viewport, heart top right (44 px hit area), Book now on each card.
+8. Glow-up carousel, then neighborhoods, trending services, personalised blocks, footer.
+9. After the hero scrolls out, a sticky compact **search pill** (location · service) appears at the top on mobile web; native apps use the bottom tab bar (Explore, Search, Bookings, Favorites, Profile) instead.
+- "Alive" behaviour (motion spec from 02): tile press scale, heart pop + haptic on native, carousel momentum, subtle diorama idle loop; all reduced or off under `prefers-reduced-motion`.
+- 3D gating: mount only after hydration + idle, on desktop/tablet and capable mobile (deviceMemory ≥ 4, no `saveData`, not reduced-motion, WebGL2 available). Otherwise keep the poster or a short muted loop video from 02. On mobile the **H1 text is the LCP element**, not the diorama.
+- Native app home reuses the same blocks (minus header/footer), with poster/video in place of the web 3D scene per 02.
+
+**Search card → URL mapping**
+| Tab | Fields | Navigation on "Find my glow" |
+|---|---|---|
+| Book a treatment | location (province or commune, or "near me"), service (category or specific service), date (Today / Tomorrow / This week / pick date) | category + place only → clean hub `/{locale}/c/{category}/{province}[/{commune}]`; extra params appended: `?when=today` (or `tomorrow`, `week`) or `?date=YYYY-MM-DD`. Specific service → `/{locale}/search?service={serviceSlug}&province=…&when=…`. "Near me" → `/{locale}/search?category=…&lat=…&lng=…&radius=3000&sort=nearest&when=…` |
+| Find salons | location + free text (salon name) | `/{locale}/search?q={text}&province=…` |
+- `when`/`date` map to availability-summary filters (§3.4) and are `noindex` params (canonical = hub path).
+- Location default: last selected (cookie `gugu_city`), else Hồ Chí Minh; "near me" asks for location permission only when chosen.
+- Missing service → hub of the place (`/{locale}/l/{province}`); missing everything → `/{locale}/search`.
+- Search card state is serialised to the URL, so back navigation restores the card.
+- Analytics: `search_performed` with `source=home_search_card` and tab (12).
+
+**Caching**: home HTML is cached per (locale, city). CloudFront supports a `gugu_city` cookie in the cache key. If Cloudflare without custom cache keys is chosen, the SSR default is HCMC and city-dependent blocks (B3, B6) re-fetch on the client when the cookie differs.
 
 ### 3.4 Search
 - **Inputs**: `q` (salon/service/staff/address text), `category`, `province`, `commune`, `lat,lng,radius`, `bbox` (map), filters: price min/max (VND), rating ≥, distance ≤, availability (`today|tomorrow|week`), open now, duration bucket, staff gender/preference (only if salons opt in), verified.
@@ -123,6 +162,50 @@ api/ (Expo API routes only for: sitemap.xml, robots.txt, llms.txt, og image rend
 - Only `published` and not `suspended` salons are public; suspended → 410 or 404 (decision: 404 + `noindex`).
 - Live availability is client-fetched (not cached in HTML).
 - Service page: unique content (description, variants, duration, price, staff who perform it, salon context) for long-tail SEO.
+
+#### 3.6.2 Customer booking flow from the salon page (owner decision X11 — no OTP)
+Booking is as quick as the best Polish booking apps: **no OTP, guest booking allowed, account offered only after booking**. Topic 06 owns holds/creation and topic 11 owns the account and notification follow-up. This section owns the flow UX on web + native, starting from the salon page.
+
+**Target**: from the salon page to a confirmed booking in **≤ 6 taps and ≤ 60 s** at p50 for a returning or signed-in customer, and ≤ 90 s for a first-time guest (typing included). Measured by the funnel `booking_started → booking_completed` (12), plus a Playwright timing test with scripted input.
+
+**Steps (one flow, one screen per step on mobile; a two-pane drawer on desktop)**
+| # | Step | Tap(s) | Notes |
+|---|---|---|---|
+| 1 | **Service** (+ variant) | 1 | Tap "Book" on a service row (or the sticky CTA → service list). Variant chips appear inline only if the service has variants. Deep link `/salon/{slug}?book={serviceSlug}` skips this step. |
+| 2 | **Staff or "Any available"** | 1 | "Any available" preselected and first. The step is skipped when the service has a single performer or the salon disabled staff choice. |
+| 3 | **Slot** | 1 | Date strip (next 14 days, first available day preselected) + time chips grouped Morning/Afternoon/Evening, from the availability API (06). Tapping a slot creates a **short hold** (06, TTL ~5 min, countdown shown in the last minute). |
+| 4 | **Name + phone** | 0–1 | Prefilled and collapsed when signed in or remembered on the device. Otherwise: name + VN phone (+84 mask, `tel`/`name` autocomplete). Optional one-tap **Continue with Apple / Google** fills name and email; it never blocks. Optional note field, collapsed. |
+| 5 | **Review & confirm** | 1 | Summary: service, staff, date/time in salon TZ, from-price, "Pay at the salon", cancellation policy line, consent text for transactional messages. Button: **Confirm booking**. |
+| 6 | **Confirmation** | — | Success screen: add to calendar, directions, share, "Manage booking" link. Then the **account offer**: "Save your details for next time" → passwordless sign-up (Apple/Google, or phone verification at that point). Dismissible and never required. |
+Signed-in or remembered happy path: Book (1) → Any (skipped or 1) → slot (1) → Confirm (1) = **3–4 taps**.
+
+**Rules**
+- MUST NOT require OTP, password or account creation before confirming. Bookings created without verification carry `identity_verified=false` (X11); salons may enable "confirm first-time/unverified customers" (then the booking is `pending` and the copy says "Waiting for salon confirmation").
+- Guest identity: the booking stores name + normalised E.164 phone. The device keeps a signed, httpOnly "returning guest" token (web cookie / SecureStore on native) to prefill next time and to open "Manage booking" without signing in. The booking message (ZBS/SMS/email, topics 09/11) carries a magic manage link.
+- Data loss prevention: the selected step state lives in the URL (`?book=…&staff=…&slot=…`) and survives refresh/back. If the hold expires, the next available slots are re-offered in place without restarting the flow.
+- Errors: slot taken at confirm → inline "Just booked by someone else" + 3 nearest alternatives (06 revalidates inside the transaction). Network loss → retry with an idempotency key (06), never a double booking.
+- Native: the same flow as a modal stack/bottom sheet with haptic feedback on slot select and confirm; web desktop: right-side drawer over the salon page with keyboard support (Esc closes, focus trapped).
+- All copy from localization (`booking` namespace), vi default.
+
+**Bot / abuse protection (no OTP wall)**
+- **Cloudflare Turnstile**, invisible/managed mode, on web only. The widget runs silently when step 4 renders, and its token is sent with the hold-to-booking confirm request. The API verifies it server-side and rejects on failure. An interactive challenge appears only when Turnstile escalates. Not shown to signed-in users with a good history. Turnstile works with CloudFront too (not tied to Cloudflare CDN).
+- Native: App Attest (iOS) / Play Integrity (Android) token on confirm (13 owns setup); fallback to rate limits only.
+- Server rate limits (05): per IP, device token, and phone (e.g. max 3 active future bookings per phone per salon, 10 per day platform-wide). Holds are limited per device so slots cannot be squatted.
+- No-show / late-cancel history per phone (12) feeds the salon's "require confirmation" rule and risk score.
+- Never block a booking purely because the phone is new; escalate to salon confirmation instead.
+
+**Analytics**: `booking_started` (step 1), `booking_step_viewed` (step n), `booking_completed`, `booking_abandoned` (with last step), `account_offer_shown/accepted` — no PII in properties (12).
+
+#### 3.6.1 Area labels on cards and profiles (post-2025 reform)
+The reference shows "District 1, HCMC" — that is pre-reform wording and must not be used as the primary label.
+- **Primary label** = `{area}, {province short}` where `area` is, in order of preference: a curated `Neighborhood` the salon belongs to (e.g. "Thảo Điền"), otherwise the commune/ward short name (e.g. "Phường Bến Thành" → vi "P. Bến Thành", en "Ben Thanh Ward").
+- **Legacy alias (optional)**: if the commune maps to a pre-2025 district via `LocationAlias`, show it as a muted secondary chip — vi "Q.1 cũ", en "former D1". Controlled by flag `location.showLegacyAlias` (default on for 24 months after launch, then review).
+- Province short forms come from DB (`short_name_vi/en`: "TP.HCM"/"HCMC", "Hà Nội"/"Hanoi"), never hardcoded.
+- Examples: vi "P. Bến Thành, TP.HCM · Q.1 cũ"; en "Ben Thanh Ward, HCMC · former D1"; neighbourhood: "Thảo Điền, TP.HCM".
+- Truncation at 360 px: drop the legacy chip first, then use the province short form; the full label goes into `accessibilityLabel`.
+- Labels are precomputed in `salon_search` (`area_label_vi`, `area_label_en`, `legacy_area_label_vi`, `legacy_area_label_en`) so cards never assemble geography on the client.
+- Search treats legacy names as aliases ("quận 1" → the communes that replaced District 1), so the label and the search stay consistent.
+- Prices on cards: `formatVND` from 03 (vi "Từ 300.000 ₫", en "From ₫300,000" — final format owned by 03); rating shows average with one decimal + review count; no rating shown under 3 reviews ("New on GuGu" badge instead).
 
 ### 3.7 Web quality & performance
 - Core Web Vitals on Moto G-class device / 4G: **LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1** at p75.
@@ -148,7 +231,13 @@ api/ (Expo API routes only for: sitemap.xml, robots.txt, llms.txt, og image rend
 
 ### 4.1 Rendering
 - Expo SDK ≥ 58, `web.output: "server"`, `+html.tsx` spreading `useServerDocumentContext` nodes; `generateMetadata` for head tags (earliest bytes), `<Head>` only for post-hydration updates.
-- Hosting: `expo export --platform web` → `dist/server` run by the Node/Express adapter in a Docker container (same infra as API, see 13) behind Cloudflare; Cloudflare Workers adapter / EAS Hosting are alternatives (decision in 13).
+- Hosting (decided by the product owner: **AWS Singapore, ap-southeast-1**; topic 13 owns the final infra): `expo export --platform web` → `dist/server` run by the expo-server Node/Express adapter in a container on AWS in ap-southeast-1, next to the API. **Cloudflare or CloudFront** sits in front (choice in 13).
+  - Static client bundles and image variants are served from S3 through the CDN, with immutable caching.
+  - Public HTML: `s-maxage=300, stale-while-revalidate`.
+  - Purging: on CloudFront, use path invalidations for salon URLs, batched and debounced on publish; on Cloudflare, use URL purge (cache tags need Enterprise). Short TTL + SWR keeps correctness if a purge is missed.
+  - Cache key: locale path + `gugu_city` cookie for the home page only. All other cookies, including auth, are stripped from public cache keys and never forwarded to public loaders.
+  - Latency: Singapore → Vietnam RTT is roughly 30–50 ms. The TTFB budget for cache-miss SSR is ≤ 600 ms at p75 from HCMC/Hanoi, checked with synthetic monitoring (13).
+  - EAS Hosting / Workers adapters are no longer the primary path.
 - Loaders call NestJS through `packages/api-client` with a server-only base URL and a public service token; they must not leak user tokens into cached HTML.
 - Authenticated groups: layout guards render a client-only shell; middleware sets `noindex` + `private` cache.
 - **Spike S1** (first sub-milestone): prove SSR + loaders + metadata + hydration with NativeWind + react-native-web + i18n on SDK 58; measure TTFB and CWV. Exit criteria → keep server mode; otherwise switch to fallback F1 (static + `generateStaticParams` + rebuild on publish) and F2 worker for long tail.
@@ -185,6 +274,13 @@ api/ (Expo API routes only for: sitemap.xml, robots.txt, llms.txt, og image rend
 13. Platform works with location permission denied (falls back to city selector) — Playwright test.
 14. Keyboard-only Playwright test can search, filter, open a salon, and reach the Book CTA.
 15. `llms.txt` served at root; robots.txt matches policy.
+16. Homepage at 360, 390 and 430 px widths: no horizontal page scroll; block order matches §3.3 mobile order; search card reachable without passing the 3D canvas; carousels scroll-snap and are keyboard/screen-reader operable (Playwright + visual snapshots vs reference layout).
+17. Search card: each tab/field combination navigates to the URL in the §3.3 mapping table (unit test of the serializer + Playwright), and back navigation restores the card state.
+18. Salon cards show reform-correct area labels (§3.6.1), with the legacy chip toggled by flag; no card renders "District N" as the primary label.
+19. Social-proof block is absent when the real stat is below the threshold (no hardcoded counts or testimonials in code).
+21. Booking flow (§3.6.2): Playwright web + Maestro native — guest books without OTP or account in ≤ 6 taps from the salon page; the signed-in path takes ≤ 4 taps; the account offer appears only after confirmation; scripted run ≤ 60 s.
+22. Turnstile token is required and verified server-side for web guest confirms (an invalid token is rejected in an integration test); hold expiry and slot-taken paths re-offer alternatives without losing entered data.
+20. Mobile home: LCP element is the H1 text or poster, never the WebGL canvas; the 3D bundle is not downloaded on `saveData`/reduced-motion/low-memory devices.
 
 ## 6. Dependencies
 - **01** SDK 58 + server output decision, monorepo, api-client. **02** hero visuals, tokens, card components, poster asset contract. **03** locale routing helpers, slug/date/VND formatting, translation namespaces (`public`, `search`, `salon`). **04** schema: Location (two-tier + aliases + versioning), salon_search read model, slug_redirects, PostGIS/pg_trgm/unaccent extensions. **06** availability summary projection + exact slot API. **07** salon publishing, profile data, promotions. **11** reviews (approved only) + favorites. **12** taxonomy/location admin, promoted listings, attribution of shares/QR, analytics events (`search_performed`, `salon_viewed`, `service_viewed`). **13** hosting of SSR server, Cloudflare caching/purge, universal links files matching §3.2, Playwright/Lighthouse CI. **08** read-only tools (§9).
@@ -195,7 +291,7 @@ api/ (Expo API routes only for: sitemap.xml, robots.txt, llms.txt, og image rend
 3. `salon_search` read model + projector + Postgres search + autosuggest + tests (AC 4–6).
 4. Salon profile + service page (SSR, metadata, JSON-LD) using seeded real-shaped data.
 5. Search results UI (list, filters, URL state) + category & location hubs.
-6. Homepage IA with placeholder hero slot (poster), then integrate 02's 3D hero.
+6. Homepage per §3.3 (ref-01): SSR blocks + search card URL mapping + mobile order, using the poster slot; then integrate 02's 3D hero behind capability gating.
 7. Sitemaps, robots, llms.txt, OG images, redirects, cache headers + purge.
 8. Map view (web/native split).
 9. Performance + a11y pass, Lighthouse CI budgets, Playwright suites (AC 1–15).
@@ -229,4 +325,8 @@ Booking actions are not exposed here; concierge hands off to the booking flow (0
 5. Should category×location pages target legacy district names in titles ("Nail Quận 1") for search demand, alongside new phường names? (Recommendation: yes, as secondary label.)
 6. Editorial content: in-admin CMS (12) or repo markdown for MVP?
 7. Promoted listings in search results at launch, or only later? (Affects ranking + "Sponsored" label.)
-8. Hosting choice for SSR server: own Node container (alongside API) vs Cloudflare Workers vs EAS Hosting (coordinate with 13).
+8. ~~Hosting choice~~ — resolved: AWS ap-southeast-1 + Cloudflare/CloudFront (CDN choice pending in 13; affects home cache key by city and purge strategy).
+9. Social proof: what threshold for showing the community count (e.g. ≥ 1,000 customers), and is the quote a real consented review or a brand line?
+10. "Spots everyone is saving" ranking: favourites only, or favourites + bookings? And during cold start, may curated salons fill the block (labelled as editor's picks)?
+11. Legacy district chip ("Q.1 cũ"): keep by default for how long?
+12. Default for the salon setting "confirm bookings from first-time/unverified customers": off (instant confirmation) or on? (Recommendation: off, so booking stays instant.) Raised in the tracker.

@@ -13,12 +13,12 @@ Spec: `docs/tasks/04-backend-database.md` §4. Current state: `docs/domains/back
 - Exposing data to the CRM dashboard or the AI agent (both consume read models).
 
 ## Invariants
-- MUST define request/response schemas in Zod in `packages/validation/src/<domain>/` — the single source for API, frontend, and agent tools.
+- MUST define request/response schemas in Zod in `packages/contracts/src/<domain>/` — the single source for API, frontend, and agent tools. Pure business logic shared with the app goes in `packages/domain`. (There is no `packages/validation` or `packages/types`.)
 - MUST keep controllers thin: parse → call application service → map response. No Prisma in controllers.
 - MUST require `salonId` for every tenant-scoped repository method; take it from `RequestContext`, never from the body.
 - MUST protect salon routes with the membership guard and a named permission (`@RequirePermission('bookings.read')`; matrix in `docs/tasks/05-*`).
 - MUST emit cross-module side effects as outbox events in the same transaction — never call another module's repository or enqueue BullMQ directly from a command.
-- MUST return errors as problem+json with a stable `code` registered in `packages/validation/src/errors.ts`.
+- MUST return errors as problem+json with a stable `code` registered in `packages/contracts/src/errors.ts`.
 - MUST paginate lists with keyset cursors (`{ items, nextCursor }`, max `limit` declared).
 - MUST NOT expose internal notes, attribution internals, tokens, or OTP data in customer-facing read models.
 - MUST NOT add a hardcoded user-facing string; errors are codes, the client translates.
@@ -30,7 +30,7 @@ Spec: `docs/tasks/04-backend-database.md` §4. Current state: `docs/domains/back
 4. Add a section for the module in `docs/domains/backend-database.md` (tables owned, events emitted/consumed, read models).
 
 ## Procedure: new endpoint (command)
-1. Zod: `packages/validation/src/<domain>/<action>.ts` — `XxxInput`, `XxxResult`.
+1. Zod: `packages/contracts/src/<domain>/<action>.ts` — `XxxInput`, `XxxResult`.
 2. Command service `application/commands/<action>.command.ts`: validate business rules, run in `prisma.$transaction`, write outbox event(s), return result.
 3. Controller method: route under `/api/v1/salons/:salonId/...` for tenant data, `/api/v1/me/...` for customer data, `/api/v1/public/...` for unauthenticated reads, `/api/v1/admin/...` for platform admin.
 4. Decorators: Zod validation pipe, `@RequirePermission`, OpenAPI `summary` + `operationId` (`<domain>.<action>`), response schema, documented error codes.
@@ -38,7 +38,7 @@ Spec: `docs/tasks/04-backend-database.md` §4. Current state: `docs/domains/back
 6. Audit: sensitive actions (role change, suspension, data export, deletion, settings change) write `AuditLog`.
 
 ## Procedure: new read model (query)
-1. Zod `XxxQuery` + `XxxReadModel` in `packages/validation`.
+1. Zod `XxxQuery` + `XxxReadModel` in `packages/contracts`.
 2. Query service method in `application/queries/` — scoped by `salonId`, explicit `deleted_at IS NULL` where relevant, no N+1 (use `include`/`select` or TypedSQL), aggregates from `salon_daily_metrics` rather than scanning bookings.
 3. Register in `<domain>.read-models.ts`:
    ```ts
@@ -52,7 +52,7 @@ Spec: `docs/tasks/04-backend-database.md` §4. Current state: `docs/domains/back
    } satisfies ReadModelRegistry;
    ```
    The description is reused verbatim as the OpenAPI summary and the AI agent tool description — write it for both.
-4. Expose via a GET controller (thin wrapper). Do not write agent-specific code here; topic 08 generates tools from the registry.
+4. Expose via a GET controller (thin wrapper). Do not write agent-specific code here. Layering: this registry → topic 07 metric catalogue (`packages/domain/metrics`, defined on read models) → topic 08 agent tools generated from both. If a dashboard number is needed, add a read model here and a metric in 07's catalogue — never a query in the metric layer.
 5. Mark customer-authored free text in `untrustedFields`.
 
 ## Tests (required)
@@ -61,7 +61,7 @@ Spec: `docs/tasks/04-backend-database.md` §4. Current state: `docs/domains/back
 - Contract: registry ↔ OpenAPI consistency test passes; regenerate `packages/api-client` and type-check.
 
 ## Checklist before PR
-- [ ] Zod schemas in `packages/validation`, no duplicated types
+- [ ] Zod schemas in `packages/contracts`, no duplicated types
 - [ ] Permission + tenant guard on every salon route; cross-tenant test
 - [ ] OpenAPI shows request, response, errors
 - [ ] Outbox event instead of direct cross-module call

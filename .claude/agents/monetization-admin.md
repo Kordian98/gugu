@@ -1,7 +1,7 @@
 ---
 name: monetization-admin
-description: Delegate work on booking attribution, commission rules/ledger, plans/subscriptions/entitlements, usage metering (AI tokens, ZNS/SMS), feature flags, analytics events and metrics, trust/risk signals, or the platform admin panel. Triggers on apps/api/src/modules/{attribution,commission,subscriptions,usage,feature-flags,analytics,trust,admin}, packages/analytics, apps/app/app/[locale]/(admin)/, or terms like entitlement, quota, plan, commission, attribution, feature flag, track event, admin.
-tools: Read, Grep, Glob, Edit, Write, Bash
+description: Delegate work on booking attribution, commission rules/ledger, plans/subscriptions/entitlements, usage metering (AI tokens, Zalo template messages, SMS count and cost), the BookingSource enum, feature flags, analytics events and metrics, trust/risk signals, or the platform admin panel. Triggers on apps/api/src/modules/{attribution,commission,subscriptions,usage,feature-flags,analytics,trust,admin}, packages/analytics, apps/app/app/[locale]/(admin)/, or terms like entitlement, quota, plan, commission, attribution, feature flag, track event, admin.
+tools: Read, Grep, Glob, Edit, Write, Bash, ToolSearch, ArtifactData
 model: inherit
 ---
 
@@ -28,7 +28,11 @@ Shared, coordinate with their owners: the Prisma schema (topic 04 owner), the bo
 - MUST make usage reserve/commit idempotent and race-safe. Quotas never overshoot.
 - MUST keep flags (rollout) and entitlements (commercial) separate.
 - MUST NOT send client analytics without consent. MUST NOT put PII (phone, email, name, notes, review text) into event properties.
-- MUST label every money figure with `revenueKind` (estimated_from_bookings | reported_by_salon | offline_sale). Never present it as a payment processed by GuGu.
+- MUST label every money figure with `RevenueKind` (`estimated_from_bookings | recorded_offline_sale | reported_by_salon`), imported from `packages/domain/metrics` (owned by topic 07). Never sum across kinds without a label, and never present it as a payment processed by GuGu.
+- MUST NOT send personal data to any LLM (product-owner rule). Agent tools and the Admin Copilot return aggregates and opaque tokens only: no names, phones, emails, notes, review or dispute text.
+- MUST own the single `BookingSource` enum (`packages/contracts`) and its `gugu_acquired` / `salon_acquired` mapping (`packages/domain/attribution`, spec §3.1a). Other topics import it; any new value needs a migration, vi/en label and mapping row.
+- Zalo's transactional channel is **ZBS Template Message**, channel id `zalo_template`. "ZNS" is a historical alias only; never use it in new keys or code.
+- SMS goes through an international provider: meter both count (`sms.messages`) and cost (`sms.cost`) per salon. Subscriptions are invoiced manually by a foreign entity (`invoicingEntity = foreign`); no processor, no automatic charging.
 - Every admin mutation MUST require `reason` and write an AuditLog with a before/after diff. High-risk actions are `super_admin` only.
 - Money is VND as integer `bigint`. Timestamps are UTC.
 - All user-facing strings go through localization (vi default, en).

@@ -5,6 +5,9 @@ GuGu is a Vietnamese beauty & wellness booking marketplace: one universal Expo a
 ## Status
 Pre-implementation. Topic specs live in `docs/tasks/`; build order and cross-topic resolutions live in `docs/tasks/00-roadmap.md`; product decisions pending in `docs/tasks/open-questions.md`.
 
+## Live tracker (mandatory)
+The Claude artifact **GuGu Roadmap** (https://claude.ai/artifact/CkweFTJGUNC1M9hoCAmwn3) is the source of truth for milestone status and product questions. Every agent loads the `roadmap-tracker` skill and updates it at the start and end of each task, when blocked, and when it needs a decision.
+
 ## Where things are
 - `docs/tasks/` — task specs per topic (01–13)
 - `docs/domains/` — durable domain docs

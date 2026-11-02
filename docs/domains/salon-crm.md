@@ -11,7 +11,7 @@
 | Quick add | Thêm nhanh | Receptionist creates a booking from a phone or Zalo request |
 | Client profile | Hồ sơ khách | `CustomerSalonProfile`, a per-salon view of a customer |
 | Internal note | Ghi chú nội bộ | Team-only note, never shown to the customer |
-| Provenance | Nguồn số liệu | Origin label of a money figure |
+| Revenue kind | Loại doanh số | `RevenueKind`, the origin label of a money figure (estimated / recorded at salon / reported) |
 
 ## Model
 _TBD: CustomerSalonProfile, CustomerNote, ClientTag, OfflineSale, SalonReportedRevenue, salon_daily_stats. Link to the schema in `docs/database.md`._
@@ -20,8 +20,11 @@ _TBD: CustomerSalonProfile, CustomerNote, ClientTag, OfflineSale, SalonReportedR
 - Availability comes from the booking engine only.
 - `salonId` scoping on every query; another tenant's resource returns 404.
 - Internal notes never appear in customer DTOs.
-- Money values carry provenance and are never called payments.
-- Dashboard numbers come from the metric registry only.
+- Money values carry `revenueKind` and are never called payments.
+- Dashboard numbers come from the metric catalogue only; it is built on 04 read models, and 08 tools are generated from both.
+- Booking sources come from the 12-owned enum.
+- No personal data to any LLM: the agent surface is aggregate or tokenised only.
+- UI uses calm surface mode (same brand tokens, no expressive effects).
 
 ## File map
 _TBD_
@@ -36,7 +39,7 @@ _TBD_
 _TBD: generated from OpenAPI, with links._
 
 ## Metrics
-_TBD: mirror of the registry (key, definition, unit, provenance, permission)._
+_TBD: mirror of the registry (key, read models, definition, unit, revenueKind, permission)._
 
 ## Flows
 _TBD: Today check-in, quick add, walk-in, reschedule, onboarding import._

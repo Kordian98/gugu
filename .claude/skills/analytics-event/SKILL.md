@@ -18,7 +18,9 @@ All events are declared once in a typed catalog (`packages/analytics/src/events/
 - Client behavioral events MUST be dropped when analytics consent is not granted. No fingerprinting and no queue-then-send-later without consent.
 - Business facts (booking completed or cancelled, review submitted, salon registered…) MUST be emitted server-side from domain events via the outbox, never from the client. They are the source of truth for metrics.
 - Metric definitions live only in `packages/domain/metrics`. Dashboards and the AI agent reuse them; never re-derive them ad hoc.
-- Money properties MUST carry `revenueKind`.
+- Money properties MUST carry `revenue_kind` with a `RevenueKind` value (`estimated_from_bookings | recorded_offline_sale | reported_by_salon`), imported from `packages/domain/metrics` (owned by topic 07).
+- Booking-related events MUST use the shared `BookingSource` enum for `source` (owned by topic 12, `packages/contracts`) and MAY add `acquisition_class` (`gugu_acquired | salon_acquired`) from `acquisitionClassOf()`. Never declare a local list of booking sources.
+- Zalo transactional sends use channel id `zalo_template` (ZBS Template Message). Do not use `zns` in event or property names.
 
 ## Naming
 `snake_case`, `<object>_<past_tense_verb>` or the established names from the spec: `search_performed`, `salon_viewed`, `booking_started`, `booking_completed`, `favorite_added`, `staff_invited`. Property names are `snake_case`. Enums are lowercase strings.
@@ -47,6 +49,12 @@ All events are declared once in a typed catalog (`packages/analytics/src/events/
    - Schema test: invalid props are rejected.
    - Consent test: with consent off, the client adapter makes zero network calls.
    - Server mapping test: the domain event produces exactly one analytics event (idempotent on outbox replay).
+
+## Booking source values (owned by topic 12)
+`marketplace`, `promoted_listing`, `gugu_campaign`, `zalo_mini_app` → `gugu_acquired`
+`salon_profile`, `direct_link`, `qr_code`, `social_media`, `zalo_oa`, `zalo_link`, `zalo_chat`, `phone`, `walk_in`, `staff_created`, `repeat_customer`, `ai_agent` → `salon_acquired`
+
+Full meanings and rules: `docs/tasks/12-monetization-admin.md` §3.1a. Note that the `salon_viewed.source` example above is a *UI entry point*, not a booking source, so it keeps its own small enum.
 
 ## Changing an existing event
 Adding an optional property is fine. Renaming or removing a property, or changing its meaning, means creating a new event name (`*_v2`) and keeping the old one until dashboards migrate. Note it in the domain doc.

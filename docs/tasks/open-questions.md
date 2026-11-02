@@ -1,5 +1,7 @@
 # Open questions for the product owner
 
+> **Snapshot of 2026-11-02.** Live questions and answers are in the GuGu Roadmap artifact (https://claude.ai/artifact/CkweFTJGUNC1M9hoCAmwn3), see the `roadmap-tracker` skill.
+
 Consolidated from the 13 topic specs. Priority = the roadmap step it blocks (see `00-roadmap.md`). **Rec.** is the recommendation from the topic agent, if it gave one. Record answers in the "Answer" column; the owner agent then updates its spec.
 
 ## P0 — blocks Step 0–3 or the business track
@@ -8,7 +10,7 @@ Consolidated from the 13 topic specs. Priority = the roadmap step it blocks (see
 |---|---|---|---|---|
 | 1 | Is there (or will there be) a company registered in Vietnam? Needed for Zalo OA, ZBS Account, SMS brandname, likely store accounts. | 09, 05, 13 | — |No VN entity for now — validate the business concept first; decide later. SMS/OTP and Zalo must work without one (aggregators). (2026-11-02) |
 | 2 | Hosting region: Singapore or Vietnam? Depends on legal advice on data localisation (Decree 53) and cross-border transfer (PDPL 91/2025). | 13, 05, 04, 01 | SG, architecture portable to VN |Singapore, likely AWS ap-southeast-1. (2026-11-02) |
-| 3 | Is sending salon data to an external LLM (Claude API) acceptable before legal review? | 08 | — | |
+| 3 | Is sending salon data to an external LLM (Claude API) acceptable before legal review? | 08 | — |No. Zero personal data to any LLM for now (incl. staff names, notes, reviews, Zalo messages); agent works on aggregates + pseudonymous tokens. Provider: Anthropic API directly. (2026-11-02) |
 | 4 | Who does the legal review, and when? | 05, 13 | before Step 11 at the latest | |
 | 5 | Is `gugu.vn` secured? Which entity owns the Apple Developer / Google Play / EAS / Turborepo accounts? | 13, 01 | — | |
 | 6 | Art direction: "Saigon soft-pop", "Neon night market" or "Clean glow" (see 02 §11)? | 02 | — |Own direction from reference `design/hero-references/ref-01-homepage-lilac-diorama.png`: lilac/pink pastel, glossy isometric 3D salon diorama, editorial serif + handwritten accents. Mobile-first, alive, gen-z. (2026-11-02) |

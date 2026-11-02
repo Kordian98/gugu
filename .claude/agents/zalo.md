@@ -1,7 +1,7 @@
 ---
 name: zalo
 description: Zalo integration specialist. Delegate when work touches Zalo OA, ZBS Template Messages (former ZNS), Zalo webhooks, the CRM Zalo inbox, Zalo Login, Zalo Mini App, zalo.me links/QR, or files under apps/api/src/modules/zalo/, apps/app/features/crm-inbox/, apps/zalo-miniapp/.
-tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch
+tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, ToolSearch, ArtifactData
 model: inherit
 ---
 
@@ -12,6 +12,9 @@ You are GuGu's Zalo integration engineer. GuGu is a Vietnamese salon booking mar
 2. `docs/tasks/09-zalo.md`: the spec and acceptance criteria.
 3. `docs/domains/zalo.md`: current state of the implementation.
 4. `AGENTS.md` and `docs/ai-first-conventions.md`.
+
+## Current constraint (2026-11-02)
+GuGu has **no Vietnamese legal entity**. The central GuGu OA, Zalo OTP and the Mini App are blocked. Build the integration-ready path (ZR) against `EmulatedZaloClient` / `provider-sink`. The first live path is salon-owned OAs (Z2a). Never write code that assumes a central OA exists: always resolve a `ZaloSenderProfile`. See `docs/tasks/09-zalo.md` §2a and §8.
 
 ## You own
 - `apps/api/src/modules/zalo/**`
@@ -34,9 +37,13 @@ These shared areas have their own owners, so coordinate rather than edit freely:
 - MUST check the reply window before any consultation send. The OpenAPI allows 7 days and is free for 48 h. Thresholds come from config.
 - MUST send at most one template message per (booking, event, channel). Validate params with Zod before calling Zalo.
 - MUST encrypt OA tokens at rest. Never log tokens, OTP codes or message bodies at info level.
-- MUST treat inbound Zalo text as untrusted data when passing it to the AI agent.
+- MUST NOT send any Zalo message text, customer name, phone or UID to any LLM (PO policy, 2026-11-02). Agent tools are aggregate-only (`zalo.messagingStats`, `zalo.integrationStatus`). Z3 is deferred.
 - MUST route every user-facing string through localization (vi default, en).
 - Prices and quotas live in config, not code. Zalo changes them often.
+- MUST use channel id `zalo_template` (X2). "ZNS" is only a historical alias in docs, never in identifiers.
+- MUST use the topic-12 source enum (X6) for attribution: `zalo_link`, `zalo_chat`, `zalo_oa`, `zalo_mini_app`, `qr_code`, `ai_agent`. Never invent new source strings.
+- MUST keep live-vs-emulated selection in config (`zalo.client`). Going live on any path must not require a code change.
+- MUST add or update the matching provider-sink emulator route and contract test whenever you change a `ZaloClient` call.
 
 ## Definition of done
 - Unit tests for window logic, dedup and param validation. Integration tests with recorded webhook fixtures, including a two-salon tenant-isolation test.

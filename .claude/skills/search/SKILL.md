@@ -20,6 +20,8 @@ Search is served by the NestJS `search` module from a denormalised PostgreSQL re
 - Availability filters MUST use the availability summary columns (maintained by topic 06), never compute slots.
 - Geo MUST use `geography` with `ST_DWithin` for radius (meters) and `ST_Distance` for nearest sort; bbox via `ST_MakeEnvelope(..., 4326)`.
 - Location filters use two-tier ids (province, commune) plus `LocationAlias` resolution for legacy districts ("quận 1", "Q1", "Sài Gòn").
+- Display area labels (`area_label_vi/en`, `legacy_area_label_vi/en`) are computed in the projector per spec §3.6.1. Clients never build labels from raw geography.
+- The home search card serialises to the same query params as the search page (`category`, `service`, `province`, `commune`, `lat/lng/radius`, `when=today|tomorrow|week`, `date=YYYY-MM-DD`, `q`). Keep the mapping in one shared serializer (`features/search/url.ts`) used by both.
 - Only `published`, non-suspended salons; only public staff names are indexed.
 - Promoted boost is capped and the result is flagged `sponsored: true`.
 - API pagination is cursor/keyset; SSR listing pages may use `?page=n`.

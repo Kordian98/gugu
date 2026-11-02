@@ -23,11 +23,11 @@ Paths below are the planned layout from `docs/tasks/11-customer-notifications.md
 
 ## Procedure
 1. **Catalog** — add the event to the event catalog (`notifications/catalog.ts`): name `<domain>.<past_tense_verb>`, payload Zod schema, class (transactional/marketing), category (for preferences), recipient resolver (customer / salon roles with permission).
-2. **Policy** — add the default channel plan and fallback chain to the policy config; mark `critical` only if SMS/ZNS fallback cost is justified.
+2. **Policy** — add the default channel plan and fallback chain to the policy config; mark `critical` only if SMS/Zalo template fallback cost is justified.
 3. **Publish** — in the producing domain service, write `OutboxEvent` inside the existing transaction. Include `entity_version`.
 4. **Templates** — add per channel × locale:
    - `packages/localization/vi/notifications/<event>.json` and `.../en/...`
-   - push: `title` ≤ 50 chars, `body` ≤ 150 chars; sms: ≤ 160 GSM-7 or ≤ 70 UCS-2 chars (Vietnamese diacritics force UCS-2 — keep SMS short or unaccented per provider rules); email: subject + MJML/HTML body; zns: reference the approved template id (owned by the zalo domain).
+   - push: `title` ≤ 50 chars, `body` ≤ 150 chars; sms: provide both `vi` and `vi-ascii` (diacritics stripped, still readable) plus `en`; GSM-7 = 160 chars/segment (153 concatenated), UCS-2 = 70 (67) — Vietnamese diacritics force UCS-2; the planner picks `vi-ascii` when `vi` exceeds the event's segment budget (default 1, critical 2). Never reference an SMS provider by name — routing per country is config; email: subject + MJML/HTML body; zalo_template: reference the approved ZBS template id (owned by the zalo domain).
    - Write natural Vietnamese, not literal translation; use only variables declared in the payload schema.
 5. **Deep link** — set the tap target route (e.g. `/[locale]/bookings/:id`) for push and in-app.
 6. **Scheduled variant (if any)** — enqueue delayed job in `notify.reminders` at the triggering change; on reschedule/cancel remove by key and re-enqueue; extend the nightly reconciliation to cover it.
@@ -36,7 +36,7 @@ Paths below are the planned layout from `docs/tasks/11-customer-notifications.md
 
 ## Tests (required)
 - Unit: recipient resolution, policy/fallback plan, consent and quiet-hour skips.
-- Template: snapshot for vi and en; variable schema validation; length limits.
+- Template: snapshot for vi and en; variable schema validation; length limits; SMS segment count for `vi`, `vi-ascii`, `en` within budget.
 - Integration: publish twice → exactly one delivery per recipient/channel; worker crash and retry → no duplicate.
 - Scheduled: fake clock — reschedule removes old job, cancel prevents send, stale version dropped.
 

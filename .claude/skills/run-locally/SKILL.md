@@ -13,7 +13,7 @@ description: Boot the full GuGu stack locally (Postgres+PostGIS, Redis, MinIO, M
 - Fresh machine or broken environment.
 
 ## Invariants
-- MUST NOT point local runs at staging/production data or real SMS/ZNS/Zalo/email providers.
+- MUST NOT point local runs at staging/production data or real SMS / `zalo_template` (ZBS Template Message) / Zalo OA / email providers.
 - MUST use the deterministic seed; refer to seed entities by their fixed slugs/IDs (`docs/domains/platform-devops.md#seed`).
 - `make reset` / `pnpm reset --yes` only ever touches local Docker volumes.
 
@@ -31,7 +31,7 @@ description: Boot the full GuGu stack locally (Postgres+PostGIS, Redis, MinIO, M
 | Web app | http://localhost:8081 (redirects to `/vi`) |
 | Mailpit (emails) | http://localhost:8025 |
 | MinIO console | http://localhost:9001 |
-| Provider sink (SMS/ZNS/push/Zalo) | http://localhost:4010/messages |
+| Provider sink (SMS / `zalo_template` / push / Zalo OA) | http://localhost:4010/messages |
 
 ## Procedure: verify web
 1. Open `http://localhost:8081/vi` and `/en`; confirm locale strings differ and no raw keys (`booking.bookNow`) render.

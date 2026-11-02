@@ -21,6 +21,9 @@ GuGu ships Vietnamese (`vi`, default) and English (`en`). The app (react-i18next
 - MUST NOT put user-facing prose in API responses. Return `{ code, params, field }`.
 - MUST NOT split Vietnamese names into first and last name. Use `fullName` and the `givenName()` helper.
 - MUST add the PR label `i18n:vi-review` when any vi string is new or changed.
+- MUST NOT bake text into images, video, glTF textures, posters or 3D scenes. Hero headlines and script accents are `marketing` keys rendered as live text (OG images may be generated per locale from keys at build time).
+- MUST only use display, serif and script fonts that pass the Vietnamese glyph gate (see "Check a font for Vietnamese").
+- MUST use the right register: marketing (playful) or CRM (calm). See `references/tone-guide.md`.
 
 ## Procedures
 
@@ -47,8 +50,18 @@ GuGu ships Vietnamese (`vi`, default) and English (`en`). The app (react-i18next
 ### Add a notification template
 Templates live in `templates/<event>/<channel>.<locale>.*`.
 - SMS needs `vi`, `vi-ascii` (generated with `stripDiacritics`, then reviewed for ambiguity) and `en`.
-- ZNS only maps parameters, because Zalo approves the wording (topic 09).
+- `zalo_template` (ZBS Template Message, formerly ZNS) only maps parameters, because Zalo approves the wording (topic 09).
 - Push keeps the title at 40 characters or fewer and the body at 120 or fewer.
+
+### Add hero or marketing copy
+1. Add keys under `marketing` (e.g. `marketing.hero.headline`, `marketing.hero.accent1`).
+2. Write vi natively in the marketing register, offering 2–3 options in the PR description. Don't translate the en line word for word.
+3. Render as live text. In 3D use runtime text (R3F `Text`). On native video fallbacks, overlay the text on the video.
+4. Check that vi wraps and fits at small mobile and wide desktop widths; vi can be 20–40% longer.
+5. Add the labels `i18n:vi-review` and `copy:brand`; the copy needs brand-copy approval (Q7).
+
+### Check a font for Vietnamese
+Render `Ầ Ẫ Ặ Ở Ữ Ỳ ầ ẫ ặ ở ữ ỳ đ Đ — Thương mình nhiều hơn, đẹp rạng rỡ mỗi ngày` at 48px and 96px on web, iOS and Android. Fail the font on any of these: missing glyphs, fallback-font substitution, marks clipped by line-height, or marks colliding. Record the result in `docs/domains/localization.md` → "Font coverage".
 
 ### Display localized database content
 Use `pick(localizedText, locale)` to get `{ value, isFallback }`. When `isFallback` is true and the content was authored by a salon, show the "original language" badge.
@@ -60,7 +73,9 @@ Use `pick(localizedText, locale)` to get `{ value, isFallback }`. When `isFallba
 - [ ] Dates, prices and phone numbers go through formatters; the timezone is the salon's.
 - [ ] Layout was checked in vi (longer strings) and in the `en-XA` pseudo-locale.
 - [ ] The `i18n:vi-review` label is added if vi changed.
+- [ ] No text baked into images, video or 3D assets; any new display font passes the Vietnamese glyph gate.
+- [ ] The string uses the right register (marketing vs CRM).
 
 ## References
-- `references/tone-guide.md`: voice, register, formatting conventions
+- `references/tone-guide.md`: voice, marketing vs CRM registers, hero accent drafts, formatting conventions
 - `references/glossary.md`: canonical vi/en product terms

@@ -12,7 +12,7 @@ Status: spec. No code exists yet.
 - **Attribution:** one `BookingAttribution` per booking, first-visit detection, commission eligibility.
 - **Commission foundation:** configurable `CommissionRule`, an append-only `CommissionLedger`, a status machine and disputes. **No automatic charging.**
 - **Subscriptions & entitlements:** plans, per-salon subscriptions, an entitlement resolver, feature gating, manual (admin-assigned) plans for MVP.
-- **Usage metering:** AI agent tokens and requests, ZNS/SMS messages, staff seats, promoted-listing impressions, with quotas and soft/hard limits.
+- **Usage metering:** AI agent tokens and requests, Zalo template messages (ZBS Template Message, channel `zalo_template`), SMS messages **and SMS cost per salon** (international provider), staff seats, promoted-listing impressions, with quotas and soft/hard limits.
 - **Promoted listings foundation:** data model plus the ranking hook only, with clear "Sponsored" labeling.
 - **Feature flags:** global, per salon, per user, percentage rollout; managed in admin.
 - **Platform admin experience** (section 18), including the trust tooling from section 17 (disputes, suspicious-activity detection, salon reliability metrics).
@@ -22,7 +22,7 @@ Status: spec. No code exists yet.
 ### Out (owned elsewhere)
 - Salon dashboard UI and salon read models → topic 07. This topic only defines platform-level metrics and shared metric definitions.
 - AI agent runtime, prompts and tool execution → topic 08. This topic provides entitlements, quotas and the metering API.
-- Zalo/ZNS transport → topic 09. This topic meters and gates it.
+- Zalo / ZBS Template Message transport → topic 09. This topic meters and gates it.
 - Auth, RBAC primitives, audit log infrastructure → topic 05. This topic declares the admin permissions it needs.
 - Booking state machine → topic 06. This topic subscribes to its status events.
 - Online card billing, invoices and payment processor integration → **deferred** until the business model is validated (see §4.3).
@@ -34,22 +34,22 @@ Status: spec. No code exists yet.
 | # | Gap / problem in master prompt | Decision |
 |---|---|---|
 | G1 | "New to the salon" is undefined: what about walk-ins already in the salon's CRM, imported customers, or the same phone number under different accounts? | A customer is new when **no** `CustomerSalonProfile` with a prior completed visit exists **and** the phone number (normalized E.164) does not match any salon-imported or manually created CRM record created before the attribution timestamp. Imported CRM contacts are never "new". |
-| G2 | Attribution source is per booking, but commission depends on "acquired by GuGu". `direct_link`, `qr_code` and `staff_created` are salon-driven, not GuGu-driven. | Split the sources into a **GuGu-driven** group (`marketplace`, `promoted_listing`, `gugu_campaign`) and a **salon-driven** group (`salon_profile` reached via the salon's own link, `direct_link`, `qr_code`, `social_media` (salon's own), `zalo_oa` (salon's OA), `staff_created`, `repeat_customer`). Only GuGu-driven + new customer + completed counts as commission-eligible by default. All of this is configurable per rule. |
+| G2 | Attribution source is per booking, but commission depends on "acquired by GuGu". `direct_link`, `qr_code` and `staff_created` are salon-driven, not GuGu-driven. | Every source maps to exactly one **acquisition class**, `gugu_acquired` or `salon_acquired` (table in §3.1a). Only `gugu_acquired` + new customer + completed counts as commission-eligible by default. Configurable per rule. |
 | G3 | Source detection mechanism is unspecified. | Last-non-direct-touch within a **30-day window** (configurable). Capture UTM/`ref` parameters, the deep-link `src` parameter and QR codes `?src=qr&s=<salonId>` on the client, persist them in an `attribution_touch` (cookie / SecureStore), and send them with the booking. The server decides the final source. The attribution window also needs a cookie-consent decision → topic 05. |
-| G4 | Added sources were missing: `promoted_listing`, `zalo_oa`, `zalo_mini_app`, `ai_agent` (booking created by the salon's agent), `gugu_campaign`. | Added. The enum is extensible via migration only, never free text. |
+| G4 | Sources were added independently by 06, 07, 09 and 12 (roadmap X6). | **Topic 12 owns the single `BookingSource` enum** (§3.1a), defined in `packages/contracts` and mirrored as a Postgres enum. Other topics reference it and never redefine it. Extensible via migration only, never free text. |
 | G5 | Commission statuses exist, but the transition and trigger rules do not. | State machine in §3.2. Entries are created in `pending` only when the booking reaches `completed` and the dispute window has opened. Cancelled bookings and no-shows produce `not_applicable` records (kept for audit). |
-| G6 | "Customer can confirm the appointment" has no UX or rules defined. | After `completed`, the customer gets a "Did your visit happen?" prompt (push / in-app / ZNS) for 72 h. Possible outcomes: `confirmed_by_customer`, `disputed_by_customer`, `no_response`. Feeds reliability metrics and moves commission `pending → confirmed` after the dispute window (default 7 days). |
+| G6 | "Customer can confirm the appointment" has no UX or rules defined. | After `completed`, the customer gets a "Did your visit happen?" prompt (push / in-app / Zalo template) for 72 h. Possible outcomes: `confirmed_by_customer`, `disputed_by_customer`, `no_response`. Feeds reliability metrics and moves commission `pending → confirmed` after the dispute window (default 7 days). |
 | G7 | "Suspicious activity detection" is undefined. | Rule-based MVP signals: bookings completed with zero customer app activity, completion rate far above the salon median, the same device or phone across many "new" customers, customer accounts created by the salon IP, bursts of marketplace bookings cancelled and re-created as `staff_created` (commission evasion), and the reverse (fake marketplace bookings). Signals produce `RiskSignal` rows, which admins review. No automatic penalties in MVP. |
 | G8 | Subscriptions entity exists, but no plan, entitlement or quota model. | `Plan`, `PlanEntitlement`, `Subscription`, `EntitlementOverride` and `UsageCounter` (§3.3). Code checks **entitlement keys**, never plan names. |
-| G9 | The AI agent and Zalo are gated by subscription with no metering. | Metered keys: `ai.requests`, `ai.tokens.input`, `ai.tokens.output`, `zns.messages`, `sms.messages`. Topics 08 and 09 call `UsageService.reserve()` / `commit()` (§3.4). |
-| G10 | "Do not implement billing complexity" vs. "subscription management" in admin. | MVP: admin assigns plans manually and payment happens offline (bank transfer, invoice issued outside GuGu). No processor. `Subscription.billingMode = manual`. A future `billingProvider` field exists but stays unused. |
+| G9 | The AI agent and Zalo are gated by subscription with no metering. | Metered keys: `ai.requests`, `ai.tokens.input`, `ai.tokens.output`, `zalo_template.messages`, `sms.messages`, `sms.cost`. Topics 08, 09 and 11 call `UsageService.reserve()` / `commit()` (§3.4). |
+| G10 | "Do not implement billing complexity" vs. "subscription management" in admin. | MVP: there is no Vietnamese entity yet. Subscriptions are **invoiced manually by GuGu's foreign entity** (bank transfer / international invoice issued outside GuGu), and admin activates plans by hand. No processor. `Subscription.billingMode = manual`, `invoicingEntity = foreign`. A future `billingProvider` field exists but stays unused. |
 | G11 | Promoted listings have no transparency requirement. | Promoted results MUST be labeled "Được tài trợ / Sponsored", capped per page, and never override search filters. Impressions and clicks are logged for billing later. Consumer-protection advertising labeling is flagged for legal review. |
 | G12 | Analytics tool not chosen; consent model vague. | Proposal: **PostHog** (self-hosted or EU/US cloud; data residency is an open question), behind an internal `analytics` package abstraction so it can be swapped. Server-side events for business facts (booking_completed etc.) are the source of truth; client events are behavioral and consent-gated. |
 | G13 | Platform metrics need definitions (what does "active" mean?). | Metric dictionary in §3.6, shared with the topic 08 semantic layer. A single definition per metric, versioned. |
 | G14 | Admin "feature flags" has no model or evaluation location. | Flags are evaluated on the server and exposed to the client via `/api/v1/me/flags` (cached). PostHog flags are not used, so flags keep working without analytics consent. |
 | G15 | Admin actions lack a safety model (impersonation, suspension). | All admin mutations require a reason, are audit logged, and high-risk ones (suspend salon, waive ledger, change plan price, impersonate) require `super_admin`. Impersonation is read-only in MVP, time-boxed and visibly bannered. |
-| G16 | Revenue figures from analytics could be mistaken for processed payments. | Every money metric carries `revenueKind ∈ {estimated_from_bookings, reported_by_salon, offline_sale}`, and UI and the AI agent must render that label. Shared rule with topic 07. |
-| G17 | No admin-side AI assistance despite the AI-first goal. | Optional **Admin Copilot** (§3.8): read-only tools over the admin read models, used for support lookups, moderation triage summaries and dispute summaries. Its write actions are only proposed, and a human executes them. |
+| G16 | Revenue figures from analytics could be mistaken for processed payments. | Every money metric carries `RevenueKind = estimated_from_bookings \| recorded_offline_sale \| reported_by_salon` (roadmap X5). The enum is **owned by topic 07** in `packages/domain/metrics`; this topic imports it. Kinds are never summed without a label, and UI and the AI agent must render the label. |
+| G17 | No admin-side AI assistance despite the AI-first goal; product-owner rule says no personal data may go to any LLM. | Optional, low-priority **Admin Copilot** (§3.8), limited to aggregate/tokenised platform analytics. No PII, no review or dispute text, no write actions. Support, moderation and dispute work stays human. |
 
 ---
 
@@ -61,6 +61,34 @@ Status: spec. No code exists yet.
 - R-A3: Attribution is immutable after creation. Corrections happen via admin with an audit entry and a new revision row (`BookingAttributionRevision`).
 - R-A4: `isNewCustomerToSalon` is computed server-side per G1 while holding the booking transaction, and its basis is stored.
 - R-A5: Attribution metadata is **internal**. It is never returned to customers, and salons see only the `source` label and the `isNew` flag, not the raw UTM data or the eligibility reasoning beyond the status.
+
+### 3.1a Booking source enum (owned by topic 12, roadmap X6)
+
+Single source of truth: `BookingSource` in `packages/contracts` (Zod enum + Postgres enum `booking_source`) and `acquisitionClassOf(source)` in `packages/domain/attribution`. Topics 06, 07, 09 and 10 import it and never redefine it. Adding a value requires a migration, an i18n label (vi/en), a mapping row below, and an entry in the `entitlements`/`analytics-event` skill tables.
+
+| Source | Meaning | Acquisition class |
+|---|---|---|
+| `marketplace` | Booked after discovery in GuGu search, home or category pages | `gugu_acquired` |
+| `promoted_listing` | Booked from a sponsored placement | `gugu_acquired` |
+| `gugu_campaign` | GuGu-run campaign (UTM `gugu_*`, GuGu social, referral) | `gugu_acquired` |
+| `zalo_mini_app` | Booked inside GuGu's Zalo Mini App via its discovery | `gugu_acquired` |
+| `salon_profile` | Landed directly on the salon's profile with no GuGu discovery touch in the window | `salon_acquired` |
+| `direct_link` | Salon's own shared link / booking URL | `salon_acquired` |
+| `qr_code` | Salon's QR code (in-store, flyer) | `salon_acquired` |
+| `social_media` | Salon's own social posts (Facebook, TikTok, Instagram) | `salon_acquired` |
+| `zalo_oa` | Salon's Zalo Official Account (menu, broadcast) | `salon_acquired` |
+| `zalo_link` | Salon's zalo.me link or Zalo share | `salon_acquired` |
+| `zalo_chat` | Booked by staff from a Zalo conversation in the CRM inbox | `salon_acquired` |
+| `phone` | Customer phoned the salon; staff entered it | `salon_acquired` |
+| `walk_in` | Walk-in entered at the desk | `salon_acquired` |
+| `staff_created` | Other manual staff entry | `salon_acquired` |
+| `repeat_customer` | Rebooking by an existing client (rebook button, history) | `salon_acquired` (never "new") |
+| `ai_agent` | Created by the salon's AI business agent on staff instruction | `salon_acquired` |
+
+Rules:
+- A `zalo_mini_app` booking that entered through a salon-shared Mini App link is classified as `zalo_link` (the server decides from `channelDetail.entry`).
+- When both a GuGu discovery touch and a salon touch fall in the window, last non-direct touch wins (G3).
+- Commission rules may override the class per source, but the default rule set uses only `gugu_acquired`.
 
 ### 3.2 Commission
 - R-C1: `CommissionRule` holds `scope` (global | plan | salon), `sources[]`, `requiresNewCustomer`, `basis` (`flat_vnd` | `percent_of_estimated_value`), `amount`, `capVnd`, `oncePerCustomerPerSalon` (default true), `disputeWindowDays` (default 7), `activeFrom/To`, `version`. Rules are versioned, and ledger entries reference the rule version.
@@ -85,11 +113,11 @@ Status: spec. No code exists yet.
   - `crm.customer_tags`, `crm.internal_notes` (bool)
   - `analytics.advanced` (bool)
   - `ai.agent.enabled` (bool), `ai.agent.monthly_requests` (limit), `ai.agent.monthly_tokens` (limit), `ai.agent.write_actions` (bool)
-  - `zalo.oa_connect` (bool), `zalo.inbox` (bool), `zns.monthly_messages` (limit), `zalo.mini_app` (bool)
-  - `notifications.sms.monthly_messages` (limit)
+  - `zalo.oa_connect` (bool), `zalo.inbox` (bool), `zalo_template.monthly_messages` (limit), `zalo.mini_app` (bool)
+  - `notifications.sms.monthly_messages` (limit), `notifications.sms.monthly_cost_cap_vnd` (limit)
   - `promotion.promoted_listing` (bool)
   - `branding.custom_subdomain` (bool, future)
-- R-S3: `Subscription(salonId, planId, planVersion, status ∈ {trialing, active, past_due, cancelled, expired}, billingMode = manual, currentPeriodStart/End, trialEndsAt)`. Each salon has exactly one current subscription. The free plan is assigned at salon registration.
+- R-S3: `Subscription(salonId, planId, planVersion, status ∈ {trialing, active, past_due, cancelled, expired}, billingMode = manual, invoicingEntity = foreign, currentPeriodStart/End, trialEndsAt)`. Each salon has exactly one current subscription. The free plan is assigned at salon registration.
 - R-S4: `EntitlementOverride(salonId, key, value, expiresAt, reason, createdBy)` supports admin grants and pilots.
 - R-S5: The resolver `EntitlementService.get(salonId, key)` returns override if present, otherwise plan, otherwise default. Results are cached in Redis with a 60 s TTL and invalidated on change. A **NestJS guard/decorator** `@RequiresEntitlement('ai.agent.enabled')` exists, and the client gets `/api/v1/salons/:id/entitlements` for UI gating, which is for display only. The backend always enforces.
 - R-S6: Downgrades never delete data. Over-limit resources become read-only (for example, extra staff seats are kept but cannot take new bookings until the salon is back within the limit, with a grace period of 14 days).
@@ -97,8 +125,8 @@ Status: spec. No code exists yet.
 ### 3.4 Usage metering
 - R-U1: `UsageCounter(salonId, key, periodStart, used)` holds the aggregate, and `UsageEvent` (append-only, partitioned monthly) holds the raw entries with `idempotencyKey`.
 - R-U2: API: `reserve(salonId, key, amount, idemKey)` returns allow or deny along with the remaining amount, `commit(reservationId, actualAmount)` and `release(reservationId)`. AI tokens are reserved by estimate and committed with the actual usage reported by the Claude API. Counters are kept atomically in Redis and flushed to Postgres by a BullMQ job. Postgres is authoritative for reporting.
-- R-U3: Soft limit at 80% triggers a notification to the owner. Hard limit means deny with error `ENTITLEMENT_QUOTA_EXCEEDED` (localized). ZNS transactional booking messages may fall back to push/email instead of failing the booking (topic 11 fallback order).
-- R-U4: Cost tracking per unit (`unitCostVnd` snapshot) enables margin reporting in admin.
+- R-U3: Soft limit at 80% triggers a notification to the owner. Hard limit means deny with error `ENTITLEMENT_QUOTA_EXCEEDED` (localized). Transactional booking messages (Zalo template, SMS) may fall back to push/email instead of failing the booking (topic 11 fallback order).
+- R-U4: Cost tracking per unit (`unitCost` + `costCurrency` snapshot, converted to VND with a stored FX rate) enables margin reporting in admin. **SMS goes through an international provider, so SMS cost is metered per salon per message** (`sms.cost`, using the provider's per-message price and segment count). Zalo template sends are metered the same way (`zalo_template.messages` + cost).
 
 ### 3.5 Feature flags
 - R-F1: `FeatureFlag(key, description, defaultValue, rules jsonb)`. Rules target environment, salonId, userId, role, plan, locale, platform (ios/android/web), app version, and percentage (sticky hash).
@@ -130,10 +158,14 @@ Status: spec. No code exists yet.
 - R-AD5: Salon reliability score (internal, 0–100): customer confirmation rate, dispute rate, risk signals, cancellation-by-salon rate and response time. Shown only to admins. Never shown publicly in MVP.
 - R-AD6: Lists are server-paginated, filterable and exportable (CSV). Export of PII requires super_admin and is audit logged.
 
-### 3.8 Admin Copilot (optional, behind flag `admin.copilot`)
-- R-CP1: The same agent runtime as topic 08, with a separate tool set and system prompt. Read-only tools: `admin.searchSalons`, `admin.getSalonHealth`, `admin.getDisputeContext`, `admin.summarizeModerationQueue`, `admin.getPlatformMetric`.
-- R-CP2: Write actions are only emitted as **proposals** (e.g. "suspend salon X, reason Y"), and a human confirms them through the normal admin UI path, which keeps the audit trail intact.
-- R-CP3: Review text, salon descriptions and customer messages are untrusted content and are delimited in prompts. The copilot can never change its own permissions or flags.
+### 3.8 Admin Copilot (optional, low priority, behind flag `admin.copilot`)
+Product-owner rule: **no personal data may be sent to any LLM** for now. The copilot is therefore restricted to aggregate and tokenised platform data. It answers platform-analytics questions ("active salons by province this month", "no-show rate trend for nails", "which plans are hitting the AI quota") and does nothing else.
+- R-CP1: Same agent runtime as topic 08, with a separate tool set and system prompt. Allowed tools, all read-only and returning aggregates only: `admin.getPlatformMetric` (metric dictionary §3.6), `admin.getSupplyDemand` (by area/category), `admin.getUsageAndCost` (by plan/key), `admin.getQueueCounts` (moderation, dispute and risk-signal counts by type/age, no content).
+- R-CP2: Entities appear only as opaque tokens (`salon_7f3a…`, a per-session HMAC of the ID). Names, phone numbers, emails, addresses, staff and owner details, review text, dispute text, customer messages and salon descriptions are **never** included. The admin UI resolves tokens back to records locally, outside the LLM.
+- R-CP3: Small groups are suppressed: any aggregate cell with fewer than 5 underlying customers or bookings is returned as `<5` so individuals cannot be re-identified.
+- R-CP4: There are no write actions and no proposals that name individuals. The copilot can never change permissions, flags, plans or rules.
+- R-CP5: An outbound PII guard (shared with topic 08) scans every prompt and tool result before it is sent to the LLM and blocks the call on detection of phone/email/name patterns or of fields not on the allow-list. Blocks are audit logged.
+- Removed from scope (they need personal data or free text): salon search by name, salon-health lookups by name, dispute summaries and moderation-content triage. These stay human workflows in the admin UI until the LLM data policy changes.
 
 ---
 
@@ -155,7 +187,7 @@ Domain events flow through a transactional outbox table (owned by topic 04) to B
 `BookingAttribution`, `BookingAttributionRevision`, `AttributionTouch` (optional server copy), `CommissionRule`, `CommissionLedgerEntry`, `CommissionLedgerEvent`, `CommissionDispute`, `Plan`, `PlanEntitlement`, `Subscription`, `SubscriptionEvent`, `EntitlementOverride`, `UsageEvent` (partitioned), `UsageCounter`, `FeatureFlag`, `RiskSignal`, `SalonReliabilitySnapshot`, `CustomerVisitConfirmation`, `MetricDaily`, `PromotedListing`, `PromotedImpression` (partitioned). All tenant-owned rows carry `salonId`. Money is VND `bigint`. All tables use UUID PKs.
 
 ### 4.3 Billing deferral
-There is no payment processor in MVP. When the model is validated, add a `BillingProvider` port with candidate adapters (local VN gateways such as VNPay/MoMo/PayOS for subscription payments, and VAT e-invoicing via a licensed provider). These need legal and tax review, which is listed as an open question.
+There is no payment processor and no Vietnamese legal entity in MVP. Subscriptions are invoiced manually by GuGu's foreign entity. When the model is validated, add a `BillingProvider` port (candidates: an international processor billing from the foreign entity, or local VN gateways such as VNPay/MoMo/PayOS once a VN entity exists). Tax treatment of a foreign entity selling to Vietnamese salons (foreign contractor tax, VAT, e-invoicing) needs legal and tax review, which is listed as an open question.
 
 ### 4.4 Analytics stack
 A `packages/analytics` facade with adapters: PostHog (client: `posthog-react-native` / `posthog-js`; server: `posthog-node`), plus a no-op adapter for tests and no-consent users. Exact SDK versions are to be verified at implementation time (topic 01). Internal metrics are always computed from Postgres, so the product works if the external tool is removed.
@@ -200,7 +232,7 @@ Admin
 - [ ] Both locales render all admin screens with no missing keys (i18n coverage test, topic 03).
 
 Admin Copilot (when enabled)
-- [ ] Copilot tool calls are read-only. Proposals require explicit human execution, and both are audit logged.
+- [ ] Copilot tools return only aggregates and opaque tokens. A fixture test with seeded PII (names, phones, emails, review/dispute text) shows none of it in any prompt or tool result sent to the LLM. The PII guard blocks and audit-logs a deliberately leaky tool. Cells under 5 are suppressed.
 
 ---
 
@@ -213,7 +245,7 @@ Admin Copilot (when enabled)
 | 06 | `booking.created` in-transaction hook, status-change events, admin correction semantics (completed → reverted) |
 | 07 | Salon-facing dashboards consume entitlements and the shared metric definitions; ledger view in salon settings |
 | 08 | Calls `UsageService` and `EntitlementService`, reuses metric definitions and the agent runtime for the Admin Copilot |
-| 09 | ZNS / OA features gated by `zalo.*`/`zns.*` keys; ZNS sends metered |
+| 09 | OA / Zalo template features gated by `zalo.*` / `zalo_template.*` keys; Zalo template sends metered (`zalo_template.messages`) |
 | 10 | `PromotedListing` ranking hook and Sponsored label in search; location model for admin |
 | 11 | Customer visit confirmation prompt, quota notifications, fallback channels |
 | 03 | Localized plan names, error codes, admin UI strings |
@@ -234,7 +266,7 @@ Admin Copilot (when enabled)
 9. **M12.9 Metrics rollups + platform analytics dashboard.**
 10. **M12.10 Moderation, taxonomy, locations, notification admin.**
 11. **M12.11 Promoted listings foundation** (data + ranking hook + labeling, no billing).
-12. **M12.12 Admin Copilot** (optional, behind flag).
+12. **M12.12 Admin Copilot** (optional, behind flag, aggregate/tokenised data only; lowest priority).
 
 ---
 
@@ -258,15 +290,17 @@ Tools exposed to the salon AI agent (topic 08). All are tenant-scoped to the cal
 | Tool | R/W | Permission | Notes |
 |---|---|---|---|
 | `subscription.getCurrentPlan` | R | owner, manager | plan name, period, entitlements summary |
-| `usage.getQuotaStatus` | R | owner, manager | AI/ZNS/SMS used vs limit this period |
+| `usage.getQuotaStatus` | R | owner, manager | AI / Zalo template / SMS used vs limit, plus SMS cost, this period |
 | `attribution.getAcquisitionBreakdown` | R | owner, manager | bookings by source, new vs returning, date range. No raw UTM |
 | `commission.listLedgerEntries` | R | owner | status + amount. Only if commission is active for the salon |
 | `commission.openDispute` | W, **confirm** | owner | requires explicit user confirmation in UI |
-| `metrics.get` | R | role-scoped | shared metric dictionary (repeat rate, no-show rate, cancellation rate, utilization) with `revenueKind` labels |
+| `metrics.get` | R | role-scoped | shared metric dictionary (repeat rate, no-show rate, cancellation rate, utilization) with `RevenueKind` labels (enum owned by 07) |
 
-Admin Copilot tools (platform roles only): see §3.8. They are never exposed to salon agents.
+Admin Copilot tools (platform roles only): see §3.8. They are aggregate/tokenised only and never exposed to salon agents.
 
-The agent MUST label all revenue figures by `revenueKind` and MUST NOT describe them as payments processed by GuGu.
+**No-PII rule (product owner, applies to every tool above):** tools return counts, rates, amounts, statuses and opaque tokens only. No customer, staff or owner names, phone numbers, emails, notes, review or dispute text are ever placed in LLM context. `commission.listLedgerEntries` returns booking tokens, dates and amounts, not customer identities.
+
+The agent MUST label all revenue figures by `RevenueKind` and MUST NOT describe them as payments processed by GuGu.
 
 ---
 
@@ -274,11 +308,11 @@ The agent MUST label all revenue figures by `revenueKind` and MUST NOT describe 
 
 1. Are commissions planned at all in year 1, or only subscriptions? This affects whether M12.8 is in the MVP roadmap.
 2. Initial plan lineup and prices (Free / Pro / Business?). Is the AI agent Pro+ only? Is there a free AI trial quota?
-3. Is ZNS cost passed through to salons (metered add-on) or bundled into plans?
+3. Is the Zalo template (ZBS Template Message) and SMS cost passed through to salons (metered add-on) or bundled into plans? SMS is via an international provider, so the per-salon cost is metered either way.
 4. Subscription payment collection before a processor: bank transfer + manual activation acceptable?
-5. VAT e-invoice obligations for GuGu's subscription revenue in Vietnam: who will handle them (accountant / licensed e-invoice provider)? Needs legal and tax review.
+5. With no Vietnamese entity, subscriptions are invoiced by a foreign entity. What are the obligations for VAT, foreign contractor tax and Vietnamese e-invoicing for B2B sales to Vietnamese salons, and can salons deduct the expense without a Vietnamese e-invoice? Needs legal and tax review before charging the first salon.
 6. Analytics data residency: is self-hosted PostHog in our own region acceptable, or is a cloud region fine? Affects Decree 13 cross-border transfer assessment (topic 05).
 7. Attribution window length (30 days proposed) and whether salon-owned links count as GuGu-acquired once a commission is introduced.
 8. Should salons see their internal reliability score, or should it stay admin-only?
-9. Is the Admin Copilot wanted in the first admin release, or later?
+9. Is an aggregate-only Admin Copilot (platform metrics Q&A, no PII) worth building at all, or should it be dropped until the LLM data policy allows more?
 10. Promoted listings: pricing model (CPM / CPC / flat weekly) to shape the impression/click data captured now.

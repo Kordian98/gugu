@@ -5,7 +5,7 @@ Durable reference for GuGu's design system: tokens, surface modes, typography, m
 > Status: skeleton — sections are filled in as implementation lands.
 
 ## Art direction
-_Selected route: TBD (see DS-1)._
+**Lilac Glow**, derived from ref-01 (`design/hero-references/ref-01-homepage-lilac-diorama.png`). Full analysis, palette, typography, 3D language, do-not-copy list and asset requests: `design/hero-references/README.md`. Fonts: Playfair Display (display), Be Vietnam Pro (UI), Playwrite VN (script). Final after the DS-1 glyph test.
 
 ## Surface modes
 | Mode | Route groups | Character |
@@ -29,7 +29,7 @@ _Inventory table: name · modes · platform split · status · catalog link._
 _ChartSpec contract (shared with topic 08), AgentMessage, ActionConfirmCard._
 
 ## Hero
-_Hero brief (after reference intake), storyboard links, asset manifest, current budget measurements._
+References received (ref-01). Current brief: `docs/tasks/02-design-system.md` §5.0 (mobile composition), §5.5 (aliveness tiers), §5.6 (HERO-2 scene brief). This section will hold the approved storyboard, asset manifest link (`design/hero-assets/MANIFEST.md`) and measured budgets once HERO-2 starts.
 
 ## Decisions
 _Links to ADRs in `docs/adr/`._

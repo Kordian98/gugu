@@ -15,6 +15,9 @@ Any new table, column, index, constraint, enum value, extension, view, policy, o
 - No exclusion constraints, GiST/GIN indexes on unsupported columns, generated `tstzrange` columns, RLS policies, or partitions in the schema → write them in the migration SQL.
 - Prisma 7 uses a driver adapter (`@prisma/adapter-pg`) and `prisma.config.ts`; env vars are not auto-loaded.
 
+## Target database
+Amazon RDS for PostgreSQL 18 in `ap-southeast-1`; local/CI image `postgis/postgis:18-3.6`. Allowed extensions (on the RDS allow-list, verified 2026-11-02): `postgis`, `btree_gist`, `pg_trgm`, `unaccent`, `citext`, `pgcrypto`. Do not add any other extension without checking `SHOW rds.extensions;` and updating the spec. UUID v7: Prisma `@default(uuid(7))`; raw SQL uses native `uuidv7()` (PG 18) — there is no `pg_uuidv7` extension on RDS.
+
 ## Invariants
 - MUST follow conventions: UUID v7 PK, `snake_case` tables via `@@map`, `created_at/updated_at timestamptz`, money as `BIGINT` minor + `currency CHAR(3)`.
 - Tenant tables MUST have `salon_id NOT NULL`, `@@unique([salonId, id])`, and composite FKs `(salon_id, parent_id) → parent(salon_id, id)`.
@@ -26,7 +29,7 @@ Any new table, column, index, constraint, enum value, extension, view, policy, o
 
 ## Procedure
 1. Edit `schema.prisma` for everything Prisma can express.
-2. `pnpm --filter api prisma migrate dev --create-only --name <verb_noun>` (e.g. `add_booking_service`).
+2. `pnpm --filter api prisma migrate dev --create-only --name <verb_noun>` (e.g. `add_booking_occupancy`).
 3. Open the generated `migration.sql` and append raw objects. Patterns:
    ```sql
    -- extensions (first migration only)
@@ -36,14 +39,14 @@ Any new table, column, index, constraint, enum value, extension, view, policy, o
    CREATE EXTENSION IF NOT EXISTS unaccent;
    CREATE EXTENSION IF NOT EXISTS citext;
 
-   -- generated range incl. buffers
-   ALTER TABLE booking_services ADD COLUMN slot tstzrange
-     GENERATED ALWAYS AS (tstzrange(starts_at - make_interval(mins => buffer_before_minutes),
-                                    ends_at   + make_interval(mins => buffer_after_minutes), '[)')) STORED;
-
-   -- staff overlap protection (final predicate agreed with booking engine, topic 06)
-   ALTER TABLE booking_services ADD CONSTRAINT booking_services_no_staff_overlap
-     EXCLUDE USING gist (salon_id WITH =, staff_id WITH =, slot WITH &&) WHERE (is_active);
+   -- overlap protection: only on booking_occupancy (engine-owned, topic 06).
+   -- capacity N resource = N resource_unit rows, so one constraint covers capacity too.
+   ALTER TABLE booking_occupancy ADD CONSTRAINT booking_occupancy_no_staff_overlap
+     EXCLUDE USING gist (staff_id WITH =, "range" WITH &&) WHERE (active AND staff_id IS NOT NULL);
+   ALTER TABLE booking_occupancy ADD CONSTRAINT booking_occupancy_no_unit_overlap
+     EXCLUDE USING gist (resource_unit_id WITH =, "range" WITH &&) WHERE (active AND resource_unit_id IS NOT NULL);
+   ALTER TABLE booking_occupancy ADD CONSTRAINT booking_occupancy_one_target
+     CHECK (num_nonnulls(staff_id, resource_unit_id) = 1);
 
    -- geo index
    CREATE INDEX salon_locations_geo_gix ON salon_locations USING gist (geo);
@@ -61,11 +64,12 @@ Any new table, column, index, constraint, enum value, extension, view, policy, o
 7. Update `docs/domains/backend-database.md`: entity table, raw SQL inventory row (object, migration, test name), ERD notes.
 
 ## Tests (required)
+- Do not add `SELECT … FOR UPDATE` capacity counting; add resource units instead (load skill `booking-engine`).
 - Constraint tests for every new CHECK/UNIQUE/EXCLUDE (expect SQLSTATE `23514`/`23505`/`23P01`).
 - Composite-FK test: cross-tenant reference rejected.
 - Concurrency test for exclusion constraints (parallel transactions, exactly one wins).
 - EXPLAIN-based test for new GiST/GIN indexes on the queries that need them.
-- Migration from empty DB in CI (Testcontainers `postgis/postgis` image matching prod major version).
+- Migration from empty DB in CI (Testcontainers `postgis/postgis:18-3.6`, matching RDS PG 18).
 
 ## Checklist before PR
 - [ ] `--create-only` used; raw SQL reviewed

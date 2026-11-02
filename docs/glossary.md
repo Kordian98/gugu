@@ -35,5 +35,6 @@ The terms agents and humans must use consistently in code, docs and UI copy. Cod
 | `ward` | Ward / commune | Phường / xã | Administrative unit. After the 2025 reform it sits directly under the province. |
 | `province` | Province / city | Tỉnh / thành phố | Top-level administrative unit. |
 | `zaloOA` | Zalo Official Account | Zalo OA | A business account on Zalo (topic 09). |
-| `zns` | Zalo Notification Service | ZNS | Template-based transactional Zalo messages by phone number. |
-| `otp` | One-time code | Mã OTP | Phone verification code; stored only as a hash. |
+| `zalo_template` | Zalo Template Message (ZBS) | Tin nhắn mẫu Zalo (ZBS) | Template-based transactional Zalo messages by phone number. Formerly "ZNS"; since 2026-01-01 part of ZBS (X2). Use `zalo_template` in code; "ZNS" only as a historical alias. |
+| `otp` | One-time code | Mã OTP | Phone verification code; stored only as a hash. **Not required to book** (X11). Used only for account sign-in/recovery and sensitive changes. |
+| `identityVerified` | Verified phone | Đã xác minh số điện thoại † | Flag on a customer/booking. Self-service bookings start as `identity_verified=false` until the phone is verified (X11). |

@@ -21,8 +21,15 @@ The public, unauthenticated side of GuGu: discovery (home, category and location
 | Short link | `/s/{shortId}` |
 Slug rules and redirects: see skill `seo-page`.
 
+## Homepage
+Reference: `design/hero-references/ref-01-homepage-lilac-diorama.png` (+ README by topic 02). Blocks, mobile order, SSR vs client split and the search card → URL mapping are in spec §3.3. Home HTML is cached per (locale, city).
+
+## Hosting
+AWS ap-southeast-1 (Singapore): SSR Node container next to the API, with Cloudflare or CloudFront in front (final call: topic 13). Auth cookies are never part of public cache keys.
+
 ## Location model
 Two-tier since 2025-07-01: province (34) → commune (xã/phường/đặc khu). Legacy districts and old provinces are `LocationAlias` rows. Locations are versioned (`valid_from`, `valid_to`, `replaced_by`). TODO: dataset source + seed script path.
+Area labels: `{neighbourhood | ward short}, {province short}` + optional legacy chip ("Q.1 cũ" / "former D1"), precomputed in `salon_search` (spec §3.6.1). Never "District N" as the primary label.
 
 ## Search read model
 `salon_search` — TODO: column list, indexes, projector events, ranking weights (with change log).

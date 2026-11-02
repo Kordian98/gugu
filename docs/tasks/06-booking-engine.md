@@ -4,6 +4,8 @@
 
 The booking engine decides which appointment times are offered and guarantees that no staff member, room, or capacity unit is ever double-booked. It is a backend-only domain. Every booking source (marketplace, CRM manual entry, walk-in, Zalo, product AI agent) goes through the same engine and the same transaction.
 
+> Cross-topic resolutions applied (see `docs/tasks/00-roadmap.md`): **X2** Zalo transactional messages are *ZBS Template Message* (channel id `zalo_template`; "ZNS" only as a historical alias) · **X3** Zod schemas, inferred types and error codes live in `packages/contracts`; pure logic in `packages/domain` · **X4** capacity units · **X6** booking source is the single `BookingSource` enum owned by topic 12 · **X9 + X11** draft status depends on the actor, not the source; booking does **not** require OTP — only AI-agent bookings are always drafts (§3.9a, §3.11) · **X10** no personal data to any LLM, incl. staff names (§9).
+
 ---
 
 ## 1. Scope
@@ -24,7 +26,7 @@ The booking engine decides which appointment times are offered and guarantees th
 ### Out (owned elsewhere)
 - Schedule/hours/time-off CRUD screens and APIs → 07 (engine only reads them; schema shape agreed with 04).
 - Notifications and reminders → 11 (engine emits events via outbox).
-- Attribution and commission → 12 (engine writes `source`; 12 derives attribution).
+- Attribution and commission → 12 (engine writes `source` using 12's `BookingSource` enum; 12 owns the enum and derives attribution).
 - Zalo message parsing → 09 (calls engine API like any client).
 - AI conversation handling → 08 (calls engine tools listed in §9).
 - Online payment, deposits → not in MVP (architecture leaves a `deposit_required` policy hook unused).
@@ -45,17 +47,17 @@ The booking engine decides which appointment times are offered and guarantees th
 | G7 | No status for expired pending / reschedule. | No new statuses. Expiry = `cancelled_by_salon` with `reason_code='pending_expired'` and actor `system`. Reschedule is an in-place time change recorded as a `booking_event` (type `rescheduled`), not a status. |
 | G8 | Buffers: whether they may cross closing time or overlap breaks. | Occupied range = `[start − buffer_before, end + buffer_after)`. The whole occupied range must fit inside the staff working interval (conservative MVP). Salon setting `allow_buffer_outside_hours` later. |
 | G9 | Slot grid not defined. | Salon setting `slot_interval_minutes` ∈ {5,10,15,20,30,60}, default 15. Candidate starts are aligned to the grid in salon-local time. |
-| G10 | Lead time / horizon / cancellation window missing. | Settings: `min_lead_minutes` (default 60), `max_horizon_days` (default 60), `customer_cancel_cutoff_minutes` (default 120), `customer_reschedule_cutoff_minutes` (default 120), `max_active_bookings_per_customer` (default 3 per salon). |
+| G10 | Lead time / horizon / cancellation window missing. | Settings: `min_lead_minutes` (default 60), `max_horizon_days` (default 60), `customer_cancel_cutoff_minutes` (default 120), `customer_reschedule_cutoff_minutes` (default 120), `max_active_bookings_per_phone` (default 3 per salon, keyed on normalized E.164 phone, not account — X11). |
 | G11 | "Any available staff" assignment rule absent. | Strategy setting: `least_booked_that_day` (default) → `staff sort_order`. Customer never sees which staff before confirmation when choosing "any"; confirmation shows assigned staff. |
 | G12 | Multi-service: "only when engine can correctly calculate" — no definition. | Phase A: single service + variant. Phase B: multiple services, same staff, back-to-back (buffers between services = max(after_prev, before_next)). Phase C: different staff per service, still back-to-back, optional gap ≤ 15 min. Each phase behind feature flag `booking.multiService` with its own test suite. |
 | G13 | Staff-specific price/duration (§9) not linked to engine. | Effective duration/price resolution order: `staff_service` override → `service_variant` → `service`. Resolution happens server-side; snapshot stored in `booking_service`. |
 | G14 | Idempotency not mentioned; mobile networks in VN retry often. | `Idempotency-Key` header mandatory on all booking writes; stored 24 h with request hash and response; same key + different hash → 422. |
 | G15 | Manual CRM bookings may need to break rules (walk-in after hours). | Rule overrides (`hours`, `lead_time`, `horizon`, `staff_service_assignment`) allowed with permission `booking.override_rules` + reason, audited. **Overlap is never overridable.** |
 | G16 | Timestamps "UTC" but schedules are wall-clock. | Schedules stored as local `time` + weekday + salon IANA tz; converted per concrete date with a tz library (Temporal polyfill or Luxon). DST: non-existent local times skipped, ambiguous times use the earlier offset. VN has no DST; tests use `Europe/Warsaw` and `America/New_York` fixtures. |
-| G17 | Concurrency only "use transactions" — insufficient for rules that are not overlap (customer max active, daily limits). | Per-staff-day advisory locks (`pg_advisory_xact_lock`) taken in sorted order before revalidation; exclusion constraint remains the final guard. Customer-level rules locked by `(salon_id, customer_id)` advisory key. |
+| G17 | Concurrency only "use transactions" — insufficient for rules that are not overlap (customer max active, daily limits). | Per-staff-day advisory locks (`pg_advisory_xact_lock`) taken in sorted order before revalidation; exclusion constraint remains the final guard. Customer-level rules locked by `(salon_id, phone_hash)` advisory key (phone, because booking needs no account/OTP — X11). |
 | G18 | Events to notifications could be lost if published outside transaction. | Transactional outbox table `domain_event`; relay worker publishes to BullMQ. |
 | G19 | Availability performance not addressed. | Redis cache per `(salon, local_date, query-hash)` with salon `availability_version` counter bumped on any occupancy/schedule change; TTL 60 s. Cache is advisory — writes always revalidate. |
-| G20 | Booking via AI agent / Zalo could create bookings without the customer. | Non-customer-initiated channels create **drafts + holds**; a human (customer via link or staff in CRM) confirms. See §9. |
+| G20 | Booking via AI agent / Zalo could create bookings without the customer. | Draft status is decided by the **actor** (X9 + X11, §3.9a): AI agent → always draft; staff entry and customer self-service are normal bookings (no OTP required), flagged `identity_verified=false` when the phone is unverified; abuse handled by §3.11. |
 
 ---
 
@@ -95,15 +97,15 @@ Pure function core: `computeSlots(input: AvailabilityInput): Slot[]` with no I/O
 - Ranges are half-open `[)` so back-to-back bookings do not conflict.
 
 ### 3.5 Holds
-- `POST /api/v1/holds` → creates occupancy rows `kind='hold'`, returns `holdId`, `expiresAt`. Max 1 active hold per customer/device per salon (new hold replaces old).
+- `POST /api/v1/holds` → creates occupancy rows `kind='hold'`, returns `holdId`, `expiresAt`. Max 1 active hold per device and per phone per salon (new hold replaces old). Guests can hold without an account or OTP; hold creation is rate-limited and bot-checked on web (§3.11).
 - Created when the customer reaches the review step (step 9); booking creation converts hold rows to booking rows in place (same range, `kind='booking'`, `expires_at=null`).
 - If the hold expired, creation falls back to full revalidation; succeeds if still free.
 
 ### 3.6 Booking creation transaction (all sources)
-1. Validate request (Zod), auth (verified phone for customers), permission for staff actors.
+1. Validate request (Zod) incl. name + normalized phone (signed-in account optional; **no OTP required** — X11), anti-abuse checks (§3.11), permission for staff actors.
 2. Check idempotency key.
 3. `BEGIN` (READ COMMITTED).
-4. Take advisory locks: sorted `(staff_id, local_date)` keys, then `(salon_id, customer_id)`.
+4. Take advisory locks: sorted `(staff_id, local_date)` keys, then `(salon_id, phone_hash)`.
 5. Delete expired holds overlapping target ranges.
 6. Reload inputs, re-run `computeSlots` for the exact requested start (revalidation), resolve staff for "any", pick resource units.
 7. Insert `booking`, `booking_service` (snapshots: name vi/en, price, price_max, duration, buffers, staff_id, variant), occupancy rows (or convert hold).
@@ -134,8 +136,34 @@ Pure function core: `computeSlots(input: AvailabilityInput): Slot[]` with no I/O
 - Allowed for statuses pending/confirmed. Customer subject to reschedule cutoff; salon anytime before start.
 - Price/duration snapshot unchanged unless services change (service change = cancel + new booking in MVP).
 
-### 3.9 Sources
-`booking.source` enum: `marketplace`, `salon_profile`, `direct_link`, `qr_code`, `crm_manual`, `walk_in`, `phone`, `zalo`, `ai_agent`. `created_by_actor_type` separately. Attribution semantics → 12.
+### 3.9 Sources (X6)
+`booking.source` uses the single `BookingSource` enum **owned by topic 12** and published from `packages/contracts` (the engine never defines its own list): `marketplace, salon_profile, direct_link, qr_code, social_media, repeat_customer, staff_created, walk_in, phone, zalo_chat, zalo_oa, zalo_link, zalo_mini_app, promoted_listing, gugu_campaign, ai_agent`. Mapping to `gugu_acquired` vs `salon_acquired` is 12's job.
+- `created_by_actor_type` (`customer | salon_member | system | ai_agent`) is stored separately from `source`.
+- CRM manual entry uses `staff_created` (or `walk_in` / `phone` when the receptionist picks the channel).
+- Adding a source = change in 12's enum first; then classify it into one of the X9 actor classes below.
+
+### 3.9a Draft vs confirmed (X9 as amended by X11 — see topic 09 table R4a)
+The decision is made in `packages/domain/booking/draft-policy.ts` from `(created_by_actor_type, source, identity_verified, is_first_visit, salon.require_confirmation_for, salon.confirmation_mode)`; `source` alone never decides. **Booking never requires OTP.**
+
+| Class | Actor / sources | Result |
+|---|---|---|
+| 1. AI agent | `created_by_actor_type = ai_agent` (source `ai_agent`) | **Always a draft** + hold. Confirmed only by a salon member (CRM) or the customer (link / ZBS Template Message button). |
+| 2. Salon staff entry | `salon_member` with `booking.manage`; sources `staff_created`, `walk_in`, `phone`, `zalo_chat` | The staff entry **is** the confirmation: created `confirmed` regardless of `confirmation_mode`. `identity_verified = false` when the phone is not verified. |
+| 3. Customer self-service | `customer`; sources `marketplace`, `salon_profile`, `direct_link`, `qr_code`, `zalo_link`, `zalo_oa` ("Đặt lịch" button), `zalo_mini_app`, … | **Normal booking**, no OTP. `identity_verified = false` unless the phone was already verified (signed-in account / earlier verification). Initial status: `pending` if `confirmation_mode = manual` **or** the customer matches `require_confirmation_for`; otherwise `confirmed`. |
+
+Any combination not matching a class (e.g. `ai_agent` actor with a staff source) is rejected with `422 INVALID_ACTOR_SOURCE`.
+
+Salon setting `require_confirmation_for` ∈ `none` | `first_time` | `unverified` | `first_time_or_unverified` (default: open question q66 in the tracker, recommend `none`). "First time" = no completed booking for this phone at this salon. The salon confirms such bookings like any manual-mode `pending` (same `pending_ttl`).
+`identity_verified` becomes `true` later if the customer verifies the phone (e.g. taps the optional confirm link in the booking message, or signs in); this does not change status by itself.
+
+### 3.11 Anti-abuse hooks (X11 — no OTP wall)
+Engine-side hooks; limits configured centrally (05) with salon overrides where noted.
+- **Per-phone active limit:** `max_active_bookings_per_phone` per salon (default 3), checked under the `(salon_id, phone_hash)` advisory lock → `429 ACTIVE_LIMIT_REACHED`.
+- **Rate limits** (Redis, 05's limiter) on `POST /holds` and `POST /bookings`: per device id, per IP, per phone (e.g. 5 holds / 10 min, 3 bookings / hour per phone, global salon burst cap) → `429 RATE_LIMITED`.
+- **Bot check on web** (Cloudflare Turnstile token) required for guest holds/bookings; native apps rely on device attestation later.
+- **Reliability history per phone:** no-show and late-cancel counts per `(salon, phone)` exposed to the salon in CRM (07) and usable by `require_confirmation_for` rules later; platform-wide signals belong to 12 (trust).
+- **Optional confirm link** in the booking message (customer-facing): sets `customer_confirmed_at` and `identity_verified=true`; never required for the booking to stand.
+- **Hold abuse:** max 1 active hold per device and per phone; hold TTL unchanged; repeated hold-without-book patterns emit `booking.hold_abuse_suspected` to 12.
 
 ### 3.10 Idempotency
 Table `idempotency_key(key, actor_id, route, request_hash, response_status, response_body, created_at)`; unique `(actor_id, key)`; TTL 24 h purge job.
@@ -143,7 +171,8 @@ Table `idempotency_key(key, actor_id, route, request_hash, response_status, resp
 ---
 
 ## 4. Proposed technical approach
-- **Module layout** (`apps/api/src/modules/`): `availability` (read side) and `bookings` (write side), sharing `booking-engine/core` — pure TS, no Nest/Prisma imports, 100% unit-testable.
+- **Shared packages (X3):** request/response Zod schemas, inferred types and error codes (`SLOT_TAKEN`, `INVALID_TRANSITION`, …) in `packages/contracts/booking`; pure logic (state machine, interval algebra, `computeSlots`) in `packages/domain/booking`. No separate validation or types package.
+- **Module layout** (`apps/api/src/modules/`): `availability` (read side) and `bookings` (write side), sharing the pure engine in `packages/domain/booking` (no Nest/Prisma imports, 100% unit-testable); `apps/api/src/modules/booking-engine` holds only loaders/repositories and the write transaction.
 - **Data access:** Prisma for normal CRUD; occupancy inserts/locks via `$queryRaw` inside `$transaction`. Exclusion constraints, `btree_gist`, `tstzrange` columns as raw SQL migrations (Prisma `Unsupported("tstzrange")`).
 - **Time:** Temporal API via `@js-temporal/polyfill` (or Luxon if 01 standardizes on it) only inside the core; everything else passes UTC `Date` + tz string.
 - **Why exclusion constraint + advisory locks:** constraint gives a hard guarantee regardless of code bugs; advisory locks serialize rule checks that constraints cannot express, without SERIALIZABLE retry storms.
@@ -167,7 +196,8 @@ Table `idempotency_key(key, actor_id, route, request_hash, response_status, resp
 11. DST fixtures: in `Europe/Warsaw`, 02:30 on spring-forward day is never offered; fall-back day offers correct number of slots.
 12. Availability endpoint p95 < 150 ms for a 10-staff salon, 7-day window, warm cache; < 400 ms cold (local benchmark).
 13. Property-based test: for random schedules and booking sequences, no two active occupancy rows of the same staff/unit overlap and every returned slot is bookable.
-14. Agent/Zalo sources cannot produce a `confirmed` booking without a human confirmation step.
+14. Draft policy (X9 + X11): (a) every AI-agent-created booking is a draft until a salon member or the customer confirms; (b) staff-entered bookings are `confirmed` and flag `identity_verified=false` when the phone is unverified; (c) customer self-service bookings succeed **without OTP**, flagged `identity_verified=false`, `confirmed` by default and `pending` when `confirmation_mode=manual` or the customer matches `require_confirmation_for` (first-time / unverified).
+15. Anti-abuse: the 4th active booking for the same phone at a salon returns `429 ACTIVE_LIMIT_REACHED`; exceeding hold/booking rate limits returns `429 RATE_LIMITED`; guest web requests without a valid bot-check token are rejected.
 
 ---
 
@@ -201,24 +231,24 @@ Waitlist, recurring appointments, group/class bookings, deposits, per-staff slot
 ---
 
 ## 9. Product AI-agent surface
-All tools tenant-scoped to the caller's salon; customer-supplied text in results is marked untrusted.
+All tools tenant-scoped to the caller's salon. **No personal data is ever sent to an LLM:** tool outputs contain only opaque tokens (`booking_ref`, `customer_ref`, `staff_ref` — short-lived, per-conversation, resolved server-side), times, service names, statuses, counts and aggregates. Customer names, phone numbers, Zalo IDs, notes and review text are never returned; the CRM UI resolves tokens to real data when rendering the agent's answer for the human. Staff names are personal data too (X10) — always `staff_ref`.
 
 | Tool | Kind | Permission | Notes |
 |---|---|---|---|
 | `find_available_slots` | read | `booking.view` | Same input as availability API; returns ≤ 20 slots. |
-| `get_booking` / `list_bookings` | read | `booking.view` | Filters: date range, staff, status, source. Staff role sees own only. |
+| `get_booking` / `list_bookings` | read | `booking.view` | Filters: date range, `staff_ref`, status, source. Returns `booking_ref`, `customer_ref`, `staff_ref`, start/end, service, status, source — no names, phones, notes. Staff role sees own only. |
 | `get_booking_stats` | read | `analytics.view` | Counts by status/source/day; shares read model with 07. |
-| `create_booking_draft` | write (draft) | `booking.manage` | Creates hold + draft; **never confirms**. Returns preview card for human confirmation in CRM (or link to customer). |
+| `create_booking_draft` | write (draft) | `booking.manage` | Input: slot, service, `customer_ref` (or "new customer" — contact details entered by the human in the preview card, never by the model). Creates hold + draft; **never confirms** (X9 class 1). Returns `draft_ref` for a preview card. |
 | `confirm_booking_draft` | write | UI only | Not exposed to the model; button in CRM/customer link. |
 | `propose_reschedule` | write (draft) | `booking.manage` | Returns options + draft; human confirms. |
 | `propose_status_change` | write (draft) | `booking.manage` | e.g. mark no-show; human confirms. |
 
-Zalo (09) uses the same draft pattern: customer receives a confirmation link / ZNS button.
+When the customer confirms an agent draft, they receive a confirmation link or a ZBS Template Message (channel `zalo_template`) with a confirm button; the message is rendered server-side from the token, not by the LLM.
 
 ---
 
 ## 10. AI-first deliverables
-- `.claude/agents/booking-engine.md` — domain subagent (owns `apps/api/src/modules/{availability,bookings,booking-engine}`, `packages/domain/booking`).
+- `.claude/agents/booking-engine.md` — domain subagent (owns `apps/api/src/modules/{availability,bookings,booking-engine}`, `packages/domain/booking`, `packages/contracts/booking`).
 - `.claude/skills/booking-engine/SKILL.md` — invariants, procedures, mandatory test list.
 - `docs/domains/booking-engine.md` — durable doc, filled as code lands.
 - ADRs to write at implementation: `adr/xxxx-occupancy-exclusion-constraints.md`, `adr/xxxx-capacity-units.md`, `adr/xxxx-holds-as-occupancy.md`.
@@ -229,7 +259,8 @@ Zalo (09) uses the same draft pattern: customer receives a confirmation link / Z
 1. Default confirmation mode: auto-confirm (recommended for conversion) or manual?
 2. Pending TTL for manual mode — 12 h ok? What happens overnight?
 3. Default customer cancellation cutoff (2 h?) and should late cancels be visible to salons as a customer reliability signal?
-4. Max active bookings per customer per salon (3?) — anti-abuse vs. families booking for others.
+4. Max active bookings per phone per salon (3?) — anti-abuse vs. families booking for others. (Tracker q15.)
+4a. Default for `require_confirmation_for` — `none` (recommended, max conversion) or `first_time_or_unverified`? (Tracker q66.)
 5. Should customers book for someone else (name override) in MVP?
 6. Is multi-service (Phase B) required for launch, or single service + variant enough?
 7. Allow walk-in bookings that skip schedules entirely (receptionist override) — yes with audit?

@@ -1,51 +1,50 @@
 # GuGu
 
-> Vietnamese beauty & wellness booking marketplace. One universal Expo app (iOS, Android, web) plus a NestJS + PostgreSQL API in a TypeScript monorepo. AI-first: every domain has a subagent, a skill and agent-friendly docs.
+> Vietnamese beauty & wellness booking marketplace. One universal Expo app (iOS, Android, web) plus a NestJS + PostgreSQL API in a TypeScript monorepo, hosted on AWS Singapore. AI-first: every domain has a subagent, a skill and agent-friendly docs.
 
-Start with AGENTS.md. Customers pay at the salon (no payment processing). Vietnamese is the default locale; English is second.
+Start with AGENTS.md. Customers pay at the salon (no payment processing). Booking needs no OTP (X11): name + phone, abuse limited by rate limits and history. Vietnamese is the default locale; English is second. There is no git remote yet: agents work in per-task worktrees and the orchestrator merges locally after gates and reviewer agents.
 
 ## Core
 - [AGENTS.md](../AGENTS.md): entry point, non-negotiables, where things are
 - [AI-first conventions](ai-first-conventions.md): subagent/skill/doc formats and per-domain deliverables
 - [Glossary](glossary.md): vi/en domain terms used in code and UI
+- [Local git workflow](../.claude/skills/architecture/references/git-workflow.md): worktrees, commit convention, merge gate, reviewers
+- [Ownership map](../.claude/skills/architecture/references/ownership.md): which agent owns which path; hot files
+
+## Plan
+- [00 Roadmap](tasks/00-roadmap.md): build order, cross-topic resolutions X1–X8, gates
+- [GuGu Roadmap — live tracker](https://claude.ai/artifact/CkweFTJGUNC1M9hoCAmwn3): source of truth for task status and product questions (read/write via ArtifactData)
+- [Open questions](tasks/open-questions.md): historical snapshot; live questions are in the tracker
+- [Tracker inbox](tasks/tracker-inbox.jsonl): fallback queue of tracker writes, synced by the orchestrator
 
 ## Task specs
-- [00 Roadmap](tasks/00-roadmap.md): build order, cross-topic resolutions, coverage matrix
-- [Open questions](tasks/open-questions.md): product-owner decisions by priority
-- [01 Architecture](tasks/01-architecture.md)
-- [02 Design System](tasks/02-design-system.md)
-- [03 Localization](tasks/03-localization.md)
-- [04 Backend Database](tasks/04-backend-database.md)
-- [05 Auth Security](tasks/05-auth-security.md)
-- [06 Booking Engine](tasks/06-booking-engine.md)
-- [07 Salon Crm](tasks/07-salon-crm.md)
-- [08 Ai Agent](tasks/08-ai-agent.md)
-- [09 Zalo](tasks/09-zalo.md)
-- [10 Marketplace Seo](tasks/10-marketplace-seo.md)
-- [11 Customer Notifications](tasks/11-customer-notifications.md)
-- [12 Monetization Admin](tasks/12-monetization-admin.md)
-- [13 Platform Devops](tasks/13-platform-devops.md)
+- [01 Architecture](tasks/01-architecture.md): monorepo, toolchain baseline, boundaries, API conventions, AI-first + git workflow
+- [02 Design system](tasks/02-design-system.md): tokens, expressive/calm modes, motion, 3D hero
+- [03 Localization](tasks/03-localization.md): vi/en resources, formatting, coverage tests
+- [04 Backend & database](tasks/04-backend-database.md): Prisma schema, PostGIS, outbox, media
+- [05 Auth & security](tasks/05-auth-security.md): OTP, sessions, RBAC, tenant isolation, privacy
+- [06 Booking engine](tasks/06-booking-engine.md): availability, holds, concurrency, state machine
+- [07 Salon CRM](tasks/07-salon-crm.md): salon workspace, calendar, CRM, insights, metric registry
+- [08 AI agent](tasks/08-ai-agent.md): in-product assistant, tool registry, evals, quotas
+- [09 Zalo](tasks/09-zalo.md): Zalo OA, Template Messages, inbox, login, Mini App
+- [10 Marketplace & SEO](tasks/10-marketplace-seo.md): homepage, search, salon pages, SEO rendering
+- [11 Customer & notifications](tasks/11-customer-notifications.md): accounts, reviews, notification platform
+- [12 Monetization & admin](tasks/12-monetization-admin.md): attribution, commissions, plans, analytics, admin
+- [13 Platform & DevOps](tasks/13-platform-devops.md): Docker, CI, EAS, deep links, testing, observability
 
 ## Domain docs
-- [Ai Agent](domains/ai-agent.md)
-- [Architecture](domains/architecture.md)
-- [Auth Security](domains/auth-security.md)
-- [Backend Database](domains/backend-database.md)
-- [Booking Engine](domains/booking-engine.md)
-- [Customer Notifications](domains/customer-notifications.md)
-- [Design System](domains/design-system.md)
-- [Localization](domains/localization.md)
-- [Marketplace Seo](domains/marketplace-seo.md)
-- [Monetization Admin](domains/monetization-admin.md)
-- [Platform Devops](domains/platform-devops.md)
-- [Salon Crm](domains/salon-crm.md)
-- [Zalo](domains/zalo.md)
+- [Architecture](domains/architecture.md) · [Design system](domains/design-system.md) · [Localization](domains/localization.md) · [Backend & database](domains/backend-database.md) · [Auth & security](domains/auth-security.md) · [Booking engine](domains/booking-engine.md) · [Salon CRM](domains/salon-crm.md) · [AI agent](domains/ai-agent.md) · [Zalo](domains/zalo.md) · [Marketplace & SEO](domains/marketplace-seo.md) · [Customer & notifications](domains/customer-notifications.md) · [Monetization & admin](domains/monetization-admin.md) · [Platform & DevOps](domains/platform-devops.md)
 
-## Agents and skills
-- [Orchestrator agent](../.claude/agents/orchestrator.md): routes multi-domain work, runs reviewers, reports status
-- [Architecture agent](../.claude/agents/architecture.md): monorepo, contracts pipeline, ADRs, architecture review
-- [Architecture skill](../.claude/skills/architecture/SKILL.md): add module/endpoint/package/ADR, upgrade procedures
-- [Ownership map](../.claude/skills/architecture/references/ownership.md): which agent owns which path
+## Agents
+- [orchestrator](../.claude/agents/orchestrator.md): routes multi-domain work, manages worktrees, runs reviewers, merges locally, reports
+- [architecture](../.claude/agents/architecture.md): monorepo, contracts pipeline, ADRs, lockfile, architecture review
+- Domain agents: [design-system](../.claude/agents/design-system.md), [localization](../.claude/agents/localization.md), [backend-database](../.claude/agents/backend-database.md), [auth-security](../.claude/agents/auth-security.md), [booking-engine](../.claude/agents/booking-engine.md), [salon-crm](../.claude/agents/salon-crm.md), [ai-agent](../.claude/agents/ai-agent.md), [zalo](../.claude/agents/zalo.md), [marketplace-seo](../.claude/agents/marketplace-seo.md), [customer-notifications](../.claude/agents/customer-notifications.md), [monetization-admin](../.claude/agents/monetization-admin.md), [platform-devops](../.claude/agents/platform-devops.md), [test-engineer](../.claude/agents/test-engineer.md)
+- Reviewers: [security-reviewer](../.claude/agents/security-reviewer.md), [design-reviewer](../.claude/agents/design-reviewer.md); localization, test-engineer, ai-agent and architecture also run in review mode
+
+## Skills
+- [architecture](../.claude/skills/architecture/SKILL.md): add module/endpoint/package/ADR, git workflow, upgrades
+- [roadmap-tracker](../.claude/skills/roadmap-tracker/SKILL.md): keep the live roadmap artifact current; raise and read product questions (owner: orchestrator)
+- [backend-module](../.claude/skills/backend-module/SKILL.md) · [prisma-migration](../.claude/skills/prisma-migration/SKILL.md) · [tenant-authorization](../.claude/skills/tenant-authorization/SKILL.md) · [booking-engine](../.claude/skills/booking-engine/SKILL.md) · [salon-crm](../.claude/skills/salon-crm/SKILL.md) · [agent-tool](../.claude/skills/agent-tool/SKILL.md) · [zalo-integration](../.claude/skills/zalo-integration/SKILL.md) · [search](../.claude/skills/search/SKILL.md) · [seo-page](../.claude/skills/seo-page/SKILL.md) · [notification-event](../.claude/skills/notification-event/SKILL.md) · [entitlements](../.claude/skills/entitlements/SKILL.md) · [analytics-event](../.claude/skills/analytics-event/SKILL.md) · [design-system](../.claude/skills/design-system/SKILL.md) · [3d-hero](../.claude/skills/3d-hero/SKILL.md) · [localization](../.claude/skills/localization/SKILL.md) · [testing](../.claude/skills/testing/SKILL.md) · [run-locally](../.claude/skills/run-locally/SKILL.md)
 
 ## Decisions
-- [ADRs](adr/): architecture decision records (0001–0005 planned)
+- ADRs live in [adr/](adr/). Planned: 0001 toolchain, 0002 package boundaries, 0003 API conventions, 0004 styling engine, 0005 AI-first workflow, 0006 web output mode (after spike S1), 0007 hosting on AWS Singapore. The seeds are in 01-architecture §3.8.

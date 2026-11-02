@@ -5,7 +5,9 @@ Durable reference for identity, sessions, authorization, tenant isolation, audit
 > Status: skeleton — sections marked _TBD_ are filled as code lands.
 
 ## Summary
-- Login: phone + OTP (ZNS → SMS brandname fallback); optional email, Apple, Google, Zalo linking.
+- Sign-in: Apple, Google, email magic link; optional phone OTP via channel ladder (registered "GuGu" sender ID on global CPaaS → secondary CPaaS → voice → `zalo_template` when feasible → email); optional Zalo linking.
+- Booking needs no OTP (X11): guests book with name + phone, flagged `identity_verified=false`; anti-abuse layer + salon confirmation policy + optional confirm link. OTP only for phone sign-in, recovery, phone change, claiming guest bookings, sensitive changes, salon-member device logins.
+- Hosting: AWS ap-southeast-1 (Singapore); no Vietnamese legal entity yet — cross-border transfer pending legal review.
 - Sessions: web = httpOnly `__Host-` cookie + CSRF; native = 15-min access JWT + rotating refresh token in SecureStore.
 - Authorization: Principal + SalonContext + permission strings; default deny; tenant-scoped repositories; RLS as defense in depth.
 - Non-human principals: AI agent on behalf of a member, Zalo integration, system jobs.
@@ -26,7 +28,7 @@ _TBD: User, Session, OtpChallenge, SalonMember, MembershipPermissionOverride, Co
 - Account deletion & export — _TBD_
 
 ## Permission matrix
-Source of truth: `packages/domain/src/auth/permissions.ts` (_TBD_). Initial matrix: task spec §3.4.
+Source of truth: `packages/domain/src/auth/permissions.ts` (_TBD_). Request/response schemas: `packages/contracts/src/auth`. Initial matrix: task spec §3.4.
 
 ## Data inventory
 | Field | Table | Purpose | Basis / consent | Retention | Visible to |
@@ -40,4 +42,4 @@ _TBD: enumerated list with payload shape (spec R29)._
 _TBD_
 
 ## ADRs
-- _TBD_ session model · RLS strategy · OTP channels
+- _TBD_ session model · RLS strategy · OTP channels & providers (no VN entity)

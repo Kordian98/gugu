@@ -32,7 +32,9 @@ GuGu web runs Expo Router with `web.output: "server"` (SDK ≥ 58). Public pages
    - `openGraph` (type, url, title, description, image ≥ 1200×630, locale `vi_VN`/`en_US`), `twitter.card = summary_large_image`
    - `robots` per invariants
 4. Add JSON-LD with the typed builders in `features/salon-public/seo/jsonld.ts` (or equivalent): always `BreadcrumbList`; plus page-specific type (see table). Render as `<script type="application/ld+json">` in server output.
-5. Set cache policy: public → `s-maxage=300, stale-while-revalidate=86400`; register purge tags (e.g. `salon:{id}`).
+5. Set the cache policy: public → `s-maxage=300, stale-while-revalidate=86400`.
+   - Register the URL in the purge map so a salon publish invalidates it: CloudFront path invalidation or Cloudflare URL purge, batched by the purge job.
+   - Never vary on auth cookies. Only the home page varies by the `gugu_city` cookie.
 6. Add the URL family to the sitemap generator (correct sitemap file, `lastmod`, `xhtml:link` alternates).
 7. Add internal links (breadcrumbs, related categories/locations) — no orphan pages.
 8. If the route has a native screen, confirm the path is in the universal/app links config (topic 13).

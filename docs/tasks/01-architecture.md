@@ -33,11 +33,11 @@ This spec defines the monorepo layout, the toolchain and its versions, package b
 |---|---|---|
 | G1 | "Latest stable versions" with no baseline → every agent picks different versions. | Pin a version baseline (§4.1) in `docs/adr/0001-toolchain-baseline.md`. Re-verify on scaffold day. |
 | G2 | NativeWind: the stable line is **v4.2.x**; v5 is still `rc` (5.0.0-rc.1) and needs Tailwind v4 + Reanimated 4. The prompt says "latest stable". | Start on **NativeWind v5 rc** only if it passes a 1-day spike on SDK 58 (web + iOS + Android, dark mode, SSR CSS). Otherwise use **v4.2.x + Tailwind v3.4** and plan to migrate later. Recorded in an ADR. Design tokens live in `packages/design-system` as plain TS, so the styling engine can be swapped. |
-| G3 | **Expo SDK 58 makes `web.output: "server"` the default**, and Expo Router server rendering is still labelled **alpha**. You cannot mix static and server output in one project. The prompt asks for "static for some, SSR for others". | Architecture allows a single web output mode. Default plan: `output: "server"` deployed as a Node/edge server (Expo server adapter), with HTTP caching (CDN `s-maxage` + stale-while-revalidate) so public pages behave like ISR. Fallback if SSR alpha blocks us: `output: "static"` + a small pre-render/SEO edge worker for salon pages. **Topic 10 owns this decision**; topic 01 only guarantees the app shell has no SSR-unsafe globals (see rule R14). |
+| G3 | **Expo SDK 58 makes `web.output: "server"` the default.** Its maturity is disputed: the Expo docs page found on 2026-11-02 still says "alpha", while topic 10 reports it as stable in SDK 58. You cannot mix static and server output in one project, but the prompt asks for "static for some, SSR for others". | **X8: undecided until spike S1 (topic 10)**, recorded as ADR-0006. The architecture allows a single web output mode. Plan A: `output: "server"` runs as a Node container on AWS Singapore behind CloudFront, with `s-maxage` + stale-while-revalidate so public pages behave like ISR. Plan B (kept in both 01 and 10): `output: "static"` + static pre-render + edge metadata for salon pages. Topic 10 owns the decision. Topic 01 only guarantees the app shell has no SSR-unsafe globals (§3.3). |
 | G4 | Prisma: stable is **7.10.x** (Rust-free client, driver adapters, `prisma-client` generator); npm `latest` points at an 8.0 RC. PostGIS types are still unsupported. | Use Prisma 7.x stable with `@prisma/adapter-pg`. **Never install a pre-release.** Geo columns and exclusion constraints go in raw-SQL migrations, accessed through `$queryRaw`/TypedSQL inside a repository layer (details → 04). |
 | G5 | NestJS: **v12** is current (12.3.x, Aug 2026); the prompt assumes nothing. | NestJS 12 + Express 5 adapter (Fastify is optional; not needed for MVP). |
 | G6 | `apps/app/app/[locale]/...` as the route root breaks native: native deep links rarely carry a locale, and every native screen would need a locale segment. | Web URLs keep the `/vi/...` and `/en/...` prefix (SEO). Native resolves locale from the persisted preference. Implementation: `[locale]` segment exists in the tree; native navigation always injects the current locale; deep links without a locale are redirected by a root `+native-intent` / redirect. Final route tree → topic 10. |
-| G7 | `packages/types` and `packages/validation` and `packages/domain` overlap; types derived from Zod would be duplicated. | Merge: **`packages/contracts`** (Zod schemas + inferred types + error codes, shared by API and app). `packages/domain` holds pure business logic (no I/O). No separate `types` package. |
+| G7 | `packages/types` and `packages/validation` and `packages/domain` overlap; types derived from Zod would be duplicated. | Merge: **`packages/contracts`** (Zod schemas + inferred types + error codes, shared by API and app). `packages/domain` holds pure business logic (no I/O). No `types` or `validation` package (**X3**): every spec, agent and skill that says `packages/validation` or `packages/types` means `packages/contracts`. Permission matrix, booking math and metric registry definitions live in `packages/domain`. |
 | G8 | `packages/api-client`: hand-written vs generated is unspecified → drift. | Generated from OpenAPI (`orval` or `@hey-api/openapi-ts`; pick in a spike) into typed fetchers + TanStack Query hooks. CI fails if the generated client is out of date. |
 | G9 | "No giant components/services" has no threshold. | Lint guardrails: max 300 lines per file (warn), max ~400 (error) except generated files; one NestJS service per use-case cluster; complexity limit. Reviewer agent enforces. |
 | G10 | No rule for cross-module calls in the modular monolith → hidden coupling. | Modules expose a public `*.facade.ts` (or exported service) and domain events; **no importing another module's repository or Prisma models directly**. Enforced by `eslint-plugin-boundaries` / dependency-cruiser. |
@@ -47,6 +47,10 @@ This spec defines the monorepo layout, the toolchain and its versions, package b
 | G14 | No AI-first workflow, while the user wants everything built by agents. | §3.8: orchestrator + domain subagents + reviewer agents + skills + `llms.txt` + ADRs + a sync check in CI. |
 | G15 | The product AI agent (topic 08) needs stable, typed, tenant-scoped read models and actions; the prompt has no layer for them. | Reserve `packages/agent-tools` (tool definitions = Zod schemas from `contracts` + permission + scope) and a backend `AgentToolsModule` that calls module facades only. Every domain spec lists its tools. |
 | G16 | Node version unspecified. | Node **26 LTS** ("Lithium") pinned via `.nvmrc` + `engines` + `packageManager`. |
+| G18 | Privacy regime: early drafts cited Decree 13/2023. | **X1:** from 2026-01-01 the governing regime is the **Personal Data Protection Law 91/2025/QH15 + Decree 356/2025/ND-CP**. Decree 53/2022 remains relevant to data localisation. Hosting on **AWS ap-southeast-1 (Singapore)** means cross-border transfer obligations apply; topic 05 owns the analysis. No spec claims compliance; legal review is required. |
+| G19 | No git remote yet; agents must still merge safely. | Local AI-first git workflow (§3.9): branch + worktree per task, local gates, reviewer agents, local merge to `main`. Remote/CI rules activate later. |
+| G20 | Progress tracking lived only in markdown, which goes stale across parallel agents. | The live **GuGu Roadmap** artifact is the source of truth for status and product questions (`roadmap-tracker` skill, owner: orchestrator). The orchestrator sets tasks `done` right after each local merge and syncs `docs/tasks/tracker-inbox.jsonl`. `00-roadmap.md` holds the plan only. |
+| G21 | X11: booking does not require OTP. | Architectural impact: the booking `contracts` carry `identityVerified`; idempotency + rate limiting (per device/IP/phone) in `common` are mandatory on public booking endpoints; OTP stays only for sign-in/recovery/sensitive changes (05, 06). |
 | G17 | Package manager / task runner unspecified. | **pnpm 11.x** (stable line; 12.x is newer but check Expo/Metro compatibility in the spike) with workspaces + **Turborepo 2.x** with remote cache. Expo is pnpm-compatible with `node-linker=hoisted` as the fallback if Metro resolution breaks. |
 
 ---
@@ -62,12 +66,12 @@ gugu/
   apps/
     app/                 # the ONLY frontend (Expo, iOS/Android/web)
       app/               # Expo Router routes (tree owned by topic 10)
-      src/
-        features/<feature>/   # screens' logic, hooks, feature components
-        components/           # app-specific composites (generic UI lives in design-system)
-        providers/            # QueryClient, i18n, theme, auth, analytics
-        lib/                  # platform adapters (storage, location, haptics)
-        stores/               # Zustand (client-only UI state)
+      features/<feature>/     # screens' logic, hooks, feature components
+      components/             # app-specific composites (generic UI lives in design-system)
+      providers/              # QueryClient, i18n, theme, auth, analytics
+      services/               # client plumbing (auth session, api base, push)
+      lib/                    # platform adapters (storage, location, haptics)
+      stores/                 # Zustand (client-only UI state)
       app.config.ts           # dynamic config per env (dev/staging/prod)
       eas.json
     api/
@@ -80,8 +84,8 @@ gugu/
       prisma/                 # schema + migrations (incl. raw SQL)
       test/
   packages/
-    contracts/      # Zod schemas, inferred types, error codes, enums (API ↔ app)
-    domain/         # pure logic: slot math, state machines, money/VND, commission rules
+    contracts/      # Zod schemas, inferred types, error codes, enums (API ↔ app); src/<domain>/ per owner
+    domain/         # pure logic: src/booking, src/auth (permission matrix), src/metrics (registry), money/VND, commission rules
     api-client/     # GENERATED from OpenAPI + TanStack Query hooks
     localization/   # vi/en resources + typed keys (owned by 03)
     design-system/  # tokens + RN primitives (owned by 02)
@@ -176,7 +180,7 @@ gugu/
 **Roles**
 - **Orchestrator** (`.claude/agents/orchestrator.md`): takes a task from `docs/tasks/00-roadmap.md`, splits it, delegates to domain agents, merges results, runs the verification gates. It does not write domain code itself except for glue.
 - **Domain agents** (one per topic, `.claude/agents/<slug>.md`): own their paths (ownership map in `.claude/skills/architecture/references/ownership.md`), load their skill first, write code + tests + docs.
-- **Reviewer agents** (read-only tools): `security-reviewer`, `i18n-reviewer`, `ui-reviewer` (design/a11y/states), `architecture-reviewer` (boundaries, rules §3.6), `tenant-isolation-reviewer`. The orchestrator runs the relevant reviewers before a task is marked done. Their definitions are created by the owning topics (05 security/tenancy, 03 i18n, 02 UI); `architecture-reviewer` is part of this topic, folded into the `architecture` agent in review mode.
+- **Reviewer agents** (read-only, or domain agents in review mode): `security-reviewer` (also covers tenant isolation), `design-reviewer` (UI, a11y, states, 3D budgets), `localization` (review mode), `test-engineer` (review mode), `ai-agent` (review mode for agent tools), and `architecture` (review mode: boundaries, rules in §3.6). Which ones are required per change is in §3.9.
 - **Skills**: procedural know-how (add a module, add an endpoint, add a migration, add a translation key, add an agent tool). They are short; detail goes in `references/`.
 
 **Task lifecycle (definition of done)**
@@ -185,7 +189,7 @@ gugu/
 3. The agent implements code, tests and docs, and updates `docs/domains/<slug>.md` (Status table, file map, invariants).
 4. Gates: `pnpm turbo lint typecheck test`, the generated client is up to date, i18n key coverage, boundaries check, `agents:check` (below).
 5. Reviewer agents return findings; fixes are applied.
-6. The orchestrator updates roadmap status and reports *exactly* what was done vs only UI vs not started.
+6. Right after the local merge, the orchestrator sets the task `done` in the live tracker, syncs `tracker-inbox.jsonl`, then reports *exactly* what was done vs only UI vs not started. It never reports with a stale tracker.
 
 **Keeping agents, skills and docs in sync with code**
 - `pnpm agents:check` (script in `packages/config`, CI job):
@@ -199,9 +203,75 @@ gugu/
 **ADR process**
 - `docs/adr/NNNN-<slug>.md`, template: Context · Decision · Alternatives considered · Consequences · Status (proposed/accepted/superseded by NNNN).
 - Required for: toolchain/version choices, cross-cutting patterns, anything that contradicts the master prompt, security-relevant trade-offs.
-- Initial ADRs owned by 01: 0001 toolchain baseline, 0002 monorepo & package boundaries, 0003 API conventions (errors, pagination, idempotency, IDs), 0004 styling engine (NativeWind v4 vs v5), 0005 AI-first workflow.
+- Planned ADRs (seeds only; files are written in milestones A1/A6, not now):
+
+| ADR | Title | Owner | Resolves |
+|---|---|---|---|
+| 0001 | Toolchain baseline (Node 26, pnpm, Turbo, Expo SDK 58, NestJS 12, Prisma 7.10) | architecture | G1, G4, G5, G16, G17 |
+| 0002 | Monorepo layout & package boundaries (`contracts`, `domain`, no `types`/`validation`) | architecture | G7, G10, X3 |
+| 0003 | API conventions: problem+json, cursor pagination, idempotency, UUIDv7, VND, UTC | architecture | G11 |
+| 0004 | Styling engine: NativeWind v4.2 vs v5 rc | architecture + design-system | G2 (pre-release question open) |
+| 0005 | AI-first workflow: agents, skills, reviewers, local git workflow, `agents:check` | architecture | G14, G19 |
+| 0006 | Web output mode: Expo Router server vs static + edge metadata | marketplace-seo | G3, X8 (after spike S1) |
+| 0007 | Hosting: AWS ap-southeast-1, CloudFront, data-residency notes | platform-devops + auth-security | G18, X1 |
 
 **`docs/llms.txt`**: llms.txt-format index (title, one-line summary, sections with links + one-line descriptions) for docs, ADRs, domain docs, skills. Updated whenever a doc is added.
+
+### 3.9 Local AI-first git workflow (no remote yet)
+
+There is no git remote. `main` is a local branch and is the integration target. Agents may merge to `main` after the gates below pass. No human approval is needed.
+
+**Branch / worktree per task**
+- One task (a roadmap sub-milestone, e.g. `M6.3`) = one branch `<agent>/<milestone>-<slug>`, e.g. `booking-engine/M6.3-holds`.
+- Each parallel agent works in its own **git worktree**: `git worktree add ../gugu-wt/<branch> -b <branch> main`. Never two agents in the same working tree. Reason: separate index files mean no `index.lock` contention, and no agent sees another's half-written files.
+- Sequential single-agent work may use a plain branch in the main checkout.
+- `node_modules`: run `pnpm install --frozen-lockfile` per worktree; the pnpm store is shared, so this is cheap.
+- Lockfile changes (`pnpm-lock.yaml`) are made only by the `architecture` agent or in a dedicated branch, to avoid merge conflicts.
+
+**Avoiding conflicts between parallel agents**
+- The orchestrator assigns write paths from `ownership.md`. Two concurrent tasks never get overlapping write paths.
+- Shared hot files (`apps/api/prisma/schema.prisma`, `packages/contracts/src/index.ts`, `apps/api/src/app.module.ts`, `turbo.json`, `package.json`) are touched by one task at a time. The orchestrator holds a lock on them by recording the holder in the task list, and merges that task first.
+- Git operations in the main checkout (`merge`, `commit` on `main`, `worktree add/remove`) are done **only by the orchestrator**, serially. Agents commit only inside their own worktree.
+- If `.git/index.lock` exists, wait and retry (max 3 × 2 s), then report. Never delete the lock while another git process is running (`pgrep -f "git "`).
+
+**Gates before a local merge to `main`** (run inside the worktree, after rebasing onto current `main`)
+1. `git rebase main`, then resolve conflicts (owner agent resolves its own paths).
+2. `pnpm verify` (lint, typecheck, unit, integration, i18n coverage, boundaries, generated-client freshness; defined by 13) is green.
+3. `pnpm agents:check` is green.
+4. Required reviewer agents return no blocking findings:
+
+| Change touches | Required reviewers |
+|---|---|
+| any code | `architecture` (review mode) |
+| API routes, Prisma queries, auth, uploads, webhooks, agent tools, env/config, logging | `security-reviewer` |
+| screens, components, design-system, styles | `design-reviewer` |
+| UI strings, translation keys, templates, formatting | `localization` (review mode) |
+| production logic without tests, or test changes | `test-engineer` (review mode) |
+| `packages/agent-tools`, `*/agent-tools.ts` | `ai-agent` (review mode) |
+
+5. Merge: `git checkout main && git merge --no-ff <branch>` (orchestrator, in the main checkout). Then rerun `pnpm verify` on `main`. If it fails, `git revert -m 1 <merge>` and return the task to the agent.
+6. Clean up: `git worktree remove ../gugu-wt/<branch> && git branch -d <branch>`.
+
+**Commit messages** — Conventional Commits with a scope = topic slug or module:
+```
+feat(booking-engine): add hold TTL expiry job
+
+Why: holds must free slots after 10 min (06 §3.4).
+Refs: M6.3
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+```
+- Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `build`, `ci`, `perf`.
+- One logical change per commit. The body says why and gives `Refs:` (milestone ID).
+- The `Co-Authored-By` trailer is required on agent-authored commits (use the trailer given to the session).
+- Merge commit message: `merge(<agent>): <milestone> <slug>` + a reviewer summary line (`Reviewed-by-agents: architecture, security-reviewer`).
+- Never `--no-verify`, never rewrite `main` history, never force-delete unmerged branches.
+
+**Once a remote exists**
+- `main` becomes protected on the remote. Agents push branches and open PRs; local merges to `main` stop.
+- CI (13) runs `pnpm verify` + `agents:check`. Reviewer agents post their findings as PR comments. Merge after green CI + reviewers (+ human approval if the policy changes then).
+- Local `main` is synced with `git pull --ff-only`. Worktrees stay the way to run parallel agents.
+- Secret scanning and branch protection move from local hooks to the remote as well (hooks stay as a first line).
 
 ---
 
@@ -216,7 +286,7 @@ gugu/
 | Turborepo | 2.11.x | remote cache in CI |
 | TypeScript | latest 5.x/6.x supported by Expo SDK 58 | match `expo` peer range |
 | Expo SDK | **58** (expo 58.0.x) | SDK 58 bundles RN **0.88.1**, RNW **~0.21.4**, Reanimated **4.7.1**, expo-router **~58.0.x** |
-| Expo Router | ~58.0.x | `web.output` default is now `"server"` (alpha SSR); see G3 |
+| Expo Router | ~58.0.x | `web.output` default is now `"server"`; maturity disputed (X8), see G3 |
 | NativeWind | 4.2.x stable, or 5.0.0-rc after spike | ADR-0004 |
 | Tailwind CSS | 3.4 (with NW v4) / 4.x (with NW v5) | |
 | TanStack Query | 5.x (5.105) | |
@@ -254,7 +324,7 @@ Rule: install with `npx expo install` for anything Expo manages, so versions mat
 6. ESLint fails on a hardcoded JSX string, an `any` without reason, a floating promise.
 7. gitleaks blocks a committed fake secret.
 8. `pnpm agents:check` passes, and fails when an agent references a missing skill or an unowned module exists.
-9. ADRs 0001–0005 exist and are accepted; `docs/llms.txt` links every doc.
+9. ADRs 0001–0005 exist and are accepted (0006 after spike S1, 0007 with 13); `docs/llms.txt` links every doc.
 10. Every package `tsconfig` extends `packages/config/tsconfig.base.json` with strict flags; `pnpm turbo typecheck` is green.
 
 ---
@@ -291,7 +361,7 @@ Rule: install with `npx expo install` for anything Expo manages, so versions mat
 | Domain doc | `docs/domains/architecture.md` | skeleton |
 | Glossary | `docs/glossary.md` | seed |
 | Docs index | `docs/llms.txt` | seed |
-| ADRs 0001–0005 | `docs/adr/` | to write in A1/A6 |
+| ADRs 0001–0007 | `docs/adr/` | planned (seeds in §3.8); files written in A1/A6 |
 
 ---
 
@@ -305,8 +375,8 @@ Topic 01 exposes no business data. It defines the **framework** every domain use
 ---
 
 ## 10. Open questions for the product owner
-1. Is a NativeWind v5 **release candidate** acceptable if the spike is green, or must we use only GA packages (v4.2)?
-2. Web hosting target for the Expo server output: Vercel / Cloudflare / a Node container in a Singapore region / Vietnam-local hosting? This affects data residency (Decree 13/2023, see 05) and SSR mode (10).
+1. **Still open:** is a NativeWind v5 **release candidate** acceptable if the spike is green, or must we use only GA packages (v4.2)?
+2. ~~Web hosting target~~ **Resolved:** AWS Singapore (ap-southeast-1). Remaining: confirm Vietnam-local data-localisation needs under Law 91/2025 + Decree 53/2022 with legal review (05).
 3. Remote Turborepo cache and EAS: which org/accounts own them?
-4. Human review policy: may agents merge to `main` after green gates and reviewer agents, or does every PR need a human approval?
+4. ~~Human review policy~~ **Resolved:** agents may merge to `main` after green local gates + required reviewer agents (§3.9). No git remote exists yet.
 5. Which LLM/coding-agent tooling does the team standardise on besides Claude Code (Cursor, Codex)? If several, we also keep an `AGENTS.md`-compatible layout (already done) and avoid Claude-only conventions in docs.

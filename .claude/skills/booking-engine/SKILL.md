@@ -1,6 +1,6 @@
 ---
 name: booking-engine
-description: Rules and procedures for GuGu's booking engine — availability/slot generation, holds, booking creation, reschedule/cancel, status state machine, occupancy exclusion constraints, capacity units, buffers, timezones. Use whenever editing apps/api/src/modules/{availability,bookings,booking-engine}, packages/domain/booking, or migrations touching booking_occupancy.
+description: Rules and procedures for GuGu's booking engine — availability/slot generation, holds, booking creation, reschedule/cancel, status state machine, occupancy exclusion constraints, capacity units, buffers, timezones. Use whenever editing apps/api/src/modules/{availability,bookings,booking-engine}, packages/domain/booking, packages/contracts/booking, or migrations touching booking_occupancy.
 ---
 
 # Booking engine
@@ -19,16 +19,21 @@ Any change to slot computation, booking writes, statuses, schedules as consumed 
 - MUST: all timestamps UTC in DB; schedules are local wall-clock + salon IANA tz, converted via core tz helpers only.
 - MUST: status changes only via the state machine in `packages/domain/booking/state-machine.ts`; each writes `booking_status_history` and a `domain_event`.
 - MUST: `Idempotency-Key` required on create/reschedule/transition endpoints.
-- MUST NOT: let `ai_agent` or `zalo` sources create anything but drafts + holds.
+- MUST: draft vs confirmed is decided by `draft-policy.ts` (X9 + X11): AI agent → always draft; salon staff entry (`staff_created`, `walk_in`, `phone`, `zalo_chat`) → `confirmed`; customer self-service → normal booking **without OTP**, `pending` only if `confirmation_mode=manual` or the customer matches `require_confirmation_for` (first-time/unverified). Unverified phones are flagged `identity_verified=false`.
+- MUST NOT: require OTP to hold or book.
+- MUST: guest hold/booking paths run anti-abuse hooks — per-phone active limit under the `(salon_id, phone_hash)` lock, rate limits per device/IP/phone, web bot check (Turnstile).
+- MUST NOT: send personal data to any LLM (X10), including staff names; agent tools return tokens (`booking_ref`, `customer_ref`, `staff_ref`) and aggregates only.
+- MUST: `booking.source` uses `BookingSource` from `packages/contracts` (owned by topic 12); never add a local source list.
+- MUST: pure logic lives in `packages/domain/booking`; schemas, types and error codes in `packages/contracts/booking`.
 - MUST NOT: overlap is overridable by any role. Only rule overrides (hours, lead time, horizon, assignment) with `booking.override_rules` + reason + audit.
 - MUST NOT: change snapshots (`booking_service` price/duration/name) after creation.
-- MUST NOT: import Nest, Prisma, or I/O in `booking-engine/core`.
+- MUST NOT: import Nest, Prisma, or I/O in `packages/domain/booking`.
 
 ## Procedures
 
 ### Add a new availability rule (e.g. "max 8 bookings per staff per day")
-1. Add the setting to the salon settings schema (Zod in `packages/validation`, column via 04's migration process).
-2. Implement as a pure filter in `booking-engine/core/rules/<rule>.ts` taking loaded inputs, returning removed candidates with a reason code.
+1. Add the setting to the salon settings schema (Zod in `packages/contracts`, column via the `prisma-migration` skill).
+2. Implement as a pure filter in `packages/domain/booking/rules/<rule>.ts` taking loaded inputs, returning removed candidates with a reason code.
 3. Register in the rule pipeline order (cheap → expensive).
 4. If the rule depends on concurrent writes (counts), ensure the advisory lock in the write path covers the key it reads.
 5. Unit tests: rule on/off, boundary values; add a property-test generator for the setting.
@@ -44,12 +49,18 @@ Any change to slot computation, booking writes, statuses, schedules as consumed 
 ### Add a booking status or transition
 1. Edit the transition table in `state-machine.ts` (from, to, allowed actor roles, preconditions, side effects on occupancy).
 2. Update the transitions table in the spec and domain doc.
-3. Add outbox event name and notify 11 (notifications) and 12 (attribution/commission) owners.
+3. Add outbox event name and error codes in `packages/contracts/booking`; notify 11 (notifications) and 12 (attribution/commission) owners.
 4. Tests: allowed, disallowed per actor, history row, occupancy `active` effect.
 
+### Add a booking source
+1. Request the value in topic 12's `BookingSource` enum (`packages/contracts`); do not add it here.
+2. Classify it into an X9 actor class (AI agent / salon staff entry / customer self-service) in `draft-policy.ts` and extend test 13.
+
 ### Add an AI-agent booking tool
+0. Load the `agent-tool` skill.
 1. Define Zod input/output in the agent-tools package; permission + tenant scope required.
 2. Writes return drafts/holds only; confirmation stays a UI action.
+3. Outputs carry tokens and aggregates only — no names, phones, Zalo IDs, notes or review text; the model never supplies customer contact details.
 3. Mark customer-supplied text fields as untrusted in the output schema.
 
 ## Mandatory test cases (must exist and pass)
@@ -65,9 +76,12 @@ Any change to slot computation, booking writes, statuses, schedules as consumed 
 10. Snapshot unaffected by later price change.
 11. DST fixtures (`Europe/Warsaw`, `America/New_York`) for spring-forward and fall-back days.
 12. Property test: no overlapping active occupancy per staff/unit; every offered slot is bookable.
-13. `ai_agent`/`zalo` sources cannot create `confirmed` bookings.
+13. Draft policy matrix (X9 + X11): AI-agent bookings always drafts; staff entries `confirmed`; customer self-service without OTP succeeds with `identity_verified=false` — `confirmed` by default, `pending` under `confirmation_mode=manual` or each `require_confirmation_for` value (first_time, unverified, both); mismatched actor/source → `422 INVALID_ACTOR_SOURCE`.
+13a. Anti-abuse: per-phone active limit → `429 ACTIVE_LIMIT_REACHED` (incl. concurrent requests); rate limits → `429 RATE_LIMITED`; missing bot-check token on web guest path rejected.
+14. Agent booking tools never return personal data (snapshot test on tool output schemas).
 
 ## Before PR checklist
+- [ ] `roadmap-tracker` updated: milestone status/note, log entry, open decisions raised as questions.
 - [ ] Core stays pure; no N+1 in loaders (2–4 queries per availability request).
 - [ ] Concurrency test run against real Postgres (Testcontainers).
 - [ ] OpenAPI + domain doc updated; error codes documented.

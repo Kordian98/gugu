@@ -1,6 +1,6 @@
 ---
 name: entitlements
-description: How to gate a GuGu feature by subscription plan — add an entitlement key, enforce it in the NestJS API, meter usage quotas (AI tokens, ZNS/SMS), and reflect it in the Expo UI. Use when adding paid/limited features, touching plans, subscriptions, quotas, @RequiresEntitlement, EntitlementService or UsageService.
+description: How to gate a GuGu feature by subscription plan — add an entitlement key, enforce it in the NestJS API, meter usage quotas (AI tokens, Zalo template messages, SMS count and cost), and reflect it in the Expo UI. Use when adding paid/limited features, touching plans, subscriptions, quotas, @RequiresEntitlement, EntitlementService or UsageService.
 ---
 
 # Entitlements: gating features by plan
@@ -9,7 +9,7 @@ Commercial access in GuGu is expressed as **entitlement keys** resolved per salo
 
 ## When to use
 - A feature should be available only on some plans (AI agent, Zalo inbox, advanced analytics…).
-- A feature has a monthly limit (AI requests/tokens, ZNS/SMS messages, staff seats).
+- A feature has a monthly limit (AI requests/tokens, Zalo template messages, SMS messages or SMS cost, staff seats).
 - You are changing plans, subscriptions or overrides.
 
 Not for gradual rollout or experiments → use a **feature flag** instead. Never mix the two.
@@ -43,11 +43,11 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 7. Tests: guard denies with 403 `ENTITLEMENT_REQUIRED`, allows with an override, and the UI hides the entry point.
 
 ## Procedure: add a metered quota
-1. Add a `limit` key (e.g. `zns.monthly_messages`) plus a usage key in `packages/domain/usage/keys.ts`.
+1. Add a `limit` key (e.g. `zalo_template.monthly_messages`) plus a usage key in `packages/domain/usage/keys.ts`.
 2. Around the costly operation:
    ```ts
-   const r = await usage.reserve(salonId, 'zns.messages', 1, idemKey);
-   if (!r.allowed) throw new QuotaExceededError('zns.monthly_messages');
+   const r = await usage.reserve(salonId, 'zalo_template.messages', 1, idemKey);
+   if (!r.allowed) throw new QuotaExceededError('zalo_template.monthly_messages');
    try { await send(); await usage.commit(r.id, 1); }
    catch (e) { await usage.release(r.id); throw e; }
    ```
@@ -58,6 +58,23 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 
 ## Procedure: grant a salon access manually (admin)
 Use `EntitlementOverride` via the admin UI or API with `reason` and an optional `expiresAt`. This is audit logged, and the cache invalidates within 60 s.
+
+## Metered usage keys (current)
+| Usage key | Limit key | Unit | Notes |
+|---|---|---|---|
+| `ai.requests` | `ai.agent.monthly_requests` | request | topic 08 |
+| `ai.tokens.input` / `ai.tokens.output` | `ai.agent.monthly_tokens` | token | commit actual usage from the API response |
+| `zalo_template.messages` | `zalo_template.monthly_messages` | message | ZBS Template Message (formerly ZNS), channel `zalo_template`. Never name keys `zns.*` |
+| `sms.messages` | `notifications.sms.monthly_messages` | message (segments counted) | international provider |
+| `sms.cost` | `notifications.sms.monthly_cost_cap_vnd` | VND (converted from the provider currency at the stored FX rate) | **metered per salon on every send**, even when no cap applies |
+
+Each usage event stores `unitCost`, `costCurrency` and `fxRateToVnd` for margin reporting in admin.
+
+## Booking source and acquisition class
+Plan rules and commission eligibility use the `BookingSource` → `gugu_acquired | salon_acquired` mapping owned by topic 12 (`docs/tasks/12-monetization-admin.md` §3.1a, code in `packages/domain/attribution`). `gugu_acquired`: `marketplace`, `promoted_listing`, `gugu_campaign`, `zalo_mini_app` (GuGu discovery). Everything else (`salon_profile`, `direct_link`, `qr_code`, `social_media`, `zalo_oa`, `zalo_link`, `zalo_chat`, `phone`, `walk_in`, `staff_created`, `repeat_customer`, `ai_agent`) is `salon_acquired`. Import the enum; never redefine it.
+
+## Billing context
+No payment processor and no Vietnamese entity in the MVP. Subscriptions are invoiced manually by GuGu's foreign entity, and admin activates the plan. Gating code MUST NOT assume a payment webhook exists.
 
 ## Checklist before PR
 - [ ] Key registered, typed, defaulted, described in vi/en

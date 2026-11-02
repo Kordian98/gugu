@@ -10,6 +10,10 @@ Official:
 - OA pricing: https://zalo.cloud/oa/pricing
 - Mini App docs: https://miniapp.zaloplatforms.com/documents/ (also mini.zalo.me/documents)
 - Mini App starter: https://github.com/Zalo-MiniApp/zaui-restaurant
+- OA verification guide: https://oa.zalo.me/home/documents/guides/huong-dan-xac-thuc_70
+- App creation & OA permission: https://oa.zalo.me/home/documents/guides/Khoi-tao-ung-dung-va-cap-quyen_117071366476220195
+- Extension policy: https://oa.zalo.me/home/documents/policy/phat-trien-tien-ich-extension
+- Mini App owner verification: https://miniapp.zaloplatforms.com/blog/huong-dan-xac-thuc-zalo-mini-app-doi-voi-cac-nhom-nganh-dac-thu/
 
 Third-party (use for orientation only):
 - Infobip Zalo docs: https://www.infobip.com/docs/zalo
@@ -18,3 +22,6 @@ Third-party (use for orientation only):
 - RedAI Zalo SDK docs (OAuth v4 endpoints, PKCE): https://unpkg.com/@warriorteam/redai-zalo-sdk@1.11.1/docs/AUTHENTICATION.md
 - Abenla OA package prices 2026: https://oazbs.vn/zalo-zbs/zalo-oa-co-mat-phi-khong-bang-gia-va-chi-phi-van-hanh-can-biet/
 - 8x8 ZNS pricing: https://cpaas.8x8.com/en/pricing/messaging-apps-pricing/
+- Infobip Zalo overview: https://cdn-web.infobip.com/uploads/markdown-exports/www.infobip.com/zalo.md
+- eSMS OA types: https://helpcenter.esms.vn/thong-tin-dich-vu/tra-cuu-thong-tin-ho-so/zalo/zalo-oa/quy-trinh-tao-zalo-oa
+- Foreign businesses / partners: https://mwyconsulting.com/insights/vietnam-digital-advertising/zalo-for-business-vietnam ; https://prodima.vn/en/what-is-zalo/

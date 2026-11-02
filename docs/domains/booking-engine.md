@@ -11,7 +11,10 @@ Durable reference for how GuGu computes availability and creates bookings withou
 | Hold | Temporary occupancy (`kind='hold'`, `expires_at`) during checkout. |
 | Resource unit | One capacity slot of a resource; capacity N → N units. |
 | Buffer | Prep/cleanup time before/after a service, included in occupancy. |
-| Draft | Unconfirmed booking proposal created by AI agent or Zalo; needs human confirmation. |
+| Draft | Unconfirmed booking needing human confirmation — only AI-agent bookings (X9 + X11). Customer self-service needs no OTP; it may start `pending` via `require_confirmation_for`. |
+| identity_verified | Whether the booking phone has been verified; `false` does not block a booking (X11). |
+| Source | `BookingSource` enum owned by topic 12, imported from `packages/contracts`. |
+| ZBS Template Message | Zalo transactional message (formerly ZNS); notification channel id `zalo_template`. |
 
 ## Invariants
 See skill → Invariants. (Copy the final list here once implemented.)
@@ -41,7 +44,10 @@ _TODO: `booking.created`, `booking.confirmed`, `booking.rescheduled`, `booking.c
 _TODO: link tool definitions; see spec §9._
 
 ## File map
-_TODO._
+- `packages/domain/booking/` — pure engine (interval algebra, tz, `computeSlots`, rules, state machine).
+- `packages/contracts/booking/` — Zod schemas, types, error codes.
+- `apps/api/src/modules/{booking-engine,availability,bookings}/` — loaders, transaction, controllers.
+_TODO: fill concrete files._
 
 ## Known limitations
 - Multi-service Phase B/C not implemented.

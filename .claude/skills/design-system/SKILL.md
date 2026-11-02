@@ -7,6 +7,12 @@ description: GuGu design-system procedures — adding/changing tokens, themes, s
 
 One token source powers a bold **expressive** mode (public marketplace, customer) and a quiet **calm** mode (business, staff, admin) across iOS, Android and web. Spec: `docs/tasks/02-design-system.md`. Durable reference: `docs/domains/design-system.md`.
 
+## Art direction: Lilac Glow
+Source: `design/hero-references/README.md` (ref-01). A cream canvas, pastel lilac/pink/peach, **plum-black ink** for all text and primary buttons, editorial serif headlines with one gradient word (`gradient.glow`), handwritten script accents, glossy jelly/glass 3D, soft wide radii (24–28) and pill buttons.
+- Fonts: display **Playfair Display** (alt Noto Serif Display), UI **Be Vietnam Pro**, script **Playwrite VN** (alt Dancing Script). All have Vietnamese subsets. Never swap in a font without the glyph test.
+- Expressive = full Lilac Glow. Calm = palette + UI sans only: no serif display in data views, no script, no gradient, no 3D.
+- Pastels never carry text; text on pastel is ink.
+
 ## When to use
 - Creating or modifying any UI component or screen styling.
 - Adding a color, size, spacing, radius, shadow, motion value, or breakpoint.
@@ -49,6 +55,11 @@ One token source powers a bold **expressive** mode (public marketplace, customer
 ### Pick motion
 - Durations: `fast` 120, `base` 200, `slow` 320, `deliberate` 500 ms. Springs: `snappy`, `gentle`, `bouncy` (expressive only).
 - Entry stagger ≤ 8 items, 40 ms. No scroll-jacking. Reduced motion → crossfade or none.
+- Page micro-interactions (hearts, cards, tiles, CTA arrows, gradient drift, script draw-on, floating sprites) are DOM/CSS/Reanimated, never extra WebGL canvases. Spec: `docs/tasks/02-design-system.md` §4.4.
+
+### Use the gradient and script
+- `gradient.glow` as text fill on ≤ 2 headline words per screen; never body text, buttons or calm mode.
+- Script: live i18n text, ≤ 5 words, rotated −6° to −12°, decorative (`aria-hidden` if it duplicates meaning), loaded lazily.
 
 ## Checklist (before PR)
 - [ ] No hardcoded strings; no raw style values.

@@ -14,8 +14,10 @@ description: Rules and procedures for GuGu's salon workspace (Today, calendar UI
 - MUST get availability and booking mutations from the booking engine API (06). MUST NOT compute slots on the client.
 - MUST scope every query by the `salonId` resolved from the member's session. A resource from another salon returns 404 (not 403).
 - MUST NOT serialize `CustomerNote` in any customer-facing DTO.
-- MUST attach `provenance` to every money value. MUST NOT use the words payment/paid/verified ("thanh toán", "đã thanh toán") for revenue.
-- MUST define every dashboard number in `packages/domain/metrics/registry.ts`. Dashboards and agent tools both read from it.
+- MUST attach `revenueKind: RevenueKind` (from `packages/domain/metrics/revenue-kind.ts`, owned here) to every money value. MUST NOT use the words payment/paid/verified ("thanh toán", "đã thanh toán") for revenue.
+- MUST define every dashboard number in the metric catalogue `packages/domain/metrics/registry.ts`, referencing 04 read models (never raw table queries). 08 generates agent tools from it (X7).
+- MUST expose to the agent only read models and metrics with `piiLevel` `none`, `aggregate` or `tokenised`. MUST NOT send names, phones, emails, notes, reviews or message text to any LLM. AI price-list import accepts only price-board content that passes the PII scan (spec G9a).
+- MUST take booking sources from the 12-owned enum (X6). MUST call Zalo template messages `zalo_template` (ZBS; "ZNS" only as a legacy alias).
 - MUST use i18n keys (vi default, en second). MUST ship empty, loading and error states.
 - MUST NOT stack modals: at most one sheet. Destructive actions MUST use a confirm sheet, and reversible ones MUST use an undo snackbar (6 s).
 
@@ -31,22 +33,23 @@ description: Rules and procedures for GuGu's salon workspace (Today, calendar UI
 9. **Mobile calendar** is a single-staff day view with a staff switcher plus an agenda. The desktop calendar is a staff-column grid with drag, resize and keyboard (`N`, `T`, `D`, `W`, arrows, `Enter`).
 10. **Optimistic UI** only for check-in, complete and no-show. Moves and creates wait for the server, and a 409 shows nearest-slot suggestions.
 11. **Offline:** show a "last updated" banner and cached reads. Never queue writes silently.
-12. **Zalo surfaces degrade gracefully.** Hide them, never show broken UI, when Zalo is not connected.
+12. **Calm mode, same brand.** Use the `calm` surface mode tokens: brand type, radii, plum primary, lilac accent only for selection/focus/now-line. No 3D, glass, text gradients, script accents or ambient motion. Never invent CRM-only colours.
+13. **Zalo surfaces degrade gracefully.** Hide them, never show broken UI, when Zalo is not connected.
 
-## Revenue provenance
+## Revenue kinds (`RevenueKind`)
 
-| provenance | Source | vi badge | en badge |
+| kind | Source | vi badge | en badge |
 |---|---|---|---|
 | `estimated_from_bookings` | Price snapshots of completed bookings | Ước tính | Estimated |
 | `recorded_offline_sale` | `OfflineSale` entered at completion | Đã ghi nhận tại salon | Recorded at salon |
 | `reported_by_salon` | `SalonReportedRevenue` (daily close) | Salon báo cáo | Reported |
 
-Never sum across provenances into one unlabeled number.
+Never sum across kinds into one unlabeled number.
 
 ## Procedures
 
 ### Add a metric
-1. Add an entry to `packages/domain/metrics/registry.ts`: `key`, `labelKey`, `definitionKey`, `unit`, `provenance?`, `grain`, `dimensions`, `permission`, `handler`.
+1. Add an entry to `packages/domain/metrics/registry.ts`: `key`, `labelKey`, `definitionKey`, `readModels` (04 ids), `unit`, `revenueKind?`, `grain`, `dimensions`, `permission`, `handler`.
 2. Implement the handler in `apps/api/src/modules/insights/handlers/<key>.ts`. Compute in the salon timezone, use one query (no N+1) and index-backed filters.
 3. Add vi and en strings for the label and definition (03 conventions).
 4. Tests: a handler unit test with fixed fixtures, a cross-tenant isolation test, and an agent-tool parity snapshot (same result through `insights.get_metric`).
@@ -59,16 +62,16 @@ Never sum across provenances into one unlabeled number.
 4. Check the click budget, run the i18n lint, then write a Playwright test of the main path in both locales.
 
 ### Add a CRM endpoint
-1. Validate the body and query with a shared Zod schema from `packages/validation`.
+1. Validate the body and query with a shared Zod schema from `packages/contracts`.
 2. Guard it with the tenant guard and a permission from the 05 matrix (`client.view`, `revenue.view`…).
 3. Return DTOs from explicit mappers. Never return Prisma entities directly.
 4. Add an OpenAPI annotation, regenerate the api-client, and write integration tests (happy path, forbidden role, other-tenant 404).
-5. If it is useful to the AI agent, add it to the agent-surface table in `docs/tasks/07-salon-crm.md` with R/W and the confirmation flag.
+5. If it is useful to the AI agent and can be aggregate or tokenised, add it to the agent-surface table with its PII level in `docs/tasks/07-salon-crm.md` with R/W and the confirmation flag.
 
 ## Pre-PR checklist
 - [ ] No availability logic in the client
 - [ ] salonId scoping + cross-tenant test
-- [ ] Notes not leaked; money has provenance
+- [ ] Notes not leaked; money has `revenueKind`
 - [ ] vi + en keys, no hardcoded strings
 - [ ] Empty, loading and error states
 - [ ] Click budget respected

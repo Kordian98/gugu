@@ -16,7 +16,11 @@ Status: **skeleton.** Nothing is implemented yet. Fill in each section as code l
 - Quotas are idempotent and never overshoot.
 - Flags ≠ entitlements.
 - No client analytics without consent. No PII in events.
-- Money figures always carry `revenueKind`.
+- Money figures always carry `RevenueKind` (`estimated_from_bookings | recorded_offline_sale | reported_by_salon`, owned by topic 07).
+- `BookingSource` is a single enum owned here and mapped to `gugu_acquired | salon_acquired` (spec §3.1a).
+- Zalo transactional channel is `zalo_template` (ZBS Template Message, formerly ZNS). SMS count and cost are metered per salon.
+- No personal data goes to any LLM. Agent tools and the Admin Copilot use aggregates and opaque tokens only.
+- Subscriptions are invoiced manually by a foreign entity. No Vietnamese entity, no processor in the MVP.
 - Admin mutations require a reason and are audit logged.
 
 ## Model
@@ -24,7 +28,7 @@ _TODO: entity list with key fields and relations once the Prisma schema exists (
 
 | Entity | Purpose | Tenant-scoped |
 |---|---|---|
-| BookingAttribution | source + new-customer + eligibility per booking | yes |
+| BookingAttribution | `BookingSource` + acquisition class + new-customer + eligibility per booking | yes |
 | CommissionRule | versioned commission configuration | global/plan/salon |
 | CommissionLedgerEntry / Event | append-only commission bookkeeping | yes |
 | Plan / PlanEntitlement | commercial packaging | no |

@@ -6,8 +6,10 @@ Durable reference for the GuGu API's structure and data model. Read this to find
 
 ## Quick facts
 - Runtime: NestJS modular monolith, `apps/api`; workers share the codebase with a separate entrypoint.
-- DB: PostgreSQL + PostGIS, Prisma 7 (`@prisma/adapter-pg`, `prisma.config.ts`).
-- Contracts: Zod in `packages/validation` → OpenAPI `/api/v1/docs` → `packages/api-client`.
+- DB: Amazon RDS for PostgreSQL 18 (`ap-southeast-1`) + PostGIS 3.6; local `postgis/postgis:18-3.6`. Prisma 7 (`@prisma/adapter-pg`, `prisma.config.ts`).
+- Extensions: postgis, btree_gist, pg_trgm, unaccent, citext, pgcrypto (all on RDS allow-list, checked 2026-11-02). UUID v7 via Prisma / native `uuidv7()`.
+- Object storage: S3 (`ap-southeast-1`), MinIO locally; Cloudflare CDN in front.
+- Contracts: Zod in `packages/contracts` → OpenAPI `/api/v1/docs` → `packages/api-client`. Pure logic in `packages/domain`.
 - Owner agent: `.claude/agents/backend-database.md`. Skills: `backend-module`, `prisma-migration`.
 
 ## Invariants
@@ -30,9 +32,10 @@ Durable reference for the GuGu API's structure and data model. Read this to find
 ## Raw SQL objects
 | Object | Kind | Migration | Test |
 |---|---|---|---|
-| _(e.g. `booking_services_no_staff_overlap`)_ | EXCLUDE | | |
+| _(e.g. `booking_occupancy_no_staff_overlap`, `booking_occupancy_no_unit_overlap`)_ | EXCLUDE | | |
 
 ## Read-model registry
+Base layer of the registries (X7): read models here → metric catalogue (07, `packages/domain/metrics`) → agent tools (08).
 | Name | Permission | Scope | Untrusted fields | Endpoint |
 |---|---|---|---|---|
 | _(fill as implemented)_ | | | | |
@@ -47,7 +50,7 @@ Durable reference for the GuGu API's structure and data model. Read this to find
 |---|---|---|---|
 
 ## Error codes
-See `packages/validation/src/errors.ts`; list domain-specific codes here.
+See `packages/contracts/src/errors.ts`; list domain-specific codes here.
 
 ## Commands
 ```bash
