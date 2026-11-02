@@ -2,10 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
   CategoryItem,
+  CreateResourceInput,
+  CreateResourceTypeInput,
   CreateInvitationInput,
   HolidayInput,
   InvitationCreated,
   Onboarding,
+  ResourceTypeList,
   OpeningHoursInput,
   PoliciesInput,
   BookingSettings,
@@ -17,6 +20,8 @@ import type {
   StaffInput,
   Team,
   TimeOffInput,
+  UpdateResourceInput,
+  UpdateResourceTypeInput,
   WeeklyScheduleInput,
 } from "@gugu/contracts";
 
@@ -30,7 +35,18 @@ const keys = {
   team: (s: string) => ["salon", s, "team"] as const,
   settings: (s: string) => ["salon", s, "settings"] as const,
   onboarding: (s: string) => ["salon", s, "onboarding"] as const,
+  resources: (s: string) => ["salon", s, "resources"] as const,
 };
+
+/** Rooms, chairs, beds and equipment by type (06 M6.6). */
+export function useResources() {
+  const salonId = useOptionalSalon()?.salonId ?? "";
+  return useQuery({
+    queryKey: keys.resources(salonId),
+    queryFn: () => apiFetch<ResourceTypeList>(`/salons/${salonId}/resource-types`),
+    enabled: salonId !== "",
+  });
+}
 
 export function useCategories() {
   return useQuery({
@@ -79,7 +95,7 @@ export function useOnboarding() {
 /** One mutation hook for every workspace write; refreshes the affected lists and the checklist. */
 export function useCrmMutation<TVars, TResult = void>(
   request: (salonId: string, vars: TVars) => Promise<TResult>,
-  invalidate: ("services" | "team" | "settings")[],
+  invalidate: ("services" | "team" | "settings" | "resources")[],
 ) {
   const { salonId } = useSalon();
   const qc = useQueryClient();
@@ -136,5 +152,17 @@ export const crmApi = {
     apiFetch(`/salons/${s}/settings/holidays`, { method: "POST", body }),
   removeHoliday: (s: string, id: string) =>
     apiFetch(`/salons/${s}/settings/holidays/${id}`, { method: "DELETE" }),
+  createResourceType: (s: string, body: CreateResourceTypeInput) =>
+    apiFetch<{ id: string }>(`/salons/${s}/resource-types`, { method: "POST", body }),
+  updateResourceType: (s: string, v: { id: string; body: UpdateResourceTypeInput }) =>
+    apiFetch(`/salons/${s}/resource-types/${v.id}`, { method: "PATCH", body: v.body }),
+  removeResourceType: (s: string, id: string) =>
+    apiFetch(`/salons/${s}/resource-types/${id}`, { method: "DELETE" }),
+  createResource: (s: string, body: CreateResourceInput) =>
+    apiFetch<{ id: string }>(`/salons/${s}/resources`, { method: "POST", body }),
+  updateResource: (s: string, v: { id: string; body: UpdateResourceInput }) =>
+    apiFetch(`/salons/${s}/resources/${v.id}`, { method: "PATCH", body: v.body }),
+  removeResource: (s: string, id: string) =>
+    apiFetch(`/salons/${s}/resources/${id}`, { method: "DELETE" }),
   goLive: (s: string, _v: undefined) => apiFetch(`/salons/${s}/go-live`, { method: "POST" }),
 };

@@ -250,7 +250,11 @@
     "zalo_paid_messages_off": "Paid messages are off (Settings → Zalo).",
     "zalo_not_connected": "The salon hasn't connected a Zalo OA.",
     "zalo_disabled": "The Zalo integration is not enabled.",
-    "zalo_conversation_not_found": "Conversation not found."
+    "zalo_conversation_not_found": "Conversation not found.",
+    "resource_type_in_use": "This type is used by services or still has active rooms/equipment.",
+    "resource_in_use": "Can't reduce or turn off: upcoming appointments use these places.",
+    "resource_not_found": "Room/equipment not found.",
+    "resource_type_not_found": "Room/equipment type not found."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",
@@ -305,7 +309,10 @@
     "inactive": "Inactive",
     "cost": "Internal cost (₫)",
     "costHint": "Materials + other costs. Visible to the owner and managers only — never to clients, Zalo or the AI assistant.",
-    "margin": "Margin {{amount}} · {{pct}}%"
+    "margin": "Margin {{amount}} · {{pct}}%",
+    "resources": "Needs room / equipment",
+    "resourcesHint": "Pick if the service needs its own bed, chair or room. It's only bookable while one is free.",
+    "resourceNone": "None active yet"
   },
   "team": {
     "subtitle": "Team members, roles, working hours and invitations",
@@ -493,11 +500,12 @@
     "unavailable": {
       "no_staff_assigned": "Not bookable: no team member is assigned to this service.",
       "no_working_hours": "Not bookable: the team members for this service have no working hours (or the salon has no opening hours).",
-      "no_resource": "Not bookable: this service needs a room or equipment (e.g. a bed or chair) and none is active yet.",
+      "no_resource": "Not bookable: the service needs a room or equipment but none is active.",
       "outside_booking_window": "This date is outside the booking window.",
       "fully_booked": "No free times this month for this choice.",
       "fixServices": "Assign staff",
-      "fixHours": "Add working hours"
+      "fixHours": "Add working hours",
+      "fixResources": "Add rooms & equipment"
     },
     "findEarliest": "Find the earliest slot",
     "earliestTitle": "Earliest free times",
@@ -574,7 +582,8 @@
     "addAmount": "Record amount received",
     "cancelConfirm": "Cancel appointment",
     "rescheduleTitle": "Pick a new time",
-    "sameStaff": "Same team member"
+    "sameStaff": "Same team member",
+    "resources": "Room / equipment"
   },
   "wizard": {
     "later": "Later",
@@ -730,5 +739,26 @@
     "count": "{{count}} of {{total}} selected",
     "all": "Select all",
     "none": "None"
+  },
+  "resources": {
+    "subtitle": "Rooms, beds, chairs and equipment shared by your services.",
+    "explainer": "Optional. Add them when some services need their own space — e.g. 2 massage beds means at most 2 massage clients at once.",
+    "addType": "Add type",
+    "typeName": "Type name",
+    "typePlaceholder": "e.g. Massage bed, Pedicure chair, VIP room",
+    "firstResource": "First room/equipment name (optional)",
+    "resourceName": "Name",
+    "resourcePlaceholder": "e.g. Room 1",
+    "capacity": "Places",
+    "capacityHint": "Places = clients served at the same time (e.g. a room with 3 identical beds → 3).",
+    "addResource": "Add",
+    "units": "{{count}} places",
+    "requiredBy": "Needed by {{count}} services",
+    "noResources": "No rooms or equipment of this type yet.",
+    "deleteType": "Delete type {{name}}?",
+    "deleteTypeBody": "Its rooms/equipment are removed too. Past appointments stay as they are.",
+    "deleteTypeInUse": "{{count}} services need this type. Remove the requirement from them first.",
+    "deleteResource": "Delete {{name}}",
+    "active": "Turn {{name}} on/off"
   }
 }
