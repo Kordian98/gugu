@@ -113,7 +113,7 @@ export function BookingSheet({
             <Text role="uiSemiBold" size={15} color={c.ink}>
               {booking.customer.name}
             </Text>
-            {booking.customer.phone ? (
+            {booking.customer.phone && !booking.customer.phone.includes("•") ? (
               <Pressable
                 accessibilityRole="link"
                 onPress={() => {
@@ -124,6 +124,10 @@ export function BookingSheet({
                   {booking.customer.phone}
                 </Text>
               </Pressable>
+            ) : booking.customer.phone ? (
+              <Text size={14} color={c.muted}>
+                {booking.customer.phone}
+              </Text>
             ) : null}
           </View>
         ) : (

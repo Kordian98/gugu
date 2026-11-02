@@ -79,12 +79,50 @@ export const availabilitySlotSchema = z.object({
   /** Staff who can take it, best "any staff" candidate first. Empty when the salon hides staff choice. */
   staffIds: z.array(uuidV7Schema),
 });
+/** Mirrors UNAVAILABLE_REASONS in @gugu/domain (parity tested in the API). */
+export const unavailableReasonSchema = z.enum([
+  "no_staff_assigned",
+  "no_working_hours",
+  "outside_booking_window",
+  "fully_booked",
+]);
+export type UnavailableReasonCode = z.infer<typeof unavailableReasonSchema>;
+
 export const availabilitySchema = z.object({
   timeZone: z.string(),
   durationMinutes: z.number().int(),
   days: z.array(z.object({ date: localDateSchema, slots: z.array(availabilitySlotSchema) })),
+  /** Set only when the whole range has no slot: why (staff not assigned, no hours, window…). */
+  unavailableReason: unavailableReasonSchema.nullable(),
 });
 export type Availability = z.infer<typeof availabilitySchema>;
+
+/**
+ * "Find the earliest slot" (CRM New appointment): searches forward from today across the booking
+ * window, server-side in ≤ 31-day chunks, and returns the first `limit` start times, at most
+ * `perDay` per day so the options span several days.
+ */
+export const earliestSlotsQuerySchema = z.object({
+  serviceId: uuidV7Schema,
+  variantId: uuidV7Schema.optional(),
+  addOnIds: uuidListParam,
+  /** Omit for "any staff". */
+  staffId: uuidV7Schema.optional(),
+  /** Start searching on this day (default: today in the salon timezone). */
+  from: localDateSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(10).default(5),
+  perDay: z.coerce.number().int().min(1).max(10).default(2),
+});
+export type EarliestSlotsQuery = z.infer<typeof earliestSlotsQuerySchema>;
+
+export const earliestSlotsSchema = z.object({
+  timeZone: z.string(),
+  durationMinutes: z.number().int(),
+  slots: z.array(availabilitySlotSchema.extend({ date: localDateSchema })),
+  /** Set when nothing is free in the whole window. */
+  unavailableReason: unavailableReasonSchema.nullable(),
+});
+export type EarliestSlots = z.infer<typeof earliestSlotsSchema>;
 
 // ─── Holds (public booking page) ────────────────────────────────────────────────────────────────
 

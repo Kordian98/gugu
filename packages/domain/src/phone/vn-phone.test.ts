@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeVnPhone } from "./vn-phone";
+import { maskPhone, normalizeVnPhone } from "./vn-phone";
 
 describe("normalizeVnPhone", () => {
   it.each([
@@ -13,5 +13,12 @@ describe("normalizeVnPhone", () => {
 
   it.each(["", "12345", "+48 600 100 200", "0112345678", "09123456789"])("rejects %s", (input) => {
     expect(normalizeVnPhone(input)).toBeNull();
+  });
+});
+
+describe("maskPhone", () => {
+  it("keeps only the country code and the last 3 digits", () => {
+    expect(maskPhone("+84912345678")).toBe("+84 ••• ••• 678");
+    expect(maskPhone("+84912345678")).not.toContain("912");
   });
 });

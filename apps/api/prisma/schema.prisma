@@ -218,6 +218,8 @@ model User {
   recordedOfflineSales   OfflineSale[]           @relation("OfflineSaleRecordedBy")
   assistantConversations AssistantConversation[]
 
+  customerNotes CustomerNote[] @relation("CustomerNoteAuthor")
+
   @@map("users")
 }
 
@@ -523,6 +525,7 @@ model Salon {
   staffProfiles          StaffProfile[]
   services               Service[]
   invitations            SalonInvitation[]
+  customerProfiles       CustomerSalonProfile[]
   bookings               Booking[]
   bookingHolds           BookingHold[]
   zaloConnection         ZaloOaConnection?
@@ -1051,6 +1054,8 @@ model Booking {
   @@index([salonId, startsAt])
   @@index([salonId, staffId, startsAt])
   @@index([salonId, customerPhoneHash])
+  /// Customers directory statistics by phone (topic 07).
+  @@index([salonId, customerPhoneE164, startsAt], map: "bookings_salon_phone_starts")
   @@index([status, pendingExpiresAt])
   @@map("bookings")
 }
@@ -1569,4 +1574,50 @@ model AssistantToolCall {
 
   @@index([salonId, createdAt])
   @@map("assistant_tool_calls")
+}
+
+// ─── Customers CRM (topic 07 M7.7; spec 04 CustomerSalonProfile, 07 §3.5/§4.4) ───────────────────
+
+/// Per-salon view of a client: name, tags, consent and internal notes. Visit statistics are read
+/// from bookings (by phone) at query time, so they never drift. Created when a salon adds a client,
+/// or materialised from bookings the first time the directory sees that phone.
+model CustomerSalonProfile {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  salonId          String    @map("salon_id") @db.Uuid
+  phoneE164        String?   @map("phone_e164")
+  displayName      String    @map("display_name")
+  customerUserId   String?   @map("customer_user_id") @db.Uuid
+  tags             String[]  @default([])
+  /// `{ "zalo": bool, "email": bool, "sms": bool }` — marketing consent per channel.
+  marketingConsent Json      @default("{}") @map("marketing_consent")
+  source           String    @default("booking")
+  mergedIntoId     String?   @map("merged_into_id") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon Salon          @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  notes CustomerNote[]
+
+  @@unique([salonId, id])
+  @@index([salonId, displayName])
+  @@map("customer_salon_profiles")
+}
+
+/// Internal note about a client. Team-only: never serialised in any customer-facing response.
+model CustomerNote {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  salonId      String    @map("salon_id") @db.Uuid
+  profileId    String    @map("profile_id") @db.Uuid
+  authorUserId String    @map("author_user_id") @db.Uuid
+  body         String
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile CustomerSalonProfile @relation(fields: [salonId, profileId], references: [salonId, id], onDelete: Restrict)
+  author  User                 @relation("CustomerNoteAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, profileId, createdAt])
+  @@map("customer_notes")
 }

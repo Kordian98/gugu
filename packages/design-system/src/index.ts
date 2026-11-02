@@ -18,3 +18,4 @@ export * from "./components/calm/Sparkline";
 export * from "./components/calm/ProgressBar";
 export * from "./components/calm/Avatar";
 export * from "./components/calm/StatCard";
+export * from "./components/calm/DatePicker";

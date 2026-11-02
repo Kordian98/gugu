@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { PanResponder, Pressable, View, type GestureResponderEvent } from "react-native";
+import { PanResponder, Pressable, View } from "react-native";
 import Svg, { Defs, Line, Pattern, Rect } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 
@@ -44,6 +44,12 @@ type Props = {
   onPressSlot?: ((staffId: string, minutes: number) => void) | undefined;
   /** Desktop drag-to-reschedule (the server revalidates; a 409 reverts). */
   onMoveItem?: ((id: string, staffId: string, minutes: number) => void) | undefined;
+  /** Drag on empty time draws a block; release reports staff + start/end minutes. */
+  onCreateRange?: ((staffId: string, start: number, end: number) => void) | undefined;
+  /** Snap for drag-to-create (salon slot granularity), minutes. */
+  granularity?: number | undefined;
+  /** Mouse: drag starts at once. Touch: long-press first so the page can still scroll. */
+  pointer?: "mouse" | "touch" | undefined;
 };
 
 /**
@@ -62,6 +68,9 @@ export function Timeline({
   onPressItem,
   onPressSlot,
   onMoveItem,
+  onCreateRange,
+  granularity = SNAP,
+  pointer = "mouse",
 }: Props) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
@@ -76,11 +85,6 @@ export function Timeline({
   const height = (endHour - startHour) * hourHeight;
   const label = (h: number) => `${String(h).padStart(2, "0")}:00`;
   const colWidth = staff.length ? gridWidth / staff.length : 0;
-
-  const slotAt = (staffId: string, e: GestureResponderEvent) => {
-    const raw = startHour * 60 + (e.nativeEvent.locationY - 6) / pxPerMin;
-    onPressSlot?.(staffId, Math.max(startHour * 60, Math.floor(raw / SNAP) * SNAP));
-  };
 
   return (
     <View testID="crm-timeline">
@@ -145,15 +149,25 @@ export function Timeline({
           ))}
           {staff.map((s, col) => (
             <View key={s.id} style={{ flex: 1, borderRightWidth: 1, borderRightColor: c.line }}>
-              {onPressSlot ? (
-                <Pressable
-                  testID={`crm-slot-${s.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("calendar.newFor", { name: s.name })}
-                  onPress={(e) => {
-                    slotAt(s.id, e);
+              {onPressSlot || onCreateRange ? (
+                <CreateLayer
+                  staffId={s.id}
+                  label={t("calendar.newFor", { name: s.name })}
+                  startMin={startHour * 60}
+                  endMin={endHour * 60}
+                  pxPerMin={pxPerMin}
+                  granularity={granularity}
+                  pointer={pointer}
+                  onTap={(minutes) => {
+                    onPressSlot?.(s.id, minutes);
                   }}
-                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                  onRange={
+                    onCreateRange
+                      ? (a, b) => {
+                          onCreateRange(s.id, a, b);
+                        }
+                      : undefined
+                  }
                 />
               ) : null}
               {items
@@ -402,6 +416,148 @@ function BreakBlock({ y, h, label }: { y: number; h: number; label: string }) {
       <Text role="uiMedium" size={12} color={c.event.break.text}>
         {label}
       </Text>
+    </View>
+  );
+}
+
+const LONG_PRESS_MS = 350;
+const clock = (m: number) =>
+  `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
+/**
+ * Empty-time layer of one staff column: tap → New appointment at that time; drag (mouse at once,
+ * touch after a long press) draws a block snapped to the salon granularity and reports the range.
+ * Until a touch drag is armed the gesture yields to the scroll view.
+ */
+function CreateLayer({
+  staffId,
+  label,
+  startMin,
+  endMin,
+  pxPerMin,
+  granularity,
+  pointer,
+  onTap,
+  onRange,
+}: {
+  staffId: string;
+  label: string;
+  startMin: number;
+  endMin: number;
+  pxPerMin: number;
+  granularity: number;
+  pointer: "mouse" | "touch";
+  onTap: (minutes: number) => void;
+  onRange?: ((start: number, end: number) => void) | undefined;
+}) {
+  const { c } = useCalm();
+  const [draft, setDraftState] = useState<{ a: number; b: number } | null>(null);
+  const draftRef = useRef<{ a: number; b: number } | null>(null);
+  const setDraft = (d: { a: number; b: number } | null) => {
+    draftRef.current = d;
+    setDraftState(d);
+  };
+  const g = useRef({ startMin, endMin, pxPerMin, granularity, pointer, onTap, onRange });
+  useEffect(() => {
+    g.current = { startMin, endMin, pxPerMin, granularity, pointer, onTap, onRange };
+  }, [startMin, endMin, pxPerMin, granularity, pointer, onTap, onRange]);
+  const st = useRef({
+    y0: 0,
+    armed: false,
+    moved: false,
+    timer: null as ReturnType<typeof setTimeout> | null,
+  });
+  const minuteAt = (y: number, mode: "floor" | "round") => {
+    const v = g.current;
+    const raw = v.startMin + Math.max(0, y - 6) / v.pxPerMin;
+    const snapped =
+      (mode === "floor" ? Math.floor(raw / v.granularity) : Math.round(raw / v.granularity)) *
+      v.granularity;
+    return Math.min(v.endMin, Math.max(v.startMin, snapped));
+  };
+  // eslint-disable-next-line react-hooks/refs -- callbacks read refs only in event handlers.
+  const [pan] = useState(() =>
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        const s = st.current;
+        s.y0 = e.nativeEvent.locationY;
+        s.moved = false;
+        s.armed = g.current.pointer === "mouse";
+        if (!s.armed && g.current.onRange) {
+          s.timer = setTimeout(() => {
+            s.armed = true;
+            const a = minuteAt(s.y0, "floor");
+            setDraft({ a, b: a + g.current.granularity });
+          }, LONG_PRESS_MS);
+        }
+      },
+      onPanResponderMove: (_e, gs) => {
+        const s = st.current;
+        if (Math.abs(gs.dy) > 6) s.moved = true;
+        if (!s.armed || !g.current.onRange) {
+          if (s.moved && s.timer) clearTimeout(s.timer);
+          return;
+        }
+        const a = minuteAt(s.y0, "floor");
+        const b = minuteAt(s.y0 + gs.dy, "round");
+        setDraft(
+          b >= a
+            ? { a, b: Math.max(b, a + g.current.granularity) }
+            : { a: b, b: a + g.current.granularity },
+        );
+      },
+      onPanResponderTerminationRequest: () => !st.current.armed,
+      onPanResponderRelease: () => {
+        const s = st.current;
+        if (s.timer) clearTimeout(s.timer);
+        const d = draftRef.current;
+        if (s.armed && s.moved && d && g.current.onRange) g.current.onRange(d.a, d.b);
+        else if (!s.moved) g.current.onTap(minuteAt(s.y0, "floor"));
+        setDraft(null);
+        s.armed = false;
+      },
+      onPanResponderTerminate: () => {
+        const s = st.current;
+        if (s.timer) clearTimeout(s.timer);
+        s.armed = false;
+        setDraft(null);
+      },
+    }),
+  );
+  return (
+    <View
+      testID={`crm-slot-${staffId}`}
+      accessible
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      {...pan.panHandlers}
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      {draft ? (
+        <View
+          testID="crm-draft-block"
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: 4,
+            right: 4,
+            top: (draft.a - startMin) * pxPerMin + 8,
+            height: Math.max((draft.b - draft.a) * pxPerMin - 4, 18),
+            borderRadius: 8,
+            borderWidth: 1.5,
+            borderStyle: "dashed",
+            borderColor: c.accentBg,
+            backgroundColor: c.accentSoft,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+          }}
+        >
+          <Text role="uiSemiBold" size={12} color={c.accent}>
+            {`${clock(draft.a)}–${clock(draft.b)}`}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }

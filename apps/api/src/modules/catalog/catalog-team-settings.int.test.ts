@@ -153,7 +153,8 @@ describe("catalog, team & settings (integration)", () => {
     );
     expect(updated.variants).toHaveLength(1);
     expect(updated.variants[0]).toMatchObject({ id: keep.id, price: 160000 });
-    expect(updated.staffIds).toEqual([]);
+    // staffIds omitted on update → links unchanged (explicit [] clears them).
+    expect(updated.staffIds).toEqual(current.staffIds);
 
     const second = serviceSchema.parse(
       (

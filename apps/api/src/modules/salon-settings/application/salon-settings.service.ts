@@ -207,7 +207,15 @@ export class SalonSettingsService {
   }
 
   async onboarding(ctx: SalonContext): Promise<Onboarding> {
-    const [salon, activeServices, openingDays, readyStaff] = await Promise.all([
+    const assigned = { deletedAt: null, isBookable: true };
+    const [
+      salon,
+      activeServices,
+      openingDays,
+      readyStaff,
+      unassignedServices,
+      staffWithoutServices,
+    ] = await Promise.all([
       this.prisma.salon.findFirstOrThrow({
         where: { id: ctx.salonId },
         select: { status: true, phoneE164: true, location: { select: { id: true } } },
@@ -227,6 +235,21 @@ export class SalonSettingsService {
           services: { some: { service: { deletedAt: null, isActive: true } } },
         },
       }),
+      this.prisma.service.count({
+        where: {
+          salonId: ctx.salonId,
+          isActive: true,
+          deletedAt: null,
+          staff: { none: { staff: assigned } },
+        },
+      }),
+      this.prisma.staffProfile.count({
+        where: {
+          salonId: ctx.salonId,
+          ...assigned,
+          services: { none: { service: { deletedAt: null, isActive: true } } },
+        },
+      }),
     ]);
     const { done, canGoLive } = onboardingProgress({
       hasAddressAndPhone: salon.phoneE164 !== null && salon.location !== null,
@@ -235,7 +258,12 @@ export class SalonSettingsService {
       readyStaff,
       status: salon.status,
     });
-    return { done, total: ONBOARDING_STEPS.length, canGoLive };
+    return {
+      done,
+      total: ONBOARDING_STEPS.length,
+      canGoLive,
+      issues: { unassignedServices, staffWithoutServices },
+    };
   }
 
   /** Draft → active once the checklist is complete (07 §3.7 "Go live"). */

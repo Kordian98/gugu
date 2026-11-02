@@ -23,6 +23,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { greetingKey } from "./greeting";
 import { KpiRow } from "./KpiRow";
 import { ActivityCard, UpcomingCard } from "./RailCards";
+import { BookabilityIssues } from "./BookabilityIssues";
 import { SetupCard } from "./SetupCard";
 import { WeekStrip } from "./WeekStrip";
 
@@ -122,6 +123,7 @@ export function TodayScreen() {
         {setupIncomplete && !ws.demo ? (
           <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} compact />
         ) : null}
+        {ws.demo ? null : <BookabilityIssues />}
         <WeekStrip now={now} />
         <KpiRow today={ws.today} only="revenue" />
         <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
@@ -146,6 +148,7 @@ export function TodayScreen() {
       {setupIncomplete && !ws.demo ? (
         <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} />
       ) : null}
+      {ws.demo ? null : <BookabilityIssues />}
       <KpiRow today={ws.today} />
       {bp === "wide" ? (
         <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>

@@ -248,4 +248,110 @@ describe("salon CRM helpers (integration)", () => {
       .set("authorization", unlinked)
       .expect(403);
   });
+
+  it("masks client phones for members whose phone access was revoked", async () => {
+    const userId = await addSalonMember(prisma, s.salonId, "receptionist");
+    await prisma.salonMember.updateMany({
+      where: { salonId: s.salonId, userId },
+      data: { permissionsOverride: { revoke: ["customers.phone.read"] } },
+    });
+    const rec = await bearerFor(app, userId);
+    const list = (
+      await request(http(app))
+        .get(`/api/v1/salons/${s.salonId}/bookings`)
+        .query({ from: DAY, to: DAY })
+        .set("authorization", rec)
+        .expect(200)
+    ).body as { items: { id: string; customer: { phone: string | null } | null }[] };
+    const phones = list.items.map((b) => b.customer?.phone).filter(Boolean);
+    expect(phones.length).toBeGreaterThan(0);
+    for (const ph of phones) expect(ph).toMatch(/^\+84 ••• ••• \d{3}$/);
+    const one = list.items[0];
+    if (!one) throw new Error("no booking");
+    const single = (
+      await request(http(app))
+        .get(`/api/v1/salons/${s.salonId}/bookings/${one.id}`)
+        .set("authorization", rec)
+        .expect(200)
+    ).body as { customer: { phone: string } };
+    expect(single.customer.phone).toContain("•");
+    const lookup = clientSuggestionListSchema.parse(
+      (
+        await request(http(app))
+          .get(`/api/v1/salons/${s.salonId}/clients/lookup`)
+          .set("authorization", rec)
+          .expect(200)
+      ).body,
+    ).items;
+    expect(lookup.every((c) => c.phoneMasked && c.phone.includes("•"))).toBe(true);
+    // Digit search is disabled without phone access (no probing numbers).
+    const probe = clientSuggestionListSchema.parse(
+      (
+        await request(http(app))
+          .get(`/api/v1/salons/${s.salonId}/clients/lookup`)
+          .query({ q: "0912" })
+          .set("authorization", rec)
+          .expect(200)
+      ).body,
+    ).items;
+    expect(probe.length).toBe(lookup.length);
+    // The owner still sees full numbers.
+    const ownerList = (
+      await request(http(app))
+        .get(`/api/v1/salons/${s.salonId}/bookings`)
+        .query({ from: DAY, to: DAY })
+        .set("authorization", owner)
+        .expect(200)
+    ).body as { items: { customer: { phone: string | null } | null }[] };
+    expect(ownerList.items.some((b) => b.customer?.phone?.startsWith("+849"))).toBe(true);
+  });
+
+  it("a deleted service is no longer bookable but stays in booking history", async () => {
+    now = new Date("2026-12-01T08:00:00+07:00");
+    const upcoming = await book("17:00", "Hoàng Mỹ Linh", "0901 222 333");
+    await request(http(app))
+      .delete(`/api/v1/salons/${s.salonId}/services/${s.serviceId}`)
+      .set("authorization", owner)
+      .expect(204);
+    // Gone from the catalogue …
+    const list = (
+      await request(http(app))
+        .get(`/api/v1/salons/${s.salonId}/services`)
+        .set("authorization", owner)
+        .expect(200)
+    ).body as { items: { id: string }[] };
+    expect(list.items.map((x) => x.id)).not.toContain(s.serviceId);
+    // … not bookable …
+    const avail = await request(http(app))
+      .get(`/api/v1/salons/${s.salonId}/availability`)
+      .query({ serviceId: s.serviceId, from: DAY, to: DAY })
+      .set("authorization", owner);
+    expect(avail.status).toBeGreaterThanOrEqual(400);
+    const create = await request(http(app))
+      .post(`/api/v1/salons/${s.salonId}/bookings`)
+      .set("authorization", owner)
+      .set("idempotency-key", `t-${randomUUID()}`)
+      .send({
+        serviceId: s.serviceId,
+        staffId: s.staffIds[0],
+        startsAt: vnAt(DAY, "18:00"),
+        customer: { name: "X", phone: "0901 999 888" },
+        source: "phone",
+      });
+    expect(create.status).toBeGreaterThanOrEqual(400);
+    // … while past and upcoming bookings keep it (snapshot name) and the row stays for statistics.
+    const day = (
+      await request(http(app))
+        .get(`/api/v1/salons/${s.salonId}/bookings`)
+        .query({ from: DAY, to: DAY })
+        .set("authorization", owner)
+        .expect(200)
+    ).body as { items: { id: string; service: { serviceId: string; name: { vi: string } } }[] };
+    const kept = day.items.find((b) => b.id === upcoming);
+    expect(kept?.service.serviceId).toBe(s.serviceId);
+    expect(kept?.service.name.vi.length).toBeGreaterThan(0);
+    expect(day.items.filter((b) => b.service.serviceId === s.serviceId).length).toBeGreaterThan(1);
+    const row = await prisma.service.findUniqueOrThrow({ where: { id: s.serviceId } });
+    expect(row.deletedAt).not.toBeNull();
+  });
 });

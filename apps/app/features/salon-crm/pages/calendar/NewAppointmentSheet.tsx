@@ -1,18 +1,43 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Avatar, CalmButton, Pill, Text, useCalm } from "@gugu/design-system";
-import type { ClientSuggestion, Service, StaffMember } from "@gugu/contracts";
-import { formatVND } from "@gugu/localization";
+import { Avatar, CalmButton, DatePicker, Icon, Pill, Text, useCalm } from "@gugu/design-system";
+import type { ClientSuggestion, EarliestSlots, Service, StaffMember } from "@gugu/contracts";
+import { formatDateLong, formatTime, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { useAvailability, useClientLookup, useCreateBooking } from "../../data/bookings";
-import { minutesInZone, salonDate } from "../../data/dates";
+import {
+  useAvailability,
+  useClientLookup,
+  useCreateBooking,
+  useEarliestSlots,
+} from "../../data/bookings";
+import { useSettings } from "../../data/catalog";
+import { useSalon } from "../../data/SalonContext";
+import {
+  addDays,
+  clockMinutes,
+  instantAt,
+  isoWeekday,
+  minutesInZone,
+  salonDate,
+} from "../../data/dates";
+import { useCrmNav } from "../../shell/useCrmNav";
+import { BookabilityWarning } from "../../ui/BookabilityWarning";
 import { useErrorText } from "../../ui/errors";
-import { ErrorBanner, Field, Input, Segmented, Sheet, Toggle } from "../../ui/form";
-import { DayStrip, SlotGrid } from "./SlotPicker";
+import {
+  ErrorBanner,
+  Field,
+  Input,
+  Segmented,
+  Sheet,
+  TimeInput,
+  Toggle,
+  isClock,
+} from "../../ui/form";
+import { SlotGrid } from "./SlotPicker";
 
 type Source = "phone" | "zalo_chat" | "walk_in" | "staff_created";
 
@@ -20,6 +45,8 @@ export type NewAppointmentPrefill = {
   date: string;
   staffId?: string | null;
   minutes?: number | null;
+  /** From drag-to-create: services longer than this are hidden unless "show all" is on. */
+  durationMinutes?: number | null;
 };
 
 /**
@@ -27,35 +54,64 @@ export type NewAppointmentPrefill = {
  * and staff prefilled) → pick a free time → confirm. Free times come from the engine; on a 409
  * (taken meanwhile) the list refreshes and the receptionist picks again.
  */
+/** First and last day of the month containing `ymd`. */
+const monthOf = (ymd: string) => {
+  const [y, m] = ymd.split("-").map(Number);
+  const last = new Date(Date.UTC(y ?? 1970, m ?? 1, 0)).getUTCDate();
+  return {
+    first: `${ymd.slice(0, 7)}-01`,
+    last: `${ymd.slice(0, 7)}-${String(last).padStart(2, "0")}`,
+  };
+};
+
 export function NewAppointmentSheet({
   services,
   staff,
   tz,
   prefill,
+  client: initialClient = null,
   onClose,
 }: {
   services: Service[];
   staff: StaffMember[];
   tz: string;
   prefill: NewAppointmentPrefill;
+  /** "Book again" from a client profile: client, last service and staff preselected. */
+  client?: ClientSuggestion | null | undefined;
   onClose: () => void;
 }) {
   const { c } = useCalm();
+  const { go } = useCrmNav();
   const { t } = useTranslation("crm");
   const locale = useLocale();
   const errorText = useErrorText();
+  const { can, summary } = useSalon();
+  const [showAll, setShowAll] = useState(false);
+  const fits = (s: Service) =>
+    !prefill.durationMinutes ||
+    Math.min(s.durationMinutes, ...s.variants.map((v) => v.durationMinutes ?? s.durationMinutes)) <=
+      prefill.durationMinutes;
   const active = useMemo(() => services.filter((s) => s.isActive), [services]);
+  const offered = showAll ? active : active.filter(fits);
   const [q, setQ] = useState("");
-  const [client, setClient] = useState<ClientSuggestion | null>(null);
+  const [client, setClient] = useState<ClientSuggestion | null>(initialClient);
+  const again = initialClient
+    ? active.find((s) => s.id === initialClient.lastServiceId)
+    : undefined;
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [walkIn, setWalkIn] = useState(false);
   const [serviceId, setServiceId] = useState<string | null>(
-    active.length === 1 ? (active[0]?.id ?? null) : null,
+    again?.id ?? (active.length === 1 ? (active[0]?.id ?? null) : null),
   );
-  const [variantId, setVariantId] = useState<string | null>(null);
+  const [variantId, setVariantId] = useState<string | null>(again?.variants[0]?.id ?? null);
   const [addOnIds, setAddOnIds] = useState<string[]>([]);
-  const [staffId, setStaffId] = useState<string | null>(prefill.staffId ?? null);
+  const [staffId, setStaffId] = useState<string | null>(
+    prefill.staffId ??
+      (again && initialClient && again.staffIds.includes(initialClient.lastStaffId)
+        ? initialClient.lastStaffId
+        : null),
+  );
   const [date, setDate] = useState(prefill.date);
   const [slot, setSlot] = useState<string | null>(null);
   const [source, setSource] = useState<Source>("phone");
@@ -64,12 +120,56 @@ export function NewAppointmentSheet({
   const create = useCreateBooking();
   const service = active.find((s) => s.id === serviceId) ?? null;
   const people = staff.filter((s) => s.isBookable && (!service || service.staffIds.includes(s.id)));
+  const settings = useSettings();
+  const today = salonDate(new Date(), tz);
+  const windowDays = settings.data?.booking.bookingWindowDays ?? 60;
+  const maxDate = addDays(today, windowDays);
+  const canOverride = can("bookings.write") && summary?.myRole !== "staff";
+  const [month, setMonth] = useState<{ first: string; last: string }>(() => monthOf(prefill.date));
+  const beyondWindow = date > maxDate;
   const availability = useAvailability(
-    service && (!service.variants.length || variantId)
-      ? { serviceId: service.id, variantId, addOnIds, staffId, date }
+    service && (!service.variants.length || variantId) && month.last >= today
+      ? {
+          serviceId: service.id,
+          variantId,
+          addOnIds,
+          staffId,
+          date: month.first < today ? today : month.first,
+          to: month.last > maxDate ? maxDate : month.last,
+        }
       : null,
   );
-  const slots = availability.data?.days[0]?.slots ?? [];
+  const slots = availability.data?.days.find((d) => d.date === date)?.slots ?? [];
+  // Whole month empty: say why (nobody assigned, no working hours, window) instead of "no times".
+  const reason =
+    service && people.length === 0
+      ? ("no_staff_assigned" as const)
+      : (availability.data?.unavailableReason ?? null);
+  const reasonFix =
+    reason === "no_staff_assigned"
+      ? { label: t("calendar.unavailable.fixServices"), path: "/business/services" }
+      : reason === "no_working_hours"
+        ? { label: t("calendar.unavailable.fixHours"), path: "/business/team" }
+        : null;
+  const freeDays = new Set(
+    (availability.data?.days ?? []).filter((d) => d.slots.length).map((d) => d.date),
+  );
+  const [manualTime, setManualTime] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const closedWeekdays = new Set(
+    [1, 2, 3, 4, 5, 6, 7].filter(
+      (w) =>
+        !(settings.data?.openingHours.days.find((d) => d.weekday === w)?.intervals.length ?? 0),
+    ),
+  );
+  const dayState = (d: string): "closed" | "unavailable" | null => {
+    if (settings.data?.openingHours.days.length && closedWeekdays.has(isoWeekday(d)))
+      return "closed";
+    if (settings.data?.holidays.some((h) => h.closed && h.startDate <= d && d <= h.endDate))
+      return "closed";
+    if (availability.data && d >= today && d <= maxDate && !freeDays.has(d)) return "unavailable";
+    return null;
+  };
 
   // A tap on an empty grid cell preselects that time when it is free.
   // A tap on an empty grid cell preselects that time when it is free (until the user picks).
@@ -82,7 +182,33 @@ export function NewAppointmentSheet({
             salonDate(new Date(s.startsAt), tz) === date,
         )?.startsAt ?? null)
       : null;
-  const chosenSlot = slot ?? autoSlot;
+  const manualSlot =
+    beyondWindow && isClock(manualTime) ? instantAt(date, clockMinutes(manualTime), tz) : null;
+  const chosenSlot = beyondWindow ? manualSlot : (slot ?? autoSlot);
+  // Drag-to-create on a time that is not free: offer the earliest options instead.
+  const dragUnavailable =
+    prefill.minutes != null &&
+    !slotTouched &&
+    !beyondWindow &&
+    availability.isSuccess &&
+    !availability.isPlaceholderData &&
+    autoSlot === null &&
+    reason === null;
+  const [earliestOpen, setEarliestOpen] = useState(false);
+  const earliest = useEarliestSlots(
+    service && (!service.variants.length || variantId)
+      ? { serviceId: service.id, variantId, addOnIds, staffId }
+      : null,
+    earliestOpen,
+  );
+  const pickEarliest = (e: { date: string; startsAt: string; staffIds: string[] }) => {
+    setDate(e.date);
+    setMonth(monthOf(e.date));
+    if (!staffId && e.staffIds[0]) setStaffId(e.staffIds[0]);
+    setSlot(e.startsAt);
+    setSlotTouched(true);
+    setEarliestOpen(false);
+  };
 
   const pickClient = (cl: ClientSuggestion) => {
     setClient(cl);
@@ -111,6 +237,7 @@ export function NewAppointmentSheet({
   const ready = Boolean(
     service &&
     chosenSlot &&
+    (!beyondWindow || (staffId && overrideReason.trim().length >= 3)) &&
     (walkIn || (contact.name && contact.phone.replace(/\D/g, "").length >= 8)),
   );
 
@@ -126,7 +253,8 @@ export function NewAppointmentSheet({
         source: walkIn ? "walk_in" : source,
         customer: walkIn ? null : contact,
         note: note.trim() || null,
-        overrides: [],
+        overrides: beyondWindow ? ["horizon"] : [],
+        ...(beyondWindow ? { overrideReason: overrideReason.trim() } : {}),
       },
       {
         onSuccess: onClose,
@@ -232,6 +360,7 @@ export function NewAppointmentSheet({
                 key={cl.phone}
                 testID="crm-client-suggestion"
                 accessibilityRole="button"
+                disabled={cl.phoneMasked}
                 onPress={() => {
                   pickClient(cl);
                 }}
@@ -273,7 +402,7 @@ export function NewAppointmentSheet({
 
       <Section title={t("calendar.service")}>
         <Chips
-          items={active.map((s) => ({
+          items={offered.map((s) => ({
             id: s.id,
             label: serviceName(s),
             sub: formatVND(s.price, locale),
@@ -289,6 +418,20 @@ export function NewAppointmentSheet({
             setSlotTouched(true);
           }}
         />
+        {prefill.durationMinutes && offered.length < active.length ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setShowAll((v) => !v);
+            }}
+          >
+            <Text size={12} color={c.accent}>
+              {showAll
+                ? t("calendar.fitsRange", { min: prefill.durationMinutes })
+                : t("calendar.showAllServices", { count: active.length - offered.length })}
+            </Text>
+          </Pressable>
+        ) : null}
         {service?.variants.length ? (
           <Chips
             items={service.variants
@@ -362,24 +505,121 @@ export function NewAppointmentSheet({
 
       {service ? (
         <Section title={t("calendar.time")}>
-          <DayStrip
+          {dragUnavailable && !earliestOpen ? (
+            <BookabilityWarning
+              testID="crm-drag-unavailable"
+              text={t("calendar.dragUnavailable")}
+              action={t("calendar.findEarliest")}
+              onPress={() => {
+                setEarliestOpen(true);
+              }}
+            />
+          ) : null}
+          {reason === null && !earliestOpen ? (
+            <View style={{ flexDirection: "row" }}>
+              <CalmButton
+                testID="crm-find-earliest"
+                size="sm"
+                variant="secondary"
+                icon="clock"
+                label={t("calendar.findEarliest")}
+                onPress={() => {
+                  setEarliestOpen(true);
+                }}
+              />
+            </View>
+          ) : null}
+          {earliestOpen ? (
+            <EarliestList
+              loading={earliest.isPending}
+              data={earliest.data}
+              tz={tz}
+              staff={staff}
+              showStaff={!staffId}
+              onPick={pickEarliest}
+              onClose={() => {
+                setEarliestOpen(false);
+              }}
+            />
+          ) : null}
+          <DatePicker
+            testID="crm-date-picker"
             value={date}
-            tz={tz}
+            today={today}
+            min={today}
+            max={maxDate}
+            allowBeyondMax={canOverride}
+            dayState={dayState}
+            localeTag={locale === "vi" ? "vi-VN" : "en-US"}
+            prevLabel={t("calendar.prevMonth")}
+            nextLabel={t("calendar.nextMonth")}
+            onMonthChange={(first, last) => {
+              setMonth({ first, last });
+            }}
             onChange={(d) => {
               setDate(d);
               setSlot(null);
               setSlotTouched(true);
             }}
           />
-          <SlotGrid
-            tz={tz}
-            loading={availability.isPending && availability.fetchStatus !== "idle"}
-            slots={slots}
-            selected={chosenSlot}
-            onSelect={(s) => {
-              setSlot(s);
-            }}
-          />
+          {beyondWindow ? (
+            <View
+              testID="crm-beyond-window"
+              style={{ gap: 8, padding: 12, borderRadius: 12, backgroundColor: c.surfaceMuted }}
+            >
+              <Text size={13} color={c.body}>
+                {t("calendar.beyondWindow", { days: windowDays })}
+              </Text>
+              <View
+                style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}
+              >
+                <Field label={t("calendar.manualTime")}>
+                  <TimeInput
+                    label={t("calendar.manualTime")}
+                    value={manualTime}
+                    onChange={setManualTime}
+                  />
+                </Field>
+                <Field
+                  flex={1}
+                  label={t("calendar.overrideReason")}
+                  hint={staffId ? undefined : t("calendar.overrideNeedsStaff")}
+                >
+                  <Input
+                    label={t("calendar.overrideReason")}
+                    value={overrideReason}
+                    onChangeText={setOverrideReason}
+                  />
+                </Field>
+              </View>
+            </View>
+          ) : null}
+          {!beyondWindow && reason ? (
+            <BookabilityWarning
+              testID={`crm-unavailable-${reason}`}
+              text={t(`calendar.unavailable.${reason}`)}
+              {...(reasonFix
+                ? {
+                    action: reasonFix.label,
+                    onPress: () => {
+                      onClose();
+                      go(reasonFix.path);
+                    },
+                  }
+                : {})}
+            />
+          ) : null}
+          {beyondWindow || reason ? null : (
+            <SlotGrid
+              tz={tz}
+              loading={availability.isPending && availability.fetchStatus !== "idle"}
+              slots={slots}
+              selected={chosenSlot}
+              onSelect={(s) => {
+                setSlot(s);
+              }}
+            />
+          )}
         </Section>
       ) : null}
 
@@ -462,6 +702,102 @@ function Chips({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+/** Salon-local date (YYYY-MM-DD) as a long label; noon UTC keeps the calendar day. */
+const dayLabel = (ymd: string, locale: "vi" | "en") =>
+  formatDateLong(new Date(`${ymd}T12:00:00Z`), locale, "UTC");
+
+/** Earliest free options grouped by day (07 New appointment, owner request). */
+function EarliestList({
+  loading,
+  data,
+  tz,
+  staff,
+  showStaff,
+  onPick,
+  onClose,
+}: {
+  loading: boolean;
+  data: EarliestSlots | undefined;
+  tz: string;
+  staff: StaffMember[];
+  showStaff: boolean;
+  onPick: (e: EarliestSlots["slots"][number]) => void;
+  onClose: () => void;
+}) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  const locale = useLocale();
+  const days = [...new Set((data?.slots ?? []).map((x) => x.date))];
+  return (
+    <View
+      testID="crm-earliest"
+      style={{ gap: 10, padding: 12, borderRadius: 12, backgroundColor: c.surfaceMuted }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Text role="uiSemiBold" size={13} color={c.ink}>
+          {t("calendar.earliestTitle")}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("common.close")}
+          onPress={onClose}
+        >
+          <Icon name="close" size={16} color={c.body} />
+        </Pressable>
+      </View>
+      {loading ? (
+        <ActivityIndicator color={c.accent} />
+      ) : !data || data.slots.length === 0 ? (
+        <Text testID="crm-earliest-empty" size={13} color={c.body}>
+          {data?.unavailableReason
+            ? t(`calendar.unavailable.${data.unavailableReason}`)
+            : t("calendar.noSlots")}
+        </Text>
+      ) : (
+        days.map((d) => (
+          <View key={d} style={{ gap: 6 }}>
+            <Text size={12} color={c.muted} style={{ textTransform: "capitalize" }}>
+              {dayLabel(d, locale)}
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {data.slots
+                .filter((x) => x.date === d)
+                .map((x) => {
+                  const who = staff.find((p) => p.id === x.staffIds[0])?.displayName;
+                  return (
+                    <Pressable
+                      key={x.startsAt}
+                      testID="crm-earliest-slot"
+                      accessibilityRole="button"
+                      onPress={() => {
+                        onPick(x);
+                      }}
+                      style={{
+                        paddingHorizontal: 12,
+                        height: 38,
+                        borderRadius: 10,
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderColor: c.line,
+                        backgroundColor: c.surface,
+                      }}
+                    >
+                      <Text role="uiSemiBold" size={14} color={c.ink}>
+                        {showStaff && who
+                          ? `${formatTime(new Date(x.startsAt), locale, tz)} · ${who}`
+                          : formatTime(new Date(x.startsAt), locale, tz)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+            </View>
+          </View>
+        ))
+      )}
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { ClientSuggestion } from "@gugu/contracts";
+import { maskPhone } from "@gugu/domain";
 import type { SalonContext } from "../../../common/guards/principal";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import type { CrmScope } from "./crm-scope";
@@ -25,13 +26,15 @@ export class ClientLookupQuery {
   constructor(private readonly prisma: PrismaService) {}
 
   async find(ctx: SalonContext, scope: CrmScope, q: string): Promise<ClientSuggestion[]> {
+    const showPhone = ctx.permissions.has("customers.phone.read");
     const ownStaff = scope.staffId;
     const digits = q
       .replace(/\D/g, "")
       .replace(/^0+/, "")
       .replace(/^84(?=\d{8,})/, "");
     const text = q.replace(/[%_\\]/g, "").trim();
-    const phoneLike = digits.length >= 3 ? `%${digits}%` : null;
+    // Without phone access, digit search is off too (it would let a member probe numbers).
+    const phoneLike = showPhone && digits.length >= 3 ? `%${digits}%` : null;
     const nameLike = text.length >= 2 && digits.length < 3 ? `%${text.toLowerCase()}%` : null;
     const any = phoneLike === null && nameLike === null;
     const rows = await this.prisma.$queryRaw<Row[]>`
@@ -61,7 +64,8 @@ export class ClientLookupQuery {
       SELECT * FROM per_phone ORDER BY last_at DESC LIMIT 8`;
     return rows.map((r) => ({
       name: r.name,
-      phone: r.phone,
+      phone: showPhone ? r.phone : maskPhone(r.phone),
+      phoneMasked: !showPhone,
       visits: Number(r.visits),
       noShows: Number(r.no_shows),
       lastVisitAt: r.last_at.toISOString(),

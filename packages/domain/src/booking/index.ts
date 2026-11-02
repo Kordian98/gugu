@@ -6,3 +6,4 @@ export * from "./policy";
 export * from "./state-machine";
 export * from "./terms";
 export * from "./tz";
+export * from "./unavailable-reason";

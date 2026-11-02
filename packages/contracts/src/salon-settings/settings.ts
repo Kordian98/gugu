@@ -111,5 +111,13 @@ export const onboardingSchema = z.object({
   done: z.array(onboardingStepSchema),
   total: z.number().int(),
   canGoLive: z.boolean(),
+  /**
+   * Bookability problems, shown on Today even after go-live: active services nobody bookable is
+   * assigned to, and bookable staff without any active service.
+   */
+  issues: z.object({
+    unassignedServices: z.number().int(),
+    staffWithoutServices: z.number().int(),
+  }),
 });
 export type Onboarding = z.infer<typeof onboardingSchema>;

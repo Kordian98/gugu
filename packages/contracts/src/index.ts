@@ -19,3 +19,5 @@ export * from "./salon-crm/offline-sale";
 export * from "./zalo/zalo";
 export * from "./assistant/pii-free";
 export * from "./assistant/assistant";
+export * from "./salon-crm/customers";
+export * from "./salon-crm/insights";

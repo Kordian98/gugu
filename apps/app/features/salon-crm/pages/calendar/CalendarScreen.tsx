@@ -210,6 +210,15 @@ export function CalendarScreen() {
             timeZone={tz}
             nowMinutes={nowMinutes}
             onPressItem={openBooking}
+            granularity={day.settings.data?.booking.slotGranularityMinutes ?? 15}
+            pointer={bp === "desktop" || bp === "wide" ? "mouse" : "touch"}
+            onCreateRange={
+              canCreate
+                ? (staffId, start, end) => {
+                    setCreating({ date, staffId, minutes: start, durationMinutes: end - start });
+                  }
+                : undefined
+            }
             onPressSlot={
               canCreate
                 ? (staffId, minutes) => {

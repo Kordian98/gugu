@@ -24,6 +24,7 @@ export function ServiceRow({
   onEdit,
   onToggle,
   onMove,
+  onDelete,
 }: {
   service: Service;
   staff: StaffMember[];
@@ -33,12 +34,14 @@ export function ServiceRow({
   onEdit: () => void;
   onToggle: (v: boolean) => void;
   onMove: (dir: -1 | 1) => void;
+  onDelete: () => void;
 }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
   const name = (locale === "en" && service.name.en) || service.name.vi;
   const people = staff.filter((s) => service.staffIds.includes(s.id));
+  const unbookable = service.isActive && !people.some((p) => p.isBookable);
   const extras = [
     t("services.minutes", { count: service.durationMinutes }),
     service.variants.length
@@ -84,6 +87,17 @@ export function ServiceRow({
           <Text size={12} color={c.body} numberOfLines={1}>
             {extrasText}
           </Text>
+          {unbookable ? (
+            <View
+              testID={`crm-service-unbookable-${service.id}`}
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Icon name="alert" size={12} color={c.down.text} />
+              <Text role="uiMedium" size={12} color={c.down.text} numberOfLines={1}>
+                {t("services.notBookable")}
+              </Text>
+            </View>
+          ) : null}
         </View>
         <Text role="uiSemiBold" size={14} color={c.ink}>
           {priceText(service.price, service.priceMax, locale)}
@@ -124,6 +138,15 @@ export function ServiceRow({
             style={{ padding: 6, opacity: last ? 0.3 : 1 }}
           >
             <Icon name="arrowDown" size={16} color={c.body} />
+          </Pressable>
+          <Pressable
+            testID={`crm-service-delete-${service.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t("services.deleteNamed", { name })}
+            onPress={onDelete}
+            style={{ padding: 6 }}
+          >
+            <Icon name="trash" size={16} color={c.body} />
           </Pressable>
         </View>
       ) : null}

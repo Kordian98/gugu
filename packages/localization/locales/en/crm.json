@@ -296,7 +296,12 @@
     "extraDuration": "Extra (min)",
     "staff": "Performed by",
     "noStaffYet": "No team members yet. Add them under Team.",
-    "activeLabel": "Bookable"
+    "activeLabel": "Bookable",
+    "deleteNamed": "Delete {{name}}",
+    "deleteTitle": "Delete \"{{name}}\"?",
+    "deleteBody": "The service disappears from the list, can't be booked any more and is unassigned from the team. Existing appointments (including upcoming ones) and reports keep it, with the name it had when booked. To pause it instead, use the on/off switch.",
+    "deleteConfirm": "Delete service",
+    "notBookable": "Not bookable: no team member assigned"
   },
   "team": {
     "subtitle": "Team members, roles, working hours and invitations",
@@ -360,7 +365,10 @@
     "inviteEmailHint": "If set, only this email can use the invitation and GuGu emails it.",
     "addMeTitle": "Do you also perform services yourself?",
     "addMeBody": "Add yourself to the team to take bookings with your own working hours.",
-    "addMe": "Add myself"
+    "addMe": "Add myself",
+    "unassignedServices": "{{count}} services have no team member assigned, so they can't be booked.",
+    "noServicesWarning": "No services",
+    "noHoursWarning": "No working hours"
   },
   "settings": {
     "profile": "Salon details",
@@ -468,7 +476,26 @@
     "service": "Service",
     "staff": "Team member",
     "time": "Time",
-    "source": "Booked via"
+    "source": "Booked via",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "beyondWindow": "This date is beyond the salon's {{days}}-day booking window. You can book outside the limit: enter a time and a reason (recorded).",
+    "manualTime": "Start time",
+    "overrideReason": "Reason for booking outside the limit",
+    "overrideNeedsStaff": "Pick a specific team member",
+    "showAllServices": "Show {{count}} services longer than the selected range",
+    "fitsRange": "Only show services that fit {{min}} min",
+    "unavailable": {
+      "no_staff_assigned": "Not bookable: no team member is assigned to this service.",
+      "no_working_hours": "Not bookable: the team members for this service have no working hours (or the salon has no opening hours).",
+      "outside_booking_window": "This date is outside the booking window.",
+      "fully_booked": "No free times this month for this choice.",
+      "fixServices": "Assign staff",
+      "fixHours": "Add working hours"
+    },
+    "findEarliest": "Find the earliest slot",
+    "earliestTitle": "Earliest free times",
+    "dragUnavailable": "The time you drew isn't free."
   },
   "booking": {
     "title": "Appointment {{code}}",
@@ -613,5 +640,84 @@
       "entitlement_required": "Your plan does not include the AI assistant.",
       "common_rate_limited": "You're asking a little fast, please try again in a few minutes."
     }
+  },
+  "customers": {
+    "subtitle": "Visit history, tags and internal notes for every client.",
+    "search": "Search by name or phone",
+    "add": "Add client",
+    "segments": {
+      "all": "All",
+      "new": "New",
+      "returning": "Returning",
+      "at_risk": "At risk",
+      "no_shows": "No-shows"
+    },
+    "count": "{{count}} clients",
+    "never": "No visits yet",
+    "atRisk": "At risk",
+    "next": "Next",
+    "last": "Last visit",
+    "phoneOptional": "Optional — needed for bookings and Zalo messages.",
+    "bookAgain": "Book again",
+    "visits": "Visits",
+    "spend": "Spend",
+    "tags": "Tags",
+    "removeTag": "Remove tag {{tag}}",
+    "addTag": "Add tag",
+    "tagPlaceholder": "e.g. VIP, sensitive skin",
+    "consent": "Marketing consent",
+    "channels": {
+      "zalo": "Zalo",
+      "email": "Email",
+      "sms": "SMS"
+    },
+    "consentHint": "Send offers only with consent. Appointment reminders don't need it.",
+    "notes": "Internal notes",
+    "notesHint": "Team only — clients never see these notes.",
+    "addNote": "New note",
+    "notePlaceholder": "e.g. likes nude shades, allergic to acetone",
+    "upcoming": "Upcoming",
+    "history": "History",
+    "noUpcoming": "No upcoming appointments.",
+    "noHistory": "No visits yet."
+  },
+  "insights": {
+    "subtitle": "Figures from your salon's appointments. Revenue is an estimate, not money received.",
+    "periods": {
+      "d7": "7 days",
+      "d30": "30 days",
+      "d90": "90 days"
+    },
+    "metrics": {
+      "appointments_count": "Appointments",
+      "appointments_completed": "Completed",
+      "customers_new": "New clients",
+      "customers_returning": "Returning clients",
+      "no_show_rate": "No-show rate",
+      "cancellation_rate": "Cancellation rate",
+      "revenue_estimated": "Estimated revenue",
+      "revenue_offline_recorded": "Recorded at the salon",
+      "margin_estimated": "Estimated gross margin"
+    },
+    "vsPrevious": "vs previous period",
+    "noPrevious": "No data for the previous period",
+    "daily": "Appointments per day",
+    "services": "Popular services",
+    "sources": "Booking sources",
+    "staff": "By team member",
+    "appointments": "Appointments",
+    "completed": "Completed",
+    "noShows": "No-shows",
+    "revenue": "Estimated revenue",
+    "ownScope": "You are seeing figures from your own appointments.",
+    "forbiddenTitle": "You can't view reports yet",
+    "forbiddenBody": "The salon owner can grant report access in Team.",
+    "marginHint": "Service price minus internal cost, over completed appointments."
+  },
+  "today": {
+    "unassignedServices": "{{count}} services have no team member assigned — clients and Zalo can't book them.",
+    "staffWithoutServices": "{{count}} bookable team members have no services assigned.",
+    "fixServices": "Assign staff",
+    "fixTeam": "Assign services"
   }
 }

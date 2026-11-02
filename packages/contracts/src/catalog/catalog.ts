@@ -72,8 +72,12 @@ export const serviceInputSchema = z
     isActive: z.boolean().default(true),
     variants: z.array(serviceVariantInputSchema).max(20).default([]),
     addOns: z.array(serviceAddOnInputSchema).max(20).default([]),
-    /** Staff profiles who perform this service (whole service, all variants). */
-    staffIds: z.array(uuidV7Schema).max(100).default([]),
+    /**
+     * Staff profiles who perform this service (whole service, all variants). Omitted on create →
+     * every bookable staff member (a service nobody performs can't be booked); omitted on update →
+     * links unchanged. An explicit [] means "nobody".
+     */
+    staffIds: z.array(uuidV7Schema).max(100).optional(),
   })
   .refine(priceRange, { path: ["priceMax"], message: "price_max_below_price" });
 export type ServiceInput = z.input<typeof serviceInputSchema>;

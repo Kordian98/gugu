@@ -5,6 +5,10 @@ import {
   type AvailabilityQuery,
   availabilityQuerySchema,
   availabilitySchema,
+  earliestSlotsQuerySchema,
+  earliestSlotsSchema,
+  type EarliestSlots,
+  type EarliestSlotsQuery,
   bookingParamsSchema,
   type CreateSalonBookingInput,
   createSalonBookingInputSchema,
@@ -34,6 +38,7 @@ import { CreateBookingCommand } from "../application/create-booking.command";
 import { requestHash } from "../infra/booking-secrets";
 import { BookingContexts } from "./booking-contexts";
 import { normalizedPhone } from "./phone";
+import { withPhoneVisibility } from "./phone-visibility";
 
 const IDEMPOTENCY_HEADER = {
   name: "Idempotency-Key",
@@ -80,6 +85,28 @@ export class SalonBookingsController {
     return this.queries.availability(ctx, query, { hideStaff: false, onlyStaffId: scope });
   }
 
+  @Get("availability/earliest")
+  @RequirePermission("schedules.read")
+  @ApiOperation({
+    operationId: "bookings.salonEarliestSlots",
+    summary: "Earliest bookable start times across the booking window (CRM).",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "First free options, at most `perDay` per day.",
+    standardSchema: earliestSlotsSchema,
+  })
+  async earliest(
+    @Param({ schema: salonParamsSchema }) _p: { salonId: string },
+    @Query({ schema: earliestSlotsQuerySchema }) query: EarliestSlotsQuery,
+    @CurrentSalon() salon: SalonContext,
+    @CurrentUser() user: UserPrincipal,
+  ): Promise<EarliestSlots> {
+    const scope = await this.actors.readScope(salon, user.userId);
+    const ctx = await this.contexts.forSalon(salon.salonId);
+    return this.queries.earliest(ctx, query, { onlyStaffId: scope });
+  }
+
   @Get("bookings")
   @RequirePermission("schedules.read")
   @ApiOperation({
@@ -95,7 +122,9 @@ export class SalonBookingsController {
   ): Promise<{ items: SalonBooking[] }> {
     const scope = await this.actors.readScope(salon, user.userId);
     const ctx = await this.contexts.forSalon(salon.salonId);
-    return { items: await this.queries.list(ctx, query, scope) };
+    return {
+      items: (await this.queries.list(ctx, query, scope)).map((b) => withPhoneVisibility(salon, b)),
+    };
   }
 
   @Get("bookings/:bookingId")
@@ -110,7 +139,7 @@ export class SalonBookingsController {
   ): Promise<SalonBooking> {
     const scope = await this.actors.readScope(salon, user.userId);
     const ctx = await this.contexts.forSalon(salon.salonId);
-    return this.queries.get(ctx, p.bookingId, scope);
+    return withPhoneVisibility(salon, await this.queries.get(ctx, p.bookingId, scope));
   }
 
   @Post("bookings")
@@ -159,7 +188,7 @@ export class SalonBookingsController {
         requestHash: requestHash(body),
       },
     );
-    return this.queries.get(ctx, bookingId, null);
+    return withPhoneVisibility(salon, await this.queries.get(ctx, bookingId, null));
   }
 
   @Post("bookings/:bookingId/transitions")
@@ -193,7 +222,7 @@ export class SalonBookingsController {
         requestHash: requestHash(body),
       },
     );
-    return this.queries.get(ctx, p.bookingId, null);
+    return withPhoneVisibility(salon, await this.queries.get(ctx, p.bookingId, null));
   }
 
   @Post("bookings/:bookingId/reschedule")
@@ -236,6 +265,6 @@ export class SalonBookingsController {
         requestHash: requestHash(body),
       },
     );
-    return this.queries.get(ctx, p.bookingId, null);
+    return withPhoneVisibility(salon, await this.queries.get(ctx, p.bookingId, null));
   }
 }

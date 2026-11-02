@@ -8,5 +8,6 @@ import { SalonCrmController } from "./http/salon-crm.controller";
 @Module({
   controllers: [SalonCrmController],
   providers: [ClientLookupQuery, OfflineSaleService, CrmScopes],
+  exports: [CrmScopes],
 })
 export class SalonCrmModule {}

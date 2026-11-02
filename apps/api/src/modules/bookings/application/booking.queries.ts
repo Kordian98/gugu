@@ -2,11 +2,21 @@ import { Injectable } from "@nestjs/common";
 import type {
   Availability,
   AvailabilityQuery,
+  EarliestSlots,
+  EarliestSlotsQuery,
   PublicBooking,
   SalonBooking,
   SalonBookingListQuery,
 } from "@gugu/contracts";
-import { computeSlots, dayBounds, isTerminal, toLocal } from "@gugu/domain";
+import {
+  addDays,
+  computeSlots,
+  dayBounds,
+  isTerminal,
+  MAX_AVAILABILITY_DAYS,
+  toLocal,
+  unavailableReason,
+} from "@gugu/domain";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import type { Prisma } from "../../../infrastructure/prisma/generated/client";
 import {
@@ -95,7 +105,8 @@ export class BookingQueries {
       now: this.clock.now(),
     });
     const days = new Map<string, Availability["days"][number]["slots"]>();
-    for (const slot of computeSlots(input)) {
+    const slots = computeSlots(input);
+    for (const slot of slots) {
       const date = toLocal(slot.start, ctx.timeZone).date;
       const first = slot.options[0];
       if (!first) continue;
@@ -111,6 +122,69 @@ export class BookingQueries {
       timeZone: ctx.timeZone,
       durationMinutes: selection.terms.durationMinutes,
       days: [...days].map(([date, slots]) => ({ date, slots })),
+      unavailableReason: days.size === 0 ? unavailableReason(input) : null,
+    };
+  }
+
+  /**
+   * Earliest free starts from `from` (default today) to the end of the booking window, scanned in
+   * chunks of at most MAX_AVAILABILITY_DAYS; stops as soon as `limit` options are found.
+   */
+  async earliest(
+    ctx: SalonBookingContext,
+    query: EarliestSlotsQuery,
+    opts: { onlyStaffId?: string | null },
+  ): Promise<EarliestSlots> {
+    const selection = await resolveSelection(this.prisma, ctx.salonId, {
+      serviceId: query.serviceId,
+      variantId: query.variantId ?? null,
+      addOnIds: query.addOnIds,
+    });
+    const requested = opts.onlyStaffId ?? query.staffId ?? null;
+    const staffIds = requested
+      ? selection.staffTerms.has(requested)
+        ? [requested]
+        : []
+      : [...selection.staffTerms.keys()];
+    const now = this.clock.now();
+    const today = toLocal(now.getTime(), ctx.timeZone).date;
+    const last = addDays(today, ctx.settings.bookingWindowDays);
+    let from = query.from && query.from > today ? query.from : today;
+    const found: EarliestSlots["slots"] = [];
+    const perDay = new Map<string, number>();
+    let firstInput: Parameters<typeof unavailableReason>[0] | null = null;
+    while (from <= last && found.length < query.limit) {
+      const to = [addDays(from, MAX_AVAILABILITY_DAYS - 1), last].sort()[0] ?? last;
+      const input = await loadAvailabilityInput(this.prisma, ctx, selection, {
+        from,
+        to,
+        staffIds,
+        now,
+      });
+      firstInput ??= input;
+      for (const slot of computeSlots(input)) {
+        const option = slot.options[0];
+        if (!option) continue;
+        const date = toLocal(slot.start, ctx.timeZone).date;
+        const n = perDay.get(date) ?? 0;
+        if (n >= query.perDay) continue;
+        perDay.set(date, n + 1);
+        found.push({
+          date,
+          startsAt: new Date(slot.start).toISOString(),
+          endsAt: new Date(option.end).toISOString(),
+          staffIds: slot.options.map((o) => o.staffId),
+        });
+        if (found.length >= query.limit) break;
+      }
+      if (staffIds.length === 0) break;
+      from = addDays(to, 1);
+    }
+    return {
+      timeZone: ctx.timeZone,
+      durationMinutes: selection.terms.durationMinutes,
+      slots: found,
+      unavailableReason: found.length === 0 && firstInput ? unavailableReason(firstInput) : null,
     };
   }
 
