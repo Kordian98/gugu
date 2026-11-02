@@ -63,7 +63,10 @@ Implemented on branch `zalo/09-impl` (2026-11-02). It runs end to end against th
      - `gg|b|confirm|cancel|resched|<bookingId>`: booking actions.
    - Typed numbers, `HH:MM` and keywords (`đặt lịch`, `nhân viên`, `menu`, …) also work.
    - A flow resets after 30 minutes of silence.
-4. **Hand-off:** "Gặp nhân viên", or a failure the bot can't handle, sets `mode=staff` and creates a notification. A staff reply (`POST …/messages`) also takes the conversation over. "Trả lại cho trợ lý" resets the bot.
+4. **Hand-off and getting back (owner rule, 2026-11-03):** every message that ends a flow offers "Đặt lịch lại" + "Menu". The bot hands off on "Gặp nhân viên", when the salon has no bookable services, on an engine failure, and when it is too late to cancel or reschedule. A hand-off sets `mode=staff` without an assignee. `domain/bot/routing.ts` decides who answers:
+   - Without an assignee, a greeting, "menu", "Đặt lịch" (typed, or the button on any older message) or a follow sets the conversation back to `mode=bot` and the bot answers. Other text waits for staff.
+   - Once a staff member has explicitly taken over (take-over or reply sets `assignedUserId`), those intents get a notice ("staff will reply") with "Quay lại trợ lý" (`gg|g|bot`), which resumes the bot.
+   - "Trả lại cho trợ lý" in the panel resets the bot.
 5. **Reminders / updates:** job `zalo.minute` runs every 60 s and:
    - links staff bookings by phone;
    - sends due 24 h / 2 h reminders: a chat message with "Tôi sẽ đến / Đổi giờ / Hủy" buttons inside 7 days, otherwise the ZBS template `booking_reminder`;

@@ -216,6 +216,41 @@ describe("Zalo integration (emulator, end to end)", () => {
     ).toBe(true);
   });
 
+  it("regression: after a refusal + hand-off, a greeting or 'Đặt lịch' restarts the bot", async () => {
+    await connect();
+    await prisma.service.updateMany({ where: { salonId: s.salonId }, data: { isActive: false } });
+    let out = await say({ event: "follow" });
+    out = await tap(out, "Đặt lịch");
+    expect(lastText(out).text).toContain("Nhân viên sẽ trả lời");
+    expect(lastText(out).buttons.map((b) => b.title)).toEqual(["Đặt lịch lại", "Menu"]);
+    out = await say({ event: "user_send_text", text: "xin chào" });
+    expect(lastText(out).buttons[0]?.title).toBe("Đặt lịch");
+    const conv = await prisma.zaloConversation.findFirstOrThrow({ where: { salonId: s.salonId } });
+    expect(conv.mode).toBe("bot");
+    await prisma.service.updateMany({ where: { salonId: s.salonId }, data: { isActive: true } });
+    out = await tap(out, "Đặt lịch");
+    expect(lastText(out).buttons[0]?.title).toBe("Sơn gel");
+  });
+
+  it("after an explicit staff take-over, 'menu' shows a notice and 'Quay lại trợ lý' resumes the bot", async () => {
+    await connect();
+    await say({ event: "follow" });
+    const conv = await prisma.zaloConversation.findFirstOrThrow({ where: { salonId: s.salonId } });
+    await http()
+      .post(`${base()}/conversations/${conv.id}/take-over`)
+      .set("authorization", owner)
+      .expect(204);
+    let out = await say({ event: "user_send_text", text: "menu" });
+    expect(lastText(out).text).toContain("Nhân viên của salon đang trò chuyện");
+    out = await say({ event: "user_send_text", text: "cảm ơn" });
+    expect(out).toHaveLength(0);
+    out = await say({ event: "user_send_text", text: "gg|g|bot" });
+    expect(lastText(out).buttons[0]?.title).toBe("Đặt lịch");
+    expect((await prisma.zaloConversation.findUniqueOrThrow({ where: { id: conv.id } })).mode).toBe(
+      "bot",
+    );
+  });
+
   it("hands off to staff, stays silent, lets staff reply and release back to the bot", async () => {
     await connect();
     let out = await say({ event: "follow" });

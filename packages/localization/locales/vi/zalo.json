@@ -52,7 +52,11 @@
     "attendanceConfirmed": "Cảm ơn bạn! Salon đã ghi nhận bạn sẽ đến.",
     "bookingNotFound": "Không tìm thấy lịch hẹn này. Bạn chọn một mục bên dưới nhé.",
     "updateConfirmed": "Salon đã xác nhận lịch hẹn {{ref}}: {{service}} lúc {{when}}. Hẹn gặp bạn tại {{salon}}!",
-    "updateCancelled": "Rất tiếc, {{salon}} đã hủy lịch hẹn {{ref}} ({{service}}, {{when}}). Bạn nhắn “Đặt lịch” để chọn giờ khác nhé."
+    "updateCancelled": "Rất tiếc, {{salon}} đã hủy lịch hẹn {{ref}} ({{service}}, {{when}}). Bạn nhắn “Đặt lịch” để chọn giờ khác nhé.",
+    "bookAgain": "Đặt lịch lại",
+    "limitReached": "Bạn đang có nhiều lịch hẹn sắp tới tại salon. Bạn xem hoặc đổi lịch hiện có nhé.",
+    "staffActive": "Nhân viên của salon đang trò chuyện với bạn và sẽ trả lời sớm. Bạn cũng có thể quay lại trợ lý đặt lịch.",
+    "backToBot": "Quay lại trợ lý"
   },
   "panel": {
     "title": "Zalo",

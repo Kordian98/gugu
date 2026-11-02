@@ -98,7 +98,8 @@ export interface BotBooking {
 
 export type BookResult =
   | { ok: true; booking: BotBooking; pending: boolean }
-  | { ok: false; reason: "slot_taken" | "failed" };
+  /** The customer already has the maximum of upcoming bookings at this salon. */
+  | { ok: false; reason: "slot_taken" | "limit_reached" | "failed" };
 
 export type RescheduleResult =
   | { ok: true; booking: BotBooking }

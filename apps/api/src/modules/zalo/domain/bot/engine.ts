@@ -201,13 +201,35 @@ class BotRun {
         this.handoff();
         return;
       }
+      case "bot": {
+        this.showHome(false);
+        return;
+      }
     }
   }
 
+  /**
+   * Hands the chat to staff. The customer can always come back: the message carries
+   * "Đặt lịch lại" + "Menu", and those (or a greeting) restart the bot while no staff member has
+   * explicitly taken over (InboundService).
+   */
   private handoff(): void {
     this.effects.push({ type: "handoff" });
+    this.terminal(this.t("handoff"));
+  }
+
+  /** Every message that ends a flow offers a way back in (owner rule, 2026-11-03). */
+  private terminal(text: string, extra: { title: string; value: string }[] = []): void {
     this.step = { name: "idle" };
-    this.say(this.t("handoff"));
+    this.menu = {
+      text,
+      items: 0,
+      options: [
+        ...extra,
+        { title: this.t("bookAgain"), value: globalPayload("book") },
+        { title: this.t("menu.home"), value: globalPayload("menu") },
+      ],
+    };
   }
 
   // --- options -------------------------------------------------------------------------------
@@ -415,15 +437,9 @@ class BotRun {
   private async showDays(sel: Selection, rescheduleId: string | null, page: number): Promise<void> {
     const days = await this.ports.days(sel, rescheduleId);
     if (days.length === 0) {
-      this.step = { name: "idle" };
-      this.menu = {
-        text: this.t("noDays"),
-        items: 0,
-        options: [
-          { title: this.t("menu.staff"), value: globalPayload("staff") },
-          { title: this.t("menu.home"), value: globalPayload("menu") },
-        ],
-      };
+      this.terminal(this.t("noDays"), [
+        { title: this.t("menu.staff"), value: globalPayload("staff") },
+      ]);
       return;
     }
     const { slice, hasMore, page: p } = paginate(days, page);
@@ -536,14 +552,19 @@ class BotRun {
         this.say(this.t("slotTaken"));
         return this.showTimes(sel, this.localDate(startsAt), 0, null);
       }
+      if (result.reason === "limit_reached") {
+        this.terminal(this.t("limitReached"), [
+          { title: this.t("menu.myBookings"), value: globalPayload("mine") },
+        ]);
+        return;
+      }
       this.say(this.t("bookingFailed"));
       this.handoff();
       return;
     }
     const b = result.booking;
     this.effects.push({ type: "notify", kind: "booking_created", bookingId: b.id });
-    this.step = { name: "idle" };
-    this.say(
+    this.terminal(
       this.t(result.pending ? "bookedPending" : "booked", {
         ref: b.ref,
         service: b.serviceName,
@@ -551,7 +572,6 @@ class BotRun {
         salon: this.ports.salon.name,
       }),
     );
-    this.showHome(false);
   }
 
   private async showMyBookings(): Promise<void> {
@@ -602,7 +622,7 @@ class BotRun {
       return;
     }
     this.effects.push({ type: "notify", kind: "booking_confirmed", bookingId });
-    this.say(this.t("attendanceConfirmed"));
+    this.terminal(this.t("attendanceConfirmed"));
   }
 
   private async askCancel(bookingId: string): Promise<void> {
@@ -629,7 +649,7 @@ class BotRun {
     this.step = { name: "idle" };
     if (result === "ok" && booking) {
       this.effects.push({ type: "notify", kind: "booking_cancelled", bookingId });
-      this.say(this.t("cancelled", { ref: booking.ref }));
+      this.terminal(this.t("cancelled", { ref: booking.ref }));
       return;
     }
     if (result === "too_late") {
@@ -659,9 +679,8 @@ class BotRun {
   private async reschedule(bookingId: string, startsAt: string): Promise<void> {
     const result = await this.ports.reschedule(bookingId, startsAt);
     if (result.ok) {
-      this.step = { name: "idle" };
       this.effects.push({ type: "notify", kind: "booking_rescheduled", bookingId });
-      this.say(
+      this.terminal(
         this.t("rescheduled", {
           ref: result.booking.ref,
           when: this.when(result.booking.startsAt),

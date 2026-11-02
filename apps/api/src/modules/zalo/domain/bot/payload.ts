@@ -1,7 +1,7 @@
 /**
  * Button payloads the bot puts on Zalo buttons and reads back. Short, versioned, no personal data:
  *   gg|<seq>|<index>          option <index> of reply <seq>
- *   gg|g|<command>            global: menu | book | mine | staff
+ *   gg|g|<command>            global: menu | book | mine | staff | bot
  *   gg|b|<action>|<bookingId> booking action from a reminder: confirm | cancel | resched
  */
 export type ParsedPayload =
@@ -10,7 +10,8 @@ export type ParsedPayload =
   | { kind: "booking"; action: BookingAction; bookingId: string }
   | { kind: "unknown" };
 
-export const GLOBAL_COMMANDS = ["menu", "book", "mine", "staff"] as const;
+/** `bot` = back to the assistant after a staff member took over. */
+export const GLOBAL_COMMANDS = ["menu", "book", "mine", "staff", "bot"] as const;
 export type GlobalCommand = (typeof GLOBAL_COMMANDS)[number];
 export const BOOKING_ACTIONS = ["confirm", "cancel", "resched"] as const;
 export type BookingAction = (typeof BOOKING_ACTIONS)[number];
@@ -67,6 +68,26 @@ export function keywordCommand(text: string): GlobalCommand | null {
   const n = normalizeText(text);
   for (const [command, words] of KEYWORDS) {
     if (words.some((w) => n === w || n.startsWith(`${w} `) || n.endsWith(` ${w}`))) return command;
+  }
+  return null;
+}
+
+/**
+ * Inputs that must (re)start the bot from any state: following the OA, a greeting, "menu",
+ * "đặt lịch" (typed or the button from any older message), or "back to the assistant".
+ */
+export function restartIntent(
+  input: { kind: "text"; text: string } | { kind: "payload"; payload: string } | { kind: string },
+): GlobalCommand | "follow" | null {
+  if (input.kind === "follow") return "follow";
+  if (input.kind === "payload" && "payload" in input) {
+    const p = parsePayload(input.payload);
+    if (p.kind === "global" && p.command !== "staff" && p.command !== "mine") return p.command;
+    return null;
+  }
+  if (input.kind === "text" && "text" in input) {
+    const c = keywordCommand(input.text);
+    return c === "menu" || c === "book" ? c : null;
   }
   return null;
 }
