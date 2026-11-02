@@ -499,3 +499,99 @@ export function ErrorBanner({ text }: { text: string | null }) {
     </View>
   );
 }
+
+/** Centered confirmation for destructive actions (07 §3.11: one confirm step, reason in text). */
+export function ConfirmDialog({
+  open,
+  title,
+  body,
+  confirmLabel,
+  cancelLabel,
+  busy,
+  onConfirm,
+  onCancel,
+  testID,
+}: {
+  open: boolean;
+  title: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  busy?: boolean | undefined;
+  onConfirm: () => void;
+  onCancel: () => void;
+  testID?: string | undefined;
+}) {
+  const { c } = useCalm();
+  return (
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onCancel}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 24,
+          backgroundColor: alpha(color.plum950, 0.45),
+        }}
+      >
+        <View
+          testID={testID}
+          accessibilityRole="alert"
+          style={{
+            width: "100%",
+            maxWidth: 440,
+            gap: 12,
+            padding: 22,
+            borderRadius: 20,
+            backgroundColor: c.surface,
+            borderWidth: 1,
+            borderColor: c.line,
+          }}
+        >
+          <Text role="uiSemiBold" size={18} color={c.ink}>
+            {title}
+          </Text>
+          <Text size={14} color={c.body}>
+            {body}
+          </Text>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 6 }}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onCancel}
+              style={{
+                height: 40,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: c.line,
+              }}
+            >
+              <Text role="uiSemiBold" size={14} color={c.ink}>
+                {cancelLabel}
+              </Text>
+            </Pressable>
+            <Pressable
+              testID={testID ? `${testID}-confirm` : undefined}
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={onConfirm}
+              style={{
+                height: 40,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                justifyContent: "center",
+                backgroundColor: c.attention,
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              <Text role="uiSemiBold" size={14} color={c.onAccent}>
+                {confirmLabel}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}

@@ -16,7 +16,7 @@ import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
 import { EmptyState } from "../ui/EmptyState";
 import { useErrorText } from "../ui/errors";
-import { ErrorBanner } from "../ui/form";
+import { ConfirmDialog, ErrorBanner } from "../ui/form";
 import { ServiceEditor } from "./services/ServiceEditor";
 import { ServiceRow } from "./services/ServiceRow";
 
@@ -38,6 +38,8 @@ export function ServicesScreen() {
   const errorText = useErrorText();
   const toggle = useCrmMutation(crmApi.setServiceActive, ["services"]);
   const reorder = useCrmMutation(crmApi.reorderServices, ["services"]);
+  const remove = useCrmMutation(crmApi.removeService, ["services", "team"]);
+  const [deleting, setDeleting] = useState<Service | null>(null);
   const [editing, setEditing] = useState<Service | "new" | null>(null);
   const canEdit = can("services.write");
   const items = services.data?.items ?? [];
@@ -73,7 +75,7 @@ export function ServicesScreen() {
         highlight={params.import === "1" || items.length === 0}
         autoPick={params.import === "1"}
       />
-      <ErrorBanner text={errorText(toggle.error ?? reorder.error)} />
+      <ErrorBanner text={errorText(toggle.error ?? reorder.error ?? remove.error)} />
       <CalmCard style={{ gap: 14 }}>
         <View
           style={{
@@ -139,6 +141,9 @@ export function ServicesScreen() {
                     onMove={(dir) => {
                       move(index, dir);
                     }}
+                    onDelete={() => {
+                      setDeleting(s);
+                    }}
                   />
                 );
               })}
@@ -146,6 +151,28 @@ export function ServicesScreen() {
           ))
         )}
       </CalmCard>
+      <ConfirmDialog
+        testID="crm-service-delete-dialog"
+        open={deleting !== null}
+        title={t("services.deleteTitle", {
+          name: deleting ? (locale === "en" && deleting.name.en) || deleting.name.vi : "",
+        })}
+        body={t("services.deleteBody")}
+        confirmLabel={t("services.deleteConfirm")}
+        cancelLabel={t("common.cancel")}
+        busy={remove.isPending}
+        onCancel={() => {
+          setDeleting(null);
+        }}
+        onConfirm={() => {
+          if (deleting)
+            remove.mutate(deleting.id, {
+              onSuccess: () => {
+                setDeleting(null);
+              },
+            });
+        }}
+      />
       {editing !== null ? (
         <ServiceEditor
           key={editing === "new" ? "new" : editing.id}

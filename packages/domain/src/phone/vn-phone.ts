@@ -14,3 +14,16 @@ export function normalizeVnPhone(input: string): string | null {
   if (!national || !/^(?:[35789]\d{8}|2\d{9})$/.test(national)) return null;
   return `+84${national}`;
 }
+
+/** Marker in masked phone numbers; the app hides call/copy actions when it is present. */
+export const PHONE_MASK = "•";
+
+/**
+ * Masked display for members without `customers.phone.read` (owner may revoke it, q24): country
+ * code and last 3 digits only, e.g. `+84 ••• ••• 678`. Never reversible.
+ */
+export function maskPhone(e164: string): string {
+  const digits = e164.replace(/\D/g, "");
+  const cc = e164.startsWith("+84") ? "+84" : "+";
+  return `${cc} ${PHONE_MASK.repeat(3)} ${PHONE_MASK.repeat(3)} ${digits.slice(-3)}`;
+}

@@ -296,7 +296,11 @@
     "extraDuration": "Extra (min)",
     "staff": "Performed by",
     "noStaffYet": "No team members yet. Add them under Team.",
-    "activeLabel": "Bookable"
+    "activeLabel": "Bookable",
+    "deleteNamed": "Delete {{name}}",
+    "deleteTitle": "Delete \"{{name}}\"?",
+    "deleteBody": "The service disappears from the list, can't be booked any more and is unassigned from the team. Existing appointments (including upcoming ones) and reports keep it, with the name it had when booked. To pause it instead, use the on/off switch.",
+    "deleteConfirm": "Delete service"
   },
   "team": {
     "subtitle": "Team members, roles, working hours and invitations",

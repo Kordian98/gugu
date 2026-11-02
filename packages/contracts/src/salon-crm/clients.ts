@@ -14,7 +14,9 @@ export type ClientLookupQuery = z.infer<typeof clientLookupQuerySchema>;
 
 export const clientSuggestionSchema = z.object({
   name: z.string(),
+  /** Masked (`+84 ••• ••• 678`) when the member lacks `customers.phone.read`. */
   phone: z.string(),
+  phoneMasked: z.boolean(),
   visits: z.number().int(),
   lastVisitAt: z.iso.datetime(),
   /** Prefill for "book again" (07 §3.4: last service and staff). */

@@ -34,6 +34,7 @@ import { CreateBookingCommand } from "../application/create-booking.command";
 import { requestHash } from "../infra/booking-secrets";
 import { BookingContexts } from "./booking-contexts";
 import { normalizedPhone } from "./phone";
+import { withPhoneVisibility } from "./phone-visibility";
 
 const IDEMPOTENCY_HEADER = {
   name: "Idempotency-Key",
@@ -95,7 +96,9 @@ export class SalonBookingsController {
   ): Promise<{ items: SalonBooking[] }> {
     const scope = await this.actors.readScope(salon, user.userId);
     const ctx = await this.contexts.forSalon(salon.salonId);
-    return { items: await this.queries.list(ctx, query, scope) };
+    return {
+      items: (await this.queries.list(ctx, query, scope)).map((b) => withPhoneVisibility(salon, b)),
+    };
   }
 
   @Get("bookings/:bookingId")
@@ -110,7 +113,7 @@ export class SalonBookingsController {
   ): Promise<SalonBooking> {
     const scope = await this.actors.readScope(salon, user.userId);
     const ctx = await this.contexts.forSalon(salon.salonId);
-    return this.queries.get(ctx, p.bookingId, scope);
+    return withPhoneVisibility(salon, await this.queries.get(ctx, p.bookingId, scope));
   }
 
   @Post("bookings")
@@ -159,7 +162,7 @@ export class SalonBookingsController {
         requestHash: requestHash(body),
       },
     );
-    return this.queries.get(ctx, bookingId, null);
+    return withPhoneVisibility(salon, await this.queries.get(ctx, bookingId, null));
   }
 
   @Post("bookings/:bookingId/transitions")
@@ -193,7 +196,7 @@ export class SalonBookingsController {
         requestHash: requestHash(body),
       },
     );
-    return this.queries.get(ctx, p.bookingId, null);
+    return withPhoneVisibility(salon, await this.queries.get(ctx, p.bookingId, null));
   }
 
   @Post("bookings/:bookingId/reschedule")
@@ -236,6 +239,6 @@ export class SalonBookingsController {
         requestHash: requestHash(body),
       },
     );
-    return this.queries.get(ctx, p.bookingId, null);
+    return withPhoneVisibility(salon, await this.queries.get(ctx, p.bookingId, null));
   }
 }

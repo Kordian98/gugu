@@ -296,7 +296,11 @@
     "extraDuration": "Thêm (phút)",
     "staff": "Nhân viên thực hiện",
     "noStaffYet": "Chưa có nhân viên. Anh/chị thêm ở mục Nhân viên.",
-    "activeLabel": "Đang nhận đặt lịch"
+    "activeLabel": "Đang nhận đặt lịch",
+    "deleteNamed": "Xoá {{name}}",
+    "deleteTitle": "Xoá dịch vụ \"{{name}}\"?",
+    "deleteBody": "Dịch vụ sẽ biến mất khỏi danh sách, không thể đặt mới và không còn gán cho nhân viên. Lịch hẹn đã đặt (kể cả sắp tới) và các báo cáo vẫn giữ nguyên với tên dịch vụ tại thời điểm đặt. Muốn tạm ngừng thì dùng công tắc bật/tắt thay vì xoá.",
+    "deleteConfirm": "Xoá dịch vụ"
   },
   "team": {
     "subtitle": "Nhân viên, vai trò, giờ làm việc và lời mời",

@@ -24,6 +24,7 @@ export function ServiceRow({
   onEdit,
   onToggle,
   onMove,
+  onDelete,
 }: {
   service: Service;
   staff: StaffMember[];
@@ -33,6 +34,7 @@ export function ServiceRow({
   onEdit: () => void;
   onToggle: (v: boolean) => void;
   onMove: (dir: -1 | 1) => void;
+  onDelete: () => void;
 }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
@@ -124,6 +126,15 @@ export function ServiceRow({
             style={{ padding: 6, opacity: last ? 0.3 : 1 }}
           >
             <Icon name="arrowDown" size={16} color={c.body} />
+          </Pressable>
+          <Pressable
+            testID={`crm-service-delete-${service.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={t("services.deleteNamed", { name })}
+            onPress={onDelete}
+            style={{ padding: 6 }}
+          >
+            <Icon name="trash" size={16} color={c.body} />
           </Pressable>
         </View>
       ) : null}

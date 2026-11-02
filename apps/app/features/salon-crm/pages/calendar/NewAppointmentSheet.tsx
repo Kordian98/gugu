@@ -232,6 +232,7 @@ export function NewAppointmentSheet({
                 key={cl.phone}
                 testID="crm-client-suggestion"
                 accessibilityRole="button"
+                disabled={cl.phoneMasked}
                 onPress={() => {
                   pickClient(cl);
                 }}

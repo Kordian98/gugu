@@ -11,6 +11,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { crmApi, useCrmMutation } from "../../data/catalog";
 import { useErrorText } from "../../ui/errors";
 import {
+  ConfirmDialog,
   ErrorBanner,
   Field,
   Input,
@@ -131,6 +132,7 @@ export function ServiceEditor({
   const errorText = useErrorText();
   const [d, setD] = useState<Draft>(() => fromService(service));
   const [touched, setTouched] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const set = (patch: Partial<Draft>) => {
     setD((x) => ({ ...x, ...patch }));
   };
@@ -163,7 +165,7 @@ export function ServiceEditor({
               icon="trash"
               label={t("common.delete")}
               onPress={() => {
-                remove.mutate(service.id, { onSuccess: onClose });
+                setConfirmDelete(true);
               }}
             />
           ) : null}
@@ -176,6 +178,23 @@ export function ServiceEditor({
         </>
       }
     >
+      <ConfirmDialog
+        testID="crm-service-delete-dialog"
+        open={confirmDelete}
+        title={t("services.deleteTitle", {
+          name: service ? (locale === "en" && service.name.en) || service.name.vi : "",
+        })}
+        body={t("services.deleteBody")}
+        confirmLabel={t("services.deleteConfirm")}
+        cancelLabel={t("common.cancel")}
+        busy={remove.isPending}
+        onCancel={() => {
+          setConfirmDelete(false);
+        }}
+        onConfirm={() => {
+          if (service) remove.mutate(service.id, { onSuccess: onClose });
+        }}
+      />
       <ErrorBanner text={errorText(create.error ?? update.error ?? remove.error)} />
       <Field
         label={t("services.nameVi")}
