@@ -572,5 +572,46 @@
       "team": "Add yourself if you perform services, and your team. You can invite them to create accounts later.",
       "done": "You can start adding appointments from Today or the Calendar."
     }
+  },
+  "assistant": {
+    "open": "Open Gu, the AI assistant",
+    "close": "Close assistant",
+    "title": "Gu · AI assistant",
+    "subtitle": "Ask about your bookings, revenue and how busy the team is",
+    "newChat": "New chat",
+    "placeholder": "Ask Gu, e.g. How many bookings today?",
+    "send": "Send",
+    "stop": "Stop",
+    "thinking": "Gu is checking the numbers…",
+    "privacy": "Gu only sees business numbers, never client names, phone numbers or notes.",
+    "masked": "Gu received: {{text}}",
+    "suggestionsTitle": "Try asking",
+    "suggestions": {
+      "today": "How many bookings do we have today?",
+      "revenue": "How is revenue this month?",
+      "busy": "Who is the busiest this week?",
+      "tomorrow": "What does tomorrow look like?"
+    },
+    "sources": {
+      "resolve_period": "Period",
+      "bookings_count": "Booking count",
+      "revenue_summary": "Revenue",
+      "utilization": "Utilisation",
+      "bookings_list": "Booking list"
+    },
+    "notConfigured": "The AI assistant is not enabled on this server.",
+    "upgradeTitle": "The AI assistant is part of Pro",
+    "upgradeBody": "Ask Gu anytime: today's bookings, this month's revenue, who is fully booked. Upgrade to Pro to use it.",
+    "upgradeCta": "See the Pro plan",
+    "errors": {
+      "generic": "Gu couldn't answer. Please try again.",
+      "assistant_not_configured": "The AI assistant is not enabled on this server.",
+      "assistant_failed": "Gu couldn't answer. Please try again.",
+      "assistant_privacy_blocked": "Your question contained personal details, so it wasn't sent. Remove names or phone numbers and ask again.",
+      "assistant_conversation_not_found": "This conversation no longer exists. Please start a new one.",
+      "entitlement_quota_exceeded": "This month's AI allowance is used up.",
+      "entitlement_required": "Your plan does not include the AI assistant.",
+      "common_rate_limited": "You're asking a little fast, please try again in a few minutes."
+    }
   }
 }

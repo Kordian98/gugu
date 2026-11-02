@@ -572,5 +572,46 @@
       "team": "Thêm chính anh/chị nếu trực tiếp làm, và các nhân viên khác. Có thể mời họ tạo tài khoản sau.",
       "done": "Anh/chị có thể bắt đầu thêm lịch hẹn ngay từ trang Hôm nay hoặc Lịch."
     }
+  },
+  "assistant": {
+    "open": "Mở trợ lý AI Gu",
+    "close": "Đóng trợ lý",
+    "title": "Gu · Trợ lý AI",
+    "subtitle": "Hỏi về lịch hẹn, doanh thu và công suất của salon",
+    "newChat": "Cuộc trò chuyện mới",
+    "placeholder": "Hỏi Gu, ví dụ: Hôm nay có bao nhiêu lịch hẹn?",
+    "send": "Gửi",
+    "stop": "Dừng",
+    "thinking": "Gu đang xem số liệu…",
+    "privacy": "Gu chỉ thấy số liệu kinh doanh, không thấy tên, số điện thoại hay ghi chú của khách.",
+    "masked": "Gu nhận được: {{text}}",
+    "suggestionsTitle": "Gợi ý",
+    "suggestions": {
+      "today": "Hôm nay có bao nhiêu lịch hẹn?",
+      "revenue": "Doanh thu tháng này thế nào?",
+      "busy": "Tuần này nhân viên nào kín lịch nhất?",
+      "tomorrow": "Ngày mai lịch thế nào?"
+    },
+    "sources": {
+      "resolve_period": "Khoảng thời gian",
+      "bookings_count": "Số lịch hẹn",
+      "revenue_summary": "Doanh thu",
+      "utilization": "Công suất",
+      "bookings_list": "Danh sách lịch hẹn"
+    },
+    "notConfigured": "Trợ lý AI chưa được bật trên máy chủ này.",
+    "upgradeTitle": "Trợ lý AI có trong gói Pro",
+    "upgradeBody": "Hỏi Gu bất cứ lúc nào: hôm nay có bao nhiêu lịch, doanh thu tháng này, ai đang kín lịch nhất. Nâng cấp lên Pro để dùng.",
+    "upgradeCta": "Xem gói Pro",
+    "errors": {
+      "generic": "Gu chưa trả lời được. Anh/chị thử lại giúp em nhé.",
+      "assistant_not_configured": "Trợ lý AI chưa được bật trên máy chủ này.",
+      "assistant_failed": "Gu chưa trả lời được. Anh/chị thử lại giúp em nhé.",
+      "assistant_privacy_blocked": "Câu hỏi có thông tin cá nhân nên em không gửi đi. Anh/chị bỏ tên hoặc số điện thoại rồi hỏi lại nhé.",
+      "assistant_conversation_not_found": "Cuộc trò chuyện không còn nữa. Anh/chị bắt đầu cuộc mới nhé.",
+      "entitlement_quota_exceeded": "Đã dùng hết hạn mức AI của tháng này.",
+      "entitlement_required": "Gói hiện tại chưa có trợ lý AI.",
+      "common_rate_limited": "Anh/chị hỏi hơi nhanh, thử lại sau ít phút nhé."
+    }
   }
 }

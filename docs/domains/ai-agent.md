@@ -4,7 +4,9 @@ The salon-facing AI assistant ("GuGu Assistant") answers owners' and managers' q
 
 ## Status
 - **AI onboarding import (milestone IMP): implemented** on branch `ai/08-imp`, not merged yet. See "AI onboarding import" below.
-- Chat assistant (A0–A4), confirmed writes (B), MCP (D): **not implemented**.
+- AI onboarding import (IMP): **implemented** (on main).
+- Chat assistant **A1 + A2: implemented** on branch `ai/08-assistant`: five read tools, PII firewall, runtime with Haiku-first routing and streaming, floating-bubble UI. See "Chat assistant (A1/A2)" below.
+- Not implemented: A0 registry generation from 04/07 registries (they don't exist yet; tools are hand-written), A3 eval suite with real-model graders, A4 breadth, confirmed writes (B), MCP (D), conversation history UI.
 
 Spec: `docs/tasks/08-ai-agent.md`.
 
@@ -85,14 +87,53 @@ Owned by 12; reuses runtime, routing and firewall; salons as `salon_N` tokens. _
 Review summaries, paste-from-Zalo parsing, Zalo chat agent / Zalo surface, reading notes or tags, personalised free-text messages, creating customers, images with people.
 
 ## Tool catalogue
-| Tool | Domain | Kind | Permission | Entity types | Owner |
-|---|---|---|---|---|---|
-| `resolve_period` | assistant | read | — | — | ai-agent |
-| `request_deeper_analysis` | assistant | read | — | — | ai-agent |
-| _…_ | | | | | |
+| Tool | Kind | Permission | Output (PII-free) |
+|---|---|---|---|
+| `resolve_period` | read | `assistant.use` | enum expression → salon-local `from`/`to` (ISO weeks, UTC+7) |
+| `bookings_count` | read | `bookings.read` | total + groups by status / `staff_N` / `service_N` / day |
+| `revenue_summary` | read | `analytics.read` | one row per `RevenueKind`; `reported_by_salon` = `not_tracked` |
+| `utilization` | read | `analytics.read` | booked ÷ scheduled minutes (after breaks/time off), salon + per `staff_N` |
+| `bookings_list` | read | `bookings.read` | ≤ 50 rows: `booking_N`, local ISO times, status, source, `staff_N`, `service_N`[], price |
+| `request_deeper_analysis` | control | — | Haiku route only: re-runs the turn on Sonnet |
+
+Customer data is not reachable through any tool.
 
 ## Data model
 _TBD._ `AssistantConversation`, `AssistantMessage`, `AssistantEntityToken`, `AssistantToolCall`, `AssistantActionProposal`, `AssistantUsage`.
+
+## Chat assistant (A1/A2)
+| Path | Purpose |
+|---|---|
+| `packages/contracts/src/assistant/pii-free.ts` | Token kinds/regex, PII-free field types, enum allowlist, `isPiiFreeString` |
+| `packages/contracts/src/assistant/assistant.ts` | Status, turn input, SSE event union, error codes |
+| `packages/domain/src/assistant/` | `resolvePeriod`, `utilization` (pure, tested) |
+| `apps/api/src/modules/assistant/firewall/` | `names` (diacritic-insensitive matching), `scrubber` (input), `token-vault` (per-conversation tokens in DB), `allowlist` (tool results), `rehydrate` (streamed output) |
+| `…/tools/` | `read-tools.ts` (definitions, strict JSON schemas, Zod in/out), `read-queries.ts` (tenant-scoped Prisma) |
+| `…/application/assistant.service.ts` | Turn loop: scrub → model ⇄ tools → re-hydrate; egress check, metering, audit, persistence |
+| `…/application/routing.ts`, `prompt.ts`, `directory.ts` | Routes, frozen system prompt, names directory + display names |
+| `…/llm/assistant-llm.ts` | `AssistantLlm` port; Anthropic streaming adapter (shared client from ai-import, `maxRetries: 0`) |
+| `…/http/assistant.controller.ts` | `GET /salons/:id/assistant` (status), `POST …/assistant/turns` (SSE) |
+| `apps/app/features/assistant/` | `AssistantDock` (bubble + panel), `AssistantPanel`, `ChatView`, `data.ts` (`apiStream` client) |
+
+Rules as built:
+- **Gating:** `POST turns` needs `assistant.use` (owner, manager) and `ai.agent.enabled` (Pro/Ultra/trial). Without a key it returns 503 `assistant.not_configured`. The bubble shows only for members with `assistant.use`. On plans without the assistant the panel shows the Pro upgrade prompt (CTA goes to Settings).
+- **Input scrubbing:** staff names become `staff_N`, customer names `[redacted_name]`, the salon name `[salon]`, contact details `[redacted_phone|email|link]`. Single-word names (often ordinary words such as "Thu" in "doanh thu") match only when capitalised or after a cue word (anh/chị/em/KTV/nhân viên…). The masked text is sent back as the `masked` event and shown under the user's message, with staff as `@Name`.
+- **Egress check:** before every model call, user-side content (user text and tool results) is scanned for contact details and directory names. A hit means 422 `assistant.privacy_blocked` and nothing is sent.
+- **Allowlist:** every tool result is validated against its strict Zod output, and every string must be a token, an ISO date/time or a registered enum. Otherwise it is withheld: `{"error":"result_withheld"}`, audit status `withheld`, error log `pii_firewall_block`.
+- **Routing:**
+  - The pre-router sends long (> 280 chars) or comparative questions to Sonnet 5.5 (effort medium, 4,096 max tokens, `fallbacks: "default"`). Everything else goes to Haiku 5.5 (effort low, 2,048 max tokens).
+  - The Haiku route also gets `request_deeper_analysis`. A Haiku refusal re-runs the turn on Sonnet.
+  - At most 6 model calls per turn.
+- **Caching:** frozen system prompt with `cache_control`; tools are sorted deterministically. The date and reply language go in the user turn as a separate first text block.
+- **Cost:** each call reserves the worst case on the hard cap `ai.monthly_cost_cap_vnd` and settles like AI import (actual / worst case / release by provider-error class). At the cap the turn ends with an `error` event `entitlement.quota_exceeded` and no model call.
+- **Rate limit:** 60 turns/hour per member per salon.
+- **Storage:** `assistant_conversations`, `assistant_messages` (tokenized, as sent/returned, thinking blocks kept), `assistant_entity_tokens` (token → entity id, never names) and `assistant_tool_calls` (audit: input, status, sha256 digest of output, latency).
+- **Display names** respect permissions: without `members.read`, staff show as "Staff #3". Bookings show as `#REFCODE`, services by their name in the current locale.
+- **Tests:**
+  - `firewall/firewall.test.ts`: folding, cues, scrubber, allowlist, re-hydration across chunks, routing.
+  - `packages/domain/src/assistant/assistant.test.ts`: periods incl. month/year and UTC+7 edges; utilisation.
+  - `assistant.int.test.ts`: SSE turn with a recording fake LLM; the canary suite (staff, customer, salon name, phone, note never in any request; reference codes stay server-side); revenue by kind; escalation and refusal fallback; permission, tenant and plan refusals; conversation-id isolation; the cap; not configured.
+- **QA screenshots:** `docs/qa/08-a2/`.
 
 ## Surfaces
 - CRM panel: floating bottom-right bubble on every business page; opens a desktop side sheet or a mobile full-height sheet above the tab bar. Basic sees the bubble with an upgrade prompt. Must not cover 07's mobile "+" button. _Built in A2._
@@ -107,6 +148,7 @@ _TBD._ How to run, thresholds (PII suite 100%), how to add canary cases.
 ## Changelog
 - 2026-11-02: skeleton created.
 - 2026-11-02: roadmap X1/X5/X7 applied.
+- 2026-11-03: A1 + A2 (branch ai/08-assistant): read tools, PII firewall, streaming runtime, floating bubble UI.
 - 2026-11-02: security-review fixes: month key stored on reservations, counters clamped at 0, provider failures settled by billing class, metered own retries (branch ai/08-imp-fix).
 - 2026-11-02: AI onboarding import implemented (branch ai/08-imp): no-PII gate, Sonnet extraction, review UI, interim Redis cost cap.
 - 2026-11-02: owner answers q31/q32/q42/q62–q65 applied (Pro plan, hard cap, import on all plans, Admin Copilot).
