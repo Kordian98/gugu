@@ -33,8 +33,19 @@ describe("parseEnv", () => {
   it("refuses the built-in AUTH_SECRET in production", () => {
     expect(() => parseEnv({ ...base, NODE_ENV: "production" })).toThrow(/AUTH_SECRET/);
     expect(
-      parseEnv({ ...base, NODE_ENV: "production", AUTH_SECRET: "x".repeat(40) }).AUTH_SECRET,
+      parseEnv({
+        ...base,
+        NODE_ENV: "production",
+        AUTH_SECRET: "x".repeat(40),
+        BOOKING_TOKEN_SECRET: "y".repeat(40),
+      }).AUTH_SECRET,
     ).toHaveLength(40);
+  });
+
+  it("refuses the built-in BOOKING_TOKEN_SECRET in production (topic 06)", () => {
+    expect(() =>
+      parseEnv({ ...base, NODE_ENV: "production", AUTH_SECRET: "x".repeat(40) }),
+    ).toThrow(/BOOKING_TOKEN_SECRET/);
   });
 
   it("parses TRUST_PROXY: off by default, hop counts and address lists, never true", () => {

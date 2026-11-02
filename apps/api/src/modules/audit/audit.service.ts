@@ -29,6 +29,9 @@ export const AUDIT_ACTIONS = [
   "team.invitation_revoked",
   "team.invitation_accepted",
   "team.member_role_changed",
+  "booking.rules_overridden",
+  "booking.rescheduled",
+  "booking.status_corrected",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

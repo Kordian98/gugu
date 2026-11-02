@@ -19,6 +19,13 @@ describe("permission matrix", () => {
     }
   });
 
+  it("rule overrides: owner, manager, receptionist — not staff (q18)", () => {
+    for (const role of ["owner", "manager", "receptionist"] as const) {
+      expect(ROLE_PERMISSIONS[role].has("bookings.override_rules")).toBe(true);
+    }
+    expect(ROLE_PERMISSIONS.staff.has("bookings.override_rules")).toBe(false);
+  });
+
   it("limits staff to own bookings but shows phones by default (q24)", () => {
     const staff = ROLE_PERMISSIONS.staff;
     expect(staff.has("bookings.read")).toBe(false);

@@ -9,12 +9,16 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@gugu/config": "workspace:*",
+    "@vitest/coverage-v8": "5.0.5",
     "eslint": "9.39.5",
+    "fast-check": "4.7.0",
     "typescript": "~6.0.3",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "@gugu/contracts": "workspace:*"
   }
 }

@@ -30,6 +30,8 @@ export const SALON_PERMISSIONS = [
   "bookings.read.own",
   "bookings.write",
   "bookings.write.own",
+  /** Book outside hours / lead time / window (audited, q18). Never lifts the overlap guarantee. */
+  "bookings.override_rules",
   "customers.read",
   "customers.read.own",
   "customers.phone.read",
@@ -82,6 +84,7 @@ const RECEPTIONIST: readonly SalonPermission[] = [
   "schedules.read",
   "bookings.read",
   "bookings.write",
+  "bookings.override_rules",
   "customers.read",
   "customers.phone.read",
   "customers.notes.write",

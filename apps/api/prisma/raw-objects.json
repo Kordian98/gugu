@@ -13,7 +13,11 @@
     "staff_time_off_valid",
     "services_amounts_valid",
     "service_variants_amounts_valid",
-    "service_addons_amounts_valid"
+    "service_addons_amounts_valid",
+    "booking_occupancy_no_staff_overlap",
+    "booking_occupancy_valid",
+    "bookings_valid",
+    "booking_services_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",
@@ -21,7 +25,8 @@
     "staff_time_off_period_gix",
     "staff_profiles_one_per_member",
     "staff_services_unique_service",
-    "staff_services_unique_variant"
+    "staff_services_unique_variant",
+    "outbox_events_unpublished"
   ],
-  "triggers": ["audit_logs_no_update_delete"]
+  "triggers": ["audit_logs_no_update_delete", "booking_status_history_no_update_delete"]
 }

@@ -10,3 +10,6 @@ export * from "./salon/salon";
 export * from "./catalog/catalog";
 export * from "./team/team";
 export * from "./salon-settings/settings";
+export * from "./booking/booking";
+export * from "./booking/errors";
+export * from "./booking/source";
