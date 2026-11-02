@@ -16,11 +16,11 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 
 ## Invariants
 - MUST enforce on the backend. Client checks are only for hiding or disabling UI.
-- MUST use a key from the registry (`packages/domain/entitlements/keys.ts`); no string literals elsewhere.
+- MUST use a key from the registry (`ENTITLEMENT_KEYS` in `packages/contracts/src/subscriptions/entitlements.ts`); no string literals elsewhere.
 - MUST give every key a safe default (deny / 0) for salons without a matching entitlement.
 - MUST NOT delete data on downgrade. Over-limit resources become read-only after the grace period.
 - Quota operations MUST be idempotent (`idempotencyKey`) and race-safe (atomic Redis reserve).
-- Errors use codes `ENTITLEMENT_REQUIRED` / `ENTITLEMENT_QUOTA_EXCEEDED` with vi/en messages.
+- Errors use problem codes `entitlement.required` (403) / `entitlement.quota_exceeded` (`SUBSCRIPTION_ERRORS` in contracts); the client translates `errors.<code>`.
 
 ## Key naming
 `<domain>.<feature>[.<qualifier>]`, lowercase, dot-separated. Value types:
@@ -28,9 +28,15 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 - `limit` (integer per billing period or absolute): `ai.monthly_cost_cap_vnd`, `zalo_template.monthly_messages`
 - `enum`: `analytics.retention_window` = `30d|90d|365d`
 
+## Implementation map (M12.1)
+- Module: `apps/api/src/modules/subscriptions` (global). Exports `EntitlementService` (`forSalon`, `get`, `isEnabled`, `limit`, `assert`, `invalidate`) and `SubscriptionsFacade` (`startTrial`, `transition`, `expireDueTrials`).
+- Decorator: `@RequiresEntitlement(key)` from `modules/subscriptions/http/requires-entitlement.ts` (boolean keys only; salon from RequestContext, else `:salonId`).
+- Cache: Redis `entitlements:v1:<salonId>`, TTL ≤ 60 s (never past a trial end), fails open to the DB. Call `invalidate(salonId)` after writing subscriptions or overrides.
+- Expired trials read as `expired` immediately (effective status); the expiry job only records it.
+
 ## Procedure: add a boolean-gated feature
-1. Add the key to `packages/domain/entitlements/keys.ts` with `valueType`, `default`, and vi/en description keys.
-2. Add a migration/seed setting the value for each plan (`PlanEntitlement`). Every plan (`basic`, `pro`, `ultra` and the internal `trial`) gets an explicit value; there is no free plan. The trial copies Pro booleans and Basic limits.
+1. Add the key to `ENTITLEMENT_KEYS` in `packages/contracts/src/subscriptions/entitlements.ts` (`boolean` or `limit`; defaults are deny / 0).
+2. Add a migration inserting a `plan_entitlements` row for every plan, update `PLAN_CATALOG` in `apps/api/src/modules/subscriptions/domain/plan-catalog.ts` and bump the plan `version` (the catalogue integration test fails if DB and file disagree). Every plan (`basic`, `pro`, `ultra` and the internal `trial`) gets an explicit value; there is no free plan. The trial copies Pro booleans and Basic limits.
 3. Protect the API route:
    ```ts
    @RequiresEntitlement('zalo.inbox')
@@ -40,7 +46,7 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 4. In services callable from jobs or agents (no HTTP guard), call `entitlements.assert(salonId, 'zalo.inbox')`.
 5. In the Expo app, read `useEntitlement('zalo.inbox')` (from `/api/v1/salons/:id/entitlements`), hide or disable the entry point, and show the localized upsell (`common:upgrade.*`).
 6. Add localized error and upsell strings (vi + en).
-7. Tests: guard denies with 403 `ENTITLEMENT_REQUIRED`, allows with an override, and the UI hides the entry point.
+7. Tests: guard denies with 403 `entitlement.required`, allows with an override, and the UI hides the entry point.
 
 ## Procedure: add a metered quota
 1. Add a `limit` key (e.g. `zalo_template.monthly_messages`) plus a usage key in `packages/domain/usage/keys.ts`.
