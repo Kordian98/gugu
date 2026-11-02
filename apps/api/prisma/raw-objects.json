@@ -21,7 +21,8 @@
     "offline_sales_amount_valid",
     "zalo_send_logs_valid",
     "zalo_webhook_events_status_valid",
-    "zalo_oa_connections_tokens_when_connected"
+    "zalo_oa_connections_tokens_when_connected",
+    "customer_notes_body_len"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",
@@ -31,7 +32,9 @@
     "staff_services_unique_service",
     "staff_services_unique_variant",
     "outbox_events_unpublished",
-    "zalo_oa_connections_one_live_per_oa"
+    "zalo_oa_connections_one_live_per_oa",
+    "customer_salon_profiles_one_per_phone",
+    "customer_salon_profiles_name_trgm"
   ],
   "triggers": ["audit_logs_no_update_delete", "booking_status_history_no_update_delete"]
 }
