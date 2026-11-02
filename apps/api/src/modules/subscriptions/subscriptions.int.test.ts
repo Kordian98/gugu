@@ -191,7 +191,7 @@ describe("subscriptions & entitlements (integration)", () => {
         { salonId, key: "ai.agent.enabled", value: true, reason: "pilot", createdBy: "admin:test" },
         {
           salonId,
-          key: "zalo.inbox",
+          key: "analytics.advanced",
           value: true,
           reason: "expired pilot",
           createdBy: "admin:test",
@@ -203,7 +203,7 @@ describe("subscriptions & entitlements (integration)", () => {
     expect(await entitlements.isEnabled(salonId, "ai.agent.enabled")).toBe(false);
     await entitlements.invalidate(salonId);
     expect(await entitlements.isEnabled(salonId, "ai.agent.enabled")).toBe(true);
-    expect(await entitlements.isEnabled(salonId, "zalo.inbox")).toBe(false);
+    expect(await entitlements.isEnabled(salonId, "analytics.advanced")).toBe(false);
   });
 
   it("rejects disallowed transitions without writing history, and scopes by salon", async () => {

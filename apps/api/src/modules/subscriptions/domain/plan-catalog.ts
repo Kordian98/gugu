@@ -18,8 +18,9 @@ const BASIC_FEATURES = {
   "ai.onboarding_import": true,
   "ai.agent.enabled": false,
   "ai.monthly_review": false,
-  "zalo.oa_connect": false,
-  "zalo.inbox": false,
+  // Owner decision 2026-11-03: Zalo (OA connect + inbox + bot) is in every plan.
+  "zalo.oa_connect": true,
+  "zalo.inbox": true,
   "analytics.chain_reporting": false,
   "analytics.advanced": false,
 } as const;
@@ -28,8 +29,6 @@ const PRO_FEATURES = {
   ...BASIC_FEATURES,
   "ai.agent.enabled": true,
   "ai.monthly_review": true,
-  "zalo.oa_connect": true,
-  "zalo.inbox": true,
 } as const;
 
 const BASIC_LIMITS = {
