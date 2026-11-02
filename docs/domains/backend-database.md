@@ -59,6 +59,10 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `subscriptions_one_current_per_salon` | partial unique index | `20261102115055_add_subscriptions_entitlements` | `subscriptions.int.test.ts` (one current per salon; concurrent startTrial) |
 | `subscriptions_trial_ends_when_trialing` | check | `20261102115055_add_subscriptions_entitlements` | `db:drift` |
 | `plan_prices_amount_non_negative` | check | `20261102115055_add_subscriptions_entitlements` | `db:drift` |
+| `audit_logs_no_update_delete` (+ function `audit_logs_append_only`) | trigger | `20261102115341_add_identity_tenancy` | `auth.int.test.ts` (audit log is append-only); `db:drift` checks `triggers` |
+| `locations_parent_by_level` | check | `20261102115341_add_identity_tenancy` | `db:drift` |
+| `salon_members_one_owner` | partial unique index | `20261102115341_add_identity_tenancy` | `db:drift` |
+| `magic_link_tokens_attempts_range` | check | `20261102115341_add_identity_tenancy` | `auth.int.test.ts` (code lock after 5 attempts) |
 
 ## Read-model registry
 Base layer of the registries (X7): read models here → metric catalogue (07, `packages/domain/metrics`) → agent tools (08).

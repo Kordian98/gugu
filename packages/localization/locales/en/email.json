@@ -1,0 +1,21 @@
+{
+  "magicLink": {
+    "subject": "Your GuGu sign-in link",
+    "preheader": "The link works for 15 minutes.",
+    "heading": "Sign in to GuGu",
+    "body": "Tap the button below to sign in. The link works for 15 minutes and only once.",
+    "button": "Sign in",
+    "codeIntro": "Or enter this code in the app:",
+    "ignore": "If you didn't ask to sign in, you can ignore this email."
+  },
+  "salonRegistration": {
+    "subject": "Confirm {{salonName}} on GuGu",
+    "preheader": "Open the link to confirm your email and manage your salon.",
+    "heading": "Confirm your salon",
+    "body": "{{salonName}} has been created. Tap the button below to confirm your email and open salon management. The link works for 15 minutes.",
+    "button": "Confirm and manage",
+    "codeIntro": "Or enter this code in the app:",
+    "ignore": "If you didn't register this salon, ignore this email. The salon won't be activated."
+  },
+  "footer": "GuGu · Beauty booking made easy"
+}

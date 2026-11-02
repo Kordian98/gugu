@@ -7,10 +7,12 @@ import {
   type Liveness,
   livenessSchema,
 } from "@gugu/contracts";
+import { Public } from "../../common/guards/auth-policy";
 import { CheckHealthUseCase } from "./application/check-health.use-case";
 
 @ApiTags("health")
 @Controller("health")
+@Public()
 export class HealthController {
   constructor(private readonly checkHealth: CheckHealthUseCase) {}
 

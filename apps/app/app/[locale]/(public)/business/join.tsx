@@ -1,8 +1,5 @@
-import { useTranslation } from "react-i18next";
+import { SalonJoinScreen } from "@/features/salon-join/SalonJoinScreen";
 
-import { ComingSoonScreen } from "@/features/coming-soon/ComingSoonScreen";
-
-export default function BusinessJoinScreen() {
-  const { t } = useTranslation();
-  return <ComingSoonScreen title={t("comingSoon.businessJoin")} />;
+export default function BusinessJoinRoute() {
+  return <SalonJoinScreen />;
 }

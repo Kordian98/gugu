@@ -5,7 +5,6 @@ import { EntitlementService } from "./application/entitlement.service";
 import { SubscriptionsFacade } from "./application/subscriptions.facade";
 import { EntitlementsController } from "./http/entitlements.controller";
 import { EntitlementGuard } from "./http/requires-entitlement";
-import { DenyAllSalonAccess, SALON_ACCESS, SalonReadAccessGuard } from "./http/salon-access";
 import { RedisEntitlementCache } from "./infra/redis-entitlement-cache";
 
 /**
@@ -22,9 +21,7 @@ import { RedisEntitlementCache } from "./infra/redis-entitlement-cache";
     EntitlementService,
     SubscriptionsFacade,
     EntitlementGuard,
-    SalonReadAccessGuard,
     { provide: ENTITLEMENT_CACHE, useClass: RedisEntitlementCache },
-    { provide: SALON_ACCESS, useClass: DenyAllSalonAccess },
   ],
   exports: [EntitlementService, SubscriptionsFacade, EntitlementGuard],
 })

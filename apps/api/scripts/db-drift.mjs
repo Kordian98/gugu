@@ -52,11 +52,13 @@ const present = async (sql) => new Set((await client.query(sql)).rows.map((r) =>
 const extensions = await present("SELECT extname AS name FROM pg_extension");
 const constraints = await present("SELECT conname AS name FROM pg_constraint");
 const indexes = await present("SELECT indexname AS name FROM pg_indexes");
+const triggers = await present("SELECT tgname AS name FROM pg_trigger WHERE NOT tgisinternal");
 await client.end();
 for (const [kind, names, have] of [
   ["extension", expected.extensions, extensions],
   ["constraint", expected.constraints, constraints],
   ["index", expected.indexes, indexes],
+  ["trigger", expected.triggers ?? [], triggers],
 ]) {
   for (const name of names) {
     if (!have.has(name)) {

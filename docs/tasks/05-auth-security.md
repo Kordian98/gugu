@@ -1,6 +1,6 @@
 # 05 — Auth, multi-tenancy, permissions, security & privacy
 
-> **Status:** refined spec, nothing implemented yet. **Owner agent:** `.claude/agents/auth-security.md`. **Reviewer:** `.claude/agents/security-reviewer.md`. **Skill:** `.claude/skills/tenant-authorization/SKILL.md`. **Domain doc:** `docs/domains/auth-security.md`.
+> **Status:** Step 3 implemented (milestones 1–5; see `docs/domains/auth-security.md#status`). **Owner agent:** `.claude/agents/auth-security.md`. **Reviewer:** `.claude/agents/security-reviewer.md`. **Skill:** `.claude/skills/tenant-authorization/SKILL.md`. **Domain doc:** `docs/domains/auth-security.md`.
 > **Source:** master prompt §10 (auth part), §14, §24, plus the AI-agent (topic 08) and Zalo (topic 09) extras.
 
 ## 1. Scope
@@ -62,19 +62,21 @@
 ### 3.2 Sessions
 - R8 `Session` row: id, userId, principalType, deviceInfo, ip (truncated), createdAt, lastSeenAt, expiresAt, revokedAt, refreshFamilyId.
 - R9 Web: cookie `__Host-gugu_session` (opaque random, hashed in DB), httpOnly, Secure, SameSite=Lax, 30-day sliding, 90-day absolute. CSRF: double-submit token header for non-GET.
-- R10 Native: access JWT (EdDSA or ES256, 15 min, claims: sub, sid, ver), refresh token opaque 256-bit in `expo-secure-store` (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`), rotation per use, family reuse detection (G4).
+- R10 Native: opaque 15-min access token (implemented Step 3 instead of a JWT: every request checks the session + membership in the DB anyway, so revocation is immediate), refresh token opaque 256-bit in `expo-secure-store` (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`), rotation per use, family reuse detection (G4).
 - R11 Web build must never put tokens in `localStorage`. Native must never put tokens in AsyncStorage.
 - R12 Users can list and revoke sessions; password-less so "logout everywhere" + phone change revokes all.
 - R13 Permission changes (role change, membership removal) take effect within one request: access JWT carries `ver`; server checks membership version cache (Redis) on each request.
 
 ### 3.3 Authorization model
 - R14 `Principal` types (G10). Every request resolves a Principal + optional `SalonContext { salonId, membershipId, role, permissions }`.
-- R15 Guards in NestJS: `@Public()`, `@RequireCustomer()`, `@RequireSalonPermission('booking:write:any')`, `@RequirePlatformPermission(...)`. Default deny: a route without a decorator fails at boot (lint/test).
+- R15 Guards in NestJS (implemented): `@Public()`, `@Authenticated()`, `@RequirePermission('bookings.write')`, `@RequirePlatformPermission(...)`. Default deny: a route without a decorator fails at boot (lint/test).
 - R16 Resource-level checks happen in services via a policy layer (`can(principal, action, resource)`), not only in guards (guards can't see "own booking").
 - R17 Repositories require tenant scope parameter; raw `prisma.booking.findUnique({ where: { id } })` is forbidden in feature code (lint rule + Prisma extension that throws when a tenant model is queried without `salonId` in the where).
 - R18 Foreign-tenant access returns 404; attempts above threshold are audited as `authz.suspicious_cross_tenant`.
 
 ### 3.4 Permission matrix (initial)
+
+> Implemented in `packages/domain/src/auth/permissions.ts` with dotted names (`bookings.read`, `customers.phone.read`, `subscription.read`, …). The table below keeps the original colon notation; the code is authoritative.
 
 Legend: ✅ full, 🟡 own/assigned only, 👁 read-only, — none.
 

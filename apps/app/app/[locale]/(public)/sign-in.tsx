@@ -1,8 +1,5 @@
-import { useTranslation } from "react-i18next";
+import { SignInScreen } from "@/features/auth/SignInScreen";
 
-import { ComingSoonScreen } from "@/features/coming-soon/ComingSoonScreen";
-
-export default function SignInScreen() {
-  const { t } = useTranslation();
-  return <ComingSoonScreen title={t("comingSoon.signIn")} />;
+export default function SignInRoute() {
+  return <SignInScreen mode="signIn" />;
 }

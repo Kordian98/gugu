@@ -29,4 +29,20 @@ describe("parseEnv", () => {
       expect((e as Error).message).not.toContain("hunter2");
     }
   });
+
+  it("refuses the built-in AUTH_SECRET in production", () => {
+    expect(() => parseEnv({ ...base, NODE_ENV: "production" })).toThrow(/AUTH_SECRET/);
+    expect(
+      parseEnv({ ...base, NODE_ENV: "production", AUTH_SECRET: "x".repeat(40) }).AUTH_SECRET,
+    ).toHaveLength(40);
+  });
+
+  it("parses TRUST_PROXY: off by default, hop counts and address lists, never true", () => {
+    expect(parseEnv(base).TRUST_PROXY).toBe(false);
+    expect(parseEnv({ ...base, TRUST_PROXY: "1" }).TRUST_PROXY).toBe(1);
+    expect(parseEnv({ ...base, TRUST_PROXY: "loopback, 10.0.0.0/8" }).TRUST_PROXY).toBe(
+      "loopback, 10.0.0.0/8",
+    );
+    expect(() => parseEnv({ ...base, TRUST_PROXY: "true" })).toThrow(/TRUST_PROXY/);
+  });
 });

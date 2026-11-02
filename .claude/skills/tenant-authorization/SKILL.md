@@ -15,8 +15,9 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 
 ## Core concepts
 - **Principal** — who is calling: `user` (customer or salon member), `agent_on_behalf_of_user`, `integration` (Zalo), `system_job`, `platform_admin`.
-- **SalonContext** — `{ salonId, membershipId, role, permissions }`, resolved server-side from route param/`X-Salon-Id` + membership lookup. Never trust a salonId the client or model sends without this check.
-- **Permission strings** — `resource:action[:scope]`, e.g. `booking:write:any`, `booking:write:own`. Source of truth: `packages/domain/src/auth/permissions.ts`.
+- **SalonContext** — `{ salonId, organizationId, role, permissions }`, resolved by the global `AuthGuard` from the `:salonId` route param + `salon_members`/`organization_members` (re-read on every request). Never trust a salonId from the body, query or model output.
+- **Permission strings** — `resource.action[.own]`, e.g. `bookings.write`, `bookings.write.own`, `subscription.read`. Source of truth: `packages/domain/src/auth/permissions.ts` (implemented; tests in `permissions.test.ts`).
+- **Decorators** (`apps/api/src/common/guards/auth-policy.ts`) — exactly one per route: `@Public()`, `@Authenticated()`, `@RequirePermission('<salon perm>')` (path MUST contain `:salonId`), `@RequirePlatformPermission('<platform perm>')`. Param decorators: `@CurrentPrincipal()`, `@CurrentUser()`, `@CurrentSalon()`.
 
 ## Invariants
 - MUST put an explicit auth decorator on every route. Unannotated routes fail the boot check.
@@ -31,15 +32,15 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 
 ## Procedure — new salon-scoped endpoint
 1. Pick or add the permission in `packages/domain/src/auth/permissions.ts`; assign to roles per the matrix; add a matrix test case.
-2. Controller: route under `/api/v1/salons/:salonId/...`; decorate `@RequireSalonPermission('<perm>')`; validate params/body/query with the Zod schema from `packages/contracts` (schemas + inferred types + error codes); pure permission/policy logic belongs in `packages/domain`.
+2. Controller: route under `/api/v1/salons/:salonId/...`; decorate `@RequirePermission('<perm>')`; validate params/body/query with the Zod schema from `packages/contracts` (schemas + inferred types + error codes); pure permission/policy logic belongs in `packages/domain`.
 3. Service: receive `SalonContext` (not raw ids from the request); call `policy.can(principal, action, resource)` for own-only rules.
-4. Repository: use the tenant-scoped finder (`findForSalon(ctx.salonId, id)`); never `findUnique({ where: { id } })` on a tenant model.
+4. Query: always `where: { salonId: ctx.salonId, ... }` with `ctx = @CurrentSalon()`; never `findUnique({ where: { id } })` on a tenant model (see `apps/api/src/modules/salons/application/salon.queries.ts`).
 5. Response: map to a DTO that whitelists fields for this role (e.g. hide customer phone for staff only if the owner turned the default off).
-6. Tests: happy path per allowed role; denied role → 403; other salon's id → 404; the generated cross-tenant suite picks the route up automatically — run it.
+6. Tests: happy path per allowed role; denied role → 403; other salon's id → 404. The generated cross-tenant suite (`apps/api/src/modules/salons/salons.int.test.ts`, built from `listRoutes()`) picks every `@RequirePermission` route up automatically — run `pnpm test:integration`. For stack-less HTTP tests use `fakeAuthOverrides()` from `apps/api/test/auth-fakes.ts`; for stack tests `createSalonFixture`/`addSalonMember`/`bearerFor` from `apps/api/test/factories/identity.ts`.
 7. If sensitive: add audit event; update `docs/domains/auth-security.md`.
 
 ## Procedure — customer endpoint
-`@RequireCustomer()`, scope every query by `principal.userId`, use customer DTOs (no salon-private fields). Booking does **not** require OTP or an account (X11): guest booking endpoints are `@Public()` behind the anti-abuse guard (rate limits per device/IP/phone, Turnstile/attestation, velocity checks) and store `identity_verified=false`. Guest self-service uses a single-booking manage-link token — never expose other bookings for the same phone. Claiming guest history into an account requires a clicked confirm link (email now, Zalo later) or a verified matching email (spec §3.11.3). No SMS/OTP for now (X12). Staff see customer phones by default (q24) unless the owner hides them — honour that setting in DTOs. Never reveal whether a phone/email has an account.
+`@Authenticated()` + `@CurrentUser()`, scope every query by `user.userId`, use customer DTOs (no salon-private fields). Booking does **not** require OTP or an account (X11): guest booking endpoints are `@Public()` behind the anti-abuse guard (rate limits per device/IP/phone, Turnstile/attestation, velocity checks) and store `identity_verified=false`. Guest self-service uses a single-booking manage-link token — never expose other bookings for the same phone. Claiming guest history into an account requires a clicked confirm link (email now, Zalo later) or a verified matching email (spec §3.11.3). No SMS/OTP for now (X12). Staff see customer phones by default (q24) unless the owner hides them — honour that setting in DTOs. Never reveal whether a phone/email has an account.
 
 ## Procedure — background job
 Payload carries `salonId`; the worker sets tenant context (`SET LOCAL app.salon_id`) via the same Prisma extension as requests and runs as `system_job`. Never iterate across tenants without an explicit platform-level reason documented in the job.

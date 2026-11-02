@@ -4,7 +4,7 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type PlanCode, salonEntitlementsSchema } from "@gugu/contracts";
-import { uuidV7 } from "../../../test/factories/ids";
+import { bearerFor, createSalonFixture, type SalonFixture } from "../../../test/factories/identity";
 import { http } from "../../../test/http-app";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
@@ -14,7 +14,6 @@ import { Clock } from "./application/clock";
 import { EntitlementService } from "./application/entitlement.service";
 import { SubscriptionsFacade } from "./application/subscriptions.facade";
 import { PLAN_CATALOG } from "./domain/plan-catalog";
-import { SALON_ACCESS } from "./http/salon-access";
 
 const DAY = 86_400_000;
 const T0 = new Date("2026-11-02T03:00:00Z");
@@ -33,10 +32,12 @@ describe("subscriptions & entitlements (integration)", () => {
   let entitlements: EntitlementService;
   const clock = new FrozenClock();
   const salons: string[] = [];
-  const newSalon = () => {
-    const id = uuidV7();
-    salons.push(id);
-    return id;
+  const fixtures = new Map<string, SalonFixture>();
+  const newSalon = async () => {
+    const fixture = await createSalonFixture(prisma, "Subscriptions Test Salon");
+    salons.push(fixture.salonId);
+    fixtures.set(fixture.salonId, fixture);
+    return fixture.salonId;
   };
 
   beforeAll(async () => {
@@ -44,8 +45,6 @@ describe("subscriptions & entitlements (integration)", () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(Clock)
       .useValue(clock)
-      .overrideProvider(SALON_ACCESS)
-      .useValue({ assertCanRead: () => Promise.resolve() })
       .compile();
     app = configureHttpApp(moduleRef.createNestApplication());
     await app.init();
@@ -86,7 +85,7 @@ describe("subscriptions & entitlements (integration)", () => {
   });
 
   it("trialing salon gets Pro features with the Basic AI cap", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     const trial = await facade.startTrial({ salonId });
     expect(trial).toMatchObject({ salonId, plan: "trial", status: "trialing" });
     expect(trial.trialEndsAt).toBe(new Date(T0.getTime() + 14 * DAY).toISOString());
@@ -109,7 +108,7 @@ describe("subscriptions & entitlements (integration)", () => {
   });
 
   it("startTrial is idempotent while the trial is current and refuses a second trial", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     const first = await facade.startTrial({ salonId });
     expect((await facade.startTrial({ salonId })).id).toBe(first.id);
 
@@ -122,7 +121,7 @@ describe("subscriptions & entitlements (integration)", () => {
   });
 
   it("concurrent startTrial calls create exactly one subscription", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     const results = await Promise.allSettled(
       Array.from({ length: 5 }, () => facade.startTrial({ salonId })),
     );
@@ -134,7 +133,7 @@ describe("subscriptions & entitlements (integration)", () => {
   });
 
   it("joins the caller's transaction (salon registration rolls back the trial too)", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     await expect(
       prisma.$transaction(async (tx) => {
         await facade.startTrial({ salonId }, tx);
@@ -145,7 +144,7 @@ describe("subscriptions & entitlements (integration)", () => {
   });
 
   it("an ended trial denies everything, before and after the expiry job", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     await facade.startTrial({ salonId });
     clock.current = new Date(T0.getTime() + 14 * DAY);
     await entitlements.invalidate(salonId);
@@ -174,7 +173,7 @@ describe("subscriptions & entitlements (integration)", () => {
 
   it("resolves Basic, Pro and Ultra from the catalogue", async () => {
     for (const plan of ["basic", "pro", "ultra"] as const) {
-      const salonId = newSalon();
+      const salonId = await newSalon();
       await subscribe(salonId, plan);
       const e = await entitlements.forSalon(salonId);
       expect(e.plan).toBe(plan);
@@ -183,7 +182,7 @@ describe("subscriptions & entitlements (integration)", () => {
   });
 
   it("applies admin overrides after invalidation and ignores expired ones", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     await subscribe(salonId, "basic");
     expect(await entitlements.isEnabled(salonId, "ai.agent.enabled")).toBe(false);
 
@@ -208,7 +207,7 @@ describe("subscriptions & entitlements (integration)", () => {
   });
 
   it("rejects disallowed transitions without writing history, and scopes by salon", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     const trial = await facade.startTrial({ salonId });
     await facade.transition({
       salonId,
@@ -221,7 +220,7 @@ describe("subscriptions & entitlements (integration)", () => {
     ).rejects.toMatchObject({ status: 409, code: "subscription.invalid_transition" });
     await expect(
       facade.transition({
-        salonId: newSalon(),
+        salonId: await newSalon(),
         subscriptionId: trial.id,
         to: "expired",
         reason: "x",
@@ -231,15 +230,19 @@ describe("subscriptions & entitlements (integration)", () => {
   });
 
   it("enforces one current subscription per salon in the database", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     await subscribe(salonId, "basic");
     await expect(subscribe(salonId, "pro")).rejects.toMatchObject({ code: "P2002" });
   });
 
   it("serves GET /api/v1/salons/:salonId/entitlements for a trialing salon", async () => {
-    const salonId = newSalon();
+    const salonId = await newSalon();
     await facade.startTrial({ salonId });
-    const res = await request(http(app)).get(`/api/v1/salons/${salonId}/entitlements`).expect(200);
+    const owner = fixtures.get(salonId)?.ownerUserId ?? "";
+    const res = await request(http(app))
+      .get(`/api/v1/salons/${salonId}/entitlements`)
+      .set("authorization", await bearerFor(app, owner))
+      .expect(200);
     const body = salonEntitlementsSchema.parse(res.body);
     expect(body).toMatchObject({ salonId, plan: "trial", status: "trialing" });
     expect(body.entitlements["ai.monthly_cost_cap_vnd"]).toBe(20_000);
