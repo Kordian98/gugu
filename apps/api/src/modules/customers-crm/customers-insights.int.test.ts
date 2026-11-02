@@ -222,7 +222,9 @@ describe("customers & insights (integration)", () => {
       .send({ displayName: "Trùng", phone: "0905777888" })
       .expect(409);
     expect((dupRec.body as { detail?: string }).detail).toBeUndefined();
-    expect(JSON.stringify(dupRec.body)).not.toContain(String(dupOwner.body.detail));
+    expect(JSON.stringify(dupRec.body)).not.toContain(
+      String((dupOwner.body as { detail?: string }).detail),
+    );
     await api()
       .post(`/api/v1/salons/${s.salonId}/customers`)
       .set("authorization", staff)

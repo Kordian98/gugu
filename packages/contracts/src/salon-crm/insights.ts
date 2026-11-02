@@ -18,7 +18,6 @@ export const insightsQuerySchema = z
   });
 export type InsightsQuery = z.infer<typeof insightsQuerySchema>;
 
-
 export const metricValueSchema = z.object({
   value: z.number().nullable(),
   previous: z.number().nullable(),

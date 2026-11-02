@@ -191,7 +191,7 @@ describe("bookability defaults & unavailable reasons (integration)", () => {
     expect([...dates].sort()).toEqual(dates);
     for (const d of new Set(dates))
       expect(dates.filter((x) => x === d).length).toBeLessThanOrEqual(2);
-    expect(dates[0]! >= today).toBe(true);
+    expect((dates[0] ?? "") >= today).toBe(true);
     expect(any.slots[0]?.staffIds.length).toBeGreaterThan(0);
     expect(any.unavailableReason).toBeNull();
     const one = await earliest({ serviceId: s.serviceId, staffId: s.staffIds[1], limit: 3 });
