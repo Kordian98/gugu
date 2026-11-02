@@ -5,7 +5,7 @@ import { breakpoint, color } from "@gugu/design-system";
 import { DesktopHome } from "./desktop/DesktopHome";
 import { MobileHome } from "./mobile/MobileHome";
 import { useHomeNav } from "./useHomeNav";
-import { useViewport } from "./useViewport";
+import { useViewport } from "@/services/viewport/useViewport";
 
 /** Homepage (topic 02 design, topic 10 IA). Web ≥ 900 px = ref-01 desktop artboard; phones = mobile layout. */
 export function HomeScreen() {

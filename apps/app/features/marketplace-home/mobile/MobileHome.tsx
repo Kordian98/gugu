@@ -21,8 +21,8 @@ import { useSwitchLocale } from "@/services/i18n/useLocale";
 
 import { CATEGORY_ICON, IMG } from "../assets";
 import { CATEGORY_IDS, DEMO_SALONS } from "../data";
-import { Diorama } from "../hero/Diorama";
-import { Float } from "../hero/Float";
+import { Diorama } from "@/features/hero/Diorama";
+import { Float } from "@/features/hero/Float";
 import { Carousel, type CarouselHandle } from "../sections/Carousel";
 import { GlowCard } from "../sections/GlowCard";
 import { SalonCard } from "../sections/SalonCard";

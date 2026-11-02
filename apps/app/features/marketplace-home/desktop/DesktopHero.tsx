@@ -6,8 +6,8 @@ import { Button, GradientText, Icon, Text, color, font, gradient } from "@gugu/d
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { IMG } from "../assets";
-import { Diorama } from "../hero/Diorama";
-import { SelfLoveAccent } from "../hero/SelfLoveAccent";
+import { Diorama } from "@/features/hero/Diorama";
+import { SelfLoveAccent } from "@/features/hero/SelfLoveAccent";
 import { SearchCard } from "../sections/SearchCard";
 import type { HomeNav } from "../useHomeNav";
 

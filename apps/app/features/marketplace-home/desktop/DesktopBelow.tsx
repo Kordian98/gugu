@@ -19,7 +19,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import { CATEGORY_ICON, IMG } from "../assets";
 import { CATEGORY_IDS, DEMO_SALONS } from "../data";
-import { Float } from "../hero/Float";
+import { Float } from "@/features/hero/Float";
 import { Carousel, type CarouselHandle } from "../sections/Carousel";
 import { GlowCard } from "../sections/GlowCard";
 import { SalonCard } from "../sections/SalonCard";
