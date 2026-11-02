@@ -15,7 +15,7 @@ export class ApiError extends Error {
   }
 }
 
-type Method = "GET" | "POST" | "PATCH" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 let refreshing: Promise<boolean> | null = null;
 
@@ -47,10 +47,17 @@ async function refreshTokens(): Promise<boolean> {
  */
 export async function apiFetch<T>(
   path: string,
-  opts: { method?: Method; body?: unknown; locale?: string; retried?: boolean } = {},
+  opts: {
+    method?: Method;
+    body?: unknown;
+    locale?: string;
+    retried?: boolean;
+    /** Extra request headers, e.g. `Idempotency-Key` for booking writes (topic 06). */
+    headers?: Record<string, string>;
+  } = {},
 ): Promise<T> {
   const method = opts.method ?? "GET";
-  const headers: Record<string, string> = { accept: "application/json" };
+  const headers: Record<string, string> = { accept: "application/json", ...opts.headers };
   // FormData (file uploads) sets its own multipart content type with the boundary.
   const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData;
   if (opts.body !== undefined && !isForm) headers["content-type"] = "application/json";

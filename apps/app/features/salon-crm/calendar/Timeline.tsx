@@ -1,5 +1,5 @@
-import { useId } from "react";
-import { View } from "react-native";
+import { useEffect, useId, useRef, useState } from "react";
+import { PanResponder, Pressable, View, type GestureResponderEvent } from "react-native";
 import Svg, { Defs, Line, Pattern, Rect } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 
@@ -8,33 +8,48 @@ import { DEFAULT_SALON_TIMEZONE, formatTime } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
+import { minutesInZone } from "../data/dates";
 import type { BookingStatus, StaffMember, TimelineItem } from "../data/types";
 
-const STATUS_KEY = {
-  confirmed: "confirmed",
-  inProgress: "inProgress",
-  pending: "pending",
-  completed: "completed",
-} as const satisfies Record<BookingStatus, string>;
+/** Grid snap for taps and drags (minutes). */
+const SNAP = 15;
 
-/** Minutes since local midnight in the salon timezone. */
-function minutesInZone(d: Date): number {
-  const [h, m] = new Intl.DateTimeFormat("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-    timeZone: DEFAULT_SALON_TIMEZONE,
-  })
-    .format(d)
-    .split(":")
-    .map(Number);
-  return (h ?? 0) * 60 + (m ?? 0);
+/** Pointer delta → whole columns and snapped minutes, clamped to the grid. */
+function snapDrag(
+  g: { col: number; cols: number; colWidth: number; pxPerMin: number },
+  dx: number,
+  dy: number,
+) {
+  return {
+    dCols: g.colWidth
+      ? Math.max(-g.col, Math.min(g.cols - 1 - g.col, Math.round(dx / g.colWidth)))
+      : 0,
+    dMin: Math.round(dy / g.pxPerMin / SNAP) * SNAP,
+  };
 }
+
+const tone = (s: BookingStatus) => (s === "noShow" ? "completed" : s);
+
+type Props = {
+  staff: StaffMember[];
+  items: TimelineItem[];
+  startHour?: number | undefined;
+  endHour?: number | undefined;
+  hourHeight?: number | undefined;
+  timeZone?: string | undefined;
+  /** Minutes since local midnight for the "now" line (today only). */
+  nowMinutes?: number | null | undefined;
+  onPressItem?: ((id: string) => void) | undefined;
+  /** Tap on an empty cell: staff column + snapped local start minute. */
+  onPressSlot?: ((staffId: string, minutes: number) => void) | undefined;
+  /** Desktop drag-to-reschedule (the server revalidates; a 409 reverts). */
+  onMoveItem?: ((id: string, staffId: string, minutes: number) => void) | undefined;
+};
 
 /**
  * Staff-column day timeline (ref crm-01): time gutter, one column per team member, coloured blocks
- * (lilac confirmed, pink in progress, peach pending), hatched breaks. Purely presentational: the
- * booking engine (06) is the source of truth for what is shown and where it may move.
+ * (lilac confirmed, pink in progress, peach pending, grey done/no-show), hatched breaks. It only
+ * draws and reports gestures: the booking engine (06) decides what may move where.
  */
 export function Timeline({
   staff,
@@ -42,22 +57,30 @@ export function Timeline({
   startHour = 9,
   endHour = 18,
   hourHeight = 46,
-}: {
-  staff: StaffMember[];
-  items: TimelineItem[];
-  startHour?: number | undefined;
-  endHour?: number | undefined;
-  hourHeight?: number | undefined;
-}) {
+  timeZone = DEFAULT_SALON_TIMEZONE,
+  nowMinutes,
+  onPressItem,
+  onPressSlot,
+  onMoveItem,
+}: Props) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
+  const [gridWidth, setGridWidth] = useState(0);
   const gutter = locale === "en" ? 76 : 60;
   const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
-  const top = (d: Date) => ((minutesInZone(d) - startHour * 60) / 60) * hourHeight;
+  const pxPerMin = hourHeight / 60;
+  const top = (d: Date) => (minutesInZone(d, timeZone) - startHour * 60) * pxPerMin;
+  /** End minute; an end at local midnight counts as 24:00. */
+  const endMin = (d: Date) => minutesInZone(d, timeZone) || 1440;
   const height = (endHour - startHour) * hourHeight;
-  const label = (h: number) =>
-    formatTime(new Date(Date.UTC(2026, 0, 1, h - 7, 0)), locale, DEFAULT_SALON_TIMEZONE);
+  const label = (h: number) => `${String(h).padStart(2, "0")}:00`;
+  const colWidth = staff.length ? gridWidth / staff.length : 0;
+
+  const slotAt = (staffId: string, e: GestureResponderEvent) => {
+    const raw = startHour * 60 + (e.nativeEvent.locationY - 6) / pxPerMin;
+    onPressSlot?.(staffId, Math.max(startHour * 60, Math.floor(raw / SNAP) * SNAP));
+  };
 
   return (
     <View testID="crm-timeline">
@@ -65,10 +88,23 @@ export function Timeline({
         {staff.map((s) => (
           <View
             key={s.id}
-            style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 8 }}
+            style={{
+              flex: 1,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingLeft: 8,
+              minWidth: 0,
+            }}
           >
             <Avatar name={s.name} size={28} />
-            <Text role="uiMedium" size={14} color={c.ink}>
+            <Text
+              role="uiMedium"
+              size={14}
+              color={c.ink}
+              numberOfLines={1}
+              style={{ flexShrink: 1 }}
+            >
               {s.name}
             </Text>
           </View>
@@ -88,6 +124,9 @@ export function Timeline({
           ))}
         </View>
         <View
+          onLayout={(e) => {
+            setGridWidth(e.nativeEvent.layout.width);
+          }}
           style={{ flex: 1, flexDirection: "row", borderLeftWidth: 1, borderLeftColor: c.line }}
         >
           {hours.map((h) => (
@@ -104,83 +143,219 @@ export function Timeline({
               }}
             />
           ))}
-          {staff.map((s) => (
+          {staff.map((s, col) => (
             <View key={s.id} style={{ flex: 1, borderRightWidth: 1, borderRightColor: c.line }}>
+              {onPressSlot ? (
+                <Pressable
+                  testID={`crm-slot-${s.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("calendar.newFor", { name: s.name })}
+                  onPress={(e) => {
+                    slotAt(s.id, e);
+                  }}
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                />
+              ) : null}
               {items
-                .filter((i) => i.staffId === s.id)
+                .filter(
+                  (i) =>
+                    i.staffId === s.id &&
+                    endMin(i.end) > startHour * 60 &&
+                    minutesInZone(i.start, timeZone) < endHour * 60,
+                )
                 .map((i) => {
-                  const y = top(i.start) + 8;
-                  const h = Math.max(top(i.end) - top(i.start) - 4, 22);
+                  // Clip to the visible hours so nothing paints outside the grid.
+                  const y0 = Math.max(0, top(i.start));
+                  const y1 = Math.min(height, (endMin(i.end) - startHour * 60) * pxPerMin);
+                  const y = y0 + 8;
+                  const h = Math.max(y1 - y0 - 4, 22);
                   return i.kind === "break" ? (
-                    <BreakBlock key={i.id} y={y} h={h} label={t("timeline.break")} />
+                    <BreakBlock key={i.id} y={y} h={h} label={i.label ?? t("timeline.break")} />
                   ) : (
-                    <View
+                    <BookingBlock
                       key={i.id}
-                      accessible
-                      accessibilityLabel={`${formatTime(i.start, locale)} ${i.service}, ${i.customer}, ${t(`timeline.status.${STATUS_KEY[i.status]}`)}`}
-                      style={{
-                        position: "absolute",
-                        top: y,
-                        left: 4,
-                        right: 4,
-                        height: h,
-                        borderRadius: 8,
-                        borderLeftWidth: 3,
-                        borderLeftColor: c.event[i.status].border,
-                        backgroundColor: c.event[i.status].bg,
-                        paddingHorizontal: 8,
-                        paddingVertical: 5,
-                        overflow: "hidden",
-                        gap: 1,
-                      }}
-                    >
-                      {h < 40 ? (
-                        <Text size={12} color={c.event[i.status].text} numberOfLines={1}>
-                          {`${formatTime(i.start, locale)} · ${i.service}`}
-                        </Text>
-                      ) : (
-                        <>
-                          <Text size={12} color={c.event[i.status].text} numberOfLines={1}>
-                            {formatTime(i.start, locale)}
-                          </Text>
-                          <Text
-                            role="uiSemiBold"
-                            size={13}
-                            color={c.event[i.status].text}
-                            numberOfLines={1}
-                          >
-                            {i.service}
-                          </Text>
-                        </>
-                      )}
-                      {h > 56 ? (
-                        <Text size={12} color={c.event[i.status].text} numberOfLines={1}>
-                          {i.customer}
-                        </Text>
-                      ) : null}
-                      {h > 76 ? (
-                        <View
-                          style={{
-                            alignSelf: "flex-start",
-                            marginTop: 3,
-                            paddingHorizontal: 7,
-                            paddingVertical: 1,
-                            borderRadius: 999,
-                            backgroundColor: c.surface,
-                          }}
-                        >
-                          <Text role="uiMedium" size={11} color={c.ink}>
-                            {t(`timeline.status.${STATUS_KEY[i.status]}`)}
-                          </Text>
-                        </View>
-                      ) : null}
-                    </View>
+                      item={i}
+                      y={y}
+                      h={h}
+                      col={col}
+                      cols={staff.length}
+                      colWidth={colWidth}
+                      pxPerMin={pxPerMin}
+                      timeZone={timeZone}
+                      onPress={onPressItem}
+                      onMove={
+                        onMoveItem
+                          ? (dCols, dMin) => {
+                              const target =
+                                staff[Math.min(staff.length - 1, Math.max(0, col + dCols))];
+                              const start = minutesInZone(i.start, timeZone) + dMin;
+                              if (target && (dCols !== 0 || dMin !== 0)) {
+                                onMoveItem(i.id, target.id, start);
+                              }
+                            }
+                          : undefined
+                      }
+                    />
                   );
                 })}
             </View>
           ))}
+          {nowMinutes !== null &&
+          nowMinutes !== undefined &&
+          nowMinutes >= startHour * 60 &&
+          nowMinutes <= endHour * 60 ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                top: (nowMinutes - startHour * 60) * pxPerMin + 6,
+                height: 2,
+                backgroundColor: c.accentBg,
+              }}
+            />
+          ) : null}
         </View>
       </View>
+    </View>
+  );
+}
+
+function BookingBlock({
+  item,
+  y,
+  h,
+  col,
+  cols,
+  colWidth,
+  pxPerMin,
+  timeZone,
+  onPress,
+  onMove,
+}: {
+  item: Extract<TimelineItem, { kind: "booking" }>;
+  y: number;
+  h: number;
+  col: number;
+  cols: number;
+  colWidth: number;
+  pxPerMin: number;
+  timeZone: string;
+  onPress?: ((id: string) => void) | undefined;
+  onMove?: ((dCols: number, dMin: number) => void) | undefined;
+}) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  const locale = useLocale();
+  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
+  const moved = useRef(false);
+  const geometry = useRef({ col, cols, colWidth, pxPerMin, onMove });
+  useEffect(() => {
+    geometry.current = { col, cols, colWidth, pxPerMin, onMove };
+  }, [col, cols, colWidth, pxPerMin, onMove]);
+  // The responder is created once; its callbacks read the latest geometry from the ref (updated in an
+  // effect) and only run in event handlers, never during render.
+  // eslint-disable-next-line react-hooks/refs
+  const [pan] = useState(() =>
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dx) + Math.abs(g.dy) > 6,
+      onPanResponderGrant: () => {
+        moved.current = true;
+      },
+      onPanResponderMove: (_e, g) => {
+        setDrag({ dx: g.dx, dy: g.dy });
+      },
+      onPanResponderRelease: (_e, g) => {
+        setDrag(null);
+        const s = snapDrag(geometry.current, g.dx, g.dy);
+        geometry.current.onMove?.(s.dCols, s.dMin);
+        setTimeout(() => {
+          moved.current = false;
+        }, 0);
+      },
+      onPanResponderTerminate: () => {
+        setDrag(null);
+        moved.current = false;
+      },
+    }),
+  );
+  const ev = c.event[tone(item.status)];
+  const status = t(`timeline.status.${item.status}`);
+  const shown = drag ? snapDrag({ col, cols, colWidth, pxPerMin }, drag.dx, drag.dy) : null;
+  const time = formatTime(item.start, locale, timeZone);
+  return (
+    <View
+      {...(onMove ? pan.panHandlers : {})}
+      style={{
+        position: "absolute",
+        top: y,
+        left: 4,
+        right: 4,
+        height: h,
+        zIndex: drag ? 20 : 1,
+        transform: shown
+          ? [{ translateX: shown.dCols * colWidth }, { translateY: shown.dMin * pxPerMin }]
+          : [],
+        opacity: drag ? 0.85 : 1,
+      }}
+    >
+      <Pressable
+        testID={`crm-booking-${item.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={`${time} ${item.service}, ${item.customer}, ${status}`}
+        onPress={() => {
+          if (!moved.current) onPress?.(item.id);
+        }}
+        style={{
+          flex: 1,
+          borderRadius: 8,
+          borderLeftWidth: 3,
+          borderLeftColor: ev.border,
+          backgroundColor: ev.bg,
+          paddingHorizontal: 8,
+          paddingVertical: 5,
+          overflow: "hidden",
+          gap: 1,
+        }}
+      >
+        {h < 40 ? (
+          <Text size={12} color={ev.text} numberOfLines={1}>
+            {`${time} · ${item.service}`}
+          </Text>
+        ) : (
+          <>
+            <Text size={12} color={ev.text} numberOfLines={1}>
+              {time}
+            </Text>
+            <Text role="uiSemiBold" size={13} color={ev.text} numberOfLines={1}>
+              {item.service}
+            </Text>
+          </>
+        )}
+        {h > 56 ? (
+          <Text size={12} color={ev.text} numberOfLines={1}>
+            {item.customer}
+          </Text>
+        ) : null}
+        {h > 76 ? (
+          <View
+            style={{
+              alignSelf: "flex-start",
+              marginTop: 3,
+              paddingHorizontal: 7,
+              paddingVertical: 1,
+              borderRadius: 999,
+              backgroundColor: c.surface,
+            }}
+          >
+            <Text role="uiMedium" size={11} color={c.ink}>
+              {status}
+            </Text>
+          </View>
+        ) : null}
+      </Pressable>
     </View>
   );
 }
@@ -190,6 +365,7 @@ function BreakBlock({ y, h, label }: { y: number; h: number; label: string }) {
   const id = `hatch${useId().replace(/:/g, "")}`;
   return (
     <View
+      pointerEvents="none"
       accessible
       accessibilityLabel={label}
       style={{

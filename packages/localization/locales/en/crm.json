@@ -1,5 +1,5 @@
 {
-  "brandPill": "BUSINESS",
+  "brandPill": "STUDIO",
   "nav": {
     "sections": {
       "workspace": "Workspace",
@@ -44,7 +44,8 @@
       "manager": "Manager",
       "receptionist": "Receptionist",
       "staff": "Staff"
-    }
+    },
+    "docTitle": "{{page}} · GuGu Studio"
   },
   "greeting": {
     "morning": "Good morning",
@@ -111,7 +112,8 @@
       "confirmed": "Confirmed",
       "inProgress": "In progress",
       "pending": "Pending",
-      "completed": "Completed"
+      "completed": "Completed",
+      "noShow": "No-show"
     }
   },
   "upcoming": {
@@ -130,7 +132,7 @@
     "calendar": {
       "title": "Calendar",
       "emptyTitle": "Your calendar is empty",
-      "emptyBody": "Add services and working hours to start taking bookings. Day, week and per-team-member views appear here."
+      "emptyBody": "Add bookable team members and their working hours; each person's day appears here."
     },
     "appointments": {
       "title": "Appointments",
@@ -196,7 +198,8 @@
     "saved": "Saved",
     "required": "Required",
     "edit": "Edit",
-    "done": "Done"
+    "done": "Done",
+    "back": "Back"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -225,7 +228,20 @@
     "ai_import_pii_check_failed": "An image still showed contact details after redaction, so nothing was sent. Crop that part out and try again.",
     "ai_import_extraction_failed": "AI could not read the price list. Try again or use a sharper photo.",
     "entitlement_quota_exceeded": "This month's AI allowance is used up.",
-    "entitlement_required": "Your plan does not include this feature."
+    "entitlement_required": "Your plan does not include this feature.",
+    "booking_slot_taken": "Someone just took this time. Please pick another one.",
+    "booking_invalid_transition": "This status change isn't possible.",
+    "booking_too_early": "It's too early for this action.",
+    "booking_too_late": "It's too late for this action.",
+    "booking_reason_required": "Please enter a reason.",
+    "booking_staff_selection_disabled": "Staff choice is hidden for this salon.",
+    "booking_service_unavailable": "The service or team member is no longer bookable.",
+    "booking_phone_invalid": "Invalid phone number.",
+    "booking_customer_required": "A name and phone are needed (except for walk-ins).",
+    "booking_override_not_allowed": "You can't book outside the rules.",
+    "booking_not_found": "Appointment not found.",
+    "booking_active_limit_reached": "This phone number already has several active appointments.",
+    "offline_sale_booking_not_completed": "Amounts can only be recorded for completed appointments."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",
@@ -421,5 +437,131 @@
     "invalidRows": "Rows missing a name, price or duration: {{count}}.",
     "done": "Services added: {{count}}. You can edit them in the list below.",
     "pickFailed": "Could not open your photo library."
+  },
+  "calendar": {
+    "newFor": "New appointment with {{name}}",
+    "today": "Today",
+    "noSlots": "No free times on this day. Try another day or team member.",
+    "anyStaff": "Anyone",
+    "timeOff": "Time off",
+    "all": "All",
+    "dragRevertHint": "The appointment was left unchanged.",
+    "newTitle": "New appointment",
+    "confirmBooking": "Confirm appointment",
+    "client": "Client",
+    "walkIn": "Walk-in (no name or phone needed)",
+    "visits": "{{count}} visits",
+    "noShows": "{{count}} no-shows",
+    "change": "Change",
+    "clientSearch": "Search by phone or name",
+    "newClientName": "Client name",
+    "newClientPhone": "Phone number",
+    "service": "Service",
+    "staff": "Team member",
+    "time": "Time",
+    "source": "Booked via"
+  },
+  "booking": {
+    "title": "Appointment {{code}}",
+    "status": {
+      "pending": "Pending",
+      "confirmed": "Confirmed",
+      "checked_in": "In progress",
+      "completed": "Completed",
+      "no_show": "No-show",
+      "cancelled_by_customer": "Cancelled by client",
+      "cancelled_by_salon": "Cancelled by salon"
+    },
+    "source": {
+      "marketplace": "GuGu",
+      "salon_profile": "Salon page",
+      "direct_link": "Booking link",
+      "qr_code": "QR code",
+      "social_media": "Social media",
+      "repeat_customer": "Regular",
+      "staff_created": "Entered by salon",
+      "walk_in": "Walk-in",
+      "phone": "Phone",
+      "zalo_chat": "Zalo chat",
+      "zalo_oa": "Zalo OA",
+      "zalo_link": "Zalo link",
+      "zalo_mini_app": "Zalo Mini App",
+      "promoted_listing": "Promotion",
+      "gugu_campaign": "GuGu campaign",
+      "ai_agent": "AI assistant"
+    },
+    "lateCancel": "Late cancellation",
+    "client": "Client",
+    "walkIn": "Walk-in",
+    "service": "Service",
+    "staff": "Team member",
+    "estimate": "Estimated price",
+    "payAtSalon": "The client pays at the salon",
+    "note": "Note",
+    "amountReceived": "Amount received",
+    "cancelTitle": "Cancellation reason",
+    "reasons": {
+      "customer": "Client cancelled",
+      "unreachable": "Client unreachable",
+      "salon": "Salon unavailable",
+      "other": "Other"
+    },
+    "reasonText": "Reason note",
+    "reasonPlaceholder": "Optional",
+    "cancelNotice": "The client is told once a notification channel (Zalo/email) is connected.",
+    "correctReason": "Reason for the correction",
+    "amountTitle": "Amount the client paid at the salon",
+    "amountHint": "Optional. For the salon's own records; GuGu processes no payment.",
+    "methods": {
+      "cash": "Cash",
+      "bank_transfer": "Bank transfer",
+      "ewallet": "E-wallet",
+      "card": "Card",
+      "other": "Other"
+    },
+    "markNoShow": "Change to no-show",
+    "markCompleted": "Change to completed",
+    "skip": "Skip",
+    "cancel": "Cancel appointment",
+    "reschedule": "Reschedule",
+    "noShow": "No-show",
+    "confirm": "Confirm",
+    "checkIn": "Checked in",
+    "complete": "Complete",
+    "editAmount": "Edit amount",
+    "addAmount": "Record amount received",
+    "cancelConfirm": "Cancel appointment",
+    "rescheduleTitle": "Pick a new time",
+    "sameStaff": "Same team member"
+  },
+  "wizard": {
+    "later": "Later",
+    "progress": "Step {{step}} of {{total}}",
+    "next": "Continue",
+    "toToday": "Go to Today",
+    "quickService": "Quick add a service",
+    "servicePlaceholder": "E.g. Gel polish",
+    "teamHint": "Each person gets the salon's opening hours and all services; fine-tune later under Team.",
+    "steps": {
+      "business": "Salon details",
+      "hours": "Opening hours",
+      "services": "Services",
+      "team": "Team",
+      "done": "Done"
+    },
+    "titles": {
+      "business": "Welcome to GuGu Studio",
+      "hours": "When is your salon open?",
+      "services": "Add your first services",
+      "team": "Who serves your clients?",
+      "done": "Ready for bookings"
+    },
+    "bodies": {
+      "business": "Check your salon's name, phone and address. It takes a minute.",
+      "hours": "Pick the 9:00–21:00 preset or adjust each day. Appointments can only be booked during opening hours.",
+      "services": "Upload photos of your price list for AI (coming soon), or quickly add a few popular services.",
+      "team": "Add yourself if you perform services, and your team. You can invite them to create accounts later.",
+      "done": "You can start adding appointments from Today or the Calendar."
+    }
   }
 }

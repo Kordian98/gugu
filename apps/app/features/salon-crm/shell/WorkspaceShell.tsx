@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Platform, View } from "react-native";
+import { usePathname } from "expo-router";
 
 import { useCalm } from "@gugu/design-system";
 
@@ -20,10 +21,15 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const bp = useBreakpoint();
   const workspace = useWorkspace();
   const more = useMoreSheet();
+  const pathname = usePathname();
+  // The first-run stepper is a focused screen without workspace chrome.
+  const focused = /\/business\/setup$/.test(pathname);
 
   // Web SSR knows neither the viewport nor the theme: paint the canvas, render after hydration.
   if (Platform.OS === "web" && !mounted)
     return <View style={{ flex: 1, backgroundColor: c.canvas }} />;
+
+  if (focused) return <View style={{ flex: 1, backgroundColor: c.canvas }}>{children}</View>;
 
   if (bp === "mobile") {
     return (
@@ -32,6 +38,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <View style={{ flex: 1 }}>{children}</View>
         <BottomTabs onMore={more.show} />
         <MoreSheet open={more.open} onClose={more.hide} />
+        <AssistantSlot bottom={88} />
       </View>
     );
   }
@@ -39,6 +46,22 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.canvas }}>
       <Sidebar workspace={workspace} collapsed={bp === "tablet"} />
       <View style={{ flex: 1 }}>{children}</View>
+      <AssistantSlot bottom={24} />
     </View>
+  );
+}
+
+/**
+ * Reserved bottom-right corner for the AI assistant bubble (topic 08 mounts it here). Nothing else
+ * in the workspace may place controls in this corner; the mobile "+ New" lives in the tab bar centre.
+ */
+function AssistantSlot({ bottom }: { bottom: number }) {
+  return (
+    <View
+      testID="crm-assistant-slot"
+      nativeID="crm-assistant-slot"
+      pointerEvents="box-none"
+      style={{ position: "absolute", right: 20, bottom, width: 64, height: 64 }}
+    />
   );
 }

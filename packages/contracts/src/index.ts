@@ -14,3 +14,5 @@ export * from "./booking/booking";
 export * from "./booking/errors";
 export * from "./booking/source";
 export * from "./ai-import/ai-import";
+export * from "./salon-crm/clients";
+export * from "./salon-crm/offline-sale";

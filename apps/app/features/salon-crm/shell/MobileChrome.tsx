@@ -9,7 +9,7 @@ import { useThemePreference } from "../theme/CrmThemeProvider";
 import { ALL_ITEMS, TABS } from "./nav";
 import { useCrmNav, useVisibleNav } from "./useCrmNav";
 
-/** Mobile header (ref crm-02 phone): menu, wordmark + BUSINESS pill, theme toggle. */
+/** Mobile header (ref crm-02 phone): menu, wordmark + STUDIO pill, theme toggle. */
 export function MobileHeader({ onMenu }: { onMenu: () => void }) {
   const { c, scheme } = useCalm();
   const { t } = useTranslation("crm");
@@ -61,6 +61,22 @@ export function BottomTabs({ onMore }: { onMore: () => void }) {
   const { active, go } = useCrmNav();
   const insets = useSafeAreaInsets();
   const tabActive = active !== null && TABS.includes(active);
+  const tab = (id: (typeof TABS)[number]) => {
+    const item = ALL_ITEMS.find((i) => i.id === id);
+    if (!item) return null;
+    const label = id === "overview" ? t("nav.today") : t(`nav.items.${id}`);
+    return (
+      <Tab
+        key={id}
+        label={label}
+        icon={item.icon}
+        active={active === id}
+        onPress={() => {
+          go(item.path);
+        }}
+      />
+    );
+  };
   return (
     <View
       testID="crm-bottom-tabs"
@@ -75,52 +91,41 @@ export function BottomTabs({ onMore }: { onMore: () => void }) {
         borderTopColor: c.line,
       }}
     >
-      {TABS.map((id) => {
-        const item = ALL_ITEMS.find((i) => i.id === id);
-        if (!item) return null;
-        const on = active === id;
-        const label = id === "overview" ? t("nav.today") : t(`nav.items.${id}`);
-        return (
-          <Tab
-            key={id}
-            label={label}
-            icon={item.icon}
-            active={on}
-            onPress={() => {
-              go(item.path);
-            }}
-          />
-        );
-      })}
+      {TABS.slice(0, 2).map((id) => tab(id))}
+      {/* Centre "+" (the bottom-right corner is reserved for the AI assistant bubble). */}
+      <View style={{ flex: 1, alignItems: "center" }}>
+        <Pressable
+          testID="crm-new-appointment-mobile"
+          accessibilityRole="button"
+          accessibilityLabel={t("shell.newAppointment")}
+          onPress={() => {
+            go("/business/calendar?new=1");
+          }}
+          style={{
+            width: 52,
+            height: 52,
+            marginTop: -22,
+            borderRadius: 26,
+            backgroundColor: c.accentBg,
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 4,
+            borderColor: c.surface,
+          }}
+        >
+          <Icon name="plus" size={24} color={c.onAccent} strokeWidth={2.4} />
+        </Pressable>
+        <Text role="uiMedium" size={11} color={c.muted}>
+          {t("shell.newShort")}
+        </Text>
+      </View>
+      {TABS.slice(2).map((id) => tab(id))}
       <Tab
         label={t("nav.more")}
         icon="more"
         active={!tabActive && active !== null}
         onPress={onMore}
       />
-      <Pressable
-        testID="crm-new-appointment-mobile"
-        accessibilityRole="button"
-        accessibilityLabel={t("shell.newAppointment")}
-        onPress={() => {
-          go("/business/appointments?new=1");
-        }}
-        style={{
-          height: 40,
-          paddingHorizontal: 14,
-          borderRadius: 12,
-          backgroundColor: c.accentBg,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          marginLeft: 4,
-        }}
-      >
-        <Icon name="plus" size={16} color={c.onAccent} />
-        <Text role="uiSemiBold" size={14} color={c.onAccent}>
-          {t("shell.newShort")}
-        </Text>
-      </Pressable>
     </View>
   );
 }

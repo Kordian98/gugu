@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { Avatar, CalmCard, Icon, Pill, Text, useCalm } from "@gugu/design-system";
@@ -11,7 +11,13 @@ import { CardHeader } from "../ui/CardHeader";
 import { EmptyState } from "../ui/EmptyState";
 
 /** Right rail: upcoming appointments & live queue (ref crm-01). Prices are booking estimates. */
-export function UpcomingCard({ items }: { items: UpcomingItem[] }) {
+export function UpcomingCard({
+  items,
+  onPress,
+}: {
+  items: UpcomingItem[];
+  onPress?: ((id: string) => void) | undefined;
+}) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
@@ -22,8 +28,14 @@ export function UpcomingCard({ items }: { items: UpcomingItem[] }) {
         <EmptyState compact icon="clock" title={t("upcoming.empty")} />
       ) : (
         items.map((u) => (
-          <View
+          <Pressable
             key={u.id}
+            testID={`crm-upcoming-${u.id}`}
+            accessibilityRole="button"
+            disabled={!onPress}
+            onPress={() => {
+              onPress?.(u.id);
+            }}
             style={{
               flexDirection: "row",
               gap: 10,
@@ -75,7 +87,7 @@ export function UpcomingCard({ items }: { items: UpcomingItem[] }) {
                 }}
               />
             ) : null}
-          </View>
+          </Pressable>
         ))
       )}
     </CalmCard>

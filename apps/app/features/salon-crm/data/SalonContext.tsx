@@ -11,7 +11,9 @@ export type SalonPermission =
   | "members.invite"
   | "members.roles.write"
   | "services.write"
-  | "schedules.write";
+  | "schedules.write"
+  | "bookings.write"
+  | "customers.read";
 
 import { apiFetch } from "@/services/auth/api";
 import { useAuth } from "@/services/auth/AuthProvider";

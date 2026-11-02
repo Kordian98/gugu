@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, TextInput, View } from "react-native";
+import Head from "expo-router/head";
 import { useTranslation } from "react-i18next";
 
 import { Avatar, CalmButton, Icon, Pill, Text, useCalm } from "@gugu/design-system";
@@ -31,106 +32,116 @@ export function PageHeader({
   const mobile = bp === "mobile";
 
   return (
-    <View
-      style={{
-        flexDirection: mobile ? "column" : "row",
-        alignItems: mobile ? "flex-start" : "center",
-        justifyContent: "space-between",
-        gap: 16,
-        zIndex: 10,
-      }}
-    >
-      <View style={{ gap: 4, flexShrink: 1 }}>
-        <Text role="uiSemiBold" size={mobile ? 22 : 26} lineHeight={mobile ? 28 : 32} color={c.ink}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text size={14} color={c.body}>
-            {subtitle}
+    <>
+      <Head>
+        <title>{t("shell.docTitle", { page: title })}</title>
+      </Head>
+      <View
+        style={{
+          flexDirection: mobile ? "column" : "row",
+          alignItems: mobile ? "flex-start" : "center",
+          justifyContent: "space-between",
+          gap: 16,
+          zIndex: 10,
+        }}
+      >
+        <View style={{ gap: 4, flexShrink: 1 }}>
+          <Text
+            role="uiSemiBold"
+            size={mobile ? 22 : 26}
+            lineHeight={mobile ? 28 : 32}
+            color={c.ink}
+          >
+            {title}
           </Text>
-        ) : null}
-      </View>
-      {mobile ? null : (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          {workspace.demo ? <Pill label={tc("demo.notice")} tone="brand" /> : null}
-          {bp === "wide" ? (
-            <Field>
-              <Icon name="search" size={16} color={c.muted} />
-              <TextInput
-                testID="crm-search"
-                value={query}
-                onChangeText={setQuery}
-                onSubmitEditing={() => {
-                  go(`/business/customers?q=${encodeURIComponent(query)}`);
-                }}
-                placeholder={t("shell.searchPlaceholder")}
-                placeholderTextColor={c.muted}
-                accessibilityLabel={t("shell.searchPlaceholder")}
-                style={{ flex: 1, width: 190, color: c.ink, fontSize: 14, outlineWidth: 0 }}
-              />
-            </Field>
+          {subtitle ? (
+            <Text size={14} color={c.body}>
+              {subtitle}
+            </Text>
           ) : null}
-          {workspace.plan === "ultra" ? (
-            <Field>
-              <Icon name="pin" size={16} color={c.ink} />
-              <Text role="uiMedium" size={14} color={c.ink}>
-                {t("shell.allLocations")}
-              </Text>
-            </Field>
-          ) : null}
-          <CalmButton
-            testID="crm-new-appointment"
-            icon="plus"
-            label={t("shell.newAppointment")}
-            onPress={() => {
-              go("/business/appointments?new=1");
-            }}
-          />
-          <View>
-            <Pressable
-              testID="crm-bell"
-              accessibilityRole="button"
-              accessibilityLabel={t("shell.notifications")}
-              accessibilityState={{ expanded: bellOpen }}
-              onPress={() => {
-                setBellOpen((o) => !o);
-              }}
-              style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-            >
-              <Icon name="bell" size={20} color={c.ink} />
-            </Pressable>
-            {bellOpen ? (
-              <View
-                style={{
-                  position: "absolute",
-                  top: 46,
-                  right: 0,
-                  width: 260,
-                  padding: 16,
-                  gap: 6,
-                  borderRadius: 14,
-                  backgroundColor: c.surface,
-                  borderWidth: 1,
-                  borderColor: c.line,
-                  shadowColor: c.shadow,
-                  shadowOpacity: 0.12,
-                  shadowRadius: 20,
-                  shadowOffset: { width: 0, height: 8 },
-                }}
-              >
-                <Text role="uiSemiBold" size={14} color={c.ink}>
-                  {t("shell.notifications")}
-                </Text>
-                <Text size={13} color={c.body}>
-                  {t("shell.noNotifications")}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-          <Avatar name={workspace.user?.name} size={40} />
         </View>
-      )}
-    </View>
+        {mobile ? null : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 0 }}>
+            {workspace.demo ? <Pill label={tc("demo.notice")} tone="brand" /> : null}
+            {bp === "wide" ? (
+              <Field>
+                <Icon name="search" size={16} color={c.muted} />
+                <TextInput
+                  testID="crm-search"
+                  value={query}
+                  onChangeText={setQuery}
+                  onSubmitEditing={() => {
+                    go(`/business/customers?q=${encodeURIComponent(query)}`);
+                  }}
+                  placeholder={t("shell.searchPlaceholder")}
+                  placeholderTextColor={c.muted}
+                  accessibilityLabel={t("shell.searchPlaceholder")}
+                  style={{ flex: 1, width: 190, color: c.ink, fontSize: 14, outlineWidth: 0 }}
+                />
+              </Field>
+            ) : null}
+            {workspace.plan === "ultra" ? (
+              <Field>
+                <Icon name="pin" size={16} color={c.ink} />
+                <Text role="uiMedium" size={14} color={c.ink}>
+                  {t("shell.allLocations")}
+                </Text>
+              </Field>
+            ) : null}
+            <CalmButton
+              testID="crm-new-appointment"
+              icon="plus"
+              label={t("shell.newAppointment")}
+              onPress={() => {
+                go("/business/calendar?new=1");
+              }}
+            />
+            <View>
+              <Pressable
+                testID="crm-bell"
+                accessibilityRole="button"
+                accessibilityLabel={t("shell.notifications")}
+                accessibilityState={{ expanded: bellOpen }}
+                onPress={() => {
+                  setBellOpen((o) => !o);
+                }}
+                style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+              >
+                <Icon name="bell" size={20} color={c.ink} />
+              </Pressable>
+              {bellOpen ? (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 46,
+                    right: 0,
+                    width: 260,
+                    padding: 16,
+                    gap: 6,
+                    borderRadius: 14,
+                    backgroundColor: c.surface,
+                    borderWidth: 1,
+                    borderColor: c.line,
+                    shadowColor: c.shadow,
+                    shadowOpacity: 0.12,
+                    shadowRadius: 20,
+                    shadowOffset: { width: 0, height: 8 },
+                  }}
+                >
+                  <Text role="uiSemiBold" size={14} color={c.ink}>
+                    {t("shell.notifications")}
+                  </Text>
+                  <Text size={13} color={c.body}>
+                    {t("shell.noNotifications")}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <Avatar name={workspace.user?.name} size={40} />
+          </View>
+        )}
+      </View>
+    </>
   );
 }
 

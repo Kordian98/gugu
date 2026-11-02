@@ -6,6 +6,7 @@ import { CalmButton, CalmCard } from "@gugu/design-system";
 import { useCrmNav } from "../shell/useCrmNav";
 import { EmptyState } from "../ui/EmptyState";
 import { SectionScreen } from "./SectionScreen";
+import { UpcomingAppointments } from "./calendar/UpcomingAppointments";
 
 /**
  * Appointments list. `?new=1` (from "New appointment") explains the prerequisite: the booking engine
@@ -15,7 +16,7 @@ export function AppointmentsScreen() {
   const { t } = useTranslation("crm");
   const { go } = useCrmNav();
   const { new: isNew } = useLocalSearchParams<{ new?: string | undefined }>();
-  if (isNew !== "1") return <SectionScreen id="appointments" />;
+  if (isNew !== "1") return <UpcomingAppointments />;
   return (
     <SectionScreen id="appointments">
       <CalmCard>

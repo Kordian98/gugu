@@ -1,5 +1,3 @@
-import { SectionScreen } from "@/features/salon-crm/pages/SectionScreen";
+import { CalendarScreen } from "@/features/salon-crm/pages/calendar/CalendarScreen";
 
-export default function Screen() {
-  return <SectionScreen id="calendar" />;
-}
+export default CalendarScreen;

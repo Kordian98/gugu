@@ -17,7 +17,8 @@
     "booking_occupancy_no_staff_overlap",
     "booking_occupancy_valid",
     "bookings_valid",
-    "booking_services_valid"
+    "booking_services_valid",
+    "offline_sales_amount_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",

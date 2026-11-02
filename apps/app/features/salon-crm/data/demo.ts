@@ -187,6 +187,8 @@ export function demoWorkspace(): Workspace {
     },
     setupDone: ["business", "services", "hours", "team", "live"],
     canGoLive: false,
+    todayBookings: [],
+    timeZone: DEFAULT_SALON_TIMEZONE,
     setupLoaded: true,
     role: "owner",
   };

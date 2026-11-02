@@ -24,6 +24,8 @@ export function configureHttpApp(app: INestApplication): INestApplication {
       "accept-language",
       "x-csrf-token",
       "x-request-id",
+      // Booking writes from the web CRM are idempotent (topic 06).
+      "idempotency-key",
     ],
     exposedHeaders: ["x-request-id"],
     maxAge: 600,

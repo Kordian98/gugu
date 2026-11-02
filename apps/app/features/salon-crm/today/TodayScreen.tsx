@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Redirect } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -8,6 +9,11 @@ import { formatDateLong } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { Timeline } from "../calendar/Timeline";
+import { hourRange } from "../data/bookings";
+import { minutesInZone } from "../data/dates";
+import { BookingSheet } from "../pages/calendar/BookingSheet";
+import { isSetupDismissed } from "../pages/setup/firstRun";
+import { useOptionalSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
 import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
@@ -29,6 +35,30 @@ export function TodayScreen() {
   const bp = useBreakpoint();
   const { go } = useCrmNav();
   const ws = useWorkspace();
+  const salonId = useOptionalSalon()?.salonId ?? "";
+  // First run: a fresh salon (only registration done) starts in the setup stepper.
+  const firstRun =
+    !ws.demo &&
+    ws.setupLoaded &&
+    ws.role === "owner" &&
+    ws.setupDone.every((s) => s === "business") &&
+    !isSetupDismissed(salonId);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const openBooking = (id: string) => {
+    setOpenId(id);
+  };
+  const opened = ws.todayBookings.find((b) => b.id === openId) ?? null;
+  const sheet = opened ? (
+    <BookingSheet
+      key={opened.id}
+      booking={opened}
+      staff={ws.today.staff.map((s) => ({ id: s.id, displayName: s.name }))}
+      tz={ws.timeZone}
+      onClose={() => {
+        setOpenId(null);
+      }}
+    />
+  ) : null;
   const now = useMemo(() => new Date(), []);
   const greeting = t(`greeting.${greetingKey(now)}`);
   const title = ws.user
@@ -66,10 +96,23 @@ export function TodayScreen() {
           body={t("timeline.emptyBody")}
         />
       ) : (
-        <Timeline staff={ws.today.staff} items={ws.today.items} />
+        <Timeline
+          staff={ws.today.staff}
+          items={ws.today.items}
+          timeZone={ws.timeZone}
+          {...(ws.demo
+            ? {}
+            : hourRange([], [], ws.todayBookings, "", ws.timeZone, (iso) =>
+                minutesInZone(new Date(iso), ws.timeZone),
+              ))}
+          nowMinutes={ws.demo ? null : minutesInZone(new Date(), ws.timeZone)}
+          onPressItem={ws.demo ? undefined : openBooking}
+        />
       )}
     </CalmCard>
   );
+
+  if (firstRun) return <Redirect href={`/${locale}/business/setup` as never} />;
 
   if (mobile) {
     return (
@@ -81,14 +124,15 @@ export function TodayScreen() {
         ) : null}
         <WeekStrip now={now} />
         <KpiRow today={ws.today} only="revenue" />
-        <UpcomingCard items={ws.today.upcoming} />
+        <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
+        {sheet}
       </ScrollView>
     );
   }
 
   const rail = (
     <View style={{ width: 300, gap: 16 }}>
-      <UpcomingCard items={ws.today.upcoming} />
+      <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
       <ActivityCard items={ws.today.activity} />
     </View>
   );
@@ -113,7 +157,7 @@ export function TodayScreen() {
           {timeline}
           <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>
             <View style={{ flex: 1 }}>
-              <UpcomingCard items={ws.today.upcoming} />
+              <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
             </View>
             <View style={{ flex: 1 }}>
               <ActivityCard items={ws.today.activity} />
@@ -121,6 +165,7 @@ export function TodayScreen() {
           </View>
         </>
       )}
+      {sheet}
     </ScrollView>
   );
 }

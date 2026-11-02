@@ -1,7 +1,10 @@
+import type { SalonBooking } from "@gugu/contracts";
+
 /** Read models the workspace renders. Shapes mirror the planned insights/calendar API (07 §4.3, §4.6). */
 export type Plan = "basic" | "pro" | "ultra";
 
-export type BookingStatus = "confirmed" | "inProgress" | "pending" | "completed";
+/** UI status groups (timeline colours); see bookingStatusUi in data/bookings.ts. */
+export type BookingStatus = "confirmed" | "inProgress" | "pending" | "completed" | "noShow";
 
 export type StaffMember = { id: string; name: string };
 
@@ -16,7 +19,7 @@ export type TimelineItem =
       service: string;
       customer: string;
     }
-  | { kind: "break"; id: string; staffId: string; start: Date; end: Date };
+  | { kind: "break"; id: string; staffId: string; start: Date; end: Date; label?: string };
 
 export type UpcomingItem = {
   id: string;
@@ -46,7 +49,7 @@ export type Workspace = {
   plan: Plan | null;
   today: {
     /** RevenueKind = estimated_from_bookings (07 §3.10). */
-    revenueEstimated: { amountVnd: number; deltaPct: number; trend: number[] } | null;
+    revenueEstimated: { amountVnd: number; deltaPct: number | null; trend: number[] } | null;
     appointments: { total: number; remaining: number; done: number; inProgress: number } | null;
     newCustomers: { count: number; deltaPct: number; names: string[] } | null;
     occupancy: { rate: number } | null;
@@ -55,6 +58,9 @@ export type Workspace = {
     upcoming: UpcomingItem[];
     activity: ActivityItem[];
   };
+  /** Raw bookings of today (real data only), for opening the appointment sheet. */
+  todayBookings: SalonBooking[];
+  timeZone: string;
   setupDone: SetupStep[];
   /** Every step but "live" is done and the salon is still a draft. */
   canGoLive: boolean;
