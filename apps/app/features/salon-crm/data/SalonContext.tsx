@@ -13,7 +13,9 @@ export type SalonPermission =
   | "services.write"
   | "schedules.write"
   | "bookings.write"
-  | "customers.read";
+  | "customers.read"
+  | "zalo.inbox.use"
+  | "integrations.zalo.manage";
 
 import { apiFetch } from "@/services/auth/api";
 import { useAuth } from "@/services/auth/AuthProvider";

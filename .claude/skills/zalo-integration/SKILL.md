@@ -21,7 +21,10 @@ description: Procedures and rules for GuGu's Zalo integration — Zalo OA OpenAP
 
 Personal Zalo accounts: there is **no API**. Support them only through links, QR codes and copy snippets.
 
-## Current constraint: no GuGu VN entity
+## Roadmap X24 (current scope)
+The booking chatbot runs in the salon's own OA. It is rule-based (no LLM), customers get no links to gugu.vn and have no accounts, and confirmations and reminders go from the salon's OA. Implementation map: `docs/domains/zalo.md`.
+
+## Earlier constraint: no GuGu VN entity
 | Path | Status | Sender profile |
 |---|---|---|
 | Z0 links/snippets/QR | live in MVP | none |
@@ -82,10 +85,18 @@ Always resolve a `ZaloSenderProfile`. No code may assume a central OA exists.
 5. Add tests for the processor, idempotency and tenant isolation.
 
 ### Develop against the emulator (default)
-1. Run the stack via the `run-locally` skill. `provider-sink` exposes the Zalo routes, and `zalo.client=emulated` in `.env.local`.
-2. Trigger inbound events from the provider-sink UI or CLI. Inspect outbound sends at `/zalo/outbox`.
-3. Simulate the window clock and error modes (expired token, template not approved, 5xx, >5 s).
-4. Any new `ZaloClient` call gets: an emulator route, a contract test, and a request/response shape in `references/api-notes.md`.
+1. Start the stack, the API and the worker (`DEV_WORKER=1 pnpm dev:api`). `ZALO_CLIENT` defaults to `emulated`.
+2. Connect an OA: Settings → Zalo → Kết nối → the emulator consent page (`/api/v1/dev/zalo-emulator/oauth/permission`) → Allow.
+3. Chat as a customer at `/api/v1/dev/zalo-emulator?oa=<oaId>`. You can also script it: `POST /api/v1/dev/zalo-emulator/events` with `{oaId, userId, event, text?, name?, phone?}` delivers a signed webhook, and `GET …/outbox?oaId&userId` shows what "Zalo" received. Fault injection: `PUT …/faults/:oaId` with `{failNext, expireTokens, refreshFails, quotaExceeded, templateRejected}`.
+4. Any new `ZaloClient` call needs three things: an `EmulatedZaloClient` implementation with Zalo's failure modes, a unit test of the `HttpZaloClient` request shape, and a line in `references/api-notes.md`.
+5. Tests: unit tests next to the code; end to end in `apps/api/src/modules/zalo/zalo.int.test.ts`. Its `drain()` runs the worker inline, and the clock is overridden for `ZaloClock` and `BookingClock`. Stop your dev worker before running integration tests (shared Redis and DB).
+
+### Change the booking bot
+1. The bot is a pure state machine: `domain/bot/engine.ts` plus `types.ts` (steps, `BotPorts`) and `payload.ts` (`gg|…` button payloads, keywords).
+2. Keep at most 5 buttons per message (`MAX_BUTTONS`). Number list items so typing "2" works, and set `items`.
+3. Copy lives in `locales/{vi,en}/zalo.json` under `bot.*`. It speaks as the salon, never mentions GuGu, and never contains URLs.
+4. Data and booking go only through `BotPorts` (`application/bot-ports.ts`, booking engine facade, source `zalo_oa`, idempotent per inbound event key).
+5. Add a case to `engine.test.ts`, and to `zalo.int.test.ts` when the flow changes end to end.
 
 ### Go live on a path
 Follow `docs/runbooks/zalo-go-live.md`: secrets, `zalo.client=http`, domain verification, sender profile, approved templates, flag on. If a code change seems needed, stop and treat it as a ZR bug.

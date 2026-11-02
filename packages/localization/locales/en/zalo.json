@@ -53,5 +53,112 @@
     "bookingNotFound": "We couldn't find this appointment. Please pick an option below.",
     "updateConfirmed": "{{salon}} confirmed booking {{ref}}: {{service}} at {{when}}. See you soon!",
     "updateCancelled": "Sorry, {{salon}} cancelled booking {{ref}} ({{service}}, {{when}}). Message “Book” to pick another time."
+  },
+  "panel": {
+    "title": "Zalo",
+    "settingsTitle": "Zalo Official Account",
+    "intro": "Customers who message the salon's Zalo OA get help booking from an automatic assistant that always speaks as the salon. Staff can take over at any time.",
+    "modeEmulated": "Test mode: using the Zalo emulator, no real messages are sent.",
+    "modeDisabled": "The Zalo integration is not enabled on this server.",
+    "status": {
+      "not_connected": "Not connected",
+      "connected": "Connected",
+      "needs_reauth": "Needs reconnecting",
+      "disconnected": "Disconnected"
+    },
+    "connect": "Connect Zalo OA",
+    "reconnect": "Reconnect",
+    "disconnect": "Disconnect",
+    "disconnectConfirm": "Disconnecting stops all Zalo messages (assistant, reminders). Press again to confirm.",
+    "openEmulator": "Open chat emulator",
+    "ownerOnly": "Only the salon owner can connect Zalo or change its settings.",
+    "bot": "Automatic booking assistant",
+    "botHint": "Answers customers with buttons: service, staff member and free times in the next 7 days. No AI.",
+    "reminder24h": "Reminder 24 hours before",
+    "reminder2h": "Reminder 2 hours before",
+    "paid": "Allow paid messages",
+    "paidHint": "Messages sent 48 hours to 7 days after the customer's last message are charged (about {{price}} each).",
+    "templates": "ZBS templates",
+    "templatesHint": "Template ids Zalo approved for the salon's OA, used when the customer hasn't messaged in 7 days.",
+    "templateConfirmation": "Booking confirmation template",
+    "templateReminder": "Reminder template",
+    "cap": "Monthly template limit",
+    "capHint": "Leave empty to use your plan's limit ({{limit}}).",
+    "unlimited": "unlimited",
+    "usage": "{{month}}",
+    "usageTemplates": "Templates",
+    "usagePaid": "Paid messages",
+    "usageFree": "Free messages",
+    "usageCost": "Estimated cost",
+    "usageRejected": "Not sent",
+    "costNote": "Zalo charges the salon's Zalo wallet; figures here are estimates.",
+    "result": {
+      "connected": "Zalo OA connected.",
+      "denied": "You declined to grant access.",
+      "failed": "Couldn't connect. Please try again.",
+      "oa_in_use": "This OA is already connected to another salon.",
+      "expired": "The connection attempt expired. Please try again.",
+      "plan": "Your current plan doesn't include Zalo."
+    },
+    "save": "Save",
+    "saved": "Saved",
+    "inbox": {
+      "filterAll": "All",
+      "filterNeedsStaff": "Needs staff",
+      "filterUnread": "Unread",
+      "empty": "No conversations yet.",
+      "notConnected": "Connect your Zalo OA in Settings to receive customer messages here.",
+      "goSettings": "Go to Settings",
+      "select": "Pick a conversation to view it.",
+      "back": "Back",
+      "botMode": "Assistant is replying",
+      "staffMode": "Staff is replying",
+      "takeOver": "Take over",
+      "release": "Hand back to assistant",
+      "placeholder": "Type a message…",
+      "send": "Send",
+      "window": {
+        "free": "Within 48 h · free",
+        "paid": "48 h–7 days · paid",
+        "closed": "Over 7 days · can't message"
+      },
+      "unknownCustomer": "Zalo customer",
+      "unfollowed": "Unfollowed",
+      "sender": {
+        "customer": "Customer",
+        "bot": "Assistant",
+        "staff": "Staff",
+        "system": "System"
+      },
+      "kind": {
+        "button": "Tapped a button",
+        "follow": "Followed the OA",
+        "unfollow": "Unfollowed the OA",
+        "user_info": "Shared contact details",
+        "sticker": "Sticker",
+        "image": "Image",
+        "file": "File",
+        "template": "Template message",
+        "other": "Message"
+      },
+      "messageStatus": {
+        "queued": "Sending",
+        "failed": "Failed",
+        "rejected": "Not sent"
+      }
+    },
+    "notifications": {
+      "title": "Needs attention",
+      "none": "Nothing new.",
+      "markAllRead": "Mark all read",
+      "kind": {
+        "handoff_requested": "Customer wants a staff member",
+        "booking_created": "New booking via Zalo",
+        "booking_cancelled": "Customer cancelled via Zalo",
+        "booking_rescheduled": "Customer rescheduled via Zalo",
+        "booking_confirmed": "Customer confirmed they'll come",
+        "connection_needs_reauth": "Zalo OA needs reconnecting"
+      }
+    }
   }
 }

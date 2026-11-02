@@ -102,9 +102,8 @@ describe("Zalo integration (emulator, end to end)", () => {
     const authorize = new URL((start.body as { authorizeUrl: string }).authorizeUrl);
     expect(authorize.pathname).toBe("/api/v1/dev/zalo-emulator/oauth/permission");
     const consent = await http()
-      .post("/api/v1/dev/zalo-emulator/oauth/permission")
-      .type("form")
-      .send({
+      .get("/api/v1/dev/zalo-emulator/oauth/approve")
+      .query({
         redirect_uri: authorize.searchParams.get("redirect_uri"),
         code_challenge: authorize.searchParams.get("code_challenge"),
         state: authorize.searchParams.get("state"),

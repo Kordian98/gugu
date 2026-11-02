@@ -17,7 +17,8 @@
       "resources": "Phòng & thiết bị",
       "reviews": "Đánh giá",
       "insights": "Phân tích & báo cáo",
-      "settings": "Cài đặt"
+      "settings": "Cài đặt",
+      "zalo": "Zalo"
     },
     "today": "Hôm nay",
     "more": "Thêm",
@@ -180,7 +181,10 @@
       "title": "Trước khi tạo lịch hẹn",
       "body": "Anh/chị cần có ít nhất một dịch vụ và giờ làm việc để GuGu kiểm tra giờ trống, tránh trùng lịch."
     },
-    "setupCta": "Thiết lập dịch vụ"
+    "setupCta": "Thiết lập dịch vụ",
+    "zalo": {
+      "title": "Tin nhắn Zalo"
+    }
   },
   "guard": {
     "pendingTitle": "Chờ xác nhận email",
@@ -241,7 +245,12 @@
     "booking_override_not_allowed": "Anh/chị không có quyền đặt ngoài quy định.",
     "booking_not_found": "Không tìm thấy lịch hẹn.",
     "booking_active_limit_reached": "Số điện thoại này đã có nhiều lịch hẹn đang chờ.",
-    "offline_sale_booking_not_completed": "Chỉ ghi số tiền cho lịch hẹn đã hoàn thành."
+    "offline_sale_booking_not_completed": "Chỉ ghi số tiền cho lịch hẹn đã hoàn thành.",
+    "zalo_window_closed": "Đã quá 7 ngày kể từ tin nhắn cuối của khách nên không thể gửi tin tư vấn.",
+    "zalo_paid_messages_off": "Tin nhắn tính phí đang tắt (Cài đặt → Zalo).",
+    "zalo_not_connected": "Salon chưa kết nối Zalo OA.",
+    "zalo_disabled": "Tích hợp Zalo chưa được bật.",
+    "zalo_conversation_not_found": "Không tìm thấy cuộc trò chuyện."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",

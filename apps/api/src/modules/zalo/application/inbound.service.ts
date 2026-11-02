@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { createI18n } from "@gugu/localization";
 import { normalizeVnPhone } from "@gugu/domain";
-import type { Prisma, ZaloConversation } from "../../../infrastructure/prisma/generated/client";
+import { Prisma, type ZaloConversation } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { ZALO_CLIENT, type ZaloClient } from "../client/zalo-client";
 import { runBot } from "../domain/bot/engine";
@@ -242,11 +242,19 @@ export class InboundService {
       throw new Error("zalo conversation belongs to another salon");
     }
     const name = await this.lookupName(salonId, zaloUserId);
-    return this.prisma.zaloConversation.upsert({
-      where: { oaId_zaloUserId: { oaId, zaloUserId } },
-      create: { salonId, oaId, zaloUserId, displayName: name },
-      update: {},
-    });
+    try {
+      return await this.prisma.zaloConversation.create({
+        data: { salonId, oaId, zaloUserId, displayName: name },
+      });
+    } catch (error) {
+      // Two first messages processed in parallel: the other one created it.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return this.prisma.zaloConversation.findUniqueOrThrow({
+          where: { oaId_zaloUserId: { oaId, zaloUserId } },
+        });
+      }
+      throw error;
+    }
   }
 
   private async lookupName(salonId: string, userId: string): Promise<string | null> {

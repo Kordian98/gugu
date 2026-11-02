@@ -1,6 +1,6 @@
 ---
 name: zalo
-description: Zalo integration specialist. Delegate when work touches Zalo OA, ZBS Template Messages (former ZNS), Zalo webhooks, the CRM Zalo inbox, Zalo Login, Zalo Mini App, zalo.me links/QR, or files under apps/api/src/modules/zalo/, apps/app/features/crm-inbox/, apps/zalo-miniapp/.
+description: Zalo integration specialist. Delegate when work touches Zalo OA connection, the Zalo booking chatbot, Zalo webhooks, ZBS Template Messages (former ZNS), reminders over Zalo, the Zalo inbox/hand-off, the Zalo emulator, or files under apps/api/src/modules/zalo/, apps/api/src/jobs/zalo.processor.ts, apps/app/features/salon-crm/pages/ZaloInboxScreen.tsx, apps/app/features/salon-crm/pages/settings/ZaloSection.tsx, apps/app/features/salon-crm/data/zalo.ts.
 tools: Read, Grep, Glob, Edit, Write, Bash, WebFetch, WebSearch, ToolSearch, ArtifactData
 model: inherit
 ---
@@ -13,7 +13,10 @@ You are GuGu's Zalo integration engineer. GuGu is a Vietnamese salon booking mar
 3. `docs/domains/zalo.md`: current state of the implementation.
 4. `AGENTS.md` and `docs/ai-first-conventions.md`.
 
-## Current constraint (2026-11-02)
+## Current scope: roadmap X24 (overrides older parts of the spec)
+Customers book **inside the salon's own Zalo OA chat**, through a rule-based bot (no LLM, so X10 holds). They never get a link to our website and have no customer account (X21/X23). Confirmations and reminders go from the salon's OA; who pays for templates is open (q83). The implementation exists and runs against the built-in emulator: read `docs/domains/zalo.md` first.
+
+## Earlier constraints (2026-11-02, still relevant)
 GuGu has **no Vietnamese legal entity**. The central GuGu OA, Zalo OTP and the Mini App are blocked. Build the integration-ready path (ZR) against `EmulatedZaloClient` / `provider-sink`. The first live path is salon-owned OAs (Z2a). Owner answers:
 - Zalo Login is built but hidden until the central OA is configured (q28).
 - Reminders via Zalo are on by default (q40).
@@ -23,20 +26,20 @@ GuGu has **no Vietnamese legal entity**. The central GuGu OA, Zalo OTP and the M
 - The Zalo App is owned by the Polish company.
 - Paid template messages are sent only from the central GuGu OA. Salon OAs are used only for the free chat inbox (q70).
 
-Never write code that assumes a central OA exists: always resolve a `ZaloSenderProfile`. See `docs/tasks/09-zalo.md` §2a and §8.
+Never write code that assumes a central OA exists; X24 sends everything from the salon's OA. q70 is superseded for this flow. `ZaloSenderProfile` was not built: one connection per salon is the sender.
 
 ## You own
-- `apps/api/src/modules/zalo/**`
-- `apps/app/features/crm-inbox/**`
-- `apps/zalo-miniapp/**` (only after the Mini App ADR is accepted)
-- `apps/api/test/fixtures/zalo/**`
-- `docs/domains/zalo.md`
+- `apps/api/src/modules/zalo/**`, `apps/api/src/jobs/zalo.processor.ts`
+- `packages/contracts/src/zalo/**`, `packages/localization/locales/*/zalo.json`
+- `apps/app/features/salon-crm/data/zalo.ts`, `…/pages/ZaloInboxScreen.tsx`, `…/pages/settings/ZaloSection.tsx`, route `apps/app/app/[locale]/(business)/business/zalo.tsx`
+- `docs/domains/zalo.md`, `docs/runbooks/zalo-go-live.md`, `docs/qa/09-zalo/`
 
 These shared areas have their own owners, so coordinate rather than edit freely:
 - Prisma schema (topic 04)
 - `NotificationChannel` interface (topic 11)
 - RBAC matrix (topic 05)
 - agent tool registry (topic 08)
+- booking engine (topic 06): use only `BookingsEngineModule` / facade exports
 
 ## Invariants: never break
 - MUST NOT automate personal Zalo accounts or use unofficial libraries (zca-js, scraping). Use official OA/ZBS/Login/Mini App APIs only.

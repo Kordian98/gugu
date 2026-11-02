@@ -29,7 +29,7 @@ export function consentPage(q: {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Zalo emulator · Grant access</title><style>${STYLE}</style></head>
 <body><main><h1>Zalo emulator — grant OA access</h1><div class="card">
 <p>A salon is connecting its Zalo Official Account to GuGu Studio. In real Zalo the OA admin signs in and approves here.</p>
-<form method="post" action="permission">${hidden("redirect_uri", q.redirect_uri)}${hidden("code_challenge", q.code_challenge)}${hidden("state", q.state)}
+<form method="get" action="approve">${hidden("redirect_uri", q.redirect_uri)}${hidden("code_challenge", q.code_challenge)}${hidden("state", q.state)}
 <div class="row"><div><label>OA id</label><input name="oa_id" value="${oa}" required></div>
 <div><label>OA name</label><input name="oa_name" value="Lotus Nails OA" required></div></div>
 <button name="decision" value="allow">Allow</button><button class="alt" name="decision" value="deny">Deny</button></form></div></main></body></html>`;
@@ -54,14 +54,15 @@ const mine = [];
 $('uid').value = localStorage.getItem('zemu.uid') || ('u' + Math.random().toString(36).slice(2, 10));
 $('uid').onchange = () => localStorage.setItem('zemu.uid', $('uid').value);
 localStorage.setItem('zemu.uid', $('uid').value);
-async function loadOas(){const oas=await (await fetch(api+'/oas')).json();$('oa').innerHTML=oas.map(o=>'<option value="'+o.oaId+'">'+o.name+' ('+o.oaId+')</option>').join('')||'<option value="">— connect an OA first —</option>';}
+async function loadOas(){const oas=await (await fetch(api+'/oas',{credentials:'omit'})).json();$('oa').innerHTML=oas.map(o=>'<option value="'+o.oaId+'">'+o.name+' ('+o.oaId+')</option>').join('')||'<option value="">— connect an OA first —</option>';
+ const want=new URLSearchParams(location.search).get('oa')||localStorage.getItem('zemu.oa');if(want&&oas.some(o=>o.oaId===want))$('oa').value=want;localStorage.setItem('zemu.oa',$('oa').value);$('oa').onchange=()=>{localStorage.setItem('zemu.oa',$('oa').value);poll();};}
 async function send(event, text){const body={oaId:$('oa').value,userId:$('uid').value,event,name:$('name').value,phone:$('phone').value};if(text!==undefined)body.text=text;
- const r=await fetch(api+'/events',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const j=await r.json();$('status').textContent='webhook → '+j.status;
+ const r=await fetch(api+'/events',{method:'POST',credentials:'omit',headers:{'content-type':'application/json'},body:JSON.stringify(body)});const j=await r.json();$('status').textContent='webhook → '+j.status;
  mine.push({at:new Date().toISOString(),me:true,text: event==='user_send_text'?(text.startsWith('gg|')?'▸ '+(window.lastTitles?.[text]||'button'):text):'['+event+']'});render();setTimeout(poll,600);setTimeout(poll,1600);}
 function sendText(){const t=$('text').value.trim();if(!t)return;$('text').value='';send('user_send_text',t);}
-async function faults(f){await fetch(api+'/faults/'+$('oa').value,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(f)});$('status').textContent='faults: '+JSON.stringify(f);}
+async function faults(f){await fetch(api+'/faults/'+$('oa').value,{method:'PUT',credentials:'omit',headers:{'content-type':'application/json'},body:JSON.stringify(f)});$('status').textContent='faults: '+JSON.stringify(f);}
 let inbox=[];window.lastTitles={};
-async function poll(){if(!$('oa').value)return;inbox=await (await fetch(api+'/outbox?oaId='+encodeURIComponent($('oa').value)+'&userId='+encodeURIComponent($('uid').value))).json();render();}
+async function poll(){if(!$('oa').value)return;inbox=await (await fetch(api+'/outbox?oaId='+encodeURIComponent($('oa').value)+'&userId='+encodeURIComponent($('uid').value),{credentials:'omit'})).json();render();}
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function render(){const items=[...mine,...inbox.map(e=>({...e,me:false}))].sort((a,b)=>a.at<b.at?-1:1);
  $('chat').innerHTML=items.map(e=>{if(e.me)return '<div class="msg me">'+esc(e.text)+'</div>';

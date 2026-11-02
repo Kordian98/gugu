@@ -9,6 +9,7 @@ export type NavItemId =
   | "team"
   | "resources"
   | "reviews"
+  | "zalo"
   | "insights"
   | "settings";
 
@@ -19,7 +20,7 @@ export type NavItem = {
   icon: IconName;
   path: string;
   /** Hidden for members without it (UX only; the API enforces). */
-  permission?: "members.read";
+  permission?: "members.read" | "zalo.inbox.use";
 };
 
 /**
@@ -39,7 +40,13 @@ export const NAV: { id: NavSectionId; items: NavItem[] }[] = [
       { id: "resources", icon: "box", path: "/business/resources" },
     ],
   },
-  { id: "growth", items: [{ id: "reviews", icon: "star", path: "/business/reviews" }] },
+  {
+    id: "growth",
+    items: [
+      { id: "zalo", icon: "chat", path: "/business/zalo", permission: "zalo.inbox.use" },
+      { id: "reviews", icon: "star", path: "/business/reviews" },
+    ],
+  },
   { id: "business", items: [{ id: "insights", icon: "chart", path: "/business/insights" }] },
   { id: "system", items: [{ id: "settings", icon: "settings", path: "/business/settings" }] },
 ];

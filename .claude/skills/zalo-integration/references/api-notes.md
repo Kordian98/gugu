@@ -58,3 +58,23 @@ Items marked (3p) come from third-party SDKs or docs and have not been confirmed
 ## Indicative OA packages (3p, unverified)
 - 2025: Nâng cao 99k VND/month, Premium 399k/month.
 - From 2026-06-01 (per a consultancy): Cơ bản (free for verified OAs), Tiêu chuẩn (~1M/yr), Tăng trưởng (~2.5M/yr), Toàn diện (~6M/yr).
+
+## As implemented (2026-11-02, X24): what the code assumes and must be verified in S-Z1
+- Webhook signature: header `X-ZEvent-Signature: mac=<hex>`, hex = SHA-256(appId + rawBody + timestamp + OA secret key) [3p]. Freshness ±5 min on the payload `timestamp` (ms).
+- Event shapes:
+  - `user_send_*`: `sender.id` = user, `recipient.id` = OA, `message.msg_id`, `message.text`.
+  - `follow` / `unfollow`: `oa_id`, `follower.id`.
+  - `user_submit_info`: `info.{name, phone}`.
+  - `oa_send_*`: the reverse direction (salon replied from OA Manager).
+- A tap on a button with type `oa.query.hide` arrives as `user_send_text` whose text is the payload [3p].
+- Consultation message with buttons: `{ text, attachment: { type: "template", payload: { buttons: [{ title, type: "oa.query.hide", payload }] } } }` [3p].
+- Request-info form: `attachment.payload.template_type = "request_user_info"` with `elements[{title, subtitle}]` [3p].
+- User display name: `GET https://openapi.zalo.me/v3.0/oa/user/detail?data={"user_id":…}` → `data.display_name` [3p].
+- ZBS template send: `POST https://business.openapi.zalo.me/message/template` with `{ phone: "84…", template_id, template_data, tracking_id }` [3p].
+- Error codes mapped in `http-zalo-client.ts` `ERROR_KINDS`. All are [3p] and need checking:
+  - −216 / −124: token invalid
+  - −230 / −232: outside the window
+  - −213: user unreachable
+  - −32: rate limit
+  - −1124: quota
+  - −1131 / −1132: template invalid

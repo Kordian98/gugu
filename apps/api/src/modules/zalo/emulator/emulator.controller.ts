@@ -118,10 +118,14 @@ export class ZaloEmulatorController {
     return consentPage(q);
   }
 
-  @Post("oauth/permission")
+  /**
+   * The OA admin's decision. A GET (dev tool) so the browser's GuGu session cookie never meets
+   * the CSRF check of a POST.
+   */
+  @Get("oauth/approve")
   @Public()
   async approve(
-    @Body({ schema: approveBody }) body: z.infer<typeof approveBody>,
+    @Query({ schema: approveBody }) body: z.infer<typeof approveBody>,
     @Res() res: Response,
   ) {
     const target = new URL(body.redirect_uri);

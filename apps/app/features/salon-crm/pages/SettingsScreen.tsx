@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -12,6 +13,7 @@ import { useWorkspace } from "../data/useWorkspace";
 import { BookingSection, PoliciesSection } from "./settings/BookingSection";
 import { HolidaysSection, HoursSection } from "./settings/HoursSection";
 import { ProfileSection } from "./settings/ProfileSection";
+import { ZaloSection } from "./settings/ZaloSection";
 import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
 import { useThemePreference, type ThemePreference } from "../theme/CrmThemeProvider";
@@ -34,6 +36,8 @@ export function SettingsScreen() {
   const { preference, setPreference } = useThemePreference();
   const locale = useLocale();
   const switchLocale = useSwitchLocale();
+  // `?zalo=<result>` when Zalo's OAuth flow returns here (topic 09).
+  const { zalo } = useLocalSearchParams<{ zalo?: string }>();
   return (
     <ScrollView contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}>
       <PageHeader title={t("pages.settings.title")} workspace={ws} />
@@ -44,6 +48,9 @@ export function SettingsScreen() {
           <BookingSection settings={settings.data} canEdit={can("salon.settings.write")} />
           <HolidaysSection settings={settings.data} canEdit={can("salon.settings.write")} />
           <PoliciesSection settings={settings.data} canEdit={can("salon.settings.write")} />
+          {can("zalo.inbox.use") ? (
+            <ZaloSection canManage={can("integrations.zalo.manage")} result={zalo} />
+          ) : null}
         </View>
       ) : settings.isPending && salonId ? (
         <ActivityIndicator color={c.accent} />
