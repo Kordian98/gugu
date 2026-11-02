@@ -30,7 +30,7 @@ export function PendingSalonsScreen() {
   const next =
     typeof params.next === "string" && /^\/(?!\/)/.test(params.next)
       ? params.next
-      : `/${locale}/me`;
+      : `/${locale}/business`;
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const [error, setError] = useState<string | null>(null);
   const pending = useQuery({

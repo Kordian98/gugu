@@ -25,7 +25,7 @@ const safeNext = (next: unknown): string | undefined =>
  * with a 6-digit code field for native or another device. Apple/Google buttons appear only when the
  * API reports them enabled.
  */
-export function SignInScreen({ mode }: { mode: "signIn" | "signUp" }) {
+export function SignInScreen() {
   const { t } = useTranslation("auth");
   const locale = useLocale();
   const router = useRouter();
@@ -43,7 +43,7 @@ export function SignInScreen({ mode }: { mode: "signIn" | "signUp" }) {
   });
 
   const goNext = (path: string | null) => {
-    router.replace(toHref(path ?? next ?? `/${locale}/me`));
+    router.replace(toHref(path ?? next ?? `/${locale}/business`));
   };
 
   const send = async (address: string) => {
@@ -74,7 +74,7 @@ export function SignInScreen({ mode }: { mode: "signIn" | "signUp" }) {
     try {
       const session = await auth.verify({ email: sentTo, code });
       router.replace(
-        afterSignInHref(session.user, session.redirectPath ?? next ?? `/${locale}/me`),
+        afterSignInHref(session.user, session.redirectPath ?? next ?? `/${locale}/business`),
       );
     } catch (e) {
       setError(authErrorMessage(t, e));
@@ -168,10 +168,10 @@ export function SignInScreen({ mode }: { mode: "signIn" | "signUp" }) {
   return (
     <AuthCard>
       <Text role="display" size={44} lineHeight={48}>
-        {mode === "signUp" ? t("signUp.title") : t("signIn.title")}
+        {t("signIn.title")}
       </Text>
       <Text size={16} color={color.body}>
-        {mode === "signUp" ? t("signUp.subtitle") : t("signIn.subtitle")}
+        {t("signIn.subtitle")}
       </Text>
       <TextField
         label={t("signIn.emailLabel")}

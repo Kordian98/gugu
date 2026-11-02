@@ -44,7 +44,7 @@ describe("auth: magic link, sessions, CSRF (integration)", () => {
     const email = testEmail("web");
     await requestLink(email);
     const mail = await waitForMail(email);
-    expect(mail.subject).toBe("Link đăng nhập GuGu của bạn");
+    expect(mail.subject).toBe("Link đăng nhập GuGu Studio của bạn");
     const { token, url } = extractMagicLink(mail);
     expect(url).toContain("/vi/auth/verify?token=");
 
@@ -57,6 +57,8 @@ describe("auth: magic link, sessions, CSRF (integration)", () => {
     expect(session.redirectPath).toBe("/vi/me");
     expect(session.user.email).toBe(email);
     expect(session.user.emailVerified).toBe(true);
+    // X21/X23: users are salon staff/owners; no customer record is created on sign-up.
+    expect(await prisma.customer.count({ where: { userId: session.user.id } })).toBe(0);
     const cookie = res.headers["set-cookie"]?.[0] ?? "";
     expect(cookie).toMatch(/^gugu_session=/);
     expect(cookie).toMatch(/HttpOnly/i);
@@ -100,7 +102,7 @@ describe("auth: magic link, sessions, CSRF (integration)", () => {
     const email = testEmail("native");
     await requestLink(email, "native", "en");
     const mail = await waitForMail(email);
-    expect(mail.subject).toBe("Your GuGu sign-in link");
+    expect(mail.subject).toBe("Your GuGu Studio sign-in link");
     const { code } = extractMagicLink(mail);
 
     const res = await request(http(app))

@@ -14,7 +14,8 @@ export class AccountsService {
 
   /**
    * Finds or creates the user for an email whose control was just proven (magic link or a
-   * provider-verified email). New users get a profile and a customer record.
+   * provider-verified email). New users get a profile. No `customers` row: customers never have
+   * accounts (X21/X23); salon members are the only users.
    */
   async upsertVerifiedByEmail(email: string, locale: Locale, db: Db): Promise<User> {
     const now = new Date();
@@ -33,7 +34,6 @@ export class AccountsService {
         lastLoginAt: now,
         preferredLocale: locale,
         profile: { create: {} },
-        customer: { create: {} },
       },
     });
   }
@@ -50,7 +50,6 @@ export class AccountsService {
         email,
         preferredLocale: locale,
         profile: { create: {} },
-        customer: { create: {} },
       },
     });
   }
