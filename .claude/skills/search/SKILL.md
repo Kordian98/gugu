@@ -1,9 +1,11 @@
 ---
 name: search
-description: Rules and procedures for GuGu marketplace search — the salon_search read model, Vietnamese diacritic-insensitive text search (unaccent + pg_trgm + FTS), PostGIS radius/bbox queries, filters, sorting, autosuggest, ranking and performance checks. Use when editing apps/api/src/modules/search/**, the search projector, search-related migrations, or apps/app/features/search/**.
+description: DEFERRED (owner decisions X21/X23 — no search or listings on gugu.vn until the marketplace exists after a Vietnamese company). Rules and procedures for future GuGu marketplace search — the salon_search read model, Vietnamese diacritic-insensitive text search (unaccent + pg_trgm + FTS), PostGIS radius/bbox queries, filters, sorting, autosuggest, ranking and performance checks. Use when editing apps/api/src/modules/search/**, the search projector, search-related migrations, or apps/app/features/search/**.
 ---
 
 # Search
+
+> **DEFERRED — do not implement.** Owner decisions X21/X23: gugu.vn has no search, directory or salon listing. This skill is kept for the future marketplace (spec Appendix C). Salon-internal client search in the CRM belongs to the `salon-crm` skill, not this one.
 
 Search is served by the NestJS `search` module from a denormalised PostgreSQL read model `salon_search` (one row per published salon), kept fresh by BullMQ projector jobs. The module exposes a `SearchIndex` port so an external engine can replace Postgres later. Spec: `docs/tasks/10-marketplace-seo.md` §3.4, §4.2.
 

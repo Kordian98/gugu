@@ -1,57 +1,39 @@
-# Marketplace & SEO (domain doc)
+# Marketing site & SEO (domain doc)
 
-The public, unauthenticated side of GuGu: discovery (home, category and location hubs, search), salon and service pages, and everything that makes them findable (SSR, metadata, structured data, sitemaps) and shareable. Read this before working on public routes or search. Task spec: `docs/tasks/10-marketplace-seo.md`. Agent: `.claude/agents/marketplace-seo.md`. Skills: `seo-page`, `search`.
+The public face of gugu.vn: **GuGu Studio's own marketing pages** for salon owners (landing, features, pricing, marketplace announcement, FAQ, legal) and everything that makes them findable (SSR, metadata, structured data, sitemap, robots, llms.txt). Read this before touching public web routes. Task spec: `docs/tasks/10-marketplace-seo.md`. Agent: `.claude/agents/marketplace-seo.md`. Skill: `seo-page`.
 
-> Status: skeleton — sections marked TODO are filled in as code lands.
+> Status: skeleton. TODO sections get filled in as code lands.
+
+## What gugu.vn does NOT show (owner decisions X21, X23)
+- No salon pages, profiles, booking pages, availability widgets or custom-domain booking sites. These are **blocked pending Vietnamese legal review / VN company** (spec Appendix B; custom-domain notes in `.claude/skills/seo-page/references/custom-domain.md`).
+- No search, directory, category/location hubs or salon listings. The marketplace comes **later, after a Vietnamese company** (spec Appendix C; skill `search` is deferred).
+- No salon or customer data in pages, JSON-LD, sitemap, llms.txt or OG images.
 
 ## Rendering model
-- Expo Router, `web.output: "server"` (SDK ≥ 58). Public routes: `loader` + `generateMetadata`, CDN-cached. Authenticated routes: client-only shell, `noindex`, private cache.
-- Fallback (if S1 spike fails): static output + `generateStaticParams` rebuilt on publish. Decision: TODO (ADR link).
+Expo Router, `web.output: "server"` (SDK ≥ 58) unless the S1 spike chooses static for the whole web app. Marketing routes are server-rendered and long-cached. App/auth routes are client-only, `noindex` and use a private cache. Decision: TODO (ADR link).
 
-## URL scheme
+## Routes
 | Page | Path |
 |---|---|
-| Home | `/{locale}` |
-| Category | `/{locale}/c/{category}` |
-| Category × place | `/{locale}/c/{category}/{province}[/{commune}]` |
-| Location hub | `/{locale}/l/{province}` |
-| Search | `/{locale}/search?q=&...` |
-| Salon | `/{locale}/salon/{slug}` |
-| Service | `/{locale}/salon/{slug}/services/{serviceSlug}` |
-| Short link | `/s/{shortId}` |
-Slug rules and redirects: see skill `seo-page`.
-
-## Homepage
-Reference: `design/hero-references/ref-01-homepage-lilac-diorama.png` (+ README by topic 02). Blocks, mobile order, SSR vs client split and the search card → URL mapping are in spec §3.3. Home HTML is cached per (locale, city).
-
-## Hosting
-AWS ap-southeast-1 (Singapore): SSR Node container next to the API, with Cloudflare or CloudFront in front (final call: topic 13). Auth cookies are never part of public cache keys.
-
-## Location model
-Two-tier since 2025-07-01: province (34) → commune (xã/phường/đặc khu). Legacy districts and old provinces are `LocationAlias` rows. Locations are versioned (`valid_from`, `valid_to`, `replaced_by`). TODO: dataset source + seed script path.
-Area labels: `{neighbourhood | ward short}, {province short}` + optional legacy chip ("Q.1 cũ" / "former D1"), precomputed in `salon_search` (spec §3.6.1). Never "District N" as the primary label.
-
-## Search read model
-`salon_search` — TODO: column list, indexes, projector events, ranking weights (with change log).
+| Landing | `/{locale}` |
+| Features | `/{locale}/features`, `/{locale}/features/{feature}` |
+| Pricing | `/{locale}/pricing` |
+| Marketplace announcement | `/{locale}/marketplace` (X19 promise + X20 disclaimer) |
+| FAQ, About, Contact | `/{locale}/faq`, `/about`, `/contact` |
+| Legal | `/{locale}/legal/{terms|privacy|cookies}` |
+Reserved for the future (do not reuse): `/{locale}/salon/*`, `/{locale}/c/*`, `/{locale}/l/*`, `/{locale}/search`, `/s/*`, single-segment salon slugs.
 
 ## Invariants
-- No personal data in cached public HTML.
-- Diacritic-insensitive search via shared normaliser (SQL + JS parity).
-- Availability filters use the summary from the booking engine; exact slots only via booking API.
-- Only published, non-suspended salons and public staff are exposed.
-- Sponsored results are labelled.
+- Only `(marketing)` routes are indexable and in the sitemap.
+- Copy shows only in-scope features; no invented stats or testimonials; no legal-compliance claims; disclaimer on marketplace content.
+- The landing story ends with an in-app Zalo/email message to a customer, never a GuGu booking page.
+- Light theme only (X18). All strings in the `marketing` namespace.
 
 ## File map
-TODO: routes, features, API module, projector, SEO API routes, JSON-LD builders.
+TODO: `(marketing)` routes, `features/marketing/content/*`, metadata/JSON-LD helpers, SEO API routes, OG template.
 
 ## Product AI-agent tools
-`marketplace.search_salons`, `marketplace.get_salon_profile`, `marketplace.list_services`, `marketplace.suggest`, `marketplace.resolve_location`, `marketplace.get_availability_summary` — all read-only, public data. Schemas: TODO (`packages/agent-tools`).
-
-## Maps & geocoding
-OSM only (owner q26): MapLibre (web + native), self-hosted Protomaps PMTiles (OpenFreeMap in dev), Photon (autocomplete) + Nominatim (reverse) self-hosted behind `GeocoderPort`. Owner-confirmed pin is the source of truth; province/commune always from our Location tables. Attribution "© OpenStreetMap contributors" required.
-
-## Owner decisions
-Nationwide index, HCMC first; legacy district names in titles; AI crawlers allowed; aggregateRating + promoted listings at launch; light theme only on public/customer screens (X18); instant booking by default; saved-spots = favourites + bookings (30 d) with labelled editor's picks. Full table: spec §10.
+None (no tenant data). Deferred marketplace tools: spec Appendix C §9.
 
 ## ADRs
-TODO: expo-server-output, postgres-search-vietnamese, two-tier-location-model, map-provider.
+TODO: expo-web-output (S1). Parked: postgres-search-vietnamese, two-tier-location-model, map-provider (OSM), custom-domains.
