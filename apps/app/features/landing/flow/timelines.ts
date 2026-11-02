@@ -17,7 +17,7 @@ export function scrollParent(el: HTMLElement | null): Element {
 }
 
 /** Scrubbed timeline over a sticky track (0..1 = track top at viewport top .. track bottom at bottom). */
-export function trackTimeline(trigger: HTMLElement, scrub = 0.5): TL {
+export function trackTimeline(trigger: HTMLElement, scrub = 0.5, snap?: number[]): TL {
   return gsap.timeline({
     defaults: { ease: "power2.out", duration: 0.02 },
     scrollTrigger: {
@@ -27,6 +27,19 @@ export function trackTimeline(trigger: HTMLElement, scrub = 0.5): TL {
       end: "bottom bottom",
       scrub,
       invalidateOnRefresh: true,
+      // Chapter snapping: one wheel tick / swipe plays the whole transition to the next scene.
+      ...(snap
+        ? {
+            snap: {
+              snapTo: snap,
+              directional: true,
+              delay: 0.02,
+              duration: { min: 0.9, max: 2.2 },
+              ease: "power1.inOut",
+              inertia: false,
+            },
+          }
+        : {}),
     },
   });
 }
@@ -57,6 +70,9 @@ const PH = {
   office: 0.87,
 } as const;
 
+/** Scenes the scroll snaps to: hero · front desk (built) · calm · treatment area · back office. */
+const STOPS = [0, 0.335, 0.445, 0.7, 1];
+
 /** Which walk frame to show at journey time t. */
 function frameAt(t: number): [Segment, number] {
   const lin = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
@@ -76,7 +92,7 @@ type Videos = { stress: HTMLVideoElement | null; calm: HTMLVideoElement | null }
  * smoothed timeline time; everything else is transform/opacity.
  */
 export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Videos) {
-  const tl = trackTimeline(root, 0.5);
+  const tl = trackTimeline(root, 0.35, STOPS);
   const frame = q(".jr-frame")[0] as HTMLElement | undefined;
   const media = q(".jr-media")[0] as HTMLElement | undefined;
   const mobile = player.mobile;

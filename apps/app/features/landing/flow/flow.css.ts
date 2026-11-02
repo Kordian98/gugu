@@ -19,7 +19,7 @@ export const FLOW_CSS = `
 .lyr{position:absolute;will-change:transform,opacity}
 
 /* journey: ONE sticky full-screen stage (hero door portal → walk → desk → rooms) */
-.jr{position:relative;height:1000vh}
+.jr{position:relative;height:700vh}
 .jr-stage{position:sticky;top:0;height:100vh;width:100%;overflow:hidden;contain:layout paint;background:${color.canvas}}
 .jr-hero{position:absolute;left:0;top:0;bottom:0;width:52vw;display:flex;align-items:center;padding:96px var(--g) 40px;box-sizing:border-box;z-index:3;will-change:transform,opacity}
 .jr-hero>*{flex:1 1 auto;min-width:0;width:100%}
@@ -59,7 +59,7 @@ export const FLOW_CSS = `
 .pn-gi i{flex:0 0 26px;height:26px;border-radius:50%;background:${color.lilac500};color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:13px}
 .jr-foot{position:absolute;left:var(--g);bottom:2.6vh;font-family:${font.ui};font-size:11.5px;color:${color.muted};opacity:0}
 @media (max-width:899px){
-  .jr{height:900vh}
+  .jr{height:650vh}
   .jr-hero{width:100%;bottom:auto;height:58vh;align-items:flex-end;padding:84px 16px 14px}
   .jr-light{background:linear-gradient(180deg,rgba(253,250,247,.97),rgba(253,250,247,.88) 36%,rgba(253,250,247,0) 58%)}
   .jr-pain{left:16px;right:16px;width:auto;top:74px;bottom:auto;justify-content:flex-start;gap:8px}
