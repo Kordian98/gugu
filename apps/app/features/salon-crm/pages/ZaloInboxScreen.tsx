@@ -78,7 +78,14 @@ export function ZaloInboxScreen() {
   const showList = wide || !selected;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}>
+    <ScrollView
+      contentContainerStyle={{
+        padding: bp === "mobile" ? 16 : 28,
+        // Room for the floating assistant button so the reply box is never covered.
+        paddingBottom: 120,
+        gap: 20,
+      }}
+    >
       <PageHeader title={t("crm:pages.zalo.title")} workspace={ws} />
       {connection.isPending ? <ActivityIndicator color={c.accent} /> : null}
       {connection.data && !connected ? (
@@ -238,27 +245,27 @@ function WaitingRow({
   const { t } = useTranslation("zalo");
   const locale = useLocale();
   return (
-    <Pressable
+    <View
       testID={`zalo-waiting-${item.conversationId}`}
-      accessibilityRole="button"
-      onPress={onOpen}
       style={{ gap: 6, padding: 10, borderRadius: 12, backgroundColor: c.surfaceMuted }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <Text role="uiSemiBold" size={14} color={c.ink} style={{ flex: 1 }}>
-          {item.displayName ?? t("panel.inbox.unknownCustomer")}
-        </Text>
-        {item.since ? (
-          <Text size={12} color={c.muted}>
-            {t("panel.inbox.waitingSince", { time: timeOf(item.since, locale) })}
+      <Pressable accessibilityRole="button" onPress={onOpen} style={{ gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <Text role="uiSemiBold" size={14} color={c.ink} style={{ flex: 1 }}>
+            {item.displayName ?? t("panel.inbox.unknownCustomer")}
           </Text>
-        ) : null}
-      </View>
-      {item.lastMessages.map((m) => (
-        <Text key={m.createdAt} size={13} color={c.body} numberOfLines={2}>
-          {m.text ?? t(`panel.inbox.kind.${kindOf(m.kind)}`)}
-        </Text>
-      ))}
+          {item.since ? (
+            <Text size={12} color={c.muted}>
+              {t("panel.inbox.waitingSince", { time: timeOf(item.since, locale) })}
+            </Text>
+          ) : null}
+        </View>
+        {item.lastMessages.map((m) => (
+          <Text key={m.createdAt} size={13} color={c.body} numberOfLines={2}>
+            {m.text ?? t(`panel.inbox.kind.${kindOf(m.kind)}`)}
+          </Text>
+        ))}
+      </Pressable>
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
         <CalmButton size="sm" icon="chat" label={t("panel.inbox.reply")} onPress={onOpen} />
         {!item.assigned ? (
@@ -276,7 +283,7 @@ function WaitingRow({
           onPress={onRelease}
         />
       </View>
-    </Pressable>
+    </View>
   );
 }
 
