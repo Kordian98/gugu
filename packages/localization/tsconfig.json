@@ -1,0 +1,7 @@
+{
+  "extends": "@gugu/config/tsconfig.library.json",
+  "compilerOptions": {
+    "resolveJsonModule": true
+  },
+  "include": ["src", "locales", "*.config.ts"]
+}

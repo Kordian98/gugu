@@ -2,6 +2,10 @@
 
 Final logo and icon delivered by the product owner (2026-11-02; wordmark confirmed final, q50). This file says which file to use where, how much space it needs, and how platform icons are derived. Design-system code renders these SVGs verbatim via `Logo` / `LogoMark`; never redraw or retype the wordmark.
 
+## Safari fix (2026-11-02)
+
+The delivered SVGs cut the "g" counters with `<mask id="knockout">` (`maskContentUnits="userSpaceOnUse"`), which Safari/WebKit renders as black holes. The files at the paths above are **mask-free equivalents**: each hole subpath is merged into the letter path that contains it as a compound path with `fill-rule="evenodd"`; viewBox and colours are unchanged. Chrome renders them pixel-identical to the originals (max channel difference 1). The owner's originals are kept untouched in `original/`. The Expo app uses these SVGs through `@gugu/design-system` `Logo` (react-native-svg `SvgXml`, generated into `packages/design-system/src/brand/logoXml.ts`).
+
 ## Files
 
 | File | Content | Colors | Use on |

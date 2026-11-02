@@ -1,0 +1,68 @@
+{
+  "home": {
+    "hero": {
+      "eyebrow": "Đẹp hơn mỗi ngày",
+      "titleStart": "Kỷ nguyên đẹp của bạn\nbắt đầu",
+      "titleAccent": "từ đây.",
+      "subtitleStart": "Tìm ",
+      "subtitleBold": "salon “ruột” mới",
+      "subtitleEnd": ", đặt lịch trong vài giây và toả sáng theo cách của bạn.",
+      "exploreCta": "Tìm salon ngay",
+      "proCta": "Đăng ký salon của bạn",
+      "scroll": "Cuộn\nđể khám phá"
+    },
+    "trust": {
+      "verified": "Chuyên viên\nđã xác minh",
+      "easy": "Đặt lịch\ndễ dàng",
+      "reviews": "Đánh giá\nthật"
+    },
+    "accent": {
+      "selfLove": "Yêu\nbản thân\nnhiều hơn ♡",
+      "goodBeauty": "Đẹp\nhơn ♡\nmỗi ngày",
+      "pillar": "Sống\nđẹp\nmỗi\nngày\nnhé\n♡"
+    },
+    "sign": {
+      "lives": "Vẻ đẹp\nở nơi\nnày",
+      "hair": "Tóc",
+      "skin": "Chăm\nda"
+    },
+    "search": {
+      "tabBook": "Đặt lịch",
+      "tabFind": "Tìm salon",
+      "location": "TP. Hồ Chí Minh",
+      "service": "Vẽ móng",
+      "when": "Hôm nay",
+      "cta": "Tìm glow của tôi"
+    },
+    "categories": {
+      "nails": "Nail",
+      "hair": "Tóc",
+      "skin": "Da mặt",
+      "brows": "Chân mày",
+      "lashes": "Mi",
+      "massage": "Massage"
+    },
+    "proof": {
+      "count": "10K +",
+      "quoteBold": "“ Chăm sóc",
+      "quoteMid": "bản thân",
+      "quoteEnd": "đẹp lắm đó ”"
+    },
+    "spots": {
+      "eyebrow": "Người thật. Chỗ xịn.",
+      "title": "Những chỗ ai cũng lưu",
+      "viewAll": "Xem tất cả salon",
+      "from": "Từ {{price}}",
+      "book": "Đặt lịch",
+      "demo": "Demo"
+    },
+    "glow": {
+      "eyebrow": "Hơn cả một liệu trình",
+      "titleStart": "Màn lột xác",
+      "titleAccent": "tiếp theo.",
+      "card1": "Diện mạo\nmới,\nvui hơn",
+      "card2": "Đẹp\nhơn\nmỗi ngày",
+      "card3": "Mỗi người\nmột vẻ,\ncùng\ntoả sáng ♡"
+    }
+  }
+}

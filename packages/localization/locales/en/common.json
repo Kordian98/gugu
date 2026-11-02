@@ -1,0 +1,27 @@
+{
+  "nav": {
+    "discover": "Discover",
+    "services": "Beauty services",
+    "pros": "For professionals",
+    "signIn": "Sign in",
+    "getStarted": "Get started"
+  },
+  "language": {
+    "switchTo": "VI",
+    "current": "English"
+  },
+  "comingSoon": {
+    "eyebrow": "Coming soon",
+    "body": "We're still polishing this page. Check back soon!",
+    "back": "Back to home",
+    "search": "Search salons",
+    "category": "Category: {{name}}",
+    "salon": "Salon: {{name}}",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "businessJoin": "List your salon on GuGu"
+  },
+  "demo": {
+    "notice": "Demo data"
+  }
+}
