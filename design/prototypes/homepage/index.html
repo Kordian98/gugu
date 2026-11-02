@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>GuGu — Your beauty era starts here</title>
+<meta name="description" content="GuGu homepage prototype: 1:1 replica of reference ref-01 (Lilac Glow). Demo data.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/gugu-icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Noto+Serif+Display:ital,wdth,wght@0,62.5..100,100..900;1,62.5..100,100..900&family=Patrick+Hand&family=Barlow+Condensed:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="image" type="image/avif" href="assets/diorama-1400.avif" imagesrcset="assets/diorama-900.avif 900w, assets/diorama-1400.avif 1400w, assets/diorama-2000.avif 2000w" imagesizes="(min-width: 900px) 68vw, 150vw">
+<script>
+  (function () {
+    var l = null;
+    try { l = localStorage.getItem("gugu-locale"); } catch (e) {}
+    var q = new URLSearchParams(location.search).get("lang");
+    if (q === "en" || q === "vi") l = q;
+    if (l === "en" || l === "vi") document.documentElement.lang = l;
+  })();
+</script>
+<style>
+/* Light theme only on public surfaces (X18). Desktop geometry is in ref-01 pixels (2048 wide) × --u. */
+:root {
+  color-scheme: light;
+  --u: calc(min(100vw, 2048px) / 2048);
+  --bg: #FDFAF7; --ink: #221024; --ink-2: #3B2237; --body: #5E4659; --muted: #7A6A80;
+  --lilac: #A98BEB; --lilac-eyebrow: #855AA1; --tile: #F7F2EE;
+  --line: #EEE6E4; --pink-script: #F2A0C2; --star: #F0A93B;
+  --glow-here: linear-gradient(90deg, #A68CF6 0%, #C99BEA 40%, #FD909F 100%);
+  --glow-up: linear-gradient(90deg, #6F55C9 0%, #B58BEA 35%, #F69BB3 70%, #F8A27C 100%);
+  --font-ui: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Noto Serif Display", "Playfair Display", Georgia, serif;
+  --font-script: "Patrick Hand", "Comic Neue", cursive;  /* print handwriting with full Vietnamese; matches ref-01 accents */
+  --shadow-card: 0 calc(18 * var(--u)) calc(50 * var(--u)) rgba(42, 20, 38, .10);
+  --shadow-soft: 0 calc(8 * var(--u)) calc(28 * var(--u)) rgba(42, 20, 38, .07);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); }
+body { color: var(--body); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+img, video { display: block; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--lilac); outline-offset: 3px; }
+[hidden] { display: none !important; }
+/* EN uses reference pixels for illustrated lettering; VI swaps in live text. */
+html[lang="vi"] .en-only { display: none !important; }
+html[lang="en"] .vi-only { display: none !important; }
+
+/* ========== Desktop artboard ========== */
+.art { position: relative; width: calc(2048 * var(--u)); height: calc(2100 * var(--u)); margin: 0 auto; }
+.abs { position: absolute; }
+[style*="--x"] { left: calc(var(--x) * var(--u)); }
+[style*="--y"] { top: calc(var(--y) * var(--u)); }
+[style*="--w"] { width: calc(var(--w) * var(--u)); }
+[style*="--h"] { height: calc(var(--h) * var(--u)); }
+
+.wash { position: absolute; border-radius: 50%; pointer-events: none; left: calc(var(--x) * var(--u)); top: calc(var(--y) * var(--u)); width: calc(var(--w) * var(--u)); height: calc(var(--h) * var(--u)); }
+.wash.l1 { --x: -140; --y: 520; --w: 260; --h: 300; background: radial-gradient(closest-side, rgba(196, 170, 245, .75), rgba(196, 170, 245, 0)); }
+.wash.l2 { --x: -80; --y: 200; --w: 200; --h: 220; background: radial-gradient(closest-side, rgba(247, 190, 205, .55), rgba(247, 190, 205, 0)); }
+.wash.b1 { --x: 1720; --y: 1080; --w: 520; --h: 360; background: radial-gradient(closest-side, rgba(214, 196, 250, .55), rgba(214, 196, 250, 0)); }
+.wash.b2 { --x: -200; --y: 1880; --w: 700; --h: 420; background: radial-gradient(closest-side, rgba(250, 205, 215, .65), rgba(250, 205, 215, 0)); }
+.wash.b3 { --x: 600; --y: 860; --w: 1500; --h: 220; background: radial-gradient(closest-side, rgba(246, 210, 222, .45), rgba(246, 210, 222, 0)); }
+
+/* Diorama */
+.diorama .media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 6%), linear-gradient(to top, transparent 0, #000 9%);
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+  mask-image: linear-gradient(to right, transparent 0, #000 6%), linear-gradient(to top, transparent 0, #000 9%); }
+.diorama video { opacity: 0; transition: opacity 700ms ease; }
+.diorama video.ready { opacity: 1; }
+.overlay { position: absolute; pointer-events: none; }
+.overlay > img { width: 100%; height: 100%; }
+.mult { mix-blend-mode: multiply; }
+@keyframes flicker { 0%, 47%, 49%, 52%, 100% { opacity: 1; } 48% { opacity: .55; } 51% { opacity: .7; } }
+.logo-ov { position: absolute; pointer-events: none; filter: drop-shadow(0 0 calc(5 * var(--u)) rgba(255, 220, 235, .95)) drop-shadow(0 0 calc(14 * var(--u)) rgba(246, 184, 204, .7)); }
+.logo-ov img { width: 100%; height: auto; }
+.logo-ov.wall { transform: translateY(-50%) skewY(-22deg); }
+.logo-ov.desk { transform-origin: 0 50%; transform: translateY(-50%) skewY(19deg) scaleX(.9); opacity: .92; filter: brightness(0) invert(1) drop-shadow(0 0 calc(2 * var(--u)) rgba(255, 255, 255, .9)) drop-shadow(0 0 calc(9 * var(--u)) rgba(255, 190, 212, .75)); }
+/* Signage: live text; skewY matches the isometric wall planes. Generous line boxes so diacritics/descenders never clip. */
+.sg { position: absolute; white-space: nowrap; pointer-events: none; transform-origin: 0 0; transform: skewY(var(--sk, 0deg)); font-size: calc(var(--fs) * var(--u)); line-height: calc(var(--lh) * var(--u)); overflow: visible; }
+.sg.neon { font-family: "Barlow Condensed", var(--font-ui); font-weight: 400; letter-spacing: .07em; text-transform: uppercase; color: #FFE6F0;
+  text-shadow: 0 0 calc(1 * var(--u)) #fff, 0 0 calc(4 * var(--u)) #FF9CC6, 0 0 calc(9 * var(--u)) #F57DB2, 0 0 calc(18 * var(--u)) rgba(240, 120, 170, .75); animation: flicker 7s infinite; }
+.sg.neon.wallsign { text-align: right; }
+.sg .hrt-n { position: absolute; right: calc(-40 * var(--u)); bottom: calc(-2 * var(--u)); font-style: normal; font-size: 1.15em; }
+.sg .hrt-i { font-style: normal; font-size: 1.25em; }
+.sg.neon.n4 { color: #FFCFE2; }
+.sg.neon.n2 { animation-delay: -2.3s; } .sg.neon.n3 { animation-delay: -4.1s; } .sg.neon.n4 { animation-delay: -5.6s; }
+.sg.hand { font-family: var(--font-script); font-weight: 400; transform-origin: 0 0; }
+.sg.hand.pink { color: #F29BBF; }
+.sg.hand.pillar { color: #2E1C3E; text-transform: uppercase; letter-spacing: .05em; }
+html[lang="vi"] .sg.hand.pillar { width: calc(96 * var(--u)); text-align: center; }
+.sign { position: absolute; pointer-events: none; transform: rotate(var(--r, 0deg)); font-size: calc(var(--fs) * var(--u)); white-space: nowrap; overflow: visible; }
+.sign.hand { font-family: var(--font-script); font-weight: 400; line-height: 1.2; padding: .25em .3em .4em; }
+.sign.hand.pink { color: #F29BBF; }
+.sign.hand.ink { color: #2A1426; left: calc(var(--x) * var(--u)); top: calc(var(--y) * var(--u)); transform-origin: left top; line-height: 1.1; }
+/* Handwritten draw-on ("More Self Love Please"): outline stroke is drawn line by line, then the ink fills in. */
+.selflove .hw { position: absolute; left: 0; top: calc(4 * var(--u)); width: calc(300 * var(--u)); height: auto; overflow: visible; }
+.hw text { font-family: var(--font-script); font-size: 33px; fill: #F29BBF; fill-opacity: 0; stroke: #F29BBF; stroke-width: .9; stroke-linejoin: round;
+  stroke-dasharray: 1400; stroke-dashoffset: 1400;
+  animation: hw-stroke 1.25s cubic-bezier(.45, 0, .3, 1) forwards, hw-fill .55s ease forwards;
+  animation-delay: calc(var(--i) * 1.05s + .5s), calc(var(--i) * 1.05s + 1.25s); }
+.hw-heart { fill: none; stroke: #F29BBF; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 80; stroke-dashoffset: 80;
+  animation: hw-stroke .9s cubic-bezier(.45, 0, .3, 1) forwards; animation-delay: calc(var(--i) * 1.05s + .2s); }
+@keyframes hw-stroke { to { stroke-dashoffset: 0; } }
+@keyframes hw-fill { to { fill-opacity: 1; stroke-opacity: .35; } }
+.hh { display: inline-block; width: 1.05em; height: 1em; vertical-align: -0.12em; overflow: visible; }
+.hh path { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sg.neon .hh path { stroke-width: 1.5; filter: drop-shadow(0 0 1px #fff); }
+/* Floating props (parallax + bob) */
+.prop { position: absolute; pointer-events: none; transform: translate3d(calc(var(--px, 0) * var(--d) * var(--u)), calc(var(--py, 0) * var(--d) * var(--u)), 0); transition: transform 300ms ease-out; z-index: 2; }
+.prop > img:first-child { width: 100%; height: auto; animation: bob 5.5s ease-in-out infinite; filter: drop-shadow(0 calc(18 * var(--u)) calc(22 * var(--u)) rgba(169, 139, 235, .30)); }
+.prop.perfume > img:first-child { animation-duration: 6.4s; animation-delay: -1.8s; }
+.prop.heart > img:first-child { animation-duration: 6s; animation-delay: -3s; }
+@keyframes bob { 0%, 100% { translate: 0 0; rotate: -3deg; } 50% { translate: 0 calc(-12 * var(--u)); rotate: 3deg; } }
+
+/* Nav */
+.nav-pill { border-radius: calc(40 * var(--u)); background: rgba(255, 255, 255, .86); box-shadow: 0 calc(4 * var(--u)) calc(30 * var(--u)) rgba(42, 20, 38, .05); backdrop-filter: blur(8px); z-index: 4; }
+.nav-logo { z-index: 5; }
+.nav-logo img { height: 100%; width: auto; }
+.nav-link { font-size: calc(18 * var(--u)); font-weight: 500; color: var(--ink); top: calc(45 * var(--u)); white-space: nowrap; z-index: 5; }
+.nav-link:hover { color: #7B5CCB; }
+.nav-actions { position: absolute; right: calc(173 * var(--u)); top: calc(26 * var(--u)); height: calc(56 * var(--u)); display: flex; align-items: center; gap: calc(16 * var(--u)); z-index: 5; }
+.btn-circle { width: calc(56 * var(--u)); height: calc(56 * var(--u)); flex: 0 0 auto; border-radius: 50%; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; color: var(--ink); }
+.lang-btn { font-size: calc(15 * var(--u)); font-weight: 600; letter-spacing: .04em; }
+.lang-btn:hover, .btn-circle:hover { border-color: var(--lilac); }
+.btn-signin { height: calc(56 * var(--u)); padding: 0 calc(22 * var(--u)); border-radius: calc(28 * var(--u)); font-size: calc(19 * var(--u)); font-weight: 500; }
+.btn-start { height: calc(56 * var(--u)); padding: 0 calc(30 * var(--u)); border-radius: calc(28 * var(--u)); font-size: calc(20 * var(--u)); font-weight: 600; }
+.btn-circle svg { width: calc(22 * var(--u)); height: calc(22 * var(--u)); }
+.pill { display: inline-flex; align-items: center; justify-content: center; gap: calc(10 * var(--u)); white-space: nowrap; transition: transform 160ms ease, box-shadow 200ms ease; z-index: 5; }
+.pill:active { transform: scale(.98); }
+.pill-out { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+.pill-ink { background: linear-gradient(180deg, #2E1830, #1F0E21); color: #fff; box-shadow: 0 calc(10 * var(--u)) calc(24 * var(--u)) rgba(34, 16, 36, .22); }
+.pill-ink:hover { box-shadow: 0 calc(14 * var(--u)) calc(30 * var(--u)) rgba(34, 16, 36, .3); }
+.pill .arr { display: inline-block; transition: transform 200ms cubic-bezier(.3, 0, 0, 1.3); }
+.pill:hover .arr { transform: translateX(calc(4 * var(--u))); }
+
+/* Hero copy */
+.eyebrow { font-size: calc(14.5 * var(--u)); font-weight: 500; letter-spacing: .3em; text-transform: uppercase; color: var(--lilac-eyebrow); white-space: nowrap; margin: 0; }
+.display { font-family: var(--font-display); font-stretch: 68%; font-weight: 850; color: var(--ink); letter-spacing: -0.035em; margin: 0; }
+.h1 { font-size: calc(102 * var(--u)); line-height: calc(103 * var(--u)); width: calc(700 * var(--u)); }
+html[lang="vi"] .h1 { font-size: calc(58 * var(--u)); line-height: calc(80 * var(--u)); width: calc(600 * var(--u)); top: calc(198 * var(--u)); }
+.grad { background: var(--glow-here); -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 .06em .14em 0; }
+.sub { width: calc(560 * var(--u)); font-size: calc(23 * var(--u)); line-height: calc(33 * var(--u)); color: var(--ink-2); margin: 0; }
+html[lang="vi"] .sub { top: calc(386 * var(--u)); font-size: calc(22 * var(--u)); }
+.sub b { font-weight: 500; }
+.btn-explore { border-radius: calc(30 * var(--u)); font-size: calc(21 * var(--u)); font-weight: 500; }
+.btn-pro { border-radius: calc(30 * var(--u)); font-size: calc(19.5 * var(--u)); font-weight: 600; background: rgba(255, 255, 255, .75); }
+.trust-ico { border-radius: 50%; background: #FAF8F4; box-shadow: 0 0 0 calc(1.5 * var(--u)) #EAE2DF; }
+.trust-ico img { width: 100%; height: 100%; padding: 6%; }
+.trust-txt { font-size: calc(15.5 * var(--u)); line-height: calc(22 * var(--u)); color: var(--body); top: calc(640 * var(--u)); white-space: nowrap; }
+.selflove-unused { left: calc(-6 * var(--u)); top: calc(14 * var(--u)); width: calc(320 * var(--u)); font-size: calc(22 * var(--u)); transform: rotate(-9deg); transform-origin: left center; }
+
+/* Search card */
+.search { border-radius: calc(32 * var(--u)); background: #fff; box-shadow: var(--shadow-card); z-index: 3; }
+.search .tab { position: absolute; top: calc(30 * var(--u)); font-size: calc(16.5 * var(--u)); white-space: nowrap; }
+.search .tab.on { left: calc(52 * var(--u)); font-weight: 600; color: var(--ink); }
+.search .tab.off { left: calc(246 * var(--u)); font-weight: 500; color: #6E5E7A; }
+.search .tab-ul { position: absolute; left: calc(30 * var(--u)); top: calc(57 * var(--u)); width: calc(190 * var(--u)); height: calc(3 * var(--u)); border-radius: 3px; background: linear-gradient(90deg, rgba(182, 169, 250, 0), #B6A9FA 20%, #685AFA); }
+.search .row { position: absolute; left: calc(24 * var(--u)); width: calc(337 * var(--u)); height: calc(54 * var(--u)); border: 1px solid var(--line); border-radius: calc(14 * var(--u)); background: #fff; transition: border-color 200ms; }
+.search .row:hover { border-color: var(--lilac); }
+.search .row .ri { position: absolute; left: calc(14 * var(--u)); top: calc(10 * var(--u)); width: calc(32 * var(--u)); height: calc(34 * var(--u)); object-fit: contain; }
+.search .row span { position: absolute; left: calc(65 * var(--u)); top: calc(13 * var(--u)); font-size: calc(18.5 * var(--u)); font-weight: 500; color: var(--ink); white-space: nowrap; }
+.search .row svg { position: absolute; right: calc(22 * var(--u)); top: calc(18 * var(--u)); width: calc(18 * var(--u)); height: calc(18 * var(--u)); color: var(--ink); }
+.search .go { position: absolute; left: calc(24 * var(--u)); top: calc(264 * var(--u)); width: calc(337 * var(--u)); height: calc(62 * var(--u)); border-radius: calc(31 * var(--u)); font-size: calc(20.5 * var(--u)); font-weight: 500; }
+.scroll-cue { text-align: center; font-size: calc(12.5 * var(--u)); font-weight: 600; letter-spacing: .1em; color: var(--ink); line-height: calc(17 * var(--u)); text-transform: uppercase; z-index: 3; }
+.scroll-cue svg { display: block; margin: calc(6 * var(--u)) auto 0; width: calc(18 * var(--u)); height: calc(18 * var(--u)); animation: nudge 1.8s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateY(calc(4 * var(--u))); } }
+
+/* Categories */
+.tile { top: calc(980 * var(--u)); width: calc(207 * var(--u)); height: calc(185 * var(--u)); border-radius: calc(26 * var(--u)); background: var(--tile); border: 1px solid rgba(238, 230, 228, .7); transition: transform 220ms ease, box-shadow 220ms ease; }
+.tile:hover { transform: translateY(calc(-4 * var(--u))); box-shadow: var(--shadow-soft); }
+.tile.on { background: linear-gradient(160deg, #D9C8FD 0%, #C8B2FA 100%); border-color: transparent; }
+.tile .ci { position: absolute; left: calc(53 * var(--u)); top: calc(19 * var(--u)); width: calc(100 * var(--u)); height: calc(100 * var(--u)); border-radius: 50%; background: #FAF7F3; box-shadow: 0 0 0 calc(1.5 * var(--u)) rgba(233, 225, 219, .95); }
+.tile.on .ci { background: radial-gradient(circle at 50% 62%, #F9E3EE 0%, #FFFFFF 68%); box-shadow: none; }
+.tile .ci img { width: 100%; height: 100%; transition: transform 300ms cubic-bezier(.3, 0, 0, 1.3); }
+.tile:hover .ci img { transform: rotate(-6deg) scale(1.05); }
+.tile .tl { position: absolute; left: 0; right: 0; top: calc(128 * var(--u)); text-align: center; font-size: calc(22 * var(--u)); font-weight: 500; color: var(--ink); }
+.tile.on .tl { text-align: left; left: calc(30 * var(--u)); font-weight: 600; font-size: calc(24 * var(--u)); top: calc(126 * var(--u)); }
+.tile .ta { position: absolute; left: calc(153 * var(--u)); top: calc(130 * var(--u)); width: calc(30 * var(--u)); height: calc(30 * var(--u)); border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; }
+.tile .ta svg { width: calc(14 * var(--u)); height: calc(14 * var(--u)); }
+.social-panel { border-radius: calc(46 * var(--u)); background: linear-gradient(180deg, rgba(255, 253, 250, .92), rgba(252, 248, 244, .85)); box-shadow: 0 calc(20 * var(--u)) calc(50 * var(--u)) rgba(42, 20, 38, .04); }
+.social-card { border-radius: calc(34 * var(--u)); background: linear-gradient(180deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, .25)); border: calc(1.5 * var(--u)) solid rgba(255, 255, 255, .95); box-shadow: inset 0 0 0 1px rgba(236, 226, 221, .55), 0 calc(10 * var(--u)) calc(30 * var(--u)) rgba(42, 20, 38, .035); }
+.avatar-pill { border-radius: calc(27 * var(--u)); background: rgba(255, 255, 255, .78); border: 1px solid rgba(238, 228, 224, .9); }
+.avatars { display: flex; } .avatars img { width: 100%; height: 100%; object-fit: contain; }
+.tenk { display: grid; place-items: center; font-size: calc(17 * var(--u)); font-weight: 400; letter-spacing: .01em; color: #3A2240; }
+.quote { font-family: var(--font-display); font-stretch: 100%; color: var(--ink); font-size: calc(26 * var(--u)); line-height: calc(26 * var(--u)); letter-spacing: -0.02em; white-space: nowrap; margin: 0; }
+.quote b { font-weight: 700; } .quote i { font-style: normal; font-weight: 400; padding-left: calc(17 * var(--u)); } .quote .ind { padding-left: calc(17 * var(--u)); }
+html[lang="vi"] .quote { font-size: calc(24 * var(--u)); line-height: calc(27 * var(--u)); }
+
+/* Spots */
+.crown img { width: 100%; height: 100%; }
+html[lang="vi"] .crown { left: calc(735 * var(--u)); }
+.h2 { font-size: calc(70 * var(--u)); line-height: 1.12; white-space: nowrap; }
+.arrow-btn { width: calc(52 * var(--u)); height: calc(52 * var(--u)); top: calc(1255 * var(--u)); border-radius: 50%; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; color: var(--ink); }
+.arrow-btn svg { width: calc(18 * var(--u)); height: calc(18 * var(--u)); }
+.view-all { border-radius: calc(35 * var(--u)); font-size: calc(21 * var(--u)); font-weight: 600; }
+.card { top: calc(1338 * var(--u)); width: calc(357 * var(--u)); height: calc(356 * var(--u)); border-radius: calc(20 * var(--u)); background: #fff; border: 1px solid #EFE8E6; overflow: hidden; transition: transform 300ms ease, box-shadow 300ms ease; }
+.card:hover { transform: translateY(calc(-5 * var(--u))); box-shadow: var(--shadow-card); }
+.card .ph { position: absolute; left: 0; top: 0; width: 100%; height: calc(215 * var(--u)); overflow: hidden; }
+.card .ph img { width: 100%; height: 100%; object-fit: cover; transition: transform 700ms ease; }
+.card:hover .ph img { transform: scale(1.04); }
+.card .hrt { position: absolute; right: calc(16 * var(--u)); top: calc(18 * var(--u)); width: calc(40 * var(--u)); height: calc(40 * var(--u)); display: grid; place-items: center; }
+.card .hrt svg { width: calc(30 * var(--u)); height: calc(30 * var(--u)); fill: rgba(255, 255, 255, 0); stroke: #fff; stroke-width: 1.7; transition: fill 200ms, stroke 200ms; }
+.card .hrt[aria-pressed="true"] svg { fill: #EE8FB0; stroke: #EE8FB0; }
+.card .hrt.pop { animation: pop 420ms cubic-bezier(.3, 0, 0, 1.3); }
+@keyframes pop { 45% { transform: scale(1.3); } }
+.card .nm { position: absolute; left: calc(23 * var(--u)); top: calc(235 * var(--u)); font-size: calc(18 * var(--u)); font-weight: 500; color: var(--ink); white-space: nowrap; }
+.card .rt { position: absolute; right: calc(24 * var(--u)); top: calc(236 * var(--u)); font-size: calc(16.5 * var(--u)); color: var(--ink); white-space: nowrap; display: flex; align-items: center; gap: calc(6 * var(--u)); }
+.card .rt .st { color: var(--star); font-size: calc(18 * var(--u)); }
+.card .rt b { font-weight: 600; } .card .rt em { font-style: normal; color: var(--muted); font-size: calc(15.5 * var(--u)); }
+.card .lc { position: absolute; left: calc(23 * var(--u)); top: calc(272 * var(--u)); font-size: calc(13.5 * var(--u)); color: #5A4A66; display: flex; align-items: center; gap: calc(8 * var(--u)); white-space: nowrap; }
+.card .lc svg { width: calc(15 * var(--u)); height: calc(15 * var(--u)); }
+.card .pr { position: absolute; left: calc(23 * var(--u)); top: calc(306 * var(--u)); font-size: calc(16 * var(--u)); color: #3A1F45; white-space: nowrap; }
+.card .pr b { font-weight: 600; }
+.card .bk { position: absolute; left: calc(219 * var(--u)); top: calc(293 * var(--u)); width: calc(120 * var(--u)); height: calc(42 * var(--u)); border-radius: calc(14 * var(--u)); font-size: calc(14.5 * var(--u)); font-weight: 500; }
+
+/* Glow-up */
+.glow-panel { border-radius: calc(54 * var(--u)); background: rgba(255, 255, 255, .72); }
+.glow-eyebrow { letter-spacing: .2em; font-size: calc(15 * var(--u)); }
+.h2g { font-size: calc(86 * var(--u)); line-height: calc(92 * var(--u)); }
+html[lang="vi"] .h2g { font-size: calc(68 * var(--u)); line-height: calc(84 * var(--u)); }
+.h2g .grad { background: var(--glow-up); -webkit-background-clip: text; background-clip: text; }
+.gimg { top: calc(1722 * var(--u)); height: calc(302 * var(--u)); border-radius: calc(16 * var(--u)); overflow: hidden; }
+.gimg > img { width: 100%; height: 100%; object-fit: cover; transition: transform 900ms ease; }
+.gimg:hover > img { transform: scale(1.04); }
+.next { border-radius: 50%; background: #fff; box-shadow: var(--shadow-card); display: grid; place-items: center; z-index: 2; }
+.next span { width: calc(56 * var(--u)); height: calc(56 * var(--u)); border-radius: 50%; border: 1px solid var(--line); display: grid; place-items: center; color: var(--ink); }
+.next svg { width: calc(20 * var(--u)); height: calc(20 * var(--u)); }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 16px); opacity: 0; z-index: 30; padding: 12px 18px; border-radius: 14px; background: var(--ink); color: #fff; font: 14px var(--font-ui); transition: .3s; pointer-events: none; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (min-width: 900px) {
+  .hero-copy, .hero-btns, .trust, .trust-item, .stage, .cats, .social, .spots-head, .cards, .glow, .gimgs, .search .tabs, .nav { display: contents; }
+}
+
+/* ========== Mobile (< 900px): same visual language, stacked ========== */
+@media (max-width: 899px) {
+  :root { --u: 0.5px; }
+  .art { width: 100%; height: auto; display: flex; flex-direction: column; padding: 0 16px 80px; }
+  .art [style*="--x"], .art [style*="--y"], .art [style*="--w"], .art [style*="--h"], .art .abs { position: relative; left: auto; top: auto; width: auto; height: auto; }
+  .art .wash, .art .social-panel, .art .glow-panel, .art .selflove, .art .scroll-cue, .art .arrow-btn, .art .next, .art .nav-link, .art .btn-signin { display: none !important; }
+  .art .nav { order: 0; position: relative; height: 64px; margin-top: 10px; }
+  .art .nav-actions { position: absolute; right: 10px; top: 10px; height: 44px; gap: 8px; }
+  .art .btn-circle { width: 44px; height: 44px; }
+  .art .btn-circle svg { width: 20px; height: 20px; }
+  .art .lang-btn { font-size: 13px; }
+  .art .btn-start { height: 44px; padding: 0 18px; border-radius: 22px; font-size: 15px; }
+  .art .nav-pill { position: absolute !important; inset: 0; border-radius: 32px; }
+  .art .nav-logo { position: absolute !important; left: 20px; top: 14px; height: 36px; }
+  .art .hero-copy { order: 1; display: flex; flex-direction: column; padding-top: 30px; }
+  .art .hero-copy .eyebrow { font-size: 11.5px; letter-spacing: .26em; }
+  .art .h1, html[lang="vi"] .art .h1 { width: auto; font-size: 54px; line-height: 54px; margin-top: 12px; top: auto; }
+  html[lang="vi"] .art .h1 { font-size: 44px; line-height: 52px; }
+  .art .sub, html[lang="vi"] .art .sub { width: auto; font-size: 16.5px; line-height: 24px; margin-top: 16px; top: auto; }
+  .art .hero-btns { display: grid; gap: 10px; margin-top: 22px; }
+  .art .btn-explore, .art .btn-pro { height: 54px; border-radius: 27px; font-size: 16px; }
+  .art .trust { display: flex; gap: 16px; margin: 20px -16px 0; overflow-x: auto; scrollbar-width: none; padding: 0 16px; }
+  .art .trust::-webkit-scrollbar { display: none; }
+  .art .trust-item { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .art .trust-ico { width: 42px; height: 42px; }
+  .art .trust-txt { font-size: 13px; line-height: 17px; }
+  .art .stage { order: 2; position: relative; margin: 14px 0 0 calc(-16px - 9vw); width: 118vw; aspect-ratio: 1388 / 980; --u: calc(118vw / 1388); }
+  .art .stage .diorama { position: absolute !important; inset: 0; width: 100%; height: 100%; }
+  .art .diorama .media { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 10%); mask-image: linear-gradient(to top, transparent 0, #000 10%); }
+  .art .stage .overlay, .art .stage .logo-ov, .art .stage .prop { position: absolute !important; }
+  .art .stage .diorama [style*="--x"] { left: calc(var(--x) / 1388 * 100%); }
+  .art .stage .diorama [style*="--y"] { top: calc(var(--y) / 980 * 100%); }
+  .art .stage .diorama [style*="--w"] { width: calc(var(--w) / 1388 * 100%); }
+  .art .stage .diorama [style*="--h"] { height: calc(var(--h) / 980 * 100%); }
+  .art .stage .prop { left: calc((var(--x) - 660) / 1388 * 100%); top: calc(var(--y) / 980 * 100%); width: calc(var(--w) / 1388 * 100%); }
+  .art .search { order: 3; margin-top: -40px; padding: 16px; border-radius: 26px; }
+  .art .search .tabs { display: flex; gap: 24px; padding: 4px 8px 14px; position: relative; }
+  .art .search .tab { position: relative; left: auto !important; top: auto; font-size: 15px; }
+  .art .search .tab-ul { left: 0; top: auto; bottom: 8px; width: 150px; }
+  .art .search .row { position: relative; left: auto; top: auto !important; width: 100%; height: 52px; margin-bottom: 9px; display: block; }
+  .art .search .row .ri { left: 12px; top: 10px; width: 30px; height: 32px; }
+  .art .search .row span { left: 54px; top: 13px; font-size: 16px; }
+  .art .search .row svg { top: 17px; right: 18px; width: 16px; height: 16px; }
+  .art .search .go { position: relative; left: auto; top: auto; width: 100%; height: 54px; font-size: 17px; margin-top: 4px; }
+  .art .cats { order: 4; display: grid; grid-auto-flow: column; grid-auto-columns: 118px; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 32px -16px 0; padding: 0 16px 6px; scrollbar-width: none; scroll-padding-inline: 16px; }
+  .art .cats::-webkit-scrollbar { display: none; }
+  .art .tile { scroll-snap-align: start; width: 118px; height: 118px; border-radius: 22px; top: auto; }
+  .art .tile .ci { left: 50%; top: 12px; width: 60px; height: 60px; transform: translateX(-50%); }
+  .art .tile .tl { top: 80px; font-size: 14px; }
+  .art .tile.on .tl { left: 14px; font-size: 15px; top: 80px; }
+  .art .tile .ta { left: 82px; top: 82px; width: 22px; height: 22px; }
+  .art .social { order: 5; position: relative; margin-top: 16px; height: 130px; }
+  .art .social-card { position: absolute !important; left: 0; top: 0; width: 72%; height: 130px; border-radius: 24px; }
+  .art .avatar-pill { position: absolute !important; left: 12px; top: 13px; width: 156px; height: 46px; }
+  .art .avatars { position: absolute !important; left: 18px; top: 17px; width: 96px; height: 37px; }
+  .art .tenk { position: absolute !important; left: 112px; top: 20px; width: 52px; height: 32px; font-size: 12px; }
+  .art .quote, html[lang="vi"] .art .quote { position: absolute !important; left: 18px; top: 64px; font-size: 17px; line-height: 21px; white-space: normal; width: 62%; }
+  .art .quote br { display: none; }
+  .art .quote i, .art .quote .ind { padding-left: 4px; }
+  .art .social .prop.heart { position: absolute !important; right: -4px; left: auto; top: -8px; width: 140px; }
+  .art .spots-head { order: 6; position: relative; margin-top: 44px; display: flex; flex-direction: column; }
+  .art .spots-head .eyebrow { font-size: 11px !important; letter-spacing: .22em; }
+  .art .h2 { font-size: 38px; white-space: normal; margin-top: 8px; padding-right: 40px; }
+  .art .crown { position: absolute !important; right: 4px; top: 18px; width: 36px; height: 36px; }
+  .art .view-all { height: 44px; padding: 0 18px; font-size: 14px; margin-top: 14px; align-self: flex-start; }
+  .art .cards { order: 7; display: grid; grid-auto-flow: column; grid-auto-columns: 82%; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 18px -16px 0; padding: 0 16px 10px; scrollbar-width: none; scroll-padding-inline: 16px; }
+  .art .cards::-webkit-scrollbar { display: none; }
+  .art .card { --u: 0.86px; scroll-snap-align: start; height: calc(356 * var(--u)); top: auto; }
+  .art .glow { order: 8; margin-top: 48px; display: flex; flex-direction: column; }
+  .art .glow-eyebrow { font-size: 11px; }
+  .art .h2g, html[lang="vi"] .art .h2g { font-size: 54px; line-height: 54px; margin-top: 8px; }
+  html[lang="vi"] .art .h2g { font-size: 46px; line-height: 54px; }
+  .art .gimgs { display: grid; grid-auto-flow: column; grid-auto-columns: 86%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 18px -16px 0; padding: 0 16px; scrollbar-width: none; scroll-padding-inline: 16px; }
+  .art .gimgs::-webkit-scrollbar { display: none; }
+  .art .gimg { scroll-snap-align: start; aspect-ratio: 1.64; border-radius: 18px; top: auto; }
+  .art .gimg .sign { position: absolute; left: 7%; top: 12%; font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: 1ms !important; }
+  .hw text { fill-opacity: 1; stroke-dashoffset: 0; stroke-opacity: 0; }
+  .hw-heart { stroke-dashoffset: 0; }
+}
+</style>
+</head>
+<body>
+<div class="art" id="art">
+  <div class="wash l1"></div><div class="wash l2"></div><div class="wash b1"></div><div class="wash b2"></div><div class="wash b3"></div>
+
+  <!-- (c) Hero right: the ref-01 diorama, living -->
+  <div class="stage">
+    <div class="abs diorama" aria-hidden="true" style="--x:660;--y:0;--w:1388;--h:980">
+      <picture>
+        <source type="image/avif" srcset="assets/diorama-900.avif 900w, assets/diorama-1400.avif 1400w, assets/diorama-2000.avif 2000w" sizes="(min-width: 900px) 68vw, 150vw">
+        <img class="media" src="assets/diorama-1400.webp" srcset="assets/diorama-900.webp 900w, assets/diorama-1400.webp 1400w, assets/diorama-2000.webp 2000w" sizes="(min-width: 900px) 68vw, 150vw" width="2400" height="1695" alt="" fetchpriority="high">
+      </picture>
+      <video class="media" id="loop" muted loop playsinline autoplay preload="auto" tabindex="-1">
+        <source data-src="assets/diorama-loop-1400.webm" type="video/webm">
+        <source data-src="assets/diorama-loop-1400.mp4" type="video/mp4">
+      </video>
+      <!-- Official logo (design/branding) composited live; never AI lettering -->
+      <div class="logo-ov desk" style="--x:864;--y:653;--w:138"><img src="assets/gugu-logo-monochrome.svg" alt=""></div>
+      <!-- Signage: live text in both languages, fitted to the wall planes of ref-01 (isometric = affine, so skewY angles measured from the reference) -->
+      <div class="sg neon wallsign" style="--x:298;--y:188;--w:118;--sk:-19.8deg;--fs:32;--lh:34" data-i18n-html="sign.lives">Beauty<br>lives<br>here<i class="hrt-n">♡</i></div>
+      <div class="sg neon n3" style="--x:620;--y:118;--sk:-8.7deg;--fs:20;--lh:20;letter-spacing:.16em" data-i18n-html="sign.hair">Hair</div>
+      <div class="sg neon n4" style="--x:1046;--y:336;--sk:14.7deg;--fs:22;--lh:29" data-i18n-html="sign.skin">Skin<br><span style="padding-left:.15em">care</span></div>
+      <div class="sg hand pillar" style="--x:1262;--y:478;--fs:23;--lh:26;transform:rotate(-8deg)" data-i18n-html="sign.pillar">Good<br>People<br>Great<br>Beauty<br>Always<br><span style="display:inline-block;padding:.3em 0 0 1em;font-size:1.5em;line-height:1">♡</span></div>
+      <div class="sg hand pink goodb" style="--x:1240;--y:92;--fs:30;--lh:30;transform:rotate(14deg)" data-i18n-html="sign.good">Good<br>Beauty<br>Brighter<br>You ♡</div>
+    </div>
+    <div class="abs prop polish" style="--x:676;--y:85;--w:154;--d:22" aria-hidden="true"><img src="assets/prop-polish.webp" alt=""></div>
+    <div class="abs prop perfume" style="--x:1815;--y:670;--w:233;--d:-16" aria-hidden="true"><img src="assets/prop-perfume.webp" alt=""></div>
+  </div>
+
+  <!-- (a) Navbar -->
+  <div class="nav">
+    <div class="abs nav-pill" style="--x:150;--y:17;--w:908;--h:80"></div>
+    <a class="abs nav-logo" href="#" style="--x:183;--y:32;--h:54" aria-label="GuGu"><img src="assets/gugu-logo.svg" alt="GuGu" width="133" height="54"></a>
+    <a class="abs nav-link" href="#" style="--x:548" data-i18n="nav.discover">Discover</a>
+    <a class="abs nav-link" href="#" style="--x:683" data-i18n="nav.services">Beauty services</a>
+    <a class="abs nav-link" href="#" style="--x:867" data-i18n="nav.pros">For professionals</a>
+    <div class="nav-actions">
+      <button class="btn-circle lang-btn" id="lang" type="button" aria-label="Language / Ngôn ngữ"><span id="langLabel">VI</span></button>
+      <button class="btn-circle btn-search-d" data-i18n-attr="aria-label:a11y.search" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg></button>
+      <a class="pill pill-out btn-signin" href="#" data-i18n="nav.signin">Sign in</a>
+      <a class="pill pill-ink btn-start" href="#" data-i18n="nav.start">Get started</a>
+    </div>
+  </div>
+
+  <!-- (b) Hero left -->
+  <div class="hero-copy">
+    <p class="abs eyebrow" style="--x:117;--y:160" data-i18n="hero.eyebrow">Beauty for a brighter you</p>
+    <h1 class="abs display h1" style="--x:100;--y:190"><span data-i18n-html="hero.h1a">Your beauty<br>era starts</span> <span class="grad" data-i18n="hero.h1b">here.</span></h1>
+    <p class="abs sub" style="--x:117;--y:410" data-i18n-html="hero.sub">Discover your <b>next favorite salon</b>, book your treatment, and glow on your own terms.</p>
+    <div class="hero-btns">
+      <a class="abs pill pill-ink btn-explore" href="#" style="--x:109;--y:512;--w:277;--h:76"><span data-i18n="hero.cta1">Explore beauty</span> <span class="arr" aria-hidden="true">→</span></a>
+      <a class="abs pill pill-out btn-pro" href="#" style="--x:404;--y:513;--w:267;--h:76" data-i18n="hero.cta2">Become a beauty pro</a>
+    </div>
+    <div class="trust">
+      <div class="trust-item"><span class="abs trust-ico" style="--x:124;--y:633;--w:58;--h:58"><img src="assets/trust-shield.webp" alt=""></span><span class="abs trust-txt" style="--x:193" data-i18n-html="trust.a">Verified<br>professionals</span></div>
+      <div class="trust-item"><span class="abs trust-ico" style="--x:325;--y:633;--w:58;--h:58"><img src="assets/trust-cal.webp" alt=""></span><span class="abs trust-txt" style="--x:396" data-i18n-html="trust.b">Easy<br>booking</span></div>
+      <div class="trust-item"><span class="abs trust-ico" style="--x:510;--y:633;--w:58;--h:58"><img src="assets/trust-star.webp" alt=""></span><span class="abs trust-txt" style="--x:579" data-i18n-html="trust.c">Real<br>reviews</span></div>
+    </div>
+    <div class="abs sign hand pink selflove" id="selflove" style="--x:104;--y:704;--w:190;--h:140;--r:-16deg;--fs:33" aria-hidden="true"></div>
+  </div>
+
+  <!-- Search card -->
+  <form class="abs search" style="--x:745;--y:568;--w:383;--h:352" onsubmit="return false" role="search">
+    <div class="tabs"><button type="button" class="tab on" data-i18n="search.tab1">Book a treatment</button><button type="button" class="tab off" data-i18n="search.tab2">Find salons</button><span class="tab-ul"></span></div>
+    <button type="button" class="row" style="top:calc(69*var(--u))"><img class="ri" src="assets/ico-pin.webp" alt=""><span data-i18n="search.loc">Ho Chi Minh City</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>
+    <button type="button" class="row" style="top:calc(134*var(--u))"><img class="ri" src="assets/ico-nail.webp" alt=""><span data-i18n="search.svc">Nail art</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>
+    <button type="button" class="row" style="top:calc(198*var(--u))"><img class="ri" src="assets/ico-cal.webp" alt=""><span data-i18n="search.when">Today</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>
+    <button type="submit" class="pill pill-ink go" id="go"><span data-i18n="search.cta">Find my glow</span> <span class="arr" aria-hidden="true">→</span></button>
+  </form>
+  <a class="abs scroll-cue" href="#cats" style="--x:1348;--y:888;--w:160"><span data-i18n-html="hero.scroll">Scroll<br>to explore</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
+
+  <!-- (d) Categories + social proof -->
+  <div class="cats" id="cats">
+    <a class="abs tile on" href="#" style="--x:98"><span class="ci"><img src="assets/cat-nails.webp" alt=""></span><span class="tl" data-i18n="c.nails">Nails</span><span class="ta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+    <a class="abs tile" href="#" style="--x:320"><span class="ci"><img src="assets/cat-hair.webp" alt=""></span><span class="tl" data-i18n="c.hair">Hair</span></a>
+    <a class="abs tile" href="#" style="--x:541"><span class="ci"><img src="assets/cat-skin.webp" alt=""></span><span class="tl" data-i18n="c.skin">Skin</span></a>
+    <a class="abs tile" href="#" style="--x:763"><span class="ci"><img src="assets/cat-brows.webp" alt=""></span><span class="tl" data-i18n="c.brows">Brows</span></a>
+    <a class="abs tile" href="#" style="--x:985"><span class="ci"><img src="assets/cat-lashes.webp" alt=""></span><span class="tl" data-i18n="c.lashes">Lashes</span></a>
+    <a class="abs tile" href="#" style="--x:1210"><span class="ci"><img src="assets/cat-massage.webp" alt=""></span><span class="tl" data-i18n="c.massage">Massage</span></a>
+  </div>
+  <div class="social">
+    <div class="abs social-panel" style="--x:1470;--y:960;--w:640;--h:218"></div>
+    <div class="abs social-card" style="--x:1500;--y:984;--w:300;--h:180"></div>
+    <div class="abs avatar-pill" style="--x:1530;--y:996;--w:186;--h:54"></div>
+    <div class="abs avatars" style="--x:1538;--y:1000;--w:120;--h:46"><img src="assets/avatars.webp" alt=""></div>
+    <div class="abs tenk" style="--x:1660;--y:1004;--w:52;--h:38">10K +</div>
+    <p class="abs quote" style="--x:1538;--y:1066"><b data-i18n="q.a">“ Self care</b><br><i data-i18n="q.b">looks good</i><br><b class="ind" data-i18n="q.c">on you. ”</b></p>
+    <div class="abs prop heart" style="--x:1800;--y:944;--w:235;--d:14" aria-hidden="true"><img src="assets/heart3d.webp" alt=""></div>
+  </div>
+
+  <!-- (e) Spots -->
+  <div class="spots-head">
+    <p class="abs eyebrow" style="--x:113;--y:1224;font-size:calc(15*var(--u));font-weight:600" data-i18n="spots.eyebrow">Real people. Amazing places.</p>
+    <div class="abs crown" style="--x:910;--y:1210;--w:54;--h:54" aria-hidden="true"><img src="assets/crown.webp" alt=""></div>
+    <h2 class="abs display h2" style="--x:100;--y:1236" data-i18n="spots.title">The spots everyone is saving</h2>
+    <button class="abs arrow-btn" style="--x:1585" data-i18n-attr="aria-label:a11y.prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg></button>
+    <button class="abs arrow-btn" style="--x:1650" data-i18n-attr="aria-label:a11y.next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></button>
+    <a class="abs pill pill-out view-all" href="#" style="--x:1722;--y:1242;--w:227;--h:70"><span data-i18n="spots.all">View all salons</span> <span class="arr" aria-hidden="true">→</span></a>
+  </div>
+  <div class="cards" id="cards"></div>
+
+  <!-- (f) Glow-up -->
+  <div class="glow">
+    <div class="abs glow-panel" style="--x:70;--y:1720;--w:2100;--h:420"></div>
+    <p class="abs eyebrow glow-eyebrow" style="--x:110;--y:1774" data-i18n="glow.eyebrow">More than treatments</p>
+    <h2 class="abs display h2g" style="--x:103;--y:1792"><span data-i18n="glow.a">Your next</span><br><span class="grad" data-i18n="glow.b">glow-up.</span></h2>
+    <div class="gimgs">
+      <a class="abs gimg g1" href="#" style="--x:552;--w:495"><img src="assets/glow-1.webp" alt="" loading="lazy"><span class="sign hand ink" style="--x:36;--y:40;--r:-10deg;--fs:30" data-i18n-html="glow.t1">Fresh<br>Looks<br>Happier<br>You</span></a>
+      <a class="abs gimg g2" href="#" style="--x:1055;--w:393"><img src="assets/glow-2.webp" alt="" loading="lazy"><span class="sign hand ink" style="--x:46;--y:112;--r:-18deg;--fs:30" data-i18n-html="glow.t2">Better<br>Beauty<br>Everyday</span></a>
+      <a class="abs gimg g3" href="#" style="--x:1455;--w:500"><img src="assets/glow-3.webp" alt="" loading="lazy"><span class="sign hand ink" style="--x:22;--y:80;--r:-14deg;--fs:30" data-i18n-html="glow.t3">Different<br>Beauties<br>Same Glow<br>♡</span></a>
+    </div>
+    <button class="abs next" style="--x:1914;--y:1824;--w:84;--h:84" data-i18n-attr="aria-label:a11y.next" aria-label="Next"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg></span></button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* vi strings are DRAFT copy pending the Vietnamese reviewer (q49). */
+const HEART = "<svg class=\"hh\" viewBox=\"0 0 26 24\" aria-hidden=\"true\"><path d=\"M13.4 8.1C11.9 3.6 6.1 2.7 4.1 6.7 2 11 6.6 15.8 12.7 21.5 17.9 16 23.7 11.3 22.5 6.4 21.4 2.5 15.7 2.9 13.5 7.8l-.7 1.6\"/></svg>";
+const I18N = {
+  en: {
+    "nav.discover": "Discover", "nav.services": "Beauty services", "nav.pros": "For professionals", "nav.signin": "Sign in", "nav.start": "Get started",
+    "a11y.search": "Search", "a11y.prev": "Previous", "a11y.next": "Next",
+    "hero.eyebrow": "Beauty for a brighter you", "hero.h1a": "Your beauty<br>era starts", "hero.h1b": "here.",
+    "hero.sub": "Discover your <b>next favorite salon</b>, book your treatment, and glow on your own terms.",
+    "hero.cta1": "Explore beauty", "hero.cta2": "Become a beauty pro", "hero.scroll": "Scroll<br>to explore",
+    "trust.a": "Verified<br>professionals", "trust.b": "Easy<br>booking", "trust.c": "Real<br>reviews",
+    "search.tab1": "Book a treatment", "search.tab2": "Find salons", "search.loc": "Ho Chi Minh City", "search.svc": "Nail art", "search.when": "Today", "search.cta": "Find my glow",
+    "c.nails": "Nails", "c.hair": "Hair", "c.skin": "Skin", "c.brows": "Brows", "c.lashes": "Lashes", "c.massage": "Massage",
+    "q.a": "“ Self care", "q.b": "looks good", "q.c": "on you. ”",
+    "spots.eyebrow": "Real people. Amazing places.", "spots.title": "The spots everyone is saving", "spots.all": "View all salons",
+    "card.from": "From", "card.book": "Book now", "card.save": "Save",
+    "glow.eyebrow": "More than treatments", "glow.a": "Your next", "glow.b": "glow-up.",
+    "sign.lives": "Beauty<br>lives<br>here<i class=\"hrt-n\">♡</i>", "sign.nails": "Nails <i class=\"hrt-i\">♡</i>", "sign.hair": "Hair", "sign.skin": "Skin<br><span style=\"padding-left:.15em\">care</span>",
+    "sign.pillar": "Good<br>People<br>Great<br>Beauty<br>Always<br><span style=\"display:inline-block;padding:.3em 0 0 1em;font-size:1.5em;line-height:1\">♡</span>", "sign.good": "Good<br>Beauty<br>Brighter<br>You ♡", "sign.selflove": "More<br>Self Love<br>Please ♡",
+    "glow.t1": "Fresh<br>Looks<br>Happier<br>You", "glow.t2": "Better<br>Beauty<br>Everyday", "glow.t3": "Different<br>Beauties<br>Same Glow<br>♡",
+    "toast": "Prototype: would open", "lang": "VI"
+  },
+  vi: {
+    "nav.discover": "Khám phá", "nav.services": "Dịch vụ làm đẹp", "nav.pros": "Dành cho salon", "nav.signin": "Đăng nhập", "nav.start": "Bắt đầu",
+    "a11y.search": "Tìm kiếm", "a11y.prev": "Trước", "a11y.next": "Sau",
+    "hero.eyebrow": "Đẹp hơn mỗi ngày", "hero.h1a": "Kỷ nguyên đẹp của bạn<br>bắt đầu", "hero.h1b": "từ đây.",
+    "hero.sub": "Tìm <b>salon “ruột” mới</b>, đặt lịch trong vài giây và toả sáng theo cách của bạn.",
+    "hero.cta1": "Khám phá ngay", "hero.cta2": "Trở thành beauty pro", "hero.scroll": "Cuộn<br>để khám phá",
+    "trust.a": "Chuyên viên<br>đã xác minh", "trust.b": "Đặt lịch<br>dễ dàng", "trust.c": "Đánh giá<br>thật",
+    "search.tab1": "Đặt lịch", "search.tab2": "Tìm salon", "search.loc": "TP. Hồ Chí Minh", "search.svc": "Vẽ móng", "search.when": "Hôm nay", "search.cta": "Tìm glow của tôi",
+    "c.nails": "Nail", "c.hair": "Tóc", "c.skin": "Da mặt", "c.brows": "Chân mày", "c.lashes": "Mi", "c.massage": "Massage",
+    "q.a": "“ Chăm sóc", "q.b": "bản thân", "q.c": "đẹp lắm đó ”",
+    "spots.eyebrow": "Người thật. Chỗ xịn.", "spots.title": "Những chỗ ai cũng lưu", "spots.all": "Xem tất cả salon",
+    "card.from": "Từ", "card.book": "Đặt lịch", "card.save": "Lưu",
+    "glow.eyebrow": "Hơn cả một liệu trình", "glow.a": "Màn lột xác", "glow.b": "tiếp theo.",
+    "sign.lives": "Vẻ đẹp<br>ở nơi<br>này<i class=\"hrt-n\">♡</i>", "sign.nails": "Nail <i class=\"hrt-i\">♡</i>", "sign.hair": "Tóc", "sign.skin": "Chăm<br><span style=\"padding-left:.15em\">da</span>",
+    "sign.pillar": "Sống<br>đẹp<br>mỗi<br>ngày<br>nhé<br><span style=\"display:inline-block;padding-top:.3em;font-size:1.5em;line-height:1\">♡</span>", "sign.good": "Đẹp<br>hơn ♡<br>mỗi ngày", "sign.selflove": "Yêu<br>bản thân<br>nhiều hơn ♡",
+    "glow.t1": "Diện mạo<br>mới,<br>vui hơn", "glow.t2": "Đẹp<br>hơn<br>mỗi ngày", "glow.t3": "Mỗi người<br>một vẻ,<br>cùng<br>toả sáng ♡",
+    "toast": "Bản mẫu: sẽ mở", "lang": "EN"
+  }
+};
+/* Demo salons as in ref-01 (fictional; prototype only). */
+const SALONS = [
+  { img: "salon-1", name: "Luna Nail Studio", r: "4.9", n: 320, area: { en: "District 1, HCMC", vi: "Quận 1, TP.HCM" }, p: 300000 },
+  { img: "salon-2", name: "The Hair Room", r: "4.8", n: 184, area: { en: "Thao Dien, HCMC", vi: "Thảo Điền, TP.HCM" }, p: 450000 },
+  { img: "salon-3", name: "Glow Lab", r: "4.9", n: 276, area: { en: "District 3, HCMC", vi: "Quận 3, TP.HCM" }, p: 350000 },
+  { img: "salon-4", name: "Browtique", r: "4.8", n: 190, area: { en: "Phu Nhuan, HCMC", vi: "Phú Nhuận, TP.HCM" }, p: 250000 },
+  { img: "salon-5", name: "Skin Journal", r: "4.9", n: 412, area: { en: "District 1, HCMC", vi: "Quận 1, TP.HCM" }, p: 500000 }
+];
+const LEFTS = [97, 473, 849, 1220, 1595];
+const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+let locale = document.documentElement.lang === "vi" ? "vi" : "en";
+const t = (k) => I18N[locale][k] ?? I18N.en[k] ?? k;
+const th = (k) => t(k).split("♡").join(HEART);   // hand-drawn heart instead of the ♡ glyph
+const price = (n) => (locale === "vi" ? new Intl.NumberFormat("vi-VN") : new Intl.NumberFormat("en-US")).format(n) + "đ";
+
+function render() {
+  document.documentElement.lang = locale;
+  $$("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n));
+  $$("[data-i18n-html]").forEach(el => el.innerHTML = th(el.dataset.i18nHtml));
+  $$("[data-i18n-attr]").forEach(el => { const [a, k] = el.dataset.i18nAttr.split(":"); el.setAttribute(a, t(k)); });
+  $("#langLabel").textContent = t("lang");
+  $(".goodb").style.setProperty("--y", locale === "en" ? 46 : 92);   // EN text is taller; lift it clear of the dryer
+  drawSelfLove();
+  const saved = JSON.parse(store.get("gugu-saved") || "[]");
+  $("#cards").innerHTML = SALONS.map((s, i) => `<article class="abs card" style="--x:${LEFTS[i]}">
+    <div class="ph"><img src="assets/${s.img}.webp" alt="" loading="lazy"></div>
+    <button class="hrt" type="button" data-h="${i}" aria-pressed="${saved.includes(i)}" aria-label="${t("card.save")}: ${s.name}"><svg viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z"/></svg></button>
+    <div class="nm">${s.name}</div>
+    <div class="rt"><span class="st">★</span><b>${s.r}</b><em>(${s.n})</em></div>
+    <div class="lc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>${s.area[locale]}</div>
+    <div class="pr">${t("card.from")} <b>${price(s.p)}</b></div>
+    <a class="pill pill-ink bk" href="#">${t("card.book")}</a></article>`).join("");
+}
+
+/* Handwriting animation: rebuilt (and replayed) on load and on every language switch. */
+function drawSelfLove() {
+  const lines = t("sign.selflove").split("<br>");
+  const esc = (x) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const host = $("#selflove");
+  host.innerHTML = `<svg class="hw" viewBox="0 0 300 ${lines.length * 40 + 16}" aria-hidden="true">` +
+    lines.map((l, i) => `<text x="${i * 8}" y="${34 + i * 40}" style="--i:${i}">${esc(l.replace("♡", "").trim())}</text>`).join("") + "</svg>";
+  // hand-drawn heart drawn with the pen after the last word
+  const last = host.querySelectorAll("text")[lines.length - 1];
+  const x = (lines.length - 1) * 8 + last.getComputedTextLength() + 10, y = 34 + (lines.length - 1) * 40 - 24;
+  host.querySelector("svg").insertAdjacentHTML("beforeend",
+    `<path class="hw-heart" style="--i:${lines.length}" transform="translate(${x} ${y}) scale(1.15)" d="M13.4 8.1C11.9 3.6 6.1 2.7 4.1 6.7 2 11 6.6 15.8 12.7 21.5 17.9 16 23.7 11.3 22.5 6.4 21.4 2.5 15.7 2.9 13.5 7.8l-.7 1.6"/>`);
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#lang")) { locale = locale === "en" ? "vi" : "en"; store.set("gugu-locale", locale); render(); return; }
+  const h = e.target.closest("[data-h]");
+  if (h) {
+    const i = +h.dataset.h; let s = JSON.parse(store.get("gugu-saved") || "[]");
+    const on = !s.includes(i); s = on ? [...s, i] : s.filter(x => x !== i); store.set("gugu-saved", JSON.stringify(s));
+    h.setAttribute("aria-pressed", on); h.classList.remove("pop"); void h.offsetWidth; if (on) h.classList.add("pop"); return;
+  }
+  if (e.target.closest("#go")) { const el = $("#toast"); el.textContent = `${t("toast")} /${locale}/c/nails/ho-chi-minh?when=today`; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 2600); }
+});
+
+/* Living diorama: autoplay muted loop (poster first); skipped for reduced motion / data saver / 2G. */
+const video = $("#loop");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const conn = navigator.connection || {};
+if (reduce || conn.saveData || /2g/.test(conn.effectiveType || "")) {
+  video.remove();
+} else {
+  const small = matchMedia("(max-width: 899px)").matches;
+  video.querySelectorAll("source").forEach(s => { s.src = small ? s.dataset.src.replace("1400", "900") : s.dataset.src; });
+  video.load();
+  video.addEventListener("playing", () => video.classList.add("ready"), { once: true });
+  video.play().catch(() => {});
+  new IntersectionObserver(([en]) => { en.isIntersecting && !document.hidden ? video.play().catch(() => {}) : video.pause(); }).observe(video);
+  document.addEventListener("visibilitychange", () => { document.hidden ? video.pause() : video.play().catch(() => {}); });
+}
+
+/* Subtle mouse parallax on the floating props. */
+if (!reduce && matchMedia("(hover: hover)").matches) {
+  let raf = 0, px = 0, py = 0;
+  addEventListener("pointermove", (e) => {
+    px = e.clientX / innerWidth - .5; py = e.clientY / innerHeight - .5;
+    if (!raf) raf = requestAnimationFrame(() => { $$(".prop").forEach(p => { p.style.setProperty("--px", px.toFixed(3)); p.style.setProperty("--py", py.toFixed(3)); }); raf = 0; });
+  });
+}
+
+document.fonts && document.fonts.ready ? document.fonts.ready.then(render) : render();
+render();
+</script>
+</body>
+</html>

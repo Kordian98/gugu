@@ -1,6 +1,6 @@
 # Hero AI prompts & consistency method
 
-Starting templates for the HERO-2 pipeline. Adapt the syntax per tool (Midjourney parameters, Flux/ComfyUI fields, Gemini/OpenAI natural language). Log every kept output in `design/hero-assets/PROMPTS.md`.
+Starting templates for the HERO-2 pipeline on fal.ai. FLUX 3 edit takes natural language; refer to references as "image 1", "image 2" in the order of `image_urls`. FLUX 3 edit has no negative-prompt field, so fold the negative block into the prompt as "Avoid: …". Log every kept output in `design/hero/PROMPTS.md`.
 
 ## Style bible block (prepend to every still prompt)
 
@@ -42,14 +42,14 @@ right; reception front-right with a glossy pink desk and a curved pink sofa; a b
 brand wall with an empty neon frame; potted plants; floating glossy nail-polish bottle
 and pink jelly heart near the edges [negatives]
 ```
-References: ref-01 (style), approved character sheet (character), fixed seed.
+fal: `blackforestlabs/flux-3/edit-image`, `image_urls` = [ref-01, character sheet]; say "match the style, palette and camera of image 1 and the characters of image 2".
 
 **Zone crop (for loops)**
 ```
 [style bible] close-up of the nail station from the diorama, same camera angle, same
 characters and lighting as the reference image [negatives]
 ```
-Image-to-image from the master crop, low denoise (0.25–0.4) to keep identity.
+fal: `flux-3/edit-image` with the master as image 1 ("crop/zoom to the nail station, keep everything identical").
 
 **Prop**
 ```
@@ -65,14 +65,14 @@ blinks, steam rises softly from the tea cup, candle flickers. Camera locked, no 
 no new objects, keep the style and faces identical. Seamless loop: last frame matches
 first frame.
 ```
-Settings: lowest motion strength that still reads, 4–8 s, first/last-frame or loop mode, same seed across retries.
+fal: `kling/v4/image-to-video`, start image = end image = the zone crop, 5 s, 720p for exploration; 1080p only for finals.
 
 ## Consistency method
 1. Lock the style bible text, palette hexes and camera words. Never paraphrase them.
 2. Character sheet first; every later generation uses it as character reference.
 3. Fixed seeds per asset family; record them.
 4. Derive crops and zones from the master by image-to-image at low denoise, not from scratch.
-5. If drift persists, train a Flux LoRA on approved outputs and regenerate.
+5. If drift persists, train `fal-ai/flux-lora-fast-training` on approved outputs (license check first) and regenerate.
 6. LUT colour grade all outputs to the palette as the final step.
 7. Composite the official logo SVG last (after video), never generate it.
 

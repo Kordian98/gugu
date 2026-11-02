@@ -11,7 +11,7 @@ One token source powers a bold **expressive** mode (public marketplace, customer
 Source: `design/hero-references/README.md` (ref-01). A cream canvas, pastel lilac/pink/peach, **plum-black ink** for all text and primary buttons, editorial serif headlines with one gradient word (`gradient.glow`), handwritten script accents, glossy jelly/glass 3D, soft wide radii (24–28) and pill buttons.
 - Fonts: display **Noto Serif Display** (wght 800–900, wdth ≈ 75–87.5%; alt Playfair Display), UI **Be Vietnam Pro**, script **Playwrite VN** (alt Dancing Script). All have Vietnamese subsets. Never swap in a font without the glyph test; paid fonts allowed only with full Vietnamese + web/app license.
 - Logo: `design/branding/` SVGs via `Logo`/`LogoMark`; rules in `design/branding/README.md`.
-- Dark mode ships at launch for marketplace and CRM: every component and screen is verified in both themes.
+- Themes (X18): expressive (public/customer) = light only, always `color-scheme: light`; calm (CRM/admin) = light + dark.
 - Expressive = full Lilac Glow. Calm = palette + UI sans only: no serif display in data views, no script, no gradient, no 3D.
 - Pastels never carry text; text on pastel is ink.
 
@@ -34,7 +34,7 @@ Source: `design/hero-references/README.md` (ref-01). A cream canvas, pastel lila
 
 ### Add a token
 1. Add the primitive (if new) in `src/tokens/primitives.ts`.
-2. Map it to a semantic name in `semantic.light.ts` **and** `semantic.dark.ts`.
+2. Map it to a semantic name in `semantic.light.ts` (and `semantic.dark.ts` if used by calm surfaces).
 3. If mode-specific, add to `modes.ts` (`expressive`/`calm`).
 4. Run the generators (`build/generate-nativewind-theme.ts`, `build/generate-css-vars.ts`).
 5. Run the contrast check for any new fg/bg pair.
@@ -44,7 +44,7 @@ Source: `design/hero-references/README.md` (ref-01). A cream canvas, pastel lila
 1. Folder `src/components/<Name>/` with `<Name>.tsx`, `<Name>.types.ts`, `index.ts`, `<Name>.meta.ts`, story/catalog entry.
 2. Implement variants, sizes and all states: default, hover (web), pressed, focused, disabled, loading, error.
 3. a11y: `accessibilityRole`, label/hint props, focus ring on web, ≥44×44 hit area (`hitSlop` if visually smaller).
-4. Light + dark verified; Vietnamese sample text in the story.
+4. Light verified (dark too for calm-mode components); Vietnamese sample text in the story.
 5. Split into `.native.tsx` / `.web.tsx` only if needed (e.g. `Sheet`, `DataTable`, `Calendar`); keep logic in a shared hook.
 6. Export `meta` (name, mode support, variants, short props summary) — agents use it for discovery.
 7. Add to the inventory in `docs/domains/design-system.md#components`.
@@ -67,7 +67,7 @@ Source: `design/hero-references/README.md` (ref-01). A cream canvas, pastel lila
 - [ ] No hardcoded strings; no raw style values.
 - [ ] Correct mode for the route group.
 - [ ] All states + loading/empty/error for data UI.
-- [ ] Light/dark ok; contrast check passes.
+- [ ] Theme rule respected (public light-only; calm light+dark); contrast check passes.
 - [ ] Reduced-motion path tested.
 - [ ] Vietnamese diacritics render unclipped (ặ ỗ ừ ỹ Ữ Ặ).
 - [ ] Web: keyboard + focus visible. Native: screen reader labels.

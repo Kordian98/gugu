@@ -23,6 +23,7 @@ GuGu web runs Expo Router with `web.output: "server"` (SDK ≥ 58). Public pages
 - MUST NOT index thin pages: category×location with < `SEO_MIN_SALONS` (default 3) published salons → `noindex`.
 - Titles on category×location pages include the legacy district name as a secondary label when an alias exists ("Nail Quận 1 · P. Bến Thành, TP.HCM").
 - robots.txt allows AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) on public pages (owner decision q43).
+- Light theme only (X18): `+html.tsx` sets `<meta name="color-scheme" content="light">`; no dark variants on public routes.
 - All strings via localization (`public`, `salon`, `search` namespaces). Titles ≤ 60 chars, descriptions ≤ 155.
 
 ## Procedure: add a public route

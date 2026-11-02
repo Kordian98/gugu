@@ -34,7 +34,8 @@ description: Rules and procedures for GuGu's salon workspace (Today, calendar UI
 10. **Optimistic UI** only for check-in, complete and no-show. Moves and creates wait for the server, and a 409 shows nearest-slot suggestions.
 11. **Offline:** show a "last updated" banner and cached reads. Never queue writes silently.
 12. **Calm mode, same brand.** Use the `calm` surface mode tokens: brand type, radii, plum primary, lilac accent only for selection/focus/now-line. No 3D, glass, text gradients, script accents or ambient motion. Never invent CRM-only colours.
-13. **Zalo surfaces degrade gracefully.** Hide them, never show broken UI, when Zalo is not connected.
+13. **Light + dark.** Every CRM screen MUST work in both themes using tokens only (no hardcoded colours) and pass AA in both. Dark mode exists only in the business workspace (and admin); never add it to public or customer screens, and the embedded public-profile preview stays light (X18).
+14. **Zalo surfaces degrade gracefully.** Hide them, never show broken UI, when Zalo is not connected.
 
 ## Product rules from the owner
 - The CRM and onboarding are the core product (X13). AI setup from screenshots is in every plan and MUST stay the first onboarding card. The assistant is Pro only.
@@ -84,6 +85,7 @@ Never sum across kinds into one unlabeled number.
 - [ ] Notes not leaked; money has `revenueKind`
 - [ ] vi + en keys, no hardcoded strings
 - [ ] Empty, loading and error states
+- [ ] Checked in light and dark
 - [ ] Click budget respected
 - [ ] Domain doc updated
 

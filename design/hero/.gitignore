@@ -1,0 +1,15 @@
+# Large generated intermediates stay local; regenerate via scripts/ (see MANIFEST.md, PROMPTS.md).
+raw/
+characters/
+master/
+crops/
+demo/
+props/
+ref01/crops/
+ref01/up/
+ref01/*.png
+!ref01/diorama-base-v4.png
+loops/*
+!loops/loop-diorama-v4.mp4
+!loops/dryer-mask.png
+!loops/head-mask-v.png
