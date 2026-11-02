@@ -509,7 +509,10 @@
     },
     "findEarliest": "Tìm giờ sớm nhất",
     "earliestTitle": "Giờ trống sớm nhất",
-    "dragUnavailable": "Khung giờ bạn vừa chọn không còn trống."
+    "dragUnavailable": "Khung giờ bạn vừa chọn không còn trống.",
+    "overrideOn": "Đặt ngoài giờ / ngoài quy định",
+    "overrideOff": "Quay lại giờ trống",
+    "overrideExplain": "Nhập giờ bất kỳ (ngoài giờ mở cửa, sát giờ…) kèm lý do. Lịch vẫn không được trùng với lịch khác của nhân viên. Thao tác được ghi nhật ký."
   },
   "booking": {
     "title": "Lịch hẹn {{code}}",
@@ -760,5 +763,19 @@
     "deleteTypeInUse": "Đang có {{count}} dịch vụ cần loại này. Bỏ yêu cầu trong từng dịch vụ trước khi xoá.",
     "deleteResource": "Xoá {{name}}",
     "active": "Bật/tắt {{name}}"
+  },
+  "myDay": {
+    "total": "{{count}} lịch hôm nay",
+    "done": "{{count}} xong",
+    "left": "{{count}} còn lại",
+    "now": "Đang phục vụ",
+    "next": "Khách tiếp theo",
+    "walkIn": "Khách vãng lai",
+    "open": "Mở lịch hẹn",
+    "call": "Gọi khách",
+    "today": "Hôm nay · {{date}}",
+    "emptyTitle": "Hôm nay chưa có lịch",
+    "emptyBody": "Lịch hẹn của anh/chị sẽ hiện ở đây.",
+    "week": "Xem lịch cả tuần"
   }
 }

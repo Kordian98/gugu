@@ -509,7 +509,10 @@
     },
     "findEarliest": "Find the earliest slot",
     "earliestTitle": "Earliest free times",
-    "dragUnavailable": "The time you drew isn't free."
+    "dragUnavailable": "The time you drew isn't free.",
+    "overrideOn": "Book outside the rules",
+    "overrideOff": "Back to free times",
+    "overrideExplain": "Enter any time (after hours, short notice…) with a reason. It still can't overlap the staff member's other appointments. This action is logged."
   },
   "booking": {
     "title": "Appointment {{code}}",
@@ -760,5 +763,19 @@
     "deleteTypeInUse": "{{count}} services need this type. Remove the requirement from them first.",
     "deleteResource": "Delete {{name}}",
     "active": "Turn {{name}} on/off"
+  },
+  "myDay": {
+    "total": "{{count}} today",
+    "done": "{{count}} done",
+    "left": "{{count}} left",
+    "now": "With client now",
+    "next": "Next client",
+    "walkIn": "Walk-in",
+    "open": "Open appointment",
+    "call": "Call client",
+    "today": "Today · {{date}}",
+    "emptyTitle": "No appointments today",
+    "emptyBody": "Your appointments will appear here.",
+    "week": "See the whole week"
   }
 }

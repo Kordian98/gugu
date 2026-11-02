@@ -161,13 +161,16 @@ export function TimeInput({
   value,
   onChange,
   label,
+  testID,
 }: {
   value: string;
   onChange: (v: string) => void;
   label: string;
+  testID?: string | undefined;
 }) {
   return (
     <Input
+      testID={testID}
       label={label}
       width={76}
       value={value}
