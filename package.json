@@ -7,6 +7,13 @@
   },
   "scripts": {
     "dev:web": "pnpm --filter @gugu/app web",
+    "dev:api": "pnpm --filter @gugu/api dev",
+    "stack:up": "docker compose up -d --build --wait",
+    "stack:down": "docker compose down",
+    "stack:reset": "docker compose down --volumes",
+    "db:migrate": "pnpm --filter @gugu/api db:migrate",
+    "db:drift": "pnpm --filter @gugu/api db:drift",
+    "test:integration": "pnpm --filter @gugu/api test:integration",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

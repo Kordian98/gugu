@@ -1,0 +1,13 @@
+// GuGu data model — schema-of-record for ordinary columns. Everything Prisma cannot model (PostGIS
+// columns' indexes, EXCLUDE/CHECK constraints, partial indexes, RLS, partitions) lives in hand-edited
+// migration SQL and in prisma/raw-objects.json (ADR-0008, skill `prisma-migration`).
+// Hot file: one task at a time (ownership map).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/infrastructure/prisma/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}

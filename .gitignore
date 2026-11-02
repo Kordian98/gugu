@@ -21,3 +21,7 @@ apps/app/android/
 *.p12
 *.key
 *.mobileprovision
+
+# API (topic 04)
+apps/api/src/infrastructure/prisma/generated/
+apps/api/prisma/spike/generated/

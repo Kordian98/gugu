@@ -1,0 +1,6 @@
+{
+  "$comment": "Database objects Prisma cannot see. `pnpm db:drift` fails if any is missing. Keep in sync with docs/domains/backend-database.md#raw-sql-objects.",
+  "extensions": ["postgis", "btree_gist", "pg_trgm", "unaccent", "citext", "pgcrypto"],
+  "constraints": [],
+  "indexes": []
+}
