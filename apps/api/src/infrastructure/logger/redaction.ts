@@ -19,6 +19,8 @@ export const REDACT_PATHS = [
   "*.note",
   "*.databaseUrl",
   "*.connectionString",
+  "*.apiKey",
+  'req.headers["x-api-key"]',
 ];
 
 /**

@@ -32,6 +32,9 @@ export const AUDIT_ACTIONS = [
   "booking.rules_overridden",
   "booking.rescheduled",
   "booking.status_corrected",
+  "ai_import.extracted",
+  "ai_import.blocked",
+  "ai_import.confirmed",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

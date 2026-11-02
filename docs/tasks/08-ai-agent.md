@@ -16,7 +16,7 @@ Read with: `docs/ai-first-conventions.md`, `docs/tasks/07-salon-saas-crm.md` (me
 - Tool registry `packages/agent-tools`, generated from the 04 read-model registry and the 07 metric catalogue (X7). Tool I/O Zod schemas live in `packages/contracts/assistant` (X3).
 - Per-salon RBAC on every tool call; tenant scope injected server-side.
 - Audit of every tool call and write proposal.
-- Subscription gating (entitlements from 12): `assistant.enabled` and `assistant.deep` on Pro; `ai_import` on every plan.
+- Subscription gating (entitlements from 12): `ai.agent.enabled` and `ai.monthly_review` on Pro/Ultra; `ai.onboarding_import` on every plan; one hard cap `ai.monthly_cost_cap_vnd` for all AI features.
 - Cost controls: model routing (Haiku → Sonnet → Opus), caching, and a **hard monthly cost cap per salon** (q32, §4.9).
 - AI onboarding import pipeline (§4.5), available in every plan and shipped with salon onboarding (roadmap Step 5), ahead of the chat assistant.
 - Shared runtime and PII firewall reused by the platform **Admin Copilot** (topic 12, v1, PII-free; q64), see §4.10.
@@ -64,7 +64,7 @@ Read with: `docs/ai-first-conventions.md`, `docs/tasks/07-salon-saas-crm.md` (me
 | G5 | **Personal data reaching the LLM** (PO hard rule). | PII firewall, §4.3: tokens + aggregates only, no free text, allowlist check on tool results, egress check on every request, input scrubbing of the user's own message, re-hydration after the model call. |
 | G6 | Prompt injection via customer text. | Removed at the source: no customer/third-party free text ever enters the context. The remaining injection surface is the salon user's own message, and write actions always need UI confirmation. |
 | G7 | Unbounded cost at low VND price points. | Routing: Haiku 5.5 by default, Sonnet 5.5 on escalation, Opus 5.5 only for the Pro monthly review (§4.1). Plus caching, compact tool results, and a hard per-salon monthly cost cap enforced before every request (§4.9). |
-| G8 | Subscription undefined (12 prepares, doesn't bill). | `EntitlementsService` interface: `assistant.enabled`, quotas. 12 implements it. |
+| G8 | Subscription undefined (12 prepares, doesn't bill). | `EntitlementService` (12): `ai.agent.enabled`, `ai.monthly_review`, `ai.onboarding_import`, cap `ai.monthly_cost_cap_vnd`. |
 | G9 | Privacy law (X1): PDPL 91/2025/QH15 + Decree 356/2025/ND-CP. | No personal data is sent to the LLM provider, so the provider isn't processing personal data for this feature. Business aggregates are still confidential business data (vendor terms reviewed). Legal review still required; no compliance claim. |
 | G10 | Hallucinated numbers. | Answers grounded in tool results; source chips in the UI; numeric-fidelity evals. |
 | G11 | Vietnamese relative dates and timezone. | Deterministic `resolve_period` helper in salon TZ (Asia/Ho_Chi_Minh). |
@@ -176,14 +176,15 @@ evalCases       fixture ids incl. a canary case
 "Upload screenshots or photos of your current price list, and Gu sets up your services." This is the effortless AI setup entry point in the onboarding wizard and in Services (UI owned by 07). Not free chat.
 - **Input:** up to N images per import (screenshots from Facebook/Instagram/Zalo pages and booking apps, photos of a printed menu or board), plus optionally pasted price-list text that goes through the same text scrubber.
 - **No-PII gate (before any model call):**
-  1. Server-side face detection **blurs** faces; screenshots often contain avatars. Reject only if most of the image is a person.
+  1. Server-side face detection (UltraFace, ADR 0009) **rejects** a photo of people: a face covering ≥ 1.5 % of the image, or 3+ confident faces. One or two small faces (avatars in screenshots) are blacked out.
   2. Server-side OCR on our infrastructure finds text regions. We black out phone numbers, emails, URLs/social handles, and person-name patterns: Vietnamese honorific/role + capitalised words (`anh/chị/em/cô/chú/thầy/KTV/stylist + Tên`), plus directory names once staff exist. The directory is usually empty at onboarding, so the pattern rules carry the load.
-  3. The user sees the redacted image ("What Gu sees") and can paint over anything else before confirming. Same accepted-risk model as q62.
+  3. *(Follow-up, not built yet)* The user sees the redacted image ("What Gu sees") before it is sent. Today the UI shows the privacy note before upload and reports how many regions were blacked out. Same accepted-risk model as q62.
+  3a. Egress check (built): the redacted output is OCR'd again, and if any contact detail or name pattern is still readable nothing is sent (`ai_import.pii_check_failed`).
   4. Only the redacted image is sent. Originals and redacted copies are deleted after extraction; nothing is stored in assistant tables.
 - **Model call:** a single structured-output request (no tool loop) on `assistant.standard` (`claude-sonnet-5-5`, vision) returning `{ name, price | priceFrom–priceTo, duration?, category, variant? }[]`. Low-confidence rows are flagged.
 - **Review:** the user edits and accepts suggestions before anything is saved (07 services API). Imported service names are business data. In assistant chat they still travel as `service_N`.
-- **Cost:** a separate `ai_import` budget, not counted against the Pro chat cap. Per-salon limit on imports per month, set in 12 (q73).
-- OCR engine choice and Vietnamese accuracy: spike in milestone IMP.
+- **Cost:** counts against the one hard monthly AI cap `ai.monthly_cost_cap_vnd` (q73: Basic 20,000 VND, which covers only imports, roughly 4–10 of them; Pro 250,000; Ultra 600,000). Per-salon rate limit of 20 extractions/hour bounds server CPU.
+- OCR engine: Tesseract `vie`+`eng` (WASM) on our servers; decided in ADR 0009 after the IMP spike. Status: **implemented on branch `ai/08-imp`** (see `docs/domains/ai-agent.md`).
 - Out: importing staff lists, customer lists or contact books (personal data).
 
 ### 4.6 Semantic metric layer (with 07)
@@ -201,7 +202,7 @@ evalCases       fixture ids incl. a canary case
 - Sensitive writes also go to `AuditLog` (05).
 
 ### 4.8 Surfaces
-- A: CRM panel (desktop side sheet, mobile bottom sheet): streaming, entity chips, "what Gu sees" mask preview, source chips, confirmation cards (B).
+- A: CRM chat panel. **Owner decision (2026-11-02):** a floating chat bubble in the bottom-right corner of the business workspace, on every page. Tapping it opens the chat panel: a side sheet on desktop, a full-height sheet on mobile that sits above the bottom tab bar. It's a Pro feature, but the bubble shows on Basic too and opens an upgrade prompt instead of the chat; nothing else is hidden. On mobile the bubble must not cover topic 07's "+" (new booking) button; agree the offset with 07 and use a shared safe-area/offset token. Panel contents: streaming, entity chips, "what Gu sees" mask preview, source chips, confirmation cards (B). Built in milestone A2.
 - D (later): MCP server with read tools only, OAuth tokens scoped to salon + role. Output stays **tokenized** because the MCP client is an external LLM. No re-hydration over MCP.
 - Zalo OA surface: out of scope for now (§1).
 
@@ -269,13 +270,13 @@ evalCases       fixture ids incl. a canary case
 - 06: booking engine APIs for phase B writes.
 - 07: `MetricCatalog` + `RevenueKind` in `packages/domain/metrics` (X5, X7); services onboarding entry point for photo import. Hard dependency for phase A.
 - 11: templated reminder sending (phase B).
-- 12: entitlements (`assistant.enabled` + `assistant.deep` on Pro, `ai_import` on all plans), monthly cost cap values, usage ledger and admin view; Admin Copilot tools (§4.10).
+- 12: entitlements (`ai.agent.enabled` + `ai.monthly_review` on Pro/Ultra, `ai.onboarding_import` on all plans), monthly cost cap values, usage ledger and admin view; Admin Copilot tools (§4.10).
 - 13: CI for evals and the PII canary suite, observability/alerts for `pii_firewall_block`.
 
 ---
 
 ## 7. Suggested sub-milestones
-0. **IMP — AI onboarding import (roadmap Step 5, every plan)**: OCR spike (Vietnamese), face blur, redaction rules, preview, structured extraction on Sonnet, `ai_import` budget, recorded-request tests. Ships with 07 onboarding, before the chat assistant.
+0. **IMP — AI onboarding import (roadmap Step 5, every plan)**: OCR spike (Vietnamese), face blur, redaction rules, preview, structured extraction on Sonnet, cost cap on `ai.monthly_cost_cap_vnd`, recorded-request tests. Ships with 07 onboarding, before the chat assistant.
 1. **A0 — Contracts (roadmap Step 3)**: X7 interfaces with 04/07, PII-free field-type allowlist, `ToolDefinition` + generator, `ToolContext`, token vault, entities. ADRs: runtime/routing, PII firewall.
 2. **A1 — Firewall + first tools**: input scrubber, allowlist check, egress check, re-hydration; `resolve_period`, `metrics_get` (3 metrics), `bookings_list`. PII + tenant tests.
 3. **A2 — Runtime + CRM panel**: streaming, entity chips, mask preview, routing (fast/standard), caching, vi/en, source chips, quota stub.

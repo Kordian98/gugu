@@ -24,13 +24,13 @@ Every path has exactly one primary owner agent. Others propose changes through t
 | `modules/{auth,authorization,audit,privacy,salons}/**` (`salons` = registration + minimal salon read models until topic 07 takes the workspace), `apps/api/src/common/guards/**`, `packages/domain/src/auth/**` (permission matrix), `packages/domain/src/phone/**`, `packages/contracts/src/{auth,salon}/**`, `apps/app/services/auth/**`, `apps/app/features/{auth,salon-join}/**`, `apps/api/test/{auth-fakes,mailpit,rate-limits}.ts`, `apps/api/test/factories/identity.ts`, RLS SQL | auth-security | 05 |
 | `modules/{availability,bookings,booking-engine}/**`, `packages/domain/src/booking/**`, `packages/contracts/src/booking/**`, occupancy/idempotency SQL | booking-engine | 06 |
 | `modules/{salon-crm,customers-crm,salon-settings,insights,catalog,team}/**`, `packages/domain/src/metrics/**` (metric registry, `RevenueKind`), `apps/app/app/[locale]/(business)/**`, `apps/app/app/[locale]/(staff)/**`, `apps/app/features/salon-crm/**` | salon-crm | 07 |
-| `packages/agent-tools/**` (framework), `modules/assistant/**`, `apps/app/features/assistant/**`, `evals/assistant/**` | ai-agent | 08 |
+| `packages/agent-tools/**` (framework), `modules/{assistant,ai-import}/**`, `packages/contracts/src/ai-import/**`, `packages/domain/src/ai-import/**`, `apps/api/assets/models/**`, `apps/app/features/{assistant,ai-import}/**`, `evals/assistant/**` | ai-agent | 08 |
 | `modules/zalo/**`, `apps/app/features/crm-inbox/**`, `apps/zalo-miniapp/**` (after ADR) | zalo | 09 |
 | `modules/search/**`, `apps/app/app/[locale]/(public)/**`, `apps/app/app/+html.tsx`, `apps/app/features/{home,search,salon-public}/**`, sitemap/robots/web `llms.txt` routes | marketplace-seo | 10 |
 | `modules/{customers,favorites,reviews,moderation,notifications,notification-channels}/**`, `apps/app/app/[locale]/(customer)/**`, `apps/app/features/{account,favorites,reviews,notifications}/**`, `packages/localization/*/notifications/**` | customer-notifications | 11 |
 | `modules/{attribution,commission,subscriptions,usage,feature-flags,analytics,trust,admin}/**`, `packages/analytics/**`, `apps/app/app/[locale]/(admin)/**`, `apps/app/features/admin/**` | monetization-admin | 12 |
 | `infra/**`, `.github/**`, `docker-compose*.yml` (first version + `infra/docker/postgres/**` created by backend-database in 04-S1; platform-devops owns them from 13-M13.1 on), `apps/app/eas.json`, `apps/app/app.config.ts` (build/linking parts), root scripts `bootstrap`/`reset`/`verify`, `docs/runbooks/**`, `docs/release/**` | platform-devops | 13 |
-| `**/*.test.ts`, `**/*.spec.ts`, `apps/api/test/**` (except `test/fixtures/zalo`, `test/assistant`), `e2e/**`, `evals/**` (except `evals/assistant`) | test-engineer | 13 |
+| `**/*.test.ts`, `**/*.spec.ts`, `apps/api/test/**` (except `test/fixtures/zalo`, `test/fixtures/ai-import`, `test/assistant`), `e2e/**`, `evals/**` (except `evals/assistant`) | test-engineer | 13 |
 | per-module `agent-tools.ts` | module owner (reviewed by ai-agent) | — |
 | `docs/domains/<slug>.md`, `docs/tasks/NN-<slug>.md`, `.claude/skills/<skill>/**`, `.claude/agents/<slug>.md` | that topic's owner | — |
 

@@ -51,6 +51,13 @@ export const envSchema = z
     /** Comma-separated OAuth client IDs; empty = provider disabled (Apple/Google sign-in, R5). */
     GOOGLE_CLIENT_IDS: z.string().default(""),
     APPLE_CLIENT_IDS: z.string().default(""),
+    /**
+     * Anthropic API key for AI features (topic 08). Empty = AI import shows "not configured" and
+     * no request is ever made. Never logged.
+     */
+    ANTHROPIC_API_KEY: z.string().default(""),
+    /** Fixed USD→VND rate used to convert LLM token cost into the VND cost cap (q73). */
+    AI_USD_TO_VND: z.coerce.number().positive().default(26_000),
     /** Zalo Login is built but hidden until the central GuGu OA exists (q28). */
     ZALO_LOGIN_ENABLED: z
       .enum(["true", "false"])

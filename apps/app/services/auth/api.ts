@@ -51,7 +51,9 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const method = opts.method ?? "GET";
   const headers: Record<string, string> = { accept: "application/json" };
-  if (opts.body !== undefined) headers["content-type"] = "application/json";
+  // FormData (file uploads) sets its own multipart content type with the boundary.
+  const isForm = typeof FormData !== "undefined" && opts.body instanceof FormData;
+  if (opts.body !== undefined && !isForm) headers["content-type"] = "application/json";
   if (opts.locale) headers["accept-language"] = opts.locale;
   if (AUTH_CLIENT === "web") {
     const csrf = tokenStore.getCsrf();
@@ -64,7 +66,9 @@ export async function apiFetch<T>(
     method,
     headers,
     credentials: AUTH_CLIENT === "web" ? "include" : "omit",
-    ...(opts.body !== undefined ? { body: JSON.stringify(opts.body) } : {}),
+    ...(opts.body !== undefined
+      ? { body: isForm ? (opts.body as FormData) : JSON.stringify(opts.body) }
+      : {}),
   });
   if (res.status === 401 && AUTH_CLIENT === "native" && !opts.retried && (await refreshTokens())) {
     return apiFetch<T>(path, { ...opts, retried: true });
