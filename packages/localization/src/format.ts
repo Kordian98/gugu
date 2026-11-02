@@ -15,3 +15,47 @@ export function formatRating(value: number, locale: AppLocale): string {
     maximumFractionDigits: 1,
   }).format(value);
 }
+
+/** Salon timezone default (master prompt §12). Times are stored in UTC and shown in the salon's zone. */
+export const DEFAULT_SALON_TIMEZONE = "Asia/Ho_Chi_Minh";
+
+const tag = (locale: AppLocale) => (locale === "vi" ? "vi-VN" : "en-US");
+
+/** "Thứ Ba, 14 tháng 10, 2026" / "Tuesday, October 14, 2026" in the salon's timezone. */
+export function formatDateLong(
+  date: Date,
+  locale: AppLocale,
+  timeZone = DEFAULT_SALON_TIMEZONE,
+): string {
+  return new Intl.DateTimeFormat(tag(locale), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone,
+  }).format(date);
+}
+
+/** "14:30" (vi) / "2:30 PM" (en) in the salon's timezone. */
+export function formatTime(
+  date: Date,
+  locale: AppLocale,
+  timeZone = DEFAULT_SALON_TIMEZONE,
+): string {
+  return new Intl.DateTimeFormat(tag(locale), {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: locale === "en",
+    timeZone,
+  }).format(date);
+}
+
+/** Hour of day (0–23) in the salon's timezone. */
+export function hourInZone(date: Date, timeZone = DEFAULT_SALON_TIMEZONE): number {
+  const h = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(date);
+  return Number(h);
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createI18n } from "./i18n-core";
-import { formatRating, formatVND } from "./format";
+import { formatDateLong, formatRating, formatTime, formatVND, hourInZone } from "./format";
 import { resources } from "./resources";
 
 const keys = (obj: unknown, prefix = ""): string[] =>
@@ -41,5 +41,15 @@ describe("formatters", () => {
     expect(formatVND(300000, "en")).toBe("300,000đ");
     expect(formatRating(4.9, "vi")).toBe("4,9");
     expect(formatRating(4.9, "en")).toBe("4.9");
+  });
+});
+
+describe("date and time formatters", () => {
+  const d = new Date("2026-10-14T07:30:00Z"); // 14:30 in Ho Chi Minh City
+  it("formats in the salon timezone", () => {
+    expect(formatTime(d, "vi")).toBe("14:30");
+    expect(formatTime(d, "en")).toBe("2:30 PM");
+    expect(hourInZone(d)).toBe(14);
+    expect(formatDateLong(d, "en")).toBe("Wednesday, October 14, 2026");
   });
 });
