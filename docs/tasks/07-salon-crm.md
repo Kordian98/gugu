@@ -172,6 +172,7 @@ The visual reference `design/hero-references/ref-01-homepage-lilac-diorama.png` 
 - **Kept from the brand:** the type families (the display serif only for page titles and the Insights headline numbers; UI sans for everything else), radii (large rounded cards, pill buttons and chips), the deep plum/near-black primary button, the lilac accent for selection, focus, the active nav item and the current-time line, and soft pink/lilac tints for status and service colour stripes.
 - **Dropped in calm mode:** 3D, glass and iridescent effects, gradients on text, handwritten script accents, decorative stickers and hearts, large hero imagery, and parallax or ambient motion. Motion is limited to functional transitions (≤ 200 ms, reduced-motion respected).
 - **Surfaces:** a warm off-white background and white cards with hairline borders instead of shadows. Lilac is used only as an accent, never as a large fill behind dense data.
+- **Light and dark (roadmap X18):** the CRM workspace supports light and dark themes: follow the system setting by default, with a per-user override (System / Light / Dark) in Settings that persists on the account and device. Dark calm mode uses 02's dark calm tokens (deep plum-tinted neutrals, lilac accent kept, AA contrast re-verified, status colours tuned for dark). Dark mode exists **only** in the business workspace (and platform admin, which 12 owns). The public profile preview inside the CRM (§3.6) and any public or customer screen always render light.
 - **Implementation:** the same tokens through the `calm` surface mode from 02. No CRM-only colours; any new need goes back to 02 as a token request.
 
 ### 3.12 Accessibility and readability
@@ -277,6 +278,7 @@ All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_C
 14. **Shared tablet:** member switch takes 2 taps (plus PIN if enabled), and it auto-locks after the configured idle time.
 15. **Permissions:** staff role sees only their own calendar and insights, and the receptionist cannot see revenue unless granted. Staff see client phones by default and lose them when the owner revokes `client.view_contact` (integration tests).
 16. **Deleted customer:** after the anonymisation job runs, the CRM shows "Deleted customer" on past bookings, metrics stay unchanged, and the notes and tags for that profile no longer exist (integration test).
+17. **Themes:** every CRM screen passes AA contrast in both light and dark (visual snapshots in both themes); the theme override persists across sessions; the public profile preview renders light while the CRM is dark.
 
 ---
 
@@ -369,6 +371,7 @@ Resolved by the product owner (tracker answers; kept here for traceability):
 | q69 | Suggest confirmation after 3 no-shows from new or unverified clients in 30 days, one tap | G17 |
 | q71 | After deletion + 30-day grace: bookings anonymised, salon notes and tags deleted | G18, AC 16 |
 | q75 | Basic / Pro / Ultra plans, 14-day Pro trial; multi-location is Ultra only | G6, G19 |
+| X18 | Dark mode only in the CRM workspace (and admin); public and customer surfaces light-only | §3.11, AC 17 |
 | q66 / q68 | Confirm-new-clients setting off by default; no-show history per salon only | G17 |
 
 Still open: none for 07 at this time.

@@ -209,7 +209,7 @@ The reference shows "District 1, HCMC" — that is pre-reform wording and must n
 - Prices on cards: `formatVND` from 03 (vi "Từ 300.000 ₫", en "From ₫300,000" — final format owned by 03); rating shows average with one decimal + review count; no rating shown under 3 reviews ("New on GuGu" badge instead).
 
 ### 3.7 Web quality & performance
-- Light and dark themes on all public pages (q44), using tokens only. The theme is resolved before first paint from the saved choice or `prefers-color-scheme`, with no flash. OG images stay light.
+- **Light theme only** on public, marketplace and customer screens (X18, supersedes q44): no dark theme, no `prefers-color-scheme` handling. `<meta name="color-scheme" content="light">` is set and `color-scheme: light` is forced so OS dark mode and browser auto-dark do not invert the UI. Native sets `userInterfaceStyle: "light"` for these screens (coordinate with 13).
 - Core Web Vitals on Moto G-class device / 4G: **LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1** at p75.
 - Public route initial JS ≤ 250 KB gzip (excluding lazily loaded 3D bundle); images via CDN with AVIF/WebP, `srcset`, explicit dimensions.
 - Cache: public HTML `s-maxage=300, stale-while-revalidate=86400` at Cloudflare, purged on salon publish/update via tag/URL purge.
@@ -259,7 +259,7 @@ The reference shows "District 1, HCMC" — that is pre-reform wording and must n
 - List-first; map toggle. Renderer: **MapLibre** everywhere: `Map.web.tsx` (MapLibre GL JS, lazy chunk) and `Map.native.tsx` (`@maplibre/maplibre-react-native`). No Google Maps SDK; `react-native-maps` is not used because it defaults to Google/Apple tiles. Shared clustering and viewport logic live in `features/search`.
 - **Tiles**:
   - Development/local: OpenFreeMap vector tiles (free, no key) or a local Protomaps PMTiles extract of Vietnam.
-  - Production: self-hosted **Protomaps PMTiles** (Vietnam extract, regenerated monthly) served from object storage through the CDN. A vi/en label style is built from the design tokens, with light and dark variants.
+  - Production: self-hosted **Protomaps PMTiles** (Vietnam extract, regenerated monthly) served from object storage through the CDN. A vi/en label style is built from the design tokens (light only).
   - Attribution "© OpenStreetMap contributors" is always visible (ODbL).
 - **Geocoding** goes through the `GeocoderPort` in the API, never called directly from the client:
   - Forward/autocomplete: **Photon**, self-hosted with a Vietnam extract. It is used for the salon address form and for customer "search an address".
@@ -346,7 +346,7 @@ Booking actions are not exposed here; concierge hands off to the booking flow (0
 | q55 | Former-district chip shown for **24 months** after launch, then reviewed. | §3.6.1 |
 | q66 | **Instant booking by default**; salons can switch on "confirm first-time/unverified customers". | §3.6.2 |
 | q67 | "Spots everyone is saving" = **favourites + bookings over 30 days**; cold start filled with **labelled editor's picks**. | B3 |
-| q44 | **Dark mode in the marketplace** too: public pages support light and dark via design tokens (02). SSR uses `prefers-color-scheme` + saved choice; the 3D/AI hero ships a dark-mode poster/loop variant. | §3.7 |
+| q44 → X18 | **Light theme only** on public pages, marketplace and customer screens, ignoring the OS dark preference (X18 supersedes q44). The hero ships no dark variant. | §3.7 |
 | X13 | Marketplace is **secondary to the salon SaaS**: build the lean slice first (salon page + booking flow + search + SEO basics), polish (map, editorial, trending) later. | §7 |
 | X15 | Hero is **produced with AI tools** (layered renders, image-to-video loops, parallax); real-time R3F is optional. | §3.3 gating |
 | X16 | Localhost only for now; AWS hosting (§4.1) is a later milestone. | §4.1 |

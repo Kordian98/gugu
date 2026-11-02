@@ -30,7 +30,7 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 
 ## Procedure: add a boolean-gated feature
 1. Add the key to `packages/domain/entitlements/keys.ts` with `valueType`, `default`, and vi/en description keys.
-2. Add a migration/seed setting the value for each plan (`PlanEntitlement`). Every plan (`basic`, `pro`, `ultra`) gets an explicit value; there is no free plan.
+2. Add a migration/seed setting the value for each plan (`PlanEntitlement`). Every plan (`basic`, `pro`, `ultra` and the internal `trial`) gets an explicit value; there is no free plan. The trial copies Pro booleans and Basic limits.
 3. Protect the API route:
    ```ts
    @RequiresEntitlement('zalo.inbox')
@@ -100,9 +100,11 @@ Plans: **Basic, Pro, Ultra**, billed monthly or yearly. **There is no free plan*
 
 Owner-approved (X13, X17, q73, q74, q75), 2026-11-02. Caps are VND or messages per salon per calendar month and are reviewed after the first 20 salons. Any plan may buy extra promoted-listing weeks (flat weekly fee, invoiced manually, q74).
 
+**Trial (`trial`, internal plan, `isPublic = false`):** used for the 14-day trial of every new salon. It is seeded with **Pro features** (all Pro booleans: `ai.agent.enabled`, `ai.monthly_review`, `zalo.oa_connect`, `zalo.inbox`, plus everything in Basic) and **Basic limits**: `ai.monthly_cost_cap_vnd` = 20,000, `zalo_template.monthly_messages` = 100, `notifications.sms.monthly_messages` = 30, `salon.max_locations` = 1, `promotion.weekly_credits_per_month` = 0. Ultra-only keys are `no`. This way trials cannot abuse AI.
+
 **Later (not in any plan at launch; no seed rows):** `ai.agent.write_actions` (assistant phase B), `branding.custom_subdomain`, `zalo.mini_app` (not planned, q41), `notifications.sms.monthly_cost_cap_vnd` (only once a real SMS provider replaces the mock).
 
-New salons: 14-day trial with Pro entitlements (decided, q75), then `expired` (read-only workspace, online bookings paused, no data deleted) until a paid plan is active. Spec G19.
+New salons: 14-day trial on the internal `trial` plan, with **Pro features and Basic limits** (AI cap 20,000 VND, 100 Zalo template, 30 SMS), so trials cannot abuse AI. After the trial, the subscription becomes `expired` (read-only workspace, online bookings paused, no data deleted) until a paid plan is active. Spec G19.
 
 Prices are TBD. Never hardcode these in code; seed them as `PlanEntitlement` rows.
 

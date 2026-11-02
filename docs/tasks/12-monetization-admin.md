@@ -2,7 +2,7 @@
 
 Covers master prompt sections 17 (booking attribution & monetization), 18 (platform admin), 27 (analytics & product metrics), plus the extra requirements: subscription plans and entitlements that gate the AI business agent (topic 08) and Zalo features (topic 09), usage metering, and a PII-free Admin Copilot.
 
-Product-owner decisions applied (roadmap X13, X14, X17; tracker q21, q31–q37, q42, q43, q63, q64, q70, q73–q75): GuGu is primarily a salon SaaS. Revenue is **monthly/yearly SaaS subscriptions only**, on plans **Basic, Pro and Ultra**. There is **no free plan** (X17). Commissions come later (ledger kept dormant). The AI assistant and the monthly Opus business review are included **from Pro** (Pro and Ultra), with a hard cost cap per salon. AI onboarding import is in all three plans. New salons get a 14-day Pro trial (q75). The final entitlement matrix is R-S2a. GuGu pays for messaging inside the plan and tracks the costs. Analytics is **built in-house** on our Postgres, with no third-party tool. Salons see their reliability score. Promoted listings and star ratings are allowed at launch. The PII-free Admin Copilot ships in v1.
+Product-owner decisions applied (roadmap X13, X14, X17; tracker q21, q31–q37, q42, q43, q63, q64, q70, q73–q75): GuGu is primarily a salon SaaS. Revenue is **monthly/yearly SaaS subscriptions only**, on plans **Basic, Pro and Ultra**. There is **no free plan** (X17). Commissions come later (ledger kept dormant). The AI assistant and the monthly Opus business review are included **from Pro** (Pro and Ultra), with a hard cost cap per salon. AI onboarding import is in all three plans. New salons get a 14-day trial with Pro features but Basic limits (q75 + owner correction). The final entitlement matrix is R-S2a. GuGu pays for messaging inside the plan and tracks the costs. Analytics is **built in-house** on our Postgres, with no third-party tool. Salons see their reliability score. Promoted listings and star ratings are allowed at launch. The PII-free Admin Copilot ships in v1.
 
 Status: spec. No code exists yet.
 
@@ -53,7 +53,7 @@ Status: spec. No code exists yet.
 | G16 | Revenue figures from analytics could be mistaken for processed payments. | Every money metric carries `RevenueKind = estimated_from_bookings \| recorded_offline_sale \| reported_by_salon` (roadmap X5). The enum is **owned by topic 07** in `packages/domain/metrics`; this topic imports it. Kinds are never summed without a label, and UI and the AI agent must render the label. |
 | G17 | No admin-side AI assistance despite the AI-first goal; product-owner rule says no personal data may go to any LLM. | **Admin Copilot in v1** (q64, §3.8), limited to aggregate/tokenised platform analytics. No PII, no review or dispute text, no write actions. Support, moderation and dispute work stays human. |
 | G18 | AI features differ by plan and AI cost could run away. | `ai.onboarding_import` (price-list screenshots → services, marketed as "effortless AI setup") is in **all three plans**: Basic, Pro, Ultra (q42, X17). `ai.agent.enabled` and `ai.monthly_review` (monthly business review on Opus) are included **from Pro** (q31, q63, X17). Every AI call is checked against a **hard monthly cost cap per salon** (`ai.monthly_cost_cap_vnd`, q32). Onboarding import has its own run cap so Basic salons cannot drain cost. |
-| G19 | X17 removed the free plan, so what does a newly registered salon get? | **Decided (q75):** a 14-day trial with Pro entitlements and Pro caps (`status = trialing`). After that, the salon must be on a paid plan (Basic, Pro or Ultra). Without one, the subscription becomes `expired`: the workspace is read-only, the public profile stays visible, and new online bookings are paused with a localized message. No data is deleted. One trial per salon (and per owner phone). |
+| G19 | X17 removed the free plan, so what does a newly registered salon get? | **Decided (q75):** a 14-day trial with **Pro features but Basic limits** (AI cap 20,000 VND, 100 Zalo template messages, 30 SMS), via the internal `trial` plan in R-S2a (`status = trialing`). After that, the salon must be on a paid plan (Basic, Pro or Ultra). Without one, the subscription becomes `expired`: the workspace is read-only, the public profile stays visible, and new online bookings are paused with a localized message. No data is deleted. One trial per salon (and per owner phone). |
 
 ---
 
@@ -138,9 +138,11 @@ Rules:
 
 Owner-approved (X13, X17, q73, q74, q75), 2026-11-02. Caps are VND or messages per salon per calendar month and are reviewed after the first 20 salons. Any plan may buy extra promoted-listing weeks (flat weekly fee, invoiced manually, q74).
 
+**Trial (`trial`, internal plan, `isPublic = false`):** used for the 14-day trial of every new salon. It is seeded with **Pro features** (all Pro booleans: `ai.agent.enabled`, `ai.monthly_review`, `zalo.oa_connect`, `zalo.inbox`, plus everything in Basic) and **Basic limits**: `ai.monthly_cost_cap_vnd` = 20,000, `zalo_template.monthly_messages` = 100, `notifications.sms.monthly_messages` = 30, `salon.max_locations` = 1, `promotion.weekly_credits_per_month` = 0. Ultra-only keys are `no`. This way trials cannot abuse AI.
+
 **Later (not in any plan at launch; no seed rows):** `ai.agent.write_actions` (assistant phase B), `branding.custom_subdomain`, `zalo.mini_app` (not planned, q41), `notifications.sms.monthly_cost_cap_vnd` (only once a real SMS provider replaces the mock).
 
-- R-S3: `Subscription(salonId, planId, planVersion, status ∈ {trialing, active, past_due, cancelled, expired}, billingMode = manual, invoicingEntity ∈ {tbd, pl, vn}, interval ∈ {month, year}, currentPeriodStart/End, trialEndsAt)`. Each salon has exactly one current subscription. At registration it gets the 14-day Pro trial (G19). There is no free plan.
+- R-S3: `Subscription(salonId, planId, planVersion, status ∈ {trialing, active, past_due, cancelled, expired}, billingMode = manual, invoicingEntity ∈ {tbd, pl, vn}, interval ∈ {month, year}, currentPeriodStart/End, trialEndsAt)`. Each salon has exactly one current subscription. At registration it gets the 14-day trial on the internal `trial` plan (Pro features, Basic limits, G19). There is no free plan.
 - R-S4: `EntitlementOverride(salonId, key, value, expiresAt, reason, createdBy)` supports admin grants and pilots.
 - R-S5: The resolver `EntitlementService.get(salonId, key)` returns override if present, otherwise plan, otherwise default. Results are cached in Redis with a 60 s TTL and invalidated on change. A **NestJS guard/decorator** `@RequiresEntitlement('ai.agent.enabled')` exists, and the client gets `/api/v1/salons/:id/entitlements` for UI gating, which is for display only. The backend always enforces.
 - R-S6: Downgrades never delete data. Over-limit resources become read-only (for example, extra staff seats are kept but cannot take new bookings until the salon is back within the limit, with a grace period of 14 days).
@@ -240,7 +242,8 @@ Entitlements & metering
 - [ ] A Zalo template send beyond `zalo_template.monthly_messages` is denied (booking messages fall back per R-U3) with `ENTITLEMENT_QUOTA_EXCEEDED`, and concurrent reservations never overshoot the limit (concurrency test, 50 parallel reserves).
 - [ ] Usage commits are idempotent (the same idempotencyKey twice equals one count).
 - [ ] AI calls stop exactly at `ai.monthly_cost_cap_vnd`: 50 parallel AI requests near the cap never push committed cost above it. A Basic salon can run onboarding import but gets `ENTITLEMENT_REQUIRED` for the assistant and the monthly review. Pro and Ultra get both.
-- [ ] Seed contains exactly the plans `basic`, `pro`, `ultra` (each with month and year prices) and no `free` plan. An expired subscription makes the workspace read-only and pauses online bookings without deleting data.
+- [ ] A `trialing` salon can use the AI assistant and the monthly review (Pro features), but its AI calls are denied with `ENTITLEMENT_QUOTA_EXCEEDED` once committed AI cost reaches 20,000 VND (the Basic cap), never at the Pro cap. Parallel requests near the cap never overshoot it. The same holds for 100 Zalo template messages and 30 SMS.
+- [ ] Seed contains exactly the public plans `basic`, `pro`, `ultra` (each with month and year prices), the internal non-public `trial` plan, and no `free` plan. An expired subscription makes the workspace read-only and pauses online bookings without deleting data.
 - [ ] An admin override takes effect within 60 s (cache invalidation test).
 - [ ] A downgrade keeps all data, and over-limit staff cannot take new bookings after the grace period.
 
@@ -285,7 +288,7 @@ Admin Copilot (v1)
 
 ## 7. Suggested sub-milestones
 
-1. **M12.1 Entitlements core:** Plan, PlanEntitlement, Subscription (Basic/Pro/Ultra seeded, trial per G19), overrides, resolver, guard, client endpoint. Unblocks gating in 07/08/09.
+1. **M12.1 Entitlements core:** Plan, PlanEntitlement, Subscription (public plans `basic`/`pro`/`ultra` plus internal `trial` seeded, G19), overrides, resolver, guard, client endpoint. Unblocks gating in 07/08/09.
 2. **M12.2 Attribution:** touch capture on client, `AttributionService` inside the booking transaction, new-customer logic, serializer protection.
 3. **M12.3 Analytics foundation (in-house):** event catalog, consent-aware client transport, `/api/v1/events` ingest, `analytics_event` partitions, server outbox emitter, PII linter.
 4. **M12.4 Feature flags:** model, evaluator, client bundle.

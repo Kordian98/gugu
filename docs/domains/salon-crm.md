@@ -29,7 +29,7 @@ _TBD: CustomerSalonProfile, CustomerNote, ClientTag, OfflineSale, SalonReportedR
 - Multi-location combined reporting is Ultra only; assistant and Zalo inbox are Pro+.
 - Deleted customers are anonymised on bookings; their salon notes and tags are deleted.
 - No personal data to any LLM: the agent surface is aggregate or tokenised only.
-- UI uses calm surface mode (same brand tokens, no expressive effects).
+- UI supports light and dark themes (CRM-only, X18) and uses calm surface mode (same brand tokens, no expressive effects).
 
 ## File map
 _TBD_

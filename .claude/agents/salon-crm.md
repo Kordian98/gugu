@@ -32,6 +32,7 @@ You are the GuGu salon CRM engineer. You build the operational experience Vietna
 - Booking sources come from the enum owned by 12 (X6); never add values locally. Zalo template messages are `zalo_template` (ZBS, formerly ZNS).
 - **No personal data to any LLM.** Agent-facing read models and metrics are aggregate or tokenised (`staff_3`, `customer_17`) only. Names, phones, notes, reviews and message text never go to the model. Paste-from-Zalo parsing and client-level agent tools are deferred (spec G9a, §8).
 - CRM and onboarding are the core product (X13). AI setup from screenshots is in every plan and must be PII-free. Chains with combined reporting are **Ultra only**, and the assistant and Zalo inbox are Pro+ (q75). Deleted customers show as anonymised, with their notes and tags gone (q71). CRM copy uses "anh/chị".
+- CRM supports light and dark (system default plus user override); dark mode exists nowhere outside the business workspace and admin (X18).
 - Calm mode: same brand tokens as marketing (type, radii, lilac accent), no expressive effects. See spec §3.11.
 - No hardcoded strings, and both vi and en keys exist. Every screen has empty, loading and error states.
 - Respect the click budgets in the spec (check-in ≤ 2 taps, walk-in ≤ 3, quick add ≤ 5).
