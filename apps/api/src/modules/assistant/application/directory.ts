@@ -1,7 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { ENTITY_TOKEN_RE, PII_FREE_ENUM_VALUES } from "@gugu/contracts";
 import type { SalonPermission } from "@gugu/domain";
-import { fold } from "../firewall/names";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import type { Directory } from "../firewall/scrubber";
 import type { TokenVault } from "../firewall/token-vault";
@@ -32,7 +30,8 @@ export class AssistantDirectory {
         take: MAX_CUSTOMER_NAMES,
       }),
     ]);
-    const keep = (name: string) => name.trim() !== "" && !isFixedVocabulary(name);
+    // Full lists: masking over-masks on purpose; the egress block check applies its own exclusions.
+    const keep = (name: string) => name.trim() !== "";
     return {
       staff: staff.map((s) => ({ id: s.id, name: s.displayName })).filter((s) => keep(s.name)),
       customers: customers.map((c) => c.customerName ?? "").filter(keep),
@@ -93,26 +92,4 @@ function salonName(name: unknown): string {
   if (typeof name === "string") return name;
   const n = (name ?? {}) as Partial<Record<"vi" | "en", string>>;
   return n.vi ?? n.en ?? "";
-}
-
-/** Words the firewall itself or the tools emit; never treated as a person's name. */
-const PLACEHOLDERS = [
-  "redacted_name",
-  "redacted_phone",
-  "redacted_email",
-  "redacted_link",
-  "salon",
-];
-const FIXED = new Set(
-  [...PII_FREE_ENUM_VALUES, ...PLACEHOLDERS].flatMap((v) => [fold(v), fold(v.replace(/_/g, " "))]),
-);
-
-/**
- * True for names that equal fixed vocabulary (booking statuses, sources, revenue kinds, period
- * expressions, placeholders) or look like entity tokens: a customer booking as "Confirmed" or
- * "staff_1" must not be able to interfere with the firewall (security review 08-A2).
- */
-export function isFixedVocabulary(name: string): boolean {
-  const n = fold(name.trim());
-  return ENTITY_TOKEN_RE.test(n) || FIXED.has(n) || FIXED.has(n.replace(/\s+/g, "_"));
 }

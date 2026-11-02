@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { entityTokenSchema } from "@gugu/contracts";
-import { isFixedVocabulary } from "../application/directory";
 import { pickRoute } from "../application/routing";
 import { checkToolResult } from "./allowlist";
 import { findNames, fold } from "./names";
 import { StreamRehydrator } from "./rehydrate";
-import { containsPersonalData, type Directory, scrubUserText } from "./scrubber";
+import {
+  containsPersonalData,
+  type Directory,
+  isCommonWord,
+  isFixedVocabulary,
+  scrubUserText,
+} from "./scrubber";
 import type { TokenVault } from "./token-vault";
 
 /** In-memory stand-in with the same token rules as the DB-backed vault. */
@@ -66,8 +71,13 @@ describe("findNames", () => {
     expect(findNames("khách Hoa hủy chưa", customerList("Hoa"))).toHaveLength(1);
     expect(findNames("chị Hoa đến chưa", customerList("Hoa"))).toHaveLength(1);
   });
-  it("uses the stricter rule when a name is both staff and customer", () => {
-    expect(findNames("Thu có mấy lịch", [...staffList("Thu"), ...customerList("Thu")])).toEqual([]);
+  it("never lets a customer list weaken a staff entry with the same name", () => {
+    expect(
+      findNames("Thu có mấy lịch", [...staffList("Thu"), ...customerList("Thu")]),
+    ).toHaveLength(1);
+    expect(
+      findNames("Thu có mấy lịch", [...customerList("Thu"), ...staffList("Thu")]),
+    ).toHaveLength(1);
   });
   it("respects word boundaries", () => {
     expect(findNames("Lanh hay Lan?", staffList("Lan")).map((s) => s.start)).toEqual([9]);
@@ -88,14 +98,30 @@ describe("scrubUserText", () => {
     expect(containsPersonalData(r.text, directory)).toBe(false);
   });
 
-  it("does not let a customer named after a common word change or block questions", async () => {
-    const q = "Lịch hôm nay thế nào? Doanh thu tuần này?";
-    const r = await scrubUserText(q, directory, memoryVault());
-    expect(r).toEqual({ text: q, changed: false });
-    expect(containsPersonalData(r.text, directory)).toBe(false);
+  it("masks a customer named like a staff member as that staff member", async () => {
+    const dir: Directory = { ...directory, customers: [...directory.customers, "Thu"] };
+    const r = await scrubUserText("Thu có mấy lịch hôm nay?", dir, memoryVault());
+    expect(r.text).toBe("staff_1 có mấy lịch hôm nay?");
+    expect(containsPersonalData(r.text, dir)).toBe(false);
+  });
+
+  it("masks a customer named like a common word, but never blocks the question", async () => {
+    // Over-masking is safe; blocking would let a customer disable the assistant.
+    const r = await scrubUserText("Lịch hôm nay thế nào?", directory, memoryVault());
+    expect(r).toEqual({ text: "[redacted_name] hôm nay thế nào?", changed: true });
+    expect(containsPersonalData("Lịch hôm nay thế nào? Doanh thu?", directory)).toBe(false);
     expect(
       containsPersonalData("Context: today is 2026-11-03. Reply in Vietnamese.", directory),
     ).toBe(false);
+    // Lower-case common words are not masked at all.
+    expect((await scrubUserText("lịch hôm nay thế nào?", directory, memoryVault())).changed).toBe(
+      false,
+    );
+  });
+
+  it("blocks a real customer name that survived scrubbing", () => {
+    expect(containsPersonalData("khách Trần Thị Bích đến chưa?", directory)).toBe(true);
+    expect(containsPersonalData("khách Lan đến chưa?", directory)).toBe(false); // "lan" is a common word
   });
 
   it("leaves ordinary questions alone", async () => {
@@ -155,8 +181,8 @@ describe("pickRoute", () => {
   });
 });
 
-describe("isFixedVocabulary", () => {
-  it("drops names equal to enums, period labels, placeholders and token shapes", () => {
+describe("egress exclusions", () => {
+  it("treats enums, period labels, placeholders and token shapes as fixed vocabulary", () => {
     for (const n of [
       "Confirmed",
       "no show",
@@ -170,6 +196,11 @@ describe("isFixedVocabulary", () => {
     ]) {
       expect(isFixedVocabulary(n)).toBe(true);
     }
-    for (const n of ["Lan", "Nguyễn Văn Tuấn", "Lịch"]) expect(isFixedVocabulary(n)).toBe(false);
+    for (const n of ["Nguyễn Văn Tuấn", "Trần Thị Bích"]) expect(isFixedVocabulary(n)).toBe(false);
+  });
+  it("knows common question words", () => {
+    for (const n of ["Lịch", "doanh thu", "Vietnamese", "Context"])
+      expect(isCommonWord(n)).toBe(true);
+    expect(isCommonWord("Trần Thị Bích")).toBe(false);
   });
 });

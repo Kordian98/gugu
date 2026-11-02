@@ -40,9 +40,10 @@ const CUES = [
 
 /**
  * How strictly a single-word name must be marked as a person before it matches:
- * - `capital_or_cue` (staff): written with a capital letter, or after a cue word;
- * - `capital_and_cue` (customers, salon): capitalised **and** after a cue word ("chị Lan", "khách
- *   Hoa"). Customers choose their own booking name, so a lone common word must never match.
+ * - `capital_or_cue`: written with a capital letter, or after a cue word (used for masking);
+ * - `capital_and_cue`: capitalised **and** after a cue word ("khách Hoa"). Used only by the egress
+ *   block check for customer/salon names, so a customer cannot block the assistant by booking under
+ *   a common word.
  * Multi-word names always match.
  */
 export type SingleWordRule = "capital_or_cue" | "capital_and_cue";
@@ -55,7 +56,9 @@ export interface NameList {
 /**
  * Whole-word occurrences of any of the names in `text`, longest names first, non-overlapping.
  * Names shorter than two letters are ignored. Many Vietnamese given names are ordinary words
- * ("Thu" in "doanh thu", "Xuân", "Minh"), so single-word names follow the list's `singleWord` rule.
+ * ("Thu" in "doanh thu", "Xuân", "Minh"), so single-word names follow their list's rule. Each list
+ * applies independently: a name in a `capital_or_cue` list (e.g. staff) matches under that rule even
+ * if the same name also appears in a stricter list — a customer can never weaken a staff entry.
  */
 export function findNames(text: string, lists: readonly NameList[]): NameSpan[] {
   const src = text.normalize("NFC");
@@ -65,8 +68,8 @@ export function findNames(text: string, lists: readonly NameList[]): NameSpan[] 
     for (const raw of list.names) {
       const n = raw.trim();
       if (n.length < 2) continue;
-      // The stricter rule wins when the same name is both staff and customer.
-      if (rule.get(n) !== "capital_and_cue") rule.set(n, list.singleWord);
+      // Any lenient list containing the name makes it match leniently (lists never weaken each other).
+      if (rule.get(n) !== "capital_or_cue") rule.set(n, list.singleWord);
     }
   }
   const candidates = [...rule.keys()].sort((a, b) => b.length - a.length);

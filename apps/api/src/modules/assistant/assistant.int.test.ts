@@ -329,18 +329,21 @@ describe("AI assistant (integration)", () => {
       await entitlements.invalidate(salonId);
     }
   });
-  it("cannot be blocked by a customer who books under a common word or a fixed-vocabulary name", async () => {
-    // Security review 08-A2: names that equal words in questions, the context line ("Reply in
-    // Vietnamese") or tool output ("confirmed", "staff_1") used to trip the egress check.
+  it("masks crafted customer names (common words, staff names) but is never blocked by them", async () => {
+    // Security review 08-A2: names equal to words in questions, the context line ("Reply in
+    // Vietnamese"), tool output ("confirmed", "staff_1") or a staff member's name must neither block
+    // the assistant nor weaken masking of the staff member.
     const staffId = (await prisma.staffProfile.findFirstOrThrow({ where: { salonId } })).id;
-    for (const [i, name] of [
+    const crafted = [
       "Lịch",
       "Vietnamese",
       "Context",
       "Confirmed",
       "staff_1",
       "Doanh",
-    ].entries()) {
+      CANARY.staff,
+    ];
+    for (const [i, name] of crafted.entries()) {
       await prisma.booking.create({
         data: {
           salonId,
@@ -359,14 +362,22 @@ describe("AI assistant (integration)", () => {
     llm.script = (_b, call) =>
       call === 1
         ? { content: [toolUse("v", "resolve_period", { expression: "today" })] }
-        : { text: "Hôm nay ổn ạ." };
+        : { text: "staff_1 hôm nay ổn ạ." };
     const events = parseSse(
-      (await ask("Lịch hôm nay thế nào? Doanh thu tuần này có confirmed không?").expect(200)).text,
+      (
+        await ask(
+          `Lịch hôm nay thế nào? Doanh thu có confirmed không? Còn chị ${CANARY.staff}?`,
+        ).expect(200)
+      ).text,
     );
     expect(events.some((e) => e.type === "error")).toBe(false);
-    expect(events.find((e) => e.type === "masked")).toMatchObject({ changed: false });
-    expect(JSON.stringify(llm.requests[0]?.messages)).toContain("Lịch hôm nay thế nào?");
     expect(events.at(-1)).toMatchObject({ type: "done" });
+    const masked = events.find((e) => e.type === "masked") as { text: string; changed: boolean };
+    expect(masked.changed).toBe(true);
+    expect(masked.text).toContain(`@${CANARY.staff}`); // still the staff token, not weakened
+    const sent = JSON.stringify(llm.requests);
+    expect(sent).not.toContain(CANARY.staff);
+    expect(sent).toContain("hôm nay thế nào?");
   });
 
   it("still redacts a typed multi-word customer name", async () => {
