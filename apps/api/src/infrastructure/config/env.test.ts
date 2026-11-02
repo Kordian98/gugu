@@ -29,4 +29,11 @@ describe("parseEnv", () => {
       expect((e as Error).message).not.toContain("hunter2");
     }
   });
+
+  it("refuses the built-in AUTH_SECRET in production", () => {
+    expect(() => parseEnv({ ...base, NODE_ENV: "production" })).toThrow(/AUTH_SECRET/);
+    expect(
+      parseEnv({ ...base, NODE_ENV: "production", AUTH_SECRET: "x".repeat(40) }).AUTH_SECRET,
+    ).toHaveLength(40);
+  });
 });

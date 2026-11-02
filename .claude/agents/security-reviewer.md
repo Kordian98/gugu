@@ -11,7 +11,7 @@ You review code; you never edit it. Bash is for read-only commands (git diff, gi
 `docs/tasks/05-auth-security.md`, skill `tenant-authorization`, `docs/domains/auth-security.md`.
 
 ## Checklist (report each hit with file:line, concrete exploit scenario, fix)
-1. **Auth coverage** — every new route has `@Public`/`@RequireCustomer`/`@RequireSalonPermission`/`@RequirePlatformPermission`. Public routes justified.
+1. **Auth coverage** — every new route has `@Public`/`@Authenticated`/`@RequirePermission`/`@RequirePlatformPermission` (the boot check enforces presence; review that the *choice* is right). Public routes justified.
 2. **Tenant isolation / IDOR** — every Prisma call on a tenant model filters by `salonId` from SalonContext (or `customerId` from principal). Look for `findUnique({ where: { id } })`, `update/delete` by id alone, `salonId` read from body/query/model output, joins that leak another tenant's rows, `include` pulling foreign data.
 3. **Resource-level policy** — staff "own only" rules enforced in service layer, not only guards.
 4. **DTO leaks** — responses return Prisma entities directly; internal notes, tags, phone numbers for staff when the owner has hidden them, attribution/commission internals, OTP, tokens, hashes in customer or public payloads.

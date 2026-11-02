@@ -10,13 +10,14 @@ import {
   type SalonEntitlements,
   salonEntitlementsSchema,
 } from "@gugu/contracts";
+import { FAKE_BEARER, fakeAuthOverrides } from "../../../../test/auth-fakes";
 import { createTestApp, http } from "../../../../test/http-app";
 import { uuidV7 } from "../../../../test/factories/ids";
 import { EntitlementService } from "../application/entitlement.service";
 import { RequiresEntitlement } from "./requires-entitlement";
-import { SALON_ACCESS } from "./salon-access";
+import { Public } from "../../../common/guards/auth-policy";
 
-const allowAll = { assertCanRead: () => Promise.resolve() };
+const canRead = fakeAuthOverrides({ permissions: ["subscription.read"] });
 const noCache = {
   get: () => Promise.resolve(undefined),
   set: () => Promise.resolve(),
@@ -52,6 +53,7 @@ function fakeEntitlements(map: EntitlementMap): Partial<EntitlementService> {
 @Controller("salons/:salonId/test-ai")
 class GatedController {
   @Get()
+  @Public()
   @RequiresEntitlement("ai.agent.enabled")
   get() {
     return { ok: true };
@@ -64,16 +66,24 @@ describe("GET /api/v1/salons/:salonId/entitlements", () => {
     await app?.close();
   });
 
-  it("fails closed with 401 until topic 05 provides salon access", async () => {
+  it("requires sign-in (401 auth.unauthenticated)", async () => {
     app = await createTestApp();
     const res = await request(http(app)).get(`/api/v1/salons/${uuidV7()}/entitlements`).expect(401);
-    expect(problemSchema.parse(res.body).code).toBe("common.unauthorized");
+    expect(problemSchema.parse(res.body).code).toBe("auth.unauthenticated");
+  });
+
+  it("forbids members without subscription.read (403)", async () => {
+    app = await createTestApp({ overrides: fakeAuthOverrides({ permissions: ["salon.read"] }) });
+    await request(http(app))
+      .get(`/api/v1/salons/${uuidV7()}/entitlements`)
+      .set("authorization", FAKE_BEARER)
+      .expect(403);
   });
 
   it("returns a contract-valid read model for an allowed caller", async () => {
     app = await createTestApp({
       overrides: [
-        { provide: SALON_ACCESS, useValue: allowAll },
+        ...canRead,
         {
           provide: EntitlementService,
           useValue: fakeEntitlements(entitlementsOf({ "crm.core": true })),
@@ -81,16 +91,22 @@ describe("GET /api/v1/salons/:salonId/entitlements", () => {
       ],
     });
     const salonId = uuidV7();
-    const res = await request(http(app)).get(`/api/v1/salons/${salonId}/entitlements`).expect(200);
+    const res = await request(http(app))
+      .get(`/api/v1/salons/${salonId}/entitlements`)
+      .set("authorization", FAKE_BEARER)
+      .expect(200);
     const body = salonEntitlementsSchema.parse(res.body);
     expect(body.salonId).toBe(salonId);
     expect(body.entitlements["crm.core"]).toBe(true);
   });
 
-  it("rejects a malformed salon id with 400", async () => {
-    app = await createTestApp({ overrides: [{ provide: SALON_ACCESS, useValue: allowAll }] });
-    const res = await request(http(app)).get("/api/v1/salons/not-a-uuid/entitlements").expect(400);
-    expect(problemSchema.parse(res.body).code).toBe("common.validation_failed");
+  it("answers a malformed salon id with 404 (tenant guard runs before validation)", async () => {
+    app = await createTestApp({ overrides: canRead });
+    const res = await request(http(app))
+      .get("/api/v1/salons/not-a-uuid/entitlements")
+      .set("authorization", FAKE_BEARER)
+      .expect(404);
+    expect(problemSchema.parse(res.body).code).toBe("common.not_found");
   });
 
   it("documents the endpoint in OpenAPI", async () => {

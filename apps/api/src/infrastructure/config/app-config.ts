@@ -7,4 +7,23 @@ export class AppConfig {
   get isProduction(): boolean {
     return this.env.NODE_ENV === "production";
   }
+
+  get webOrigins(): string[] {
+    return splitList(this.env.WEB_ORIGINS);
+  }
+
+  get googleClientIds(): string[] {
+    return splitList(this.env.GOOGLE_CLIENT_IDS);
+  }
+
+  get appleClientIds(): string[] {
+    return splitList(this.env.APPLE_CLIENT_IDS);
+  }
+}
+
+function splitList(value: string): string[] {
+  return value
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
 }

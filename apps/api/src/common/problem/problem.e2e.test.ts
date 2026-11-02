@@ -5,10 +5,12 @@ import { z } from "zod";
 import { problemSchema } from "@gugu/contracts";
 import { createTestApp, http } from "../../../test/http-app";
 import { AppError } from "./app-error";
+import { Public } from "../guards/auth-policy";
 
 const echoInput = z.object({ name: z.string().min(1), age: z.number().int() });
 
 @Controller("test-problem")
+@Public()
 class ProblemTestController {
   @Post("echo")
   echo(@Body({ schema: echoInput }) body: z.infer<typeof echoInput>) {

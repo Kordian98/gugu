@@ -16,7 +16,7 @@ datasource db {
 // Commercial access is resolved per salon from plan entitlements + overrides. Plans and their
 // entitlements are reference data inserted by migrations (mirrored in
 // src/modules/subscriptions/domain/plan-catalog.ts; an integration test keeps both in sync).
-// TODO(topic 05): add FKs (salon_id) → salons(id) once the salons table lands on main.
+// salon_id → salons(id) FKs added by topic 05 (migration add_subscription_salon_fks).
 
 enum PlanBillingInterval {
   month
@@ -112,6 +112,7 @@ model Subscription {
   createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
   plan               Plan                 @relation(fields: [planId], references: [id], onDelete: Restrict)
+  salon              Salon                @relation(fields: [salonId], references: [id], onDelete: Restrict)
   events             SubscriptionEvent[]
 
   @@unique([salonId, id])
@@ -131,6 +132,7 @@ model SubscriptionEvent {
   reason         String?
   occurredAt     DateTime            @default(now()) @map("occurred_at") @db.Timestamptz(6)
   subscription   Subscription        @relation(fields: [salonId, subscriptionId], references: [salonId, id], onDelete: Restrict)
+  salon          Salon               @relation(fields: [salonId], references: [id], onDelete: Restrict)
 
   @@index([subscriptionId, occurredAt])
   @@map("subscription_events")
@@ -148,8 +150,455 @@ model EntitlementOverride {
   expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
   revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  salon     Salon     @relation(fields: [salonId], references: [id], onDelete: Restrict)
 
   @@unique([salonId, id])
   @@index([salonId, key])
   @@map("entitlement_overrides")
+}
+
+// ─── Identity & users (module auth; spec 04 §3.2, spec 05 §3.1–3.2) ─────────────────────────────
+
+enum UserStatus {
+  active
+  suspended
+  pending_deletion
+  deleted
+
+  @@map("user_status")
+}
+
+enum PlatformRole {
+  support_admin
+  super_admin
+
+  @@map("platform_role")
+}
+
+enum Locale {
+  vi
+  en
+
+  @@map("locale")
+}
+
+model User {
+  id                   String        @id @default(uuid(7)) @db.Uuid
+  /// Normalised lower-case; citext keeps uniqueness case-insensitive.
+  email                String?       @unique @db.Citext
+  emailVerifiedAt      DateTime?     @map("email_verified_at") @db.Timestamptz(6)
+  /// E.164. Not verified for now (X12: no SMS); nullable after anonymisation.
+  phoneE164            String?       @unique @map("phone_e164")
+  status               UserStatus    @default(active)
+  preferredLocale      Locale        @default(vi) @map("preferred_locale")
+  platformRole         PlatformRole? @map("platform_role")
+  lastLoginAt          DateTime?     @map("last_login_at") @db.Timestamptz(6)
+  deletionRequestedAt  DateTime?     @map("deletion_requested_at") @db.Timestamptz(6)
+  /// requested + 30 days (q39).
+  deletionScheduledFor DateTime?     @map("deletion_scheduled_for") @db.Timestamptz(6)
+  deletedAt            DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profile            UserProfile?
+  customer           Customer?
+  identities         AuthIdentity[]
+  sessions           Session[]
+  magicLinks         MagicLinkToken[]
+  salonMemberships   SalonMember[]        @relation("SalonMemberUser")
+  invitedMembers     SalonMember[]        @relation("SalonMemberInvitedBy")
+  orgMemberships     OrganizationMember[]
+  ownedOrganizations Organization[]
+  ownedSalons        Salon[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  displayName         String?  @map("display_name")
+  /// FK to media_assets is added by the media milestone (04-S6).
+  avatarMediaId       String?  @map("avatar_media_id") @db.Uuid
+  preferredLocationId String?  @map("preferred_location_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  preferredLocation Location? @relation(fields: [preferredLocationId], references: [id], onDelete: Restrict)
+
+  @@map("user_profiles")
+}
+
+/// Customer-specific data, separate from staff identity (spec 04 §3.2). Created on first sign-in.
+model Customer {
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  userId             String    @unique @map("user_id") @db.Uuid
+  marketingConsentAt DateTime? @map("marketing_consent_at") @db.Timestamptz(6)
+  /// Schema owned by topic 11.
+  notificationPrefs  Json      @default("{}") @map("notification_prefs")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("customers")
+}
+
+enum AuthProvider {
+  apple
+  google
+  zalo
+
+  @@map("auth_provider")
+}
+
+/// External sign-in identities. Linked only to a signed-in user or after proving the email (R5).
+model AuthIdentity {
+  id        String       @id @default(uuid(7)) @db.Uuid
+  userId    String       @map("user_id") @db.Uuid
+  provider  AuthProvider
+  subject   String
+  email     String?      @db.Citext
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, subject])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+enum SessionKind {
+  web
+  native
+
+  @@map("session_kind")
+}
+
+/// One sign-in = one session = one refresh-token family (spec 05 R8). `token_hash` is the hash of
+/// the web cookie secret or of the current native access token (rotated on refresh).
+model Session {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  kind           SessionKind
+  tokenHash      String      @unique @map("token_hash")
+  /// Web: sliding expiry of the cookie. Native: expiry of the current access token.
+  tokenExpiresAt DateTime    @map("token_expires_at") @db.Timestamptz(6)
+  /// Absolute end of the session (90 days); never extended.
+  expiresAt      DateTime    @map("expires_at") @db.Timestamptz(6)
+  lastSeenAt     DateTime    @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt      DateTime?   @map("revoked_at") @db.Timestamptz(6)
+  revokeReason   String?     @map("revoke_reason")
+  userAgent      String?     @map("user_agent")
+  /// /24 (IPv4) or /48 (IPv6) prefix only.
+  ipPrefix       String?     @map("ip_prefix")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  refreshTokens RefreshToken[]
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Native refresh tokens. Each use marks `used_at` and issues a successor; presenting a used token
+/// again revokes the whole session (reuse detection, spec 05 G4).
+model RefreshToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  sessionId String    @map("session_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("refresh_tokens")
+}
+
+enum MagicLinkPurpose {
+  sign_in
+  salon_registration
+
+  @@map("magic_link_purpose")
+}
+
+/// Email magic links (link token + 6-digit code for typing on another device/app). Only HMACs are
+/// stored; single use; 15-minute TTL; max 5 code attempts (spec 05 R2).
+model MagicLinkToken {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  email        String           @db.Citext
+  userId       String?          @map("user_id") @db.Uuid
+  purpose      MagicLinkPurpose @default(sign_in)
+  tokenHash    String           @unique @map("token_hash")
+  codeHash     String           @map("code_hash")
+  attempts     Int              @default(0)
+  client       SessionKind      @default(web)
+  locale       Locale           @default(vi)
+  redirectPath String?          @map("redirect_path")
+  /// salon_registration: the salon whose pending owner membership this link activates.
+  salonId      String?          @map("salon_id") @db.Uuid
+  expiresAt    DateTime         @map("expires_at") @db.Timestamptz(6)
+  consumedAt   DateTime?        @map("consumed_at") @db.Timestamptz(6)
+  ipPrefix     String?          @map("ip_prefix")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user  User?  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  salon Salon? @relation(fields: [salonId], references: [id], onDelete: Restrict)
+
+  @@index([email, createdAt])
+  @@map("magic_link_tokens")
+}
+
+// ─── Locations & categories (stubs until 10-locations / 04-S4 catalog) ─────────────────────────
+
+enum LocationLevel {
+  province
+  ward
+
+  @@map("location_level")
+}
+
+/// Vietnamese administrative units after the 2025 reform (province → ward; no district level).
+/// Database-managed (master §7); this milestone seeds a small stub set.
+model Location {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  level     LocationLevel
+  code      String        @unique
+  parentId  String?       @map("parent_id") @db.Uuid
+  nameVi    String        @map("name_vi")
+  nameEn    String        @map("name_en")
+  slug      String
+  isActive  Boolean       @default(true) @map("is_active")
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  parent         Location?       @relation("LocationParent", fields: [parentId], references: [id], onDelete: Restrict)
+  children       Location[]      @relation("LocationParent")
+  profiles       UserProfile[]
+  salonProvinces SalonLocation[] @relation("SalonLocationProvince")
+  salonWards     SalonLocation[] @relation("SalonLocationWard")
+
+  @@index([parentId])
+  @@index([level])
+  @@map("locations")
+}
+
+/// Global, admin-managed service categories (master §7). Seeded with the initial ten.
+model ServiceCategory {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  slug      String   @unique
+  /// LocalizedText `{ "vi": "...", "en": "..." }`.
+  name      Json
+  icon      String?
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  parent   ServiceCategory?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: Restrict)
+  children ServiceCategory[] @relation("CategoryParent")
+  salons   Salon[]
+
+  @@map("service_categories")
+}
+
+// ─── Organisations & salons (spec 04 §3.2; owner answer q19) ────────────────────────────────────
+
+enum OrganizationStatus {
+  active
+  suspended
+  closed
+
+  @@map("organization_status")
+}
+
+enum OrganizationRole {
+  org_owner
+  org_manager
+  org_viewer
+
+  @@map("organization_role")
+}
+
+enum MemberStatus {
+  invited
+  pending_verification
+  active
+  removed
+
+  @@map("member_status")
+}
+
+model Organization {
+  id            String             @id @default(uuid(7)) @db.Uuid
+  name          String
+  slug          String             @unique @db.Citext
+  ownerUserId   String             @map("owner_user_id") @db.Uuid
+  status        OrganizationStatus @default(active)
+  defaultLocale Locale             @default(vi) @map("default_locale")
+  currency      String             @default("VND") @db.Char(3)
+  /// Hint from registration ("1" | "2+") until chains onboarding exists.
+  locationsHint String?            @map("locations_hint")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner   User                 @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  salons  Salon[]
+  members OrganizationMember[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  role           OrganizationRole
+  status         MemberStatus     @default(active)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+enum SalonStatus {
+  draft
+  pending_review
+  active
+  suspended
+  closed
+
+  @@map("salon_status")
+}
+
+/// One salon = one bookable location = the tenant (`salon_id` row scope).
+model Salon {
+  id                String      @id @default(uuid(7)) @db.Uuid
+  organizationId    String      @map("organization_id") @db.Uuid
+  slug              String      @unique @db.Citext
+  name              String
+  status            SalonStatus @default(draft)
+  verifiedAt        DateTime?   @map("verified_at") @db.Timestamptz(6)
+  timezone          String      @default("Asia/Ho_Chi_Minh")
+  defaultLocale     Locale      @default(vi) @map("default_locale")
+  currency          String      @default("VND") @db.Char(3)
+  ownerUserId       String      @map("owner_user_id") @db.Uuid
+  phoneE164         String?     @map("phone_e164")
+  primaryCategoryId String?     @map("primary_category_id") @db.Uuid
+  deletedAt         DateTime?   @map("deleted_at") @db.Timestamptz(6)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization         Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  owner                User                  @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  primaryCategory      ServiceCategory?      @relation(fields: [primaryCategoryId], references: [id], onDelete: Restrict)
+  location             SalonLocation?
+  members              SalonMember[]
+  magicLinks           MagicLinkToken[]
+  subscriptions        Subscription[]
+  subscriptionEvents   SubscriptionEvent[]
+  entitlementOverrides EntitlementOverride[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId])
+  @@map("salons")
+}
+
+model SalonLocation {
+  id          String                                @id @default(uuid(7)) @db.Uuid
+  salonId     String                                @unique @map("salon_id") @db.Uuid
+  addressLine String                                @map("address_line")
+  wardId      String                                @map("ward_id") @db.Uuid
+  provinceId  String                                @map("province_id") @db.Uuid
+  geo         Unsupported("geography(Point,4326)")?
+  mapPlaceId  String?                               @map("map_place_id")
+  isPrimary   Boolean                               @default(true) @map("is_primary")
+  createdAt   DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime                              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon    Salon    @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  ward     Location @relation("SalonLocationWard", fields: [wardId], references: [id], onDelete: Restrict)
+  province Location @relation("SalonLocationProvince", fields: [provinceId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([geo], type: Gist)
+  @@map("salon_locations")
+}
+
+enum SalonRole {
+  owner
+  manager
+  receptionist
+  staff
+
+  @@map("salon_role")
+}
+
+model SalonMember {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  salonId             String       @map("salon_id") @db.Uuid
+  userId              String       @map("user_id") @db.Uuid
+  role                SalonRole
+  /// `{ "grant": [...], "revoke": [...] }` — see packages/domain/src/auth/permissions.ts.
+  permissionsOverride Json?        @map("permissions_override")
+  status              MemberStatus @default(active)
+  invitedById         String?      @map("invited_by_id") @db.Uuid
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon     Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  user      User  @relation("SalonMemberUser", fields: [userId], references: [id], onDelete: Restrict)
+  invitedBy User? @relation("SalonMemberInvitedBy", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, userId])
+  @@unique([salonId, id])
+  @@index([userId])
+  @@map("salon_members")
+}
+
+// ─── Audit (spec 05 §3.7) ───────────────────────────────────────────────────────────────────────
+
+enum ActorType {
+  anonymous
+  user
+  agent
+  integration
+  system
+  platform_admin
+
+  @@map("actor_type")
+}
+
+/// Append-only: a trigger rejects UPDATE and DELETE (raw SQL, migration add_identity_tenancy).
+/// metadata never contains secrets, tokens, codes or personal data.
+model AuditLog {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  actorType      ActorType @map("actor_type")
+  actorId        String?   @map("actor_id") @db.Uuid
+  salonId        String?   @map("salon_id") @db.Uuid
+  organizationId String?   @map("organization_id") @db.Uuid
+  action         String
+  targetType     String?   @map("target_type")
+  targetId       String?   @map("target_id") @db.Uuid
+  requestId      String?   @map("request_id")
+  ipPrefix       String?   @map("ip_prefix")
+  userAgent      String?   @map("user_agent")
+  metadata       Json      @default("{}")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
 }

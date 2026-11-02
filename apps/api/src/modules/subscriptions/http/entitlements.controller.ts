@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
   problemSchema,
@@ -7,15 +7,15 @@ import {
   salonIdParamSchema,
 } from "@gugu/contracts";
 import { EntitlementService } from "../application/entitlement.service";
-import { SalonReadAccessGuard } from "./salon-access";
+import { RequirePermission } from "../../../common/guards/auth-policy";
 
 @ApiTags("subscriptions")
 @Controller("salons/:salonId/entitlements")
-@UseGuards(SalonReadAccessGuard)
 export class EntitlementsController {
   constructor(private readonly entitlements: EntitlementService) {}
 
   @Get()
+  @RequirePermission("subscription.read")
   @ApiOperation({
     operationId: "subscriptions.getEntitlements",
     summary:
@@ -28,6 +28,11 @@ export class EntitlementsController {
   })
   @ApiResponse({ status: 400, description: "Invalid salon id.", standardSchema: problemSchema })
   @ApiResponse({ status: 401, description: "Not authenticated.", standardSchema: problemSchema })
+  @ApiResponse({
+    status: 404,
+    description: "Not a member of this salon.",
+    standardSchema: problemSchema,
+  })
   async get(
     @Param({ schema: salonIdParamSchema }) params: { salonId: string },
   ): Promise<SalonEntitlements> {

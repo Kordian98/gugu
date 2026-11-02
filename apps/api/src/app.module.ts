@@ -8,7 +8,13 @@ import { LoggerModule } from "./infrastructure/logger/logger.module";
 import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { QueueModule } from "./infrastructure/queue/queue.module";
 import { RedisModule } from "./infrastructure/redis/redis.module";
+import { MailModule } from "./infrastructure/mail/mail.module";
+import { RateLimitModule } from "./infrastructure/rate-limit/rate-limit.module";
+import { AuditModule } from "./modules/audit/audit.facade";
+import { AuthModule } from "./modules/auth/auth.facade";
+import { AuthorizationModule } from "./modules/authorization/authorization.facade";
 import { HealthModule } from "./modules/health/health.module";
+import { SalonsModule } from "./modules/salons/salons.module";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 
 /** Shared infrastructure for the HTTP app and the worker. */
@@ -21,7 +27,17 @@ export const INFRASTRUCTURE_MODULES = [
 ];
 
 @Module({
-  imports: [...INFRASTRUCTURE_MODULES, HealthModule, SubscriptionsModule],
+  imports: [
+    ...INFRASTRUCTURE_MODULES,
+    RateLimitModule,
+    MailModule,
+    AuditModule,
+    AuthModule,
+    AuthorizationModule,
+    HealthModule,
+    SubscriptionsModule,
+    SalonsModule,
+  ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },
     { provide: APP_PIPE, useFactory: createValidationPipe },
