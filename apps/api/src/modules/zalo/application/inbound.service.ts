@@ -5,6 +5,7 @@ import { Prisma, type ZaloConversation } from "../../../infrastructure/prisma/ge
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { ZALO_CLIENT, type ZaloClient } from "../client/zalo-client";
 import { runBot } from "../domain/bot/engine";
+import { keywordCommand, parsePayload } from "../domain/bot/payload";
 import type { BotInput, BotReply, BotState } from "../domain/bot/types";
 import { BotPortsFactory } from "./bot-ports";
 import { ConnectionService } from "./connection.service";
@@ -156,7 +157,27 @@ export class InboundService {
           ...(inbound.kind === "unfollow" ? { unfollowedAt: at } : {}),
         };
 
-        if (inbound.bot && current.mode === "bot" && conn.botEnabled) {
+        // A hand-off nobody has taken over yet must not trap the customer: "menu", greetings or
+        // "Đặt lịch" hand the chat back to the bot. Once a staff member takes over, the bot stays out.
+        let mode = current.mode;
+        if (inbound.bot && mode === "staff" && !current.assignedUserId && conn.botEnabled) {
+          const cmd =
+            inbound.bot.kind === "text"
+              ? keywordCommand(inbound.bot.text)
+              : inbound.bot.kind === "payload"
+                ? (() => {
+                    const p = parsePayload(inbound.bot.payload);
+                    return p.kind === "global" ? p.command : null;
+                  })()
+                : null;
+          if (cmd === "menu" || cmd === "book") {
+            mode = "bot";
+            update.mode = "bot";
+            update.handoffRequestedAt = null;
+          }
+        }
+
+        if (inbound.bot && mode === "bot" && conn.botEnabled) {
           const locale = "vi" as const;
           const { t } = createI18n(locale);
           const ports = await this.ports.forConversation(
