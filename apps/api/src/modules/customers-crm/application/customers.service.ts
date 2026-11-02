@@ -315,7 +315,7 @@ export class CustomersService {
       lastVisitAt: r.last_visit?.toISOString() ?? null,
       nextVisitAt: r.next_visit?.toISOString() ?? null,
       estimatedSpend: Number(r.spend),
-      atRisk: r.at_risk === true,
+      atRisk: r.at_risk,
     };
   }
 
