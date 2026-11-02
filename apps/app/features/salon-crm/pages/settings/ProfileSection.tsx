@@ -62,7 +62,7 @@ export function ProfileSection({
       </Text>
       <ErrorBanner text={errorText(save.error)} />
       <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
-        <Field flex={2} label={t("settings.salonName")}>
+        <Field flex={1.4} label={t("settings.salonName")}>
           <Input label={t("settings.salonName")} value={name} onChangeText={setName} />
         </Field>
         <Field flex={1} label={t("settings.phone")}>

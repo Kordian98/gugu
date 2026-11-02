@@ -67,12 +67,17 @@ export function HoursSection({ settings, canEdit }: { settings: SalonSettings; c
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
             flexWrap: "wrap",
             minHeight: 44,
           }}
         >
-          <Text size={14} color={c.ink} style={{ width: 96, textTransform: "capitalize" }}>
+          <Text
+            size={14}
+            color={c.ink}
+            numberOfLines={1}
+            style={{ width: 64, textTransform: "capitalize" }}
+          >
             {weekdayLabel(d.weekday, locale)}
           </Text>
           <Toggle
