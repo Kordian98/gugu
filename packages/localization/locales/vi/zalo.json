@@ -143,13 +143,24 @@
         "image": "Hình ảnh",
         "file": "Tệp",
         "template": "Tin mẫu",
-        "other": "Tin nhắn"
+        "other": "Tin nhắn",
+        "auto_released": "Đã tự trả lại cho trợ lý vì nhân viên chưa trả lời trong thời gian đã đặt."
       },
       "messageStatus": {
         "queued": "Đang gửi",
         "failed": "Gửi thất bại",
         "rejected": "Không gửi được"
-      }
+      },
+      "listHint": "Chạm vào một cuộc trò chuyện để đọc và trả lời.",
+      "reply": "Trả lời",
+      "waitingTitle": "Khách đang chờ nhân viên",
+      "waitingSince": "Chờ từ {{time}}",
+      "botActiveNote": "Trợ lý đang trả lời khách. Gửi tin nhắn sẽ tiếp quản cuộc trò chuyện.",
+      "staffActiveNote": "Bạn đang trả lời khách. Trợ lý im lặng cho đến khi bạn trả lại.",
+      "paidNote": "Khách nhắn lần cuối hơn 48 giờ trước: tin trả lời có phí (khoảng {{price}}).",
+      "closedNote": "Đã quá 7 ngày từ tin nhắn cuối của khách nên Zalo không cho phép trả lời. Khách cần nhắn cho salon trước.",
+      "sendExplain": "Tin nhắn được gửi từ Zalo OA của salon và khách nhận trong Zalo. Bạn không cần mở ứng dụng Zalo.",
+      "selectBody": "Tin nhắn của khách gửi tới Zalo OA của salon sẽ hiện ở đây. Bạn trả lời ngay trong GuGu Studio."
     },
     "notifications": {
       "title": "Cần chú ý",
@@ -163,6 +174,13 @@
         "booking_confirmed": "Khách xác nhận sẽ đến",
         "connection_needs_reauth": "Zalo OA cần kết nối lại"
       }
+    },
+    "staffRelease": "Tự trả lại cho trợ lý sau (phút)",
+    "staffReleaseHint": "Khi khách chờ nhân viên mà không ai trả lời trong khoảng này, trợ lý sẽ tiếp tục. 0 = không tự trả lại.",
+    "today": {
+      "title": "Khách đang chờ trên Zalo",
+      "body": "{{count}} khách cần nhân viên trả lời.",
+      "open": "Trả lời ngay"
     }
   }
 }

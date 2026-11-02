@@ -67,6 +67,8 @@ export const zaloConnectionSchema = z.object({
   reminder2h: z.boolean(),
   allowPaidMessages: z.boolean(),
   monthlyTemplateCap: z.number().int().nullable(),
+  /** Staff-mode chats go back to the bot after this many quiet minutes (0 = never). */
+  staffReleaseMinutes: z.number().int(),
   templateIds: zaloTemplateIdsSchema,
   usage: zaloUsageSchema,
   unreadNotifications: z.number().int(),
@@ -87,6 +89,7 @@ export const zaloSettingsInputSchema = z
     reminder2h: z.boolean(),
     allowPaidMessages: z.boolean(),
     monthlyTemplateCap: z.number().int().min(0).max(100_000).nullable(),
+    staffReleaseMinutes: z.number().int().min(0).max(10_080),
     templateIds: zaloTemplateIdsSchema,
   })
   .partial();
@@ -171,3 +174,24 @@ export const zaloSendLogEntrySchema = z.object({
 export type ZaloSendLogEntry = z.infer<typeof zaloSendLogEntrySchema>;
 export const zaloSendLogSchema = cursorPageSchema(zaloSendLogEntrySchema);
 export type ZaloSendLog = z.infer<typeof zaloSendLogSchema>;
+
+/** Customers waiting for a person (hand-off not answered, or unread messages in staff mode). */
+export const zaloAttentionItemSchema = z.object({
+  conversationId: uuidV7Schema,
+  displayName: z.string().nullable(),
+  /** Since when the customer has been waiting. */
+  since: z.iso.datetime().nullable(),
+  /** A staff member explicitly took over. */
+  assigned: z.boolean(),
+  unreadCount: z.number().int(),
+  /** The customer's latest messages, oldest first (text, or a kind label for stickers etc.). */
+  lastMessages: z.array(
+    z.object({ kind: z.string(), text: z.string().nullable(), createdAt: z.iso.datetime() }),
+  ),
+});
+export type ZaloAttentionItem = z.infer<typeof zaloAttentionItemSchema>;
+export const zaloAttentionSchema = z.object({
+  waiting: z.number().int(),
+  items: z.array(zaloAttentionItemSchema),
+});
+export type ZaloAttention = z.infer<typeof zaloAttentionSchema>;

@@ -163,8 +163,10 @@ export class InboundService {
           update.mode = "bot";
           update.assignedUserId = null;
           update.handoffRequestedAt = null;
+          update.staffNoticeAt = null;
         }
         if (route === "staff_notice") {
+          update.staffNoticeAt = this.clock.now();
           const { t } = createI18n("vi");
           logIds = await this.outbound.record(
             salonId,
@@ -211,6 +213,8 @@ export class InboundService {
             } else if (effect.type === "handoff") {
               update.mode = "staff";
               update.handoffRequestedAt = this.clock.now();
+              update.lastStaffActivityAt = this.clock.now();
+              update.staffNoticeAt = null;
               await tx.zaloStaffNotification.create({
                 data: { salonId, kind: "handoff_requested", conversationId: conv.id },
               });

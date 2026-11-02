@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Injectable } from "@nestjs/common";
+import { AppConfig } from "../../../infrastructure/config/app-config";
 import { RedisService } from "../../../infrastructure/redis/redis.service";
 import type { CsMessage } from "../client/zalo-client";
 
@@ -7,7 +8,6 @@ import type { CsMessage } from "../client/zalo-client";
  * State of the built-in Zalo emulator, kept in Redis so the API and the worker process share it.
  * Dev/test only (ZALO_CLIENT=emulated, never in production). Keys: `zalo-emu:*`.
  */
-const P = "zalo-emu:";
 /** Emulated OA access tokens live 25 h, like Zalo's; refresh tokens 90 days ([3p]). */
 export const EMU_ACCESS_TTL_MS = 25 * 3_600_000;
 const REFRESH_TTL_S = 90 * 86_400;
@@ -43,7 +43,15 @@ const token = (prefix: string) => `${prefix}_${randomBytes(18).toString("base64u
 
 @Injectable()
 export class EmulatorStore {
-  constructor(private readonly redis: RedisService) {}
+  /** `zalo-emu:<namespace>:` — tests get their own namespace (ZALO_EMULATOR_NAMESPACE). */
+  private readonly P: string;
+
+  constructor(
+    private readonly redis: RedisService,
+    config: AppConfig,
+  ) {
+    this.P = `zalo-emu:${config.env.ZALO_EMULATOR_NAMESPACE}:`;
+  }
 
   private get r() {
     return this.redis.client;
@@ -53,21 +61,21 @@ export class EmulatorStore {
   static webhookUrl: string | null = null;
 
   async saveOa(oaId: string, name: string): Promise<void> {
-    await this.r.hset(`${P}oas`, oaId, name);
+    await this.r.hset(`${this.P}oas`, oaId, name);
   }
 
   async oas(): Promise<Record<string, string>> {
-    return this.r.hgetall(`${P}oas`);
+    return this.r.hgetall(`${this.P}oas`);
   }
 
   async createCode(oaId: string, codeChallenge: string): Promise<string> {
     const code = token("code");
-    await this.r.set(`${P}code:${code}`, JSON.stringify({ oaId, codeChallenge }), "EX", 600);
+    await this.r.set(`${this.P}code:${code}`, JSON.stringify({ oaId, codeChallenge }), "EX", 600);
     return code;
   }
 
   async consumeCode(code: string): Promise<{ oaId: string; codeChallenge: string } | null> {
-    const raw = await this.r.getdel(`${P}code:${code}`);
+    const raw = await this.r.getdel(`${this.P}code:${code}`);
     return raw ? (JSON.parse(raw) as { oaId: string; codeChallenge: string }) : null;
   }
 
@@ -76,34 +84,34 @@ export class EmulatorStore {
     const refreshToken = token("rt");
     const expiresAt = new Date(now.getTime() + EMU_ACCESS_TTL_MS);
     await this.r.set(
-      `${P}at:${accessToken}`,
+      `${this.P}at:${accessToken}`,
       JSON.stringify({ oaId, exp: expiresAt.getTime() }),
       "PX",
       EMU_ACCESS_TTL_MS,
     );
-    await this.r.set(`${P}rt:${refreshToken}`, oaId, "EX", REFRESH_TTL_S);
+    await this.r.set(`${this.P}rt:${refreshToken}`, oaId, "EX", REFRESH_TTL_S);
     return { accessToken, refreshToken, expiresAt };
   }
 
   /** Refresh tokens are single-use (rotated), like Zalo's. */
   async consumeRefresh(refreshToken: string): Promise<string | null> {
-    return this.r.getdel(`${P}rt:${refreshToken}`);
+    return this.r.getdel(`${this.P}rt:${refreshToken}`);
   }
 
   async oaForToken(accessToken: string, now: Date): Promise<string | null> {
-    const raw = await this.r.get(`${P}at:${accessToken}`);
+    const raw = await this.r.get(`${this.P}at:${accessToken}`);
     if (!raw) return null;
     const { oaId, exp } = JSON.parse(raw) as { oaId: string; exp: number };
     return exp > now.getTime() ? oaId : null;
   }
 
   async faults(oaId: string): Promise<EmulatorFaults> {
-    const raw = await this.r.get(`${P}faults:${oaId}`);
+    const raw = await this.r.get(`${this.P}faults:${oaId}`);
     return raw ? (JSON.parse(raw) as EmulatorFaults) : {};
   }
 
   async setFaults(oaId: string, faults: EmulatorFaults): Promise<void> {
-    await this.r.set(`${P}faults:${oaId}`, JSON.stringify(faults));
+    await this.r.set(`${this.P}faults:${oaId}`, JSON.stringify(faults));
   }
 
   /** Consumes one "failNext" unit; true when this call should fail. */
@@ -115,16 +123,16 @@ export class EmulatorStore {
   }
 
   async touch(oaId: string, userId: string, at: Date, name?: string): Promise<void> {
-    await this.r.hset(`${P}int:${oaId}`, userId, String(at.getTime()));
-    if (name) await this.r.hset(`${P}names:${oaId}`, userId, name);
+    await this.r.hset(`${this.P}int:${oaId}`, userId, String(at.getTime()));
+    if (name) await this.r.hset(`${this.P}names:${oaId}`, userId, name);
   }
 
   async userName(oaId: string, userId: string): Promise<string | null> {
-    return this.r.hget(`${P}names:${oaId}`, userId);
+    return this.r.hget(`${this.P}names:${oaId}`, userId);
   }
 
   async lastInteraction(oaId: string, userId: string): Promise<Date | null> {
-    const ms = await this.r.hget(`${P}int:${oaId}`, userId);
+    const ms = await this.r.hget(`${this.P}int:${oaId}`, userId);
     return ms ? new Date(Number(ms)) : null;
   }
 
@@ -132,8 +140,8 @@ export class EmulatorStore {
     oaId: string,
   ): Promise<{ userId: string; name: string | null; lastInteractionAt: string }[]> {
     const [ints, names] = await Promise.all([
-      this.r.hgetall(`${P}int:${oaId}`),
-      this.r.hgetall(`${P}names:${oaId}`),
+      this.r.hgetall(`${this.P}int:${oaId}`),
+      this.r.hgetall(`${this.P}names:${oaId}`),
     ]);
     return Object.entries(ints).map(([userId, ms]) => ({
       userId,
@@ -144,24 +152,24 @@ export class EmulatorStore {
 
   async record(entry: Omit<OutboxEntry, "id">): Promise<OutboxEntry> {
     const full = { ...entry, id: token("msg") };
-    await this.r.lpush(`${P}outbox:${entry.oaId}`, JSON.stringify(full));
-    await this.r.ltrim(`${P}outbox:${entry.oaId}`, 0, OUTBOX_MAX - 1);
+    await this.r.lpush(`${this.P}outbox:${entry.oaId}`, JSON.stringify(full));
+    await this.r.ltrim(`${this.P}outbox:${entry.oaId}`, 0, OUTBOX_MAX - 1);
     return full;
   }
 
   /** Newest last. */
   async outbox(oaId: string, userId?: string): Promise<OutboxEntry[]> {
-    const raw = await this.r.lrange(`${P}outbox:${oaId}`, 0, OUTBOX_MAX - 1);
+    const raw = await this.r.lrange(`${this.P}outbox:${oaId}`, 0, OUTBOX_MAX - 1);
     const all = raw.map((r) => JSON.parse(r) as OutboxEntry).reverse();
     return userId ? all.filter((e) => e.userId === userId || e.channel === "template") : all;
   }
 
   async clear(oaId: string): Promise<void> {
     await this.r.del(
-      `${P}outbox:${oaId}`,
-      `${P}int:${oaId}`,
-      `${P}names:${oaId}`,
-      `${P}faults:${oaId}`,
+      `${this.P}outbox:${oaId}`,
+      `${this.P}int:${oaId}`,
+      `${this.P}names:${oaId}`,
+      `${this.P}faults:${oaId}`,
     );
   }
 }

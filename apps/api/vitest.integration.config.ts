@@ -22,6 +22,8 @@ process.env["DATABASE_URL"] = testDb;
 const redis = new URL(process.env["REDIS_URL"] ?? "redis://127.0.0.1:16379");
 redis.pathname = `/${process.env["TEST_REDIS_DB"] ?? "15"}`;
 process.env["REDIS_URL"] = redis.toString();
+// Zalo emulator state (faults, outbox, OAuth codes) gets its own namespace per test run.
+process.env["ZALO_EMULATOR_NAMESPACE"] = `test-${String(process.pid)}-${String(Date.now())}`;
 
 export default defineConfig({
   plugins: [swc.vite({ module: { type: "es6" } })],

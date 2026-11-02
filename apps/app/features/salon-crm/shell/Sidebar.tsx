@@ -9,6 +9,7 @@ import { useOptionalSalon } from "../data/SalonContext";
 import { useThemePreference } from "../theme/CrmThemeProvider";
 import type { NavItem, NavSectionId } from "./nav";
 import { useCrmNav, useVisibleNav } from "./useCrmNav";
+import { useZaloAttention } from "../data/zalo";
 
 /** Dark plum sidebar (ref crm-01): wordmark + STUDIO pill, grouped collapsible nav, user + salon. */
 export function Sidebar({ workspace, collapsed }: { workspace: Workspace; collapsed: boolean }) {
@@ -18,10 +19,13 @@ export function Sidebar({ workspace, collapsed }: { workspace: Workspace; collap
   const { sections } = useVisibleNav();
   const [closed, setClosed] = useState<Partial<Record<NavSectionId, boolean>>>({});
   const width = collapsed ? 76 : 248;
+  const zaloWaiting = useZaloAttention().data?.waiting ?? 0;
   const badge = (item: NavItem) =>
     item.id === "appointments" && workspace.today.appointments
       ? workspace.today.appointments.total
-      : null;
+      : item.id === "zalo" && zaloWaiting > 0
+        ? zaloWaiting
+        : null;
 
   return (
     <View

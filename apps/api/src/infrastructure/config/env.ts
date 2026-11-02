@@ -79,6 +79,11 @@ export const envSchema = z
     ZALO_OA_SECRET_KEY: z.string().min(16).default(DEV_ZALO_OA_SECRET_KEY),
     /** Encrypts per-salon OA tokens at rest (AES-256-GCM, key derived with SHA-256). ≥ 32 chars. */
     ZALO_TOKEN_KEY: z.string().min(32).default(DEV_ZALO_TOKEN_KEY),
+    /** Key prefix for the built-in emulator's Redis state; tests use one per run. */
+    ZALO_EMULATOR_NAMESPACE: z
+      .string()
+      .regex(/^[\w-]{1,64}$/)
+      .default("dev"),
     /** Indicative prices for the send log (VND). Override when real prices are known. */
     ZALO_PRICE_TEMPLATE_VND: z.coerce.number().int().min(0).default(200),
     ZALO_PRICE_CS_PAID_VND: z.coerce.number().int().min(0).default(55),

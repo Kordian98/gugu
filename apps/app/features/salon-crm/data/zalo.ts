@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
+  ZaloAttention,
   ZaloConnection,
+  ZaloConversation,
   ZaloConversationList,
   ZaloMessageList,
   ZaloNotificationList,
@@ -21,6 +23,8 @@ const keys = {
     ["salon", s, "zalo", "conversations", filter] as const,
   messages: (s: string, id: string) => ["salon", s, "zalo", "messages", id] as const,
   notifications: (s: string) => ["salon", s, "zalo", "notifications"] as const,
+  attention: (s: string) => ["salon", s, "zalo", "attention"] as const,
+  conversation: (s: string, id: string) => ["salon", s, "zalo", "conversation", id] as const,
 };
 
 /** Live-ish inbox: customers expect quick answers, so lists refresh every few seconds. */
@@ -59,6 +63,32 @@ export function useZaloMessages(conversationId: string | null) {
         `/salons/${salonId}/zalo/conversations/${conversationId ?? ""}/messages?limit=50`,
       ),
     enabled: salonId !== "" && conversationId !== null,
+    refetchInterval: POLL_MS,
+  });
+}
+
+/**
+ * Customers waiting for a person. Polled everywhere it is shown (sidebar badge, Today, inbox) so a
+ * hand-off is impossible to miss. Disabled for members without `zalo.inbox.use`.
+ */
+export function useZaloAttention() {
+  const salon = useOptionalSalon();
+  const salonId = salon?.salonId ?? "";
+  const allowed = salon?.can("zalo.inbox.use") ?? false;
+  return useQuery({
+    queryKey: keys.attention(salonId),
+    queryFn: () => apiFetch<ZaloAttention>(`/salons/${salonId}/zalo/attention`),
+    enabled: salonId !== "" && allowed,
+    refetchInterval: POLL_MS * 3,
+  });
+}
+
+export function useZaloConversation(id: string | null) {
+  const salonId = useOptionalSalon()?.salonId ?? "";
+  return useQuery({
+    queryKey: keys.conversation(salonId, id ?? ""),
+    queryFn: () => apiFetch<ZaloConversation>(`/salons/${salonId}/zalo/conversations/${id ?? ""}`),
+    enabled: salonId !== "" && id !== null,
     refetchInterval: POLL_MS,
   });
 }

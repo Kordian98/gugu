@@ -75,6 +75,7 @@ export class ConnectionService {
       reminder2h: conn?.reminder2h ?? true,
       allowPaidMessages: conn?.allowPaidMessages ?? true,
       monthlyTemplateCap: conn?.monthlyTemplateCap ?? null,
+      staffReleaseMinutes: conn?.staffReleaseMinutes ?? 30,
       templateIds,
       usage,
       unreadNotifications: unread,
@@ -222,6 +223,9 @@ export class ConnectionService {
             ? { monthlyTemplateCap: input.monthlyTemplateCap }
             : {}),
           ...(input.templateIds !== undefined ? { templateIds: input.templateIds } : {}),
+          ...(input.staffReleaseMinutes !== undefined
+            ? { staffReleaseMinutes: input.staffReleaseMinutes }
+            : {}),
         },
       });
       await this.audit.record(

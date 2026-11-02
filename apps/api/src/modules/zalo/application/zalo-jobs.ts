@@ -5,6 +5,7 @@ import { ConnectionService } from "./connection.service";
 import { InboundService } from "./inbound.service";
 import { OutboundService } from "./outbound.service";
 import { RemindersService } from "./reminders.service";
+import { StaffReleaseService } from "./staff-release.service";
 import { ZaloClock } from "./zalo-clock";
 
 /** Raw webhook payloads contain customer text: kept this long for debugging, then deleted. */
@@ -18,6 +19,7 @@ export class ZaloJobs {
     private readonly outbound: OutboundService,
     private readonly reminders: RemindersService,
     private readonly updates: BookingUpdatesService,
+    private readonly staffRelease: StaffReleaseService,
     private readonly connections: ConnectionService,
     private readonly prisma: PrismaService,
     private readonly clock: ZaloClock,
@@ -38,7 +40,8 @@ export class ZaloJobs {
   async minute() {
     const updates = await this.updates.scan();
     const reminders = await this.reminders.scan();
-    return { updates: updates.queued, reminders: reminders.queued };
+    const released = await this.staffRelease.sweep();
+    return { updates: updates.queued, reminders: reminders.queued, released: released.released };
   }
 
   refreshTokens() {

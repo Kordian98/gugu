@@ -6,8 +6,12 @@ import {
   problemSchema,
   salonParamsSchema,
   uuidV7Schema,
+  type ZaloAttention,
+  zaloAttentionSchema,
   type ZaloConnection,
   zaloConnectionSchema,
+  type ZaloConversation,
+  zaloConversationSchema,
   type ZaloConversationList,
   zaloConversationListQuerySchema,
   zaloConversationListSchema,
@@ -129,6 +133,23 @@ export class ZaloPanelController {
     return this.inbox.conversations(salon, query);
   }
 
+  @Get("conversations/:conversationId")
+  @RequirePermission("zalo.inbox.use")
+  @RequiresEntitlement("zalo.inbox")
+  @ApiOperation({ operationId: "zalo.conversation", summary: "One Zalo conversation." })
+  @ApiResponse({
+    status: 200,
+    description: "Conversation.",
+    standardSchema: zaloConversationSchema,
+  })
+  @ApiResponse({ status: 404, description: "Not found.", standardSchema: problemSchema })
+  conversation(
+    @Param({ schema: conversationParams }) p: ConversationParams,
+    @CurrentSalon() salon: SalonContext,
+  ): Promise<ZaloConversation> {
+    return this.inbox.conversationDetail(salon, p.conversationId);
+  }
+
   @Get("conversations/:conversationId/messages")
   @RequirePermission("zalo.inbox.use")
   @RequiresEntitlement("zalo.inbox")
@@ -198,6 +219,17 @@ export class ZaloPanelController {
   @ApiOperation({ operationId: "zalo.markRead", summary: "Mark a conversation read." })
   async read(@Param({ schema: conversationParams }) p: ConversationParams) {
     await this.inbox.markRead(p.salonId, p.conversationId);
+  }
+
+  @Get("attention")
+  @RequirePermission("zalo.inbox.use")
+  @ApiOperation({
+    operationId: "zalo.attention",
+    summary: "Customers waiting for a staff member (badge, Today card, pinned inbox).",
+  })
+  @ApiResponse({ status: 200, description: "Waiting chats.", standardSchema: zaloAttentionSchema })
+  attention(@Param({ schema: salonParamsSchema }) p: SalonParams): Promise<ZaloAttention> {
+    return this.inbox.attention(p.salonId);
   }
 
   @Get("notifications")

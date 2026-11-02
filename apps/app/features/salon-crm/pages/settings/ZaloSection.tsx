@@ -87,6 +87,7 @@ function ZaloSettings({ data, canManage }: { data: ZaloConnection; canManage: bo
     reminder2h: boolean;
     allowPaidMessages: boolean;
     monthlyTemplateCap: number | null;
+    staffReleaseMinutes: number;
     templateIds: ZaloConnection["templateIds"];
   };
   const [form, setForm] = useState<Form>({
@@ -95,6 +96,7 @@ function ZaloSettings({ data, canManage }: { data: ZaloConnection; canManage: bo
     reminder2h: data.reminder2h,
     allowPaidMessages: data.allowPaidMessages,
     monthlyTemplateCap: data.monthlyTemplateCap,
+    staffReleaseMinutes: data.staffReleaseMinutes,
     templateIds: data.templateIds,
   });
   const [saved, setSaved] = useState(false);
@@ -259,6 +261,15 @@ function ZaloSettings({ data, canManage }: { data: ZaloConnection; canManage: bo
               value={form.monthlyTemplateCap}
               onChange={(v) => {
                 set({ monthlyTemplateCap: v });
+              }}
+            />
+          </SettingRow>
+          <SettingRow title={t("panel.staffRelease")} body={t("panel.staffReleaseHint")}>
+            <NumberInput
+              label={t("panel.staffRelease")}
+              value={form.staffReleaseMinutes}
+              onChange={(v) => {
+                set({ staffReleaseMinutes: Math.min(10_080, Math.max(0, v ?? 0)) });
               }}
             />
           </SettingRow>
