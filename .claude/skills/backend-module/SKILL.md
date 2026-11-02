@@ -33,7 +33,7 @@ Spec: `docs/tasks/04-backend-database.md` §4. Current state: `docs/domains/back
 1. Zod: `packages/contracts/src/<domain>/<action>.ts` — `XxxInput`, `XxxResult`.
 2. Command service `application/commands/<action>.command.ts`: validate business rules, run in `prisma.$transaction`, write outbox event(s), return result.
 3. Controller method: route under `/api/v1/salons/:salonId/...` for tenant data, `/api/v1/me/...` for customer data, `/api/v1/public/...` for unauthenticated reads, `/api/v1/admin/...` for platform admin.
-4. Decorators: Zod validation pipe, `@RequirePermission`, OpenAPI `summary` + `operationId` (`<domain>.<action>`), response schema, documented error codes.
+4. Decorators: input via `@Body({ schema: XxxInput })` / `@Query({ schema })` / `@Param({ schema })` (validated by the global `StandardSchemaValidationPipe`; failures become `common.validation_failed` with field errors), `@RequirePermission`, `@ApiOperation({ operationId: '<domain>.<action>', summary })`, `@ApiResponse({ status, standardSchema: XxxResult })` (Zod → OpenAPI automatically), documented error codes. Throw `AppError(status, '<domain>.<reason>', title)` for expected failures — never return error bodies by hand. Look at `apps/api/src/modules/health` for a working example.
 5. If POST creates something clients may retry (bookings, reviews, uploads): accept `Idempotency-Key` via the idempotency interceptor.
 6. Audit: sensitive actions (role change, suspension, data export, deletion, settings change) write `AuditLog`.
 
@@ -58,7 +58,8 @@ Spec: `docs/tasks/04-backend-database.md` §4. Current state: `docs/domains/back
 
 ## Tests (required)
 - Unit: business rules in commands, mapping, permission metadata present.
-- Integration (Testcontainers Postgres+PostGIS, real Redis): happy path, validation error, permission denied, **cross-tenant access returns 404** (use an ID from another salon), idempotent replay, outbox event written once.
+- HTTP e2e without the stack: `createTestApp()` from `apps/api/test/http-app.ts` boots the real `AppModule` (filter, pipe, middleware, Swagger).
+- Integration (`*.int.test.ts`, local stack via `pnpm stack:up`, `pnpm test:integration`): happy path, validation error, permission denied, **cross-tenant access returns 404** (use an ID from another salon), idempotent replay, outbox event written once.
 - Contract: registry ↔ OpenAPI consistency test passes; regenerate `packages/api-client` and type-check.
 
 ## Checklist before PR

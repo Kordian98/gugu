@@ -11,3 +11,4 @@ One file per decision: `NNNN-<slug>.md`, using the template in `.claude/skills/a
 | 0005 | AI-first workflow | planned |
 | 0006 | Web output mode (spike S1, topic 10) | planned |
 | 0007 | Hosting: AWS ap-southeast-1 | planned |
+| [0008](0008-prisma-raw-sql-boundary.md) | Prisma 7 + raw SQL boundary; API bundling (spike 04-S0) | proposed |

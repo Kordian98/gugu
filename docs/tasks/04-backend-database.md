@@ -228,7 +228,7 @@ Modules (master §3.3): auth, users, customers, salons, staff, services, categor
 - Transactions: interactive `prisma.$transaction` with explicit isolation for booking writes; outbox insert in the same transaction.
 
 ### 4.3 Validation & contracts
-- **Single source of truth: Zod schemas in `packages/contracts`** (request bodies, query params, read models, inferred types, error codes). Pure logic (booking math, permission matrix, metric definitions) lives in **`packages/domain`**. There is no `packages/validation` or `packages/types` (X3). Backend uses `nestjs-zod` (or equivalent — verify current maintained option in S0) to validate and to emit OpenAPI 3.1. `packages/api-client` is generated from the OpenAPI document (e.g. `openapi-typescript` + TanStack Query hooks). The frontend and the agent tool layer import the same Zod types.
+- **Single source of truth: Zod schemas in `packages/contracts`** (request bodies, query params, read models, inferred types, error codes). Pure logic (booking math, permission matrix, metric definitions) lives in **`packages/domain`**. There is no `packages/validation` or `packages/types` (X3). Backend uses NestJS 12's built-in Standard Schema support (`@Body({ schema })` + global `StandardSchemaValidationPipe`; `@ApiResponse({ standardSchema })` for OpenAPI) — `nestjs-zod` does not support Nest 12 (ADR-0008). `packages/api-client` is generated from the OpenAPI document (e.g. `openapi-typescript` + TanStack Query hooks). The frontend and the agent tool layer import the same Zod types.
 - Responses are validated against read-model schemas in dev/test (output validation, master §24) and stripped of non-declared fields in prod.
 
 ### 4.4 Read-model pattern (CRM + AI agent reuse)
@@ -277,7 +277,7 @@ Each read model has: Zod input + output schema, required permission, tenant scop
 4. Changing a service's price/duration/name does not change any existing booking's displayed values (test).
 5. Deleting (soft) a service/staff/salon never deletes bookings; attempting a hard delete of a referenced row fails (test).
 6. Radius query "salons within 3 km of point, ordered by distance" uses the GiST index (EXPLAIN check in test) and returns correct ordering.
-7. Every endpoint appears in `/api/v1/docs` (Swagger) with request/response schemas generated from Zod; generated `api-client` compiles with `strict`.
+7. Every endpoint appears in `/api/docs` (Swagger UI; JSON at `/api/docs-json`) with request/response schemas generated from Zod; generated `api-client` compiles with `strict`.
 8. Every read model listed in §4.4 has metadata (permission, scope, description, schemas) in its module registry; a test asserts registry ↔ OpenAPI consistency.
 9. A booking creation commits exactly one `booking.created` outbox event; rolling back the transaction leaves none; the relay delivers it to BullMQ at-least-once and consumers dedupe.
 10. Replaying a POST with the same `Idempotency-Key` returns the original response without side effects.
@@ -307,8 +307,8 @@ Provides to: 06, 07, 08, 10, 11, 12 (schema, read-model registry, outbox, media)
 ---
 
 ## 8. Sub-milestones
-- **S0 Spike (1–2 d):** Prisma 7 + adapter-pg + `Unsupported` geography + TypedSQL + exclusion constraint + `migrate diff` drift check; choose Zod↔OpenAPI library. Output: ADR `0001-prisma-raw-sql-boundary`, ADR `0002-contracts-zod-openapi`.
-- **S1 Skeleton:** NestJS app, config, logger, problem+json, RequestContext, health, Swagger, Prisma module, Redis, BullMQ worker entrypoint.
+- **S0 Spike (done, ADR-0008):** Prisma 7 + adapter-pg + `Unsupported` geography + exclusion constraint + `migrate diff` drift check + Zod↔OpenAPI choice. Findings: diff never drops raw objects but is blind to them (→ `raw-objects.json` check in `db:drift`); concurrent EXCLUDE inserts can fail with `40P01` (→ advisory lock + map to `booking.slot_taken`, for 06).
+- **S1 Skeleton (done):** NestJS 12 app bundled with rolldown+SWC, Zod env config, Pino logger with redaction, problem+json, RequestContext, `/api/v1/health` (DB+Redis), Swagger `/api/docs`, Prisma module, Valkey, BullMQ worker entrypoint, local Docker Compose stack.
 - **S2 Identity & tenancy tables:** User, UserProfile, Customer, Organization, OrganizationMember, Salon, SalonMember, SalonSettings, Location (+ placeholders from 05 as they are specified).
 - **S3 Catalog & staff:** categories, services, variants, add-ons, staff, schedules, breaks, time off, resources.
 - **S4 Bookings schema:** booking, booking_service with snapshots, holds, booking_occupancy, resource units, history, raw-SQL constraints + concurrency tests (with 06).

@@ -20,7 +20,7 @@ Every path has exactly one primary owner agent. Others propose changes through t
 | `docs/adr/**` (index + 0001–0005), `docs/llms.txt`, `docs/glossary.md` (structure), `docs/domains/architecture.md`, `.claude/skills/architecture/**`, `.claude/agents/{architecture,orchestrator}.md` | architecture | 01 |
 | `packages/design-system/**`, `apps/app/features/hero/**`, `apps/app/styles/**`, `design/**` | design-system | 02 |
 | `packages/localization/**` (except notification templates) | localization | 03 |
-| `apps/api/src/common/**` (except guards), `apps/api/src/infrastructure/**`, `apps/api/src/jobs/**`, `apps/api/prisma/**`, `apps/api/prisma.config.ts`, `modules/media/**` | backend-database | 04 |
+| `apps/api/src/common/**` (except guards), `apps/api/src/infrastructure/**`, `apps/api/src/jobs/**`, `apps/api/src/{bootstrap,worker,worker.module}.ts`, `apps/api/prisma/**`, `apps/api/prisma.config.ts`, `apps/api/{package.json,rolldown.config.ts,vitest*.config.ts,tsconfig.json,eslint.config.mjs,scripts/**}`, `apps/api/test/http-app.ts`, `modules/{health,media}/**`, `packages/contracts/src/health/**` | backend-database | 04 |
 | `modules/{auth,authorization,audit,privacy}/**`, `apps/api/src/common/guards/**`, `packages/domain/src/auth/**` (permission matrix), `packages/contracts/src/auth/**`, `apps/app/services/auth/**`, RLS SQL | auth-security | 05 |
 | `modules/{availability,bookings,booking-engine}/**`, `packages/domain/src/booking/**`, `packages/contracts/src/booking/**`, occupancy/idempotency SQL | booking-engine | 06 |
 | `modules/{salon-crm,customers-crm,salon-settings,insights}/**`, `packages/domain/src/metrics/**` (metric registry, `RevenueKind`), `apps/app/app/[locale]/(business)/**`, `apps/app/app/[locale]/(staff)/**`, `apps/app/features/salon-crm/**` | salon-crm | 07 |
@@ -29,7 +29,7 @@ Every path has exactly one primary owner agent. Others propose changes through t
 | `modules/search/**`, `apps/app/app/[locale]/(public)/**`, `apps/app/app/+html.tsx`, `apps/app/features/{home,search,salon-public}/**`, sitemap/robots/web `llms.txt` routes | marketplace-seo | 10 |
 | `modules/{customers,favorites,reviews,moderation,notifications,notification-channels}/**`, `apps/app/app/[locale]/(customer)/**`, `apps/app/features/{account,favorites,reviews,notifications}/**`, `packages/localization/*/notifications/**` | customer-notifications | 11 |
 | `modules/{attribution,commission,subscriptions,usage,feature-flags,analytics,trust,admin}/**`, `packages/analytics/**`, `apps/app/app/[locale]/(admin)/**`, `apps/app/features/admin/**` | monetization-admin | 12 |
-| `infra/**`, `.github/**`, `docker-compose*.yml`, `apps/app/eas.json`, `apps/app/app.config.ts` (build/linking parts), root scripts `bootstrap`/`reset`/`verify`, `docs/runbooks/**`, `docs/release/**` | platform-devops | 13 |
+| `infra/**`, `.github/**`, `docker-compose*.yml` (first version + `infra/docker/postgres/**` created by backend-database in 04-S1; platform-devops owns them from 13-M13.1 on), `apps/app/eas.json`, `apps/app/app.config.ts` (build/linking parts), root scripts `bootstrap`/`reset`/`verify`, `docs/runbooks/**`, `docs/release/**` | platform-devops | 13 |
 | `**/*.test.ts`, `**/*.spec.ts`, `apps/api/test/**` (except `test/fixtures/zalo`, `test/assistant`), `e2e/**`, `evals/**` (except `evals/assistant`) | test-engineer | 13 |
 | per-module `agent-tools.ts` | module owner (reviewed by ai-agent) | — |
 | `docs/domains/<slug>.md`, `docs/tasks/NN-<slug>.md`, `.claude/skills/<skill>/**`, `.claude/agents/<slug>.md` | that topic's owner | — |

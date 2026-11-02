@@ -16,7 +16,7 @@ Any new table, column, index, constraint, enum value, extension, view, policy, o
 - Prisma 7 uses a driver adapter (`@prisma/adapter-pg`) and `prisma.config.ts`; env vars are not auto-loaded.
 
 ## Target database
-Amazon RDS for PostgreSQL 18 in `ap-southeast-1`; local/CI image `postgis/postgis:18-3.6`. Allowed extensions (on the RDS allow-list, verified 2026-11-02): `postgis`, `btree_gist`, `pg_trgm`, `unaccent`, `citext`, `pgcrypto`. Do not add any other extension without checking `SHOW rds.extensions;` and updating the spec. UUID v7: Prisma `@default(uuid(7))`; raw SQL uses native `uuidv7()` (PG 18) — there is no `pg_uuidv7` extension on RDS.
+Local: PostgreSQL 18.6 + PostGIS 3.6.3 built from `infra/docker/postgres/Dockerfile` (port 15432, use `127.0.0.1`). Later target: Amazon RDS for PostgreSQL 18 in `ap-southeast-1`. Allowed extensions (on the RDS allow-list, verified 2026-11-02): `postgis`, `btree_gist`, `pg_trgm`, `unaccent`, `citext`, `pgcrypto`. Do not add any other extension without checking `SHOW rds.extensions;` and updating the spec. UUID v7: Prisma `@default(uuid(7))`; raw SQL uses native `uuidv7()` (PG 18) — there is no `pg_uuidv7` extension on RDS.
 
 ## Invariants
 - MUST follow conventions: UUID v7 PK, `snake_case` tables via `@@map`, `created_at/updated_at timestamptz`, money as `BIGINT` minor + `currency CHAR(3)`.
@@ -29,7 +29,7 @@ Amazon RDS for PostgreSQL 18 in `ap-southeast-1`; local/CI image `postgis/postgi
 
 ## Procedure
 1. Edit `schema.prisma` for everything Prisma can express.
-2. `pnpm --filter api prisma migrate dev --create-only --name <verb_noun>` (e.g. `add_booking_occupancy`).
+2. `pnpm --filter @gugu/api db:migrate --create-only --name <verb_noun>` (e.g. `add_booking_occupancy`).
 3. Open the generated `migration.sql` and append raw objects. Patterns:
    ```sql
    -- extensions (first migration only)
@@ -59,9 +59,10 @@ Amazon RDS for PostgreSQL 18 in `ap-southeast-1`; local/CI image `postgis/postgi
    ```
    `unaccent()` is not IMMUTABLE — wrap it in an immutable SQL function before using it in an index or generated column.
 4. If the change touches PostGIS or overlap queries, add/update TypedSQL files in `apps/api/prisma/sql/` and run `prisma generate --sql`.
-5. Apply: `pnpm --filter api prisma migrate dev`; then run the drift check `pnpm --filter api db:drift` (wraps `prisma migrate diff`). If Prisma wants to drop a raw object, record it in the inventory and confirm the check ignores it — never let a later migration silently remove it.
-6. Data backfills: separate migration or a one-off job script in `apps/api/src/jobs/maintenance/`, batched, resumable.
-7. Update `docs/domains/backend-database.md`: entity table, raw SQL inventory row (object, migration, test name), ERD notes.
+5. Add every raw object (constraint/index/extension name) to `apps/api/prisma/raw-objects.json`. Prisma never drops these, but it also never notices when one is missing (ADR-0008) — `db:drift` is the only guard.
+6. Apply: `pnpm db:migrate`; then `pnpm db:drift` (Prisma diff migrations→schema + raw-objects check against `DATABASE_URL`). Both must pass.
+7. Data backfills: separate migration or a one-off job script in `apps/api/src/jobs/maintenance/`, batched, resumable.
+8. Update `docs/domains/backend-database.md`: entity table, raw SQL inventory row (object, migration, test name), ERD notes.
 
 ## Tests (required)
 - Do not add `SELECT … FOR UPDATE` capacity counting; add resource units instead (load skill `booking-engine`).
@@ -69,7 +70,7 @@ Amazon RDS for PostgreSQL 18 in `ap-southeast-1`; local/CI image `postgis/postgi
 - Composite-FK test: cross-tenant reference rejected.
 - Concurrency test for exclusion constraints (parallel transactions, exactly one wins).
 - EXPLAIN-based test for new GiST/GIN indexes on the queries that need them.
-- Migration from empty DB in CI (Testcontainers `postgis/postgis:18-3.6`, matching RDS PG 18).
+- Migration from empty DB against the local stack image `gugu/postgres:18.6-postgis-3.6.3` (`infra/docker/postgres/Dockerfile`; `postgis/postgis` has no arm64 build).
 
 ## Checklist before PR
 - [ ] `--create-only` used; raw SQL reviewed
