@@ -1,6 +1,5 @@
 import swc from "unplugin-swc";
 import { defineConfig } from "vitest/config";
-import { forceTestEnvironment } from "./test/test-env";
 
 // Integration tests need the local stack (`pnpm stack:up`) and read the root .env.
 try {
@@ -8,8 +7,6 @@ try {
 } catch {
   // No .env: rely on the shell environment.
 }
-// Never the dev database / dev Redis (refuses to start otherwise).
-forceTestEnvironment();
 
 // Never touch the dev database or the dev worker's Redis: integration tests run against
 // TEST_DATABASE_URL and a separate Redis DB. Tests that expired real trials and leaked
