@@ -1,13 +1,13 @@
 # 05 — Auth, multi-tenancy, permissions, security & privacy
 
-> **Status:** Step 3 implemented (milestones 1–5; see `docs/domains/auth-security.md#status`). **Owner agent:** `.claude/agents/auth-security.md`. **Reviewer:** `.claude/agents/security-reviewer.md`. **Skill:** `.claude/skills/tenant-authorization/SKILL.md`. **Domain doc:** `docs/domains/auth-security.md`.
+> **Status:** Step 3 implemented (milestones 1–5; see `docs/domains/auth-security.md#status`). **X21/X23 (2026-11-02): staff/owner auth only.** No customer accounts and no customer-facing booking surface on gugu.vn; customers never authenticate (§1, G22, G23). **Owner agent:** `.claude/agents/auth-security.md`. **Reviewer:** `.claude/agents/security-reviewer.md`. **Skill:** `.claude/skills/tenant-authorization/SKILL.md`. **Domain doc:** `docs/domains/auth-security.md`.
 > **Source:** master prompt §10 (auth part), §14, §24, plus the AI-agent (topic 08) and Zalo (topic 09) extras.
 
 ## 1. Scope
 
 **In**
-- Identity: **booking without OTP** (name + phone guest booking, or Apple / Google / email sign-in) per roadmap X11; no SMS/OTP for now (X12) — contact verification by email link or Zalo message (§3.10–3.11); Zalo Login built but hidden (account linking, never account creation by email match alone).
-- Anti-abuse layer for OTP-less booking (§3.11).
+- Identity for **salon staff and owners only**: email magic link, Apple, Google (Zalo Login built but hidden); no SMS/OTP for now (X12).
+- **Customers never authenticate (X21, X23):** there is no public salon page and no customer-facing booking on gugu.vn. Staff enter bookings (from Zalo, phone, walk-ins); the salon sends customers availability/confirmations as messages generated in the app. The salon owns its client records.
 - Sessions: web (httpOnly cookies) and native (SecureStore tokens), refresh-token rotation with reuse detection, device/session list, logout everywhere.
 - Authorization: platform roles, salon roles, customer role, granular permissions, per-salon membership, staff "own data only" scoping.
 - Tenant isolation: application layer (mandatory) + PostgreSQL RLS (defense in depth).
@@ -15,7 +15,11 @@
 - Security baseline: rate limiting, input/output validation, uploads policy hooks, CSRF, XSS, secrets, audit log, secure errors, PII minimisation, prompt-injection containment.
 - Privacy: data inventory, consent records, account deletion, data export, retention — aligned with Vietnam's Personal Data Protection Law, **without claiming compliance**.
 
-**Out (owned elsewhere)**
+**Out**
+- Customer accounts, customer sign-in, cross-salon customer profiles (X21).
+- Any customer-facing auth: guest role, per-booking manage links, customer confirm/verification links, the OTP-less booking anti-abuse layer (§3.11 — deferred, X23). Revisit only after a Vietnamese legal review allows a customer-facing surface.
+
+**Owned elsewhere**
 - Customer profile screens and notification preferences UX → 11.
 - Media pipeline internals (virus scan, variants) → 04; this topic only defines the authorization rules for media.
 - Billing/subscription entitlements data model → 12 (this topic consumes entitlements as permission inputs).
@@ -45,17 +49,19 @@
 | G17 | Rate limiting only mentions OTP. | Layered limits: per phone, per IP, per device fingerprint, global per-channel send cap per hour (email/Zalo now; SMS-pumping protection when SMS returns); CAPTCHA/Turnstile challenge on web after thresholds. |
 | G18 | Admin access not hardened. | Platform admins: separate login policy (email + passkey mandatory, TOTP as backup — q72), IP allowlist optional, impersonation ("view as salon") only read-only, time-boxed, reason required, audited, visible to the salon. |
 | G19 | Audit log lacks definition of "sensitive". | Enumerated audit events list (§3.7), append-only table, no updates/deletes from app role. |
+| G23 | X21 still assumed guests booking on `gugu.vn/<salon-slug>`. **Superseded by X23:** no public salon pages or customer-facing booking on gugu.vn (intermediary-platform risk under Law 122/2025; no legal conclusion claimed). | Only staff/owner/platform-admin auth remains in scope. §3.11 is kept as a deferred design for a possible future customer-facing surface. |
+| G22 | Master prompt §10 assumes customer accounts (phone/email/Apple/Google). **Superseded by X21 (2026-11-02):** GuGu is a tool for salons; no shared customer account across salons. | Sign-in exists only for salon members (and platform admins). Customer-facing auth is limited to guest booking links. Customer-account requirements (R5 linking for customers, account recovery/claims for customers, customer data export via account) move to Out. Privacy rights of customers are served per salon (the salon is the controller of its client records) — legal model to confirm. |
 | G21 | Master prompt §10 requires a verified phone before booking. **Superseded by PO decision X11 (2026-11-02):** booking must be as frictionless as Polish booking apps. | No OTP wall at booking. Bookings carry `identity_verified=false` until proven. Abuse is handled by the anti-abuse layer and salon confirmation policies (§3.11). Verification uses email/Zalo links, no SMS (X12). |
 | G20 | Secrets management vague. | Env via secrets manager in deploy (topic 13); `.env` only locally, `.env.example` committed; gitleaks in CI; field-level encryption key separate from DB credentials. |
 
 ## 3. Refined requirements
 
 ### 3.1 Identity & login
-- R1 Account sign-in methods: email magic link, Apple, Google. Zalo Login behind the `zalo_login` flag (hidden until the central OA exists). Phone OTP is a later method (`/auth/otp/*` designed, not exposed). Responses are identical whether the phone/email exists or not (no enumeration).
+- R1 Account sign-in methods (salon members and platform admins only, X21): email magic link, Apple, Google. Zalo Login behind the `zalo_login` flag (hidden until the central OA exists). Phone OTP is a later method (`/auth/otp/*` designed, not exposed). Responses are identical whether the phone/email exists or not (no enumeration).
 - R2 Codes and link tokens (email now; SMS later): links single-use 15 min; codes 6 digits, CSPRNG, TTL 5 min, max 5 verify attempts per code, max 3 sends per contact per 15 min and 10 per day, resend cooldown 60 s. Stored as HMAC-SHA256(secret, contact‖code‖challengeId); constant-time compare; deleted on success.
-- R3 Booking does **not** require OTP or an account (X11). Guests book with name + phone; signed-in users book in one tap. Every booking stores `identity_verified` + `identity_verification_method` (§3.11). Guest browsing needs no account.
+- R3 Customers never authenticate (X21/X23): bookings are created by salon staff in GuGu Studio. (If a customer-facing surface returns, booking will not require OTP — X11, §3.11.) Every booking stores `identity_verified` + `identity_verification_method` (§3.11). Guest browsing needs no account.
 - R4 Optional email: verified via magic link; used for receipts and recovery, never as sole login for customers.
-- R5 Social login (Apple, Google; Zalo hidden — see §3.10): link to an existing account only when the user is signed in or after proving the account's email/phone; Apple required on iOS if any other social login is offered (App Store guideline 4.8).
+- R5 Social login for salon members (Apple, Google; Zalo hidden — see §3.10): link to an existing account only when the user is signed in or after proving the account's email/phone; Apple required on iOS if any other social login is offered (App Store guideline 4.8).
 - R6 Salon members use the same identity; membership determines salon access. Staff invitations: single-use, expiring (72 h) token bound to the invited email (or phone, delivered by the inviter out-of-band); accepting requires an email magic link to that address, or a sign-in that verifies the invited email.
 - R7 Platform admins: separate policy (G18).
 
@@ -102,7 +108,7 @@ Legend: ✅ full, 🟡 own/assigned only, 👁 read-only, — none.
 | `audit:read` (salon audit trail) | ✅ | 👁 | — | — |
 
 Platform: `super_admin` (all, incl. role grants, feature flags, commission rules), `support_admin` (read directories, moderation, verification, read-only impersonation; no PII export, no role grants).
-Customer: own profile, own bookings, own reviews, own favourites, own data export/deletion.
+Customers: no account, no role, no endpoints (X21/X23). They are records in the salon's CRM.
 
 The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single source, used by API and UI hiding) and is rendered into the skill reference by a script.
 
@@ -150,7 +156,7 @@ The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single so
 | Purpose | Channel now | Later |
 |---|---|---|
 | Sign-in | Email magic link, Apple, Google | Zalo Login: built behind the `zalo_login` flag, hidden until the central GuGu OA exists (q28). Phone OTP via SMS when a provider is contracted. |
-| Customer contact verification (confirm link, claiming guest bookings) | Email link; Zalo message (`zalo_template`/OA) once Zalo is live (09) | SMS link/OTP |
+| Guest contact verification (confirm link) | Email link; Zalo message (`zalo_template`/OA) once Zalo is live (09) | SMS link/OTP |
 | Recovery and sensitive changes | Re-auth with the existing method (email link / Apple / Google) | + SMS OTP |
 | Salon member device login, invitation acceptance | Email magic link; passkey for owners/admins | — |
 
@@ -160,11 +166,13 @@ The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single so
 
 **Later: SMS** (moved out of the near-term plan; research kept for when it's needed). Vietnamese operators require a pre-registered alphanumeric sender ID + templates. Unregistered IDs have been blocked since 25 Aug 2025. The brand name must be in the body. A foreign company can register via an international CPaaS (AWS End User Messaging SMS, Twilio, Infobip) with an international LOA (BM04) + home-country business registration + proof of brand rights. Lead time is weeks to months. Grey "no sender ID" routes are forbidden. Pumping protection: `+84` mobile only, spend caps, conversion monitoring, provider fraud features.
 
-### 3.11 Booking without OTP: identity flags and anti-abuse (X11)
+### 3.11 Booking without OTP: identity flags and anti-abuse (X11) — DEFERRED (X23)
+
+> Out of scope while there is no customer-facing booking surface (X23). Kept as the design to start from if a Vietnamese legal review later allows one. Staff-entered bookings need none of this.
 
 #### 3.11.1 Booking identity
-- Booking fields (schema owner 04; state machine 06): `identity_verified boolean NOT NULL DEFAULT false`, `identity_verification_method` enum `none | account_email_verified | confirm_link | salon_verified | otp` (`otp` reserved for later SMS), `identity_verified_at`. `salon_verified` = salon called/knows the customer. It is recorded but doesn't verify phone possession for account purposes.
-- Guest booking creates or reuses an **unverified contact** keyed by E.164 phone. It is never merged into a `User` account until possession is proven (§3.11.3). Two people typing the same phone don't see each other's data.
+- Booking fields (schema owner 04; state machine 06): `identity_verified boolean NOT NULL DEFAULT false`, `identity_verification_method` enum `none | confirm_link | salon_verified | otp` (`otp` reserved for later SMS), `identity_verified_at`. `salon_verified` = salon called/knows the customer. It is recorded but doesn't verify phone possession for account purposes.
+- Guest booking creates or reuses the salon's own client record (`CustomerSalonProfile`, topic 07) keyed by `(salon_id, phone)`. There is no GuGu-wide customer identity (X21). Two people typing the same phone don't see each other's data: guests only ever see the booking behind their manage link.
 - Guest self-service (cancel/reschedule) uses a signed, single-booking **manage link** (opaque token, hashed in DB, expires after the appointment, rate-limited). The link grants no access to other bookings for that phone.
 - Booking API responses never reveal whether a phone or email has an account or other bookings.
 
@@ -181,15 +189,14 @@ The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single so
 | Block lists | Salon can block a phone (`customer:block`, owner/manager). Platform admins can block globally. Blocked → generic "unable to book online, please contact the salon". |
 | Monitoring | Dashboards: unverified share, pending-expiry rate, no-show rate by verification method, abuse hits. Alert on spikes. |
 
-#### 3.11.3 Where contact verification still applies (no SMS: email or Zalo)
-| Flow | Method now |
-|---|---|
-| Claiming guest bookings / contact history into an account | Confirm link already clicked for that booking's contact (email or Zalo), or the account email matches the booking email and is verified |
-| Changing account email | Link to both old and new email |
-| Account recovery | Email magic link (Apple/Google accounts recover via their provider) |
-| Sensitive changes: data export, account deletion, linking a new social login | Fresh re-auth (≤ 10 min) with an existing method |
-| Salon member: new device login, invitation acceptance, ownership transfer | Email magic link; passkey (TOTP backup) required for ownership transfer |
-| Customer opts to verify for perks (skip salon confirmation, "verified" badge) | Confirm link (email now, Zalo later) |
+#### 3.11.3 Where verification still applies (no SMS: email or Zalo)
+| Flow | Who | Method now |
+|---|---|---|
+| Guest confirms contact for a booking (sets `identity_verified`) | Guest | Confirm link (email now, Zalo later) |
+| Guest manages one booking (view/cancel/reschedule) | Guest | Per-booking manage link (hashed token, expires after the appointment) |
+| Sign-in, new device login, invitation acceptance | Salon member | Email magic link / Apple / Google |
+| Changing account email, recovery | Salon member | Link to old and new email; email magic link |
+| Ownership transfer, admin access | Owner / platform admin | Passkey, TOTP backup (q72) |
 
 Phone numbers are **not verified** in the near term. Bookings by phone-only guests stay `identity_verified=false` unless the salon marks `salon_verified` or the guest also gave an email and clicked the confirm link. **OTP/SMS cost now: 0.** Email cost is negligible. Zalo message cost is owned by 09/12 (q33).
 
@@ -202,11 +209,11 @@ Phone numbers are **not verified** in the near term. Bookings by phone-only gues
 
 ## 5. Acceptance criteria
 - AC1 Magic-link/verification request for unknown and known email return identical status/body/timing envelope (±50 ms jitter added).
-- AC-X11a A guest can create a booking with name + phone, without OTP or account, in one request (web with Turnstile pass, native with attestation or server-risk pass); booking stored with `identity_verified=false, method=none`.
-- AC-X11b The 4th future unverified booking for one phone is rejected/forced to `pending` per policy; overlapping-slot velocity hit forces `pending` and writes an audit event.
-- AC-X11c Claiming guest bookings into an account requires a clicked confirm link for that booking's contact or a verified matching email; without it, the account sees none of them.
-- AC-X11d Clicking a valid confirm link sets `identity_verified=true, method=confirm_link`; a reused/expired link does nothing and reveals nothing.
-- AC-X11e Booking/claim responses are identical for phones with and without accounts (no enumeration).
+- (deferred, X23) AC-X11a A guest can create a booking with name + phone, without OTP or account, in one request (web with Turnstile pass, native with attestation or server-risk pass); booking stored with `identity_verified=false, method=none`.
+- (deferred, X23) AC-X11b The 4th future unverified booking for one phone is rejected/forced to `pending` per policy; overlapping-slot velocity hit forces `pending` and writes an audit event.
+- (deferred, X23) AC-X11c A manage-link token grants access to exactly one booking; it can't list or reach any other booking of the same phone/email (X21: no customer accounts).
+- (deferred, X23) AC-X11d Clicking a valid confirm link sets `identity_verified=true, method=confirm_link`; a reused/expired link does nothing and reveals nothing.
+- (deferred, X23) AC-X11e Booking responses never reveal other bookings or client history for the same phone/email (no enumeration).
 - AC2a With `sms` configured, sends go only to the mock adapter/provider-sink; no network call to any SMS provider in any environment.
 - AC2b The global per-channel send cap trips at the configured threshold and stops sends with an alert.
 - AC2 Codes/link tokens stored hashed; DB dump and logs contain none.

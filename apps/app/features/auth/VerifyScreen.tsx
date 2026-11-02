@@ -29,7 +29,9 @@ export function VerifyScreen() {
     auth
       .verify({ token: validToken })
       .then((session) => {
-        router.replace(afterSignInHref(session.user, session.redirectPath ?? `/${locale}/me`));
+        router.replace(
+          afterSignInHref(session.user, session.redirectPath ?? `/${locale}/business`),
+        );
       })
       .catch(() => {
         setRejected(true);

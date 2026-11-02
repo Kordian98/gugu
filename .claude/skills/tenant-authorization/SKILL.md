@@ -14,7 +14,7 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 - Any change to roles/permissions.
 
 ## Core concepts
-- **Principal** — who is calling: `user` (customer or salon member), `agent_on_behalf_of_user`, `integration` (Zalo), `system_job`, `platform_admin`.
+- **Principal** — who is calling: `user` (salon member or platform admin — customers never authenticate, X21/X23), `agent_on_behalf_of_user`, `integration` (Zalo), `system_job`, `platform_admin`.
 - **SalonContext** — `{ salonId, organizationId, role, permissions }`, resolved by the global `AuthGuard` from the `:salonId` route param + `salon_members`/`organization_members` (re-read on every request). Never trust a salonId from the body, query or model output.
 - **Permission strings** — `resource.action[.own]`, e.g. `bookings.write`, `bookings.write.own`, `subscription.read`. Source of truth: `packages/domain/src/auth/permissions.ts` (implemented; tests in `permissions.test.ts`).
 - **Decorators** (`apps/api/src/common/guards/auth-policy.ts`) — exactly one per route: `@Public()`, `@Authenticated()`, `@RequirePermission('<salon perm>')` (path MUST contain `:salonId`), `@RequirePlatformPermission('<platform perm>')`. Param decorators: `@CurrentPrincipal()`, `@CurrentUser()`, `@CurrentSalon()`.
@@ -26,7 +26,7 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 - MUST enforce "own only" scopes (staff) in the service/policy layer.
 - MUST map responses through explicit DTOs; never return Prisma entities.
 - MUST NOT accept `salonId`/`userId` as AI-agent tool arguments — inject from server context.
-- MUST NOT expose internal notes, tags, attribution/commission internals to customer or public endpoints.
+- MUST NOT expose internal notes, tags, attribution/commission internals to public endpoints.
 - MUST NOT log verification codes, tokens, phone numbers, or note contents.
 - MUST emit an audit event for sensitive actions (list: spec R29).
 
@@ -39,8 +39,8 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 6. Tests: happy path per allowed role; denied role → 403; other salon's id → 404. The generated cross-tenant suite (`apps/api/src/modules/salons/salons.int.test.ts`, built from `listRoutes()`) picks every `@RequirePermission` route up automatically — run `pnpm test:integration`. For stack-less HTTP tests use `fakeAuthOverrides()` from `apps/api/test/auth-fakes.ts`; for stack tests `createSalonFixture`/`addSalonMember`/`bearerFor` from `apps/api/test/factories/identity.ts`.
 7. If sensitive: add audit event; update `docs/domains/auth-security.md`.
 
-## Procedure — customer endpoint
-`@Authenticated()` + `@CurrentUser()`, scope every query by `user.userId`, use customer DTOs (no salon-private fields). Booking does **not** require OTP or an account (X11): guest booking endpoints are `@Public()` behind the anti-abuse guard (rate limits per device/IP/phone, Turnstile/attestation, velocity checks) and store `identity_verified=false`. Guest self-service uses a single-booking manage-link token — never expose other bookings for the same phone. Claiming guest history into an account requires a clicked confirm link (email now, Zalo later) or a verified matching email (spec §3.11.3). No SMS/OTP for now (X12). Staff see customer phones by default (q24) unless the owner hides them — honour that setting in DTOs. Never reveal whether a phone/email has an account.
+## No customer-facing endpoints (X21/X23)
+Customers have no GuGu account and there is no public salon page or customer booking on gugu.vn. Do **not** add customer sign-in, guest manage links, customer verification links or public booking routes. `@Public()` is only for auth itself (magic link, providers), reference data and registration of a salon by its owner. Staff see customer phones by default (q24) unless the owner hides them — honour that setting in DTOs. No SMS/OTP for now (X12).
 
 ## Procedure — background job
 Payload carries `salonId`; the worker sets tenant context (`SET LOCAL app.salon_id`) via the same Prisma extension as requests and runs as `system_job`. Never iterate across tenants without an explicit platform-level reason documented in the job.
@@ -59,7 +59,7 @@ Verify signature → check timestamp window → idempotency on event ID → reso
 - [ ] Auth decorator present; permission exists in matrix
 - [ ] All tenant queries scoped by `salonId` from context
 - [ ] Own-only rules in policy layer
-- [ ] DTO whitelists fields; no internal fields to customers
+- [ ] DTO whitelists fields; no internal fields in public payloads
 - [ ] Zod validation on all inputs
 - [ ] Rate limit considered
 - [ ] Audit event for sensitive actions

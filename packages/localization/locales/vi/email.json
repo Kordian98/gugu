@@ -1,15 +1,15 @@
 {
   "magicLink": {
-    "subject": "Link đăng nhập GuGu của bạn",
+    "subject": "Link đăng nhập GuGu Studio của bạn",
     "preheader": "Link có hiệu lực trong 15 phút.",
-    "heading": "Đăng nhập GuGu",
+    "heading": "Đăng nhập GuGu Studio",
     "body": "Bấm nút bên dưới để đăng nhập. Link có hiệu lực trong 15 phút và chỉ dùng được một lần.",
     "button": "Đăng nhập",
     "codeIntro": "Hoặc nhập mã này trong ứng dụng:",
     "ignore": "Nếu bạn không yêu cầu đăng nhập, cứ bỏ qua email này."
   },
   "salonRegistration": {
-    "subject": "Xác nhận salon {{salonName}} trên GuGu",
+    "subject": "Xác nhận salon {{salonName}} trên GuGu Studio",
     "preheader": "Mở link để xác nhận email và vào quản lý salon.",
     "heading": "Xác nhận salon của bạn",
     "body": "Salon {{salonName}} đã được tạo. Bấm nút bên dưới để xác nhận email và vào trang quản lý. Link có hiệu lực trong 15 phút.",
@@ -17,5 +17,5 @@
     "codeIntro": "Hoặc nhập mã này trong ứng dụng:",
     "ignore": "Nếu bạn không đăng ký salon này, cứ bỏ qua email này. Salon sẽ không được kích hoạt."
   },
-  "footer": "GuGu · Đặt lịch làm đẹp dễ dàng"
+  "footer": "GuGu Studio · Quản lý lịch hẹn cho salon"
 }

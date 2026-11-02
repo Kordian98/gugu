@@ -124,7 +124,7 @@ describe("salons & tenancy (integration)", () => {
     expect(member.status).toBe("pending_verification");
 
     const mail = await waitForMail(email);
-    expect(mail.subject).toBe("Confirm Tiệm Mi Đẹp on GuGu");
+    expect(mail.subject).toBe("Confirm Tiệm Mi Đẹp in GuGu Studio");
     const verified = await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
       .send({ token: extractMagicLink(mail).token, client: "native" })
@@ -226,7 +226,7 @@ describe("salons & tenancy (integration)", () => {
       .send({ email, locale: "vi", client: "native" })
       .expect(202);
     const signInMail = await waitForMail(email);
-    expect(signInMail.subject).toBe("Link đăng nhập GuGu của bạn");
+    expect(signInMail.subject).toBe("Link đăng nhập GuGu Studio của bạn");
     const verified = await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
       .send({ token: extractMagicLink(signInMail).token, client: "native" })

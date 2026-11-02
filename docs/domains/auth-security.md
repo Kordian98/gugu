@@ -4,14 +4,17 @@ Durable reference for identity, sessions, authorization, tenant isolation, audit
 
 ## Status
 
+**X21/X23 (2026-11-02): staff/owner auth only.** Sign-in, sessions and `/me` are for salon staff/owners (and later platform admins). Customers never authenticate: no customer accounts, no public salon page, no guest manage/confirm links (X23). Sign-up no longer creates a `customers` row (branch auth/05-x23); sign-in copy speaks to salon teams ("GuGu Studio").
+
 **Step 3 implemented** (spec milestones 1–5, X11/X12, q24/q71/q72): identity and tenancy schema, email magic link, web and native sessions, Apple/Google backend (disabled until configured), guards with the permission matrix, default-deny boot check, audit log, salon registration with trial (topic 12), generated cross-tenant suite. Web sign-in works end to end.
 
 Not implemented yet: RLS policies (milestone 6), privacy jobs (consent, export, deletion; milestone 8), admin passkeys/TOTP and impersonation (milestone 9), agent principal (milestone 10), Zalo Login (hidden, q28), staff invitations API, session list UI, client-side Apple/Google SDKs. Native sign-in was type-checked only; it has not been run on an iOS/Android dev build.
 
 ## Summary
 
+- **Who signs in:** salon staff/owners only (X21/X23). Customers are CRM records, never users.
 - **Sign-in:** email magic link (link + 6-digit code), Apple and Google ID tokens. Zalo Login is hidden until the central OA exists. No SMS or SMS OTP for now (X12).
-- **Booking needs no OTP (X11):** guests book with name + phone, flagged `identity_verified=false`. Abuse is handled by the anti-abuse layer, the salon confirmation policy and an optional confirm link (email now, Zalo later). Not built yet (booking engine, topic 06).
+- **Customer-facing booking:** out of scope (X23). The OTP-less guest design (X11, spec §3.11) is deferred.
 - **Sessions:** web = httpOnly `gugu_session` cookie (`__Host-gugu_session` + `Secure` in production), SameSite=Lax, 30-day sliding, 90-day absolute, with a CSRF header on writes. Native = opaque 15-minute access token + rotating refresh token in SecureStore. Reusing a spent refresh token revokes the session. The tokens are opaque rather than JWTs because every request already checks the session and membership in the database, so revocation is immediate (R13).
 - **Authorization:** a global `AuthGuard` + exactly one policy decorator per route + a `SalonContext` resolved from memberships on every request. Foreign salon → 404, missing permission → 403. RLS is planned as defense in depth (milestone 6).
 - **Non-human principals** (later): the AI agent acting on behalf of a member, the Zalo integration, system jobs.
@@ -29,7 +32,7 @@ Tables are in migration `20261102115341_add_identity_tenancy`. Raw objects are l
 | Table | Purpose | Notes |
 |---|---|---|
 | `users` | Identity | `email` citext unique; `email_verified_at`; `phone_e164` (unverified); `status`; `platform_role`; deletion fields (30-day grace, q39) |
-| `user_profiles`, `customers` | Profile, customer-only data | Created on first sign-in or registration |
+| `user_profiles`, `customers` | Profile; `customers` table is legacy (no longer written) | Kept for now (no destructive migration); drop with a later contract migration once nothing references it |
 | `auth_identities` | Apple/Google/Zalo subjects | `UNIQUE (provider, subject)` |
 | `sessions` | One per sign-in | `token_hash` = HMAC of the cookie secret or the current access token |
 | `refresh_tokens` | Native rotation chain | `used_at` set on use; reuse → session revoked |

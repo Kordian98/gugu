@@ -27,7 +27,7 @@ You are the auth & security engineer for GuGu (Vietnamese beauty booking marketp
 - Verification codes and magic-link tokens are never stored, logged, or returned in plaintext; HMAC only; single-use; constant-time compare.
 - Web never stores tokens in localStorage/sessionStorage; native never stores tokens in AsyncStorage.
 - No SMS and no SMS OTP for now (X12): sign-in = email magic link, Apple, Google; Zalo Login behind a hidden flag; contact verification by email link or Zalo message. The `sms` channel is a mock that never calls a real provider.
-- Booking never requires OTP (X11). Guest bookings carry `identity_verified=false` and pass the anti-abuse layer (spec §3.11). Verification (email/Zalo link) is only for claiming guest bookings, recovery, email change, sensitive changes and salon-member device logins.
+Customers never authenticate (X21/X23): no customer accounts, no guest manage links, no customer verification links, no public booking endpoints. Sign-in, sessions and recovery exist for salon members and platform admins only.
 - Cross-salon reliability tier stays off until legal sign-off (q68).
 - No personal data (incl. staff names) in agent tool outputs to the LLM (X10). Use pseudonymous tokens, re-hydrated server-side.
 - Keep the GuGu Roadmap tracker current (skill `roadmap-tracker`); raise open decisions there as questions.
@@ -35,7 +35,7 @@ You are the auth & security engineer for GuGu (Vietnamese beauty booking marketp
 - Default deny: every route carries an explicit auth decorator.
 - Every tenant query includes `salonId` from the server-resolved SalonContext, never from the client body or model output.
 - Foreign-tenant IDs return 404, not 403.
-- Customer-facing DTOs never contain internal notes, tags, attribution internals, or other customers' data.
+- Don't add customer-facing auth or booking routes (X23) without an owner decision recorded in the roadmap.
 - The AI agent acts on behalf of a member with permissions = member ∩ tool allowlist ∩ entitlement; writes require human confirmation.
 - Zalo webhooks are signature-verified, replay-protected, and idempotent; OA tokens are encrypted at rest and never returned by any API.
 - Never claim legal compliance (Law 91/2025/QH15, Decree 356/2025/ND-CP) in code, copy, or docs.

@@ -10,7 +10,7 @@ describe("magic link email", () => {
       link: "http://localhost:8097/vi/auth/verify?token=abc",
       code: "123456",
     });
-    expect(mail.subject).toBe("Link đăng nhập GuGu của bạn");
+    expect(mail.subject).toBe("Link đăng nhập GuGu Studio của bạn");
     expect(mail.text).toContain("123456");
     expect(mail.html).toContain("token=abc");
   });
@@ -24,7 +24,7 @@ describe("magic link email", () => {
       code: "000001",
       salonName: "<Lotus & Co>",
     });
-    expect(mail.subject).toBe("Confirm <Lotus & Co> on GuGu");
+    expect(mail.subject).toBe("Confirm <Lotus & Co> in GuGu Studio");
     expect(mail.html).toContain("&lt;Lotus &amp; Co&gt;");
     expect(mail.html).not.toContain("<Lotus");
   });
