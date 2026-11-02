@@ -1,0 +1,70 @@
+---
+name: 3d-hero
+description: Procedures, asset pipeline and performance budgets for GuGu's homepage 3D beauty-salon hero — reference intake, Blender → glTF/KTX2 optimization, React Three Fiber on web, video/static fallbacks on native, capability gating, budget checks. Use for any work in apps/app/features/hero or design/hero-*.
+---
+
+# 3D hero
+
+The homepage hero is a stylized 3D beauty-salon scene. It is **decorative**: the page (headline, search, categories) must work and rank without it. Spec: `docs/tasks/02-design-system.md` §5.
+
+## When to use
+- Processing new hero references or updating the hero brief.
+- Exporting/optimizing 3D assets, posters, or the native video loop.
+- Changing the hero component, its loading logic, or its budgets.
+
+## Invariants
+- MUST NOT add three / R3F code to the initial bundle — dynamic `import()` only, after first paint/LCP.
+- MUST render a poster image first (it is the LCP element); canvas fades in over it with identical framing.
+- MUST be client-only (server/static render outputs poster + real text).
+- MUST be `aria-hidden`, not focusable, and stop rendering off-screen or in a hidden tab.
+- MUST fall back to poster on: reduced motion, `saveData`, slow `effectiveType`, no WebGL2, low `deviceMemory`/cores, or fps below threshold.
+- Native MVP: MUST use `expo-video` loop (muted, looped) with poster → static image fallback. Real-time native GL (`@react-three/native` / `react-native-wgpu`) only behind a feature flag after device-lab profiling.
+- Every third-party asset MUST have its license recorded in `design/hero-assets/LICENSES.md`.
+
+## Budgets (CI-enforced)
+| Item | Budget |
+|---|---|
+| Hero JS lazy chunk (three + r3f + drei subset) | ≤ 250 KB gzip |
+| Model + textures transferred | ≤ 1.5 MB |
+| Triangles / draw calls | ≤ 100k / ≤ 30 |
+| Textures | ≤ 1024² (one 2048² atlas max), KTX2 |
+| Poster | ≤ 120 KB AVIF/WebP |
+| Native video | ≤ 1.5 MB, 6–8 s loop, 720p phone / 1080p tablet |
+| Homepage LCP (throttled mid-range mobile) | ≤ 2.5 s, CLS 0 |
+| Frame rate | 60 fps desktop, ≥ 30 fps mid mobile, else downgrade |
+
+## Procedures
+
+### 1. Reference intake
+1. PO adds references to `design/hero-references/` with `README.md` notes: what to take from each (mood, camera, palette, objects, interaction).
+2. Write the hero brief in `docs/domains/design-system.md#hero`: scene objects, camera path, loop length, interaction (ambient vs hotspots), palette mapped to tokens, mobile framing.
+3. Produce a storyboard (key frames) and get PO approval before modeling.
+
+### 2. Asset pipeline
+1. Blender: model low-poly/stylized, bake lighting + AO into textures, no realtime shadows; keep materials ≤ 8.
+2. Export glTF 2.0 (`.glb`).
+3. Optimize with `gltf-transform` (CLI): dedup, prune, weld, merge materials, Draco or Meshopt geometry, KTX2 textures (UASTC for normal maps, ETC1S for color), resize to budget.
+4. Render poster from the exact frame-0 camera; export AVIF + WebP.
+5. Render the native loop (seamless) → MP4 H.264 (+ HEVC variant), muted.
+6. Upload with content-hashed filenames to object storage behind CDN (immutable cache).
+7. Record sizes in `design/hero-assets/MANIFEST.md`.
+
+### 3. Web implementation
+1. `HeroPoster` (server-safe) renders immediately.
+2. After LCP/idle, capability check → `import('./HeroScene')`.
+3. `HeroScene`: R3F `<Canvas>` with `frameloop="demand"` driven by visibility; drei loaders with KTX2/Draco/Meshopt decoders self-hosted.
+4. Interaction: subtle pointer parallax; gyro on mobile only after user gesture; optional hotspots link to category routes (real `<a>` links outside the canvas for a11y/SEO).
+5. FPS monitor → downgrade to poster if sustained below threshold.
+
+### 4. Native implementation
+1. Poster image → `expo-video` loop when visible; pause when off-screen/app backgrounded.
+2. Static only when reduced motion or data saver.
+
+## Checklist (before PR)
+- [ ] Bundle analyzer: no three/r3f in initial chunk.
+- [ ] Budgets table measured and recorded in MANIFEST.
+- [ ] Lighthouse mobile perf ≥ 85 on homepage.
+- [ ] Reduced motion / save-data → poster only (tested).
+- [ ] Off-screen and hidden-tab rendering paused.
+- [ ] Licenses recorded.
+- [ ] `design-reviewer` approved.

@@ -1,0 +1,48 @@
+# Salon CRM — domain doc
+
+> Durable reference for the salon workspace: Today, calendar UI, booking operations UI, client CRM, salon/services/team settings, onboarding, Insights and the metric registry. Read this before changing salon-side code. Spec and rationale: `docs/tasks/07-salon-crm.md`. Rules: skill `salon-crm`.
+
+**Status:** skeleton. No code yet. Fill in each section as the code lands.
+
+## Glossary
+| Term (en) | vi | Meaning |
+|---|---|---|
+| Walk-in | Khách vãng lai | Customer served without a prior booking; booking source `walk_in` |
+| Quick add | Thêm nhanh | Receptionist creates a booking from a phone or Zalo request |
+| Client profile | Hồ sơ khách | `CustomerSalonProfile`, a per-salon view of a customer |
+| Internal note | Ghi chú nội bộ | Team-only note, never shown to the customer |
+| Provenance | Nguồn số liệu | Origin label of a money figure |
+
+## Model
+_TBD: CustomerSalonProfile, CustomerNote, ClientTag, OfflineSale, SalonReportedRevenue, salon_daily_stats. Link to the schema in `docs/database.md`._
+
+## Invariants
+- Availability comes from the booking engine only.
+- `salonId` scoping on every query; another tenant's resource returns 404.
+- Internal notes never appear in customer DTOs.
+- Money values carry provenance and are never called payments.
+- Dashboard numbers come from the metric registry only.
+
+## File map
+_TBD_
+| Path | Purpose |
+|---|---|
+| `apps/app/app/[locale]/(business)/` | Routes |
+| `apps/app/features/salon-crm/` | Screens logic, hooks |
+| `apps/api/src/modules/insights/` | Metric handlers, read models |
+| `packages/domain/metrics/registry.ts` | Metric registry |
+
+## Endpoints
+_TBD: generated from OpenAPI, with links._
+
+## Metrics
+_TBD: mirror of the registry (key, definition, unit, provenance, permission)._
+
+## Flows
+_TBD: Today check-in, quick add, walk-in, reschedule, onboarding import._
+
+## AI-agent tools
+_TBD: implemented tools, with their permission and confirmation requirements._
+
+## Known limitations
+_TBD_

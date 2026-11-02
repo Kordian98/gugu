@@ -1,0 +1,51 @@
+# GuGu
+
+> Vietnamese beauty & wellness booking marketplace. One universal Expo app (iOS, Android, web) plus a NestJS + PostgreSQL API in a TypeScript monorepo. AI-first: every domain has a subagent, a skill and agent-friendly docs.
+
+Start with AGENTS.md. Customers pay at the salon (no payment processing). Vietnamese is the default locale; English is second.
+
+## Core
+- [AGENTS.md](../AGENTS.md): entry point, non-negotiables, where things are
+- [AI-first conventions](ai-first-conventions.md): subagent/skill/doc formats and per-domain deliverables
+- [Glossary](glossary.md): vi/en domain terms used in code and UI
+
+## Task specs
+- [00 Roadmap](tasks/00-roadmap.md): build order, cross-topic resolutions, coverage matrix
+- [Open questions](tasks/open-questions.md): product-owner decisions by priority
+- [01 Architecture](tasks/01-architecture.md)
+- [02 Design System](tasks/02-design-system.md)
+- [03 Localization](tasks/03-localization.md)
+- [04 Backend Database](tasks/04-backend-database.md)
+- [05 Auth Security](tasks/05-auth-security.md)
+- [06 Booking Engine](tasks/06-booking-engine.md)
+- [07 Salon Crm](tasks/07-salon-crm.md)
+- [08 Ai Agent](tasks/08-ai-agent.md)
+- [09 Zalo](tasks/09-zalo.md)
+- [10 Marketplace Seo](tasks/10-marketplace-seo.md)
+- [11 Customer Notifications](tasks/11-customer-notifications.md)
+- [12 Monetization Admin](tasks/12-monetization-admin.md)
+- [13 Platform Devops](tasks/13-platform-devops.md)
+
+## Domain docs
+- [Ai Agent](domains/ai-agent.md)
+- [Architecture](domains/architecture.md)
+- [Auth Security](domains/auth-security.md)
+- [Backend Database](domains/backend-database.md)
+- [Booking Engine](domains/booking-engine.md)
+- [Customer Notifications](domains/customer-notifications.md)
+- [Design System](domains/design-system.md)
+- [Localization](domains/localization.md)
+- [Marketplace Seo](domains/marketplace-seo.md)
+- [Monetization Admin](domains/monetization-admin.md)
+- [Platform Devops](domains/platform-devops.md)
+- [Salon Crm](domains/salon-crm.md)
+- [Zalo](domains/zalo.md)
+
+## Agents and skills
+- [Orchestrator agent](../.claude/agents/orchestrator.md): routes multi-domain work, runs reviewers, reports status
+- [Architecture agent](../.claude/agents/architecture.md): monorepo, contracts pipeline, ADRs, architecture review
+- [Architecture skill](../.claude/skills/architecture/SKILL.md): add module/endpoint/package/ADR, upgrade procedures
+- [Ownership map](../.claude/skills/architecture/references/ownership.md): which agent owns which path
+
+## Decisions
+- [ADRs](adr/): architecture decision records (0001–0005 planned)

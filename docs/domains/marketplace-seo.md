@@ -1,0 +1,44 @@
+# Marketplace & SEO (domain doc)
+
+The public, unauthenticated side of GuGu: discovery (home, category and location hubs, search), salon and service pages, and everything that makes them findable (SSR, metadata, structured data, sitemaps) and shareable. Read this before working on public routes or search. Task spec: `docs/tasks/10-marketplace-seo.md`. Agent: `.claude/agents/marketplace-seo.md`. Skills: `seo-page`, `search`.
+
+> Status: skeleton — sections marked TODO are filled in as code lands.
+
+## Rendering model
+- Expo Router, `web.output: "server"` (SDK ≥ 58). Public routes: `loader` + `generateMetadata`, CDN-cached. Authenticated routes: client-only shell, `noindex`, private cache.
+- Fallback (if S1 spike fails): static output + `generateStaticParams` rebuilt on publish. Decision: TODO (ADR link).
+
+## URL scheme
+| Page | Path |
+|---|---|
+| Home | `/{locale}` |
+| Category | `/{locale}/c/{category}` |
+| Category × place | `/{locale}/c/{category}/{province}[/{commune}]` |
+| Location hub | `/{locale}/l/{province}` |
+| Search | `/{locale}/search?q=&...` |
+| Salon | `/{locale}/salon/{slug}` |
+| Service | `/{locale}/salon/{slug}/services/{serviceSlug}` |
+| Short link | `/s/{shortId}` |
+Slug rules and redirects: see skill `seo-page`.
+
+## Location model
+Two-tier since 2025-07-01: province (34) → commune (xã/phường/đặc khu). Legacy districts and old provinces are `LocationAlias` rows. Locations are versioned (`valid_from`, `valid_to`, `replaced_by`). TODO: dataset source + seed script path.
+
+## Search read model
+`salon_search` — TODO: column list, indexes, projector events, ranking weights (with change log).
+
+## Invariants
+- No personal data in cached public HTML.
+- Diacritic-insensitive search via shared normaliser (SQL + JS parity).
+- Availability filters use the summary from the booking engine; exact slots only via booking API.
+- Only published, non-suspended salons and public staff are exposed.
+- Sponsored results are labelled.
+
+## File map
+TODO: routes, features, API module, projector, SEO API routes, JSON-LD builders.
+
+## Product AI-agent tools
+`marketplace.search_salons`, `marketplace.get_salon_profile`, `marketplace.list_services`, `marketplace.suggest`, `marketplace.resolve_location`, `marketplace.get_availability_summary` — all read-only, public data. Schemas: TODO (`packages/agent-tools`).
+
+## ADRs
+TODO: expo-server-output, postgres-search-vietnamese, two-tier-location-model, map-provider.
