@@ -159,7 +159,7 @@ describe("auth: magic link, sessions, CSRF (integration)", () => {
     await requestLink(email);
     const { code, token } = extractMagicLink(await waitForMail(email));
     const wrong = code === "000000" ? "111111" : "000000";
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       await request(http(app))
         .post("/api/v1/auth/magic-link/verify")
         .send({ email, code: wrong })
@@ -176,6 +176,27 @@ describe("auth: magic link, sessions, CSRF (integration)", () => {
       .expect(429);
     // …but a third party guessing codes can't take away the mailbox owner's link.
     await request(http(app)).post("/api/v1/auth/magic-link/verify").send({ token }).expect(200);
+  });
+
+  it("parallel wrong guesses never get more than 5 comparisons on one link", async () => {
+    const email = testEmail("race");
+    await clearRateLimits(app);
+    await requestLink(email);
+    const { code } = extractMagicLink(await waitForMail(email));
+    const wrong = code === "000000" ? "111111" : "000000";
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () =>
+        request(http(app)).post("/api/v1/auth/magic-link/verify").send({ email, code: wrong }),
+      ),
+    );
+    const compared = results.filter((r) => r.status === 400).length;
+    expect(compared).toBeLessThanOrEqual(5);
+    expect(results.every((r) => r.status === 400 || r.status === 429)).toBe(true);
+    const row = await prisma.magicLinkToken.findFirstOrThrow({
+      where: { email },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(row.attempts).toBe(5);
   });
 
   it("no third-party lockout: guesses without a live link don't count; older failures don't block a newer link", async () => {

@@ -167,25 +167,17 @@ export class MagicLinkService {
         orderBy: { createdAt: "desc" },
       });
       if (link) {
-        if (link.attempts >= MAX_CODE_ATTEMPTS) {
+        // Reserve an attempt before comparing, so parallel guesses can never exceed
+        // MAX_CODE_ATTEMPTS on one link (check-then-increment would race).
+        const reserved = await this.prisma.magicLinkToken.updateMany({
+          where: { id: link.id, consumedAt: null, attempts: { lt: MAX_CODE_ATTEMPTS } },
+          data: { attempts: { increment: 1 } },
+        });
+        if (reserved.count !== 1) {
           throw new AppError(429, AUTH_ERRORS.tooManyAttempts, "Too many attempts");
         }
         const ok = safeEqual(link.codeHash, this.hash("code", `${input.email}:${input.code}`));
-        if (!ok) {
-          // Atomic increment: parallel guesses can't exceed MAX_CODE_ATTEMPTS on one link.
-          await this.prisma.magicLinkToken.updateMany({
-            where: { id: link.id, consumedAt: null, attempts: { lt: MAX_CODE_ATTEMPTS } },
-            data: { attempts: { increment: 1 } },
-          });
-          const after = await this.prisma.magicLinkToken.findUniqueOrThrow({
-            where: { id: link.id },
-            select: { attempts: true },
-          });
-          if (after.attempts >= MAX_CODE_ATTEMPTS) {
-            throw new AppError(429, AUTH_ERRORS.tooManyAttempts, "Too many attempts");
-          }
-          throw invalid();
-        }
+        if (!ok) throw invalid();
       }
     }
     if (!link || link.consumedAt || link.expiresAt <= now) throw invalid();
