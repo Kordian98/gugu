@@ -39,7 +39,8 @@ const text = (v: unknown): { vi: string; en: string } => {
 const num = (v: bigint | null): number | null => (v === null ? null : Number(v));
 const big = (v: number | null): bigint | null => (v === null ? null : BigInt(v));
 
-function toDto(s: ServiceRow): Service {
+function toDto(s: ServiceRow, showCost: boolean): Service {
+  const cost = (v: bigint | null) => (showCost ? num(v) : null);
   return {
     id: s.id,
     categoryId: s.categoryId,
@@ -53,6 +54,8 @@ function toDto(s: ServiceRow): Service {
     bufferAfterMinutes: s.bufferAfterMinutes,
     isActive: s.isActive,
     sortOrder: s.sortOrder,
+    cost: cost(s.costAmountMinor),
+    costVisible: showCost,
     variants: s.variants.map((v) => ({
       id: v.id,
       name: text(v.name),
@@ -61,6 +64,7 @@ function toDto(s: ServiceRow): Service {
       durationMinutes: v.durationMinutes,
       isActive: v.isActive,
       sortOrder: v.sortOrder,
+      cost: cost(v.costAmountMinor),
     })),
     addOns: s.addOns.map((a) => ({
       id: a.id,
@@ -70,10 +74,24 @@ function toDto(s: ServiceRow): Service {
       extraPriceMax: num(a.extraPriceMaxAmountMinor),
       isActive: a.isActive,
       sortOrder: a.sortOrder,
+      extraCost: cost(a.extraCostAmountMinor),
     })),
     staffIds: s.staff.map((x) => x.staffId),
     resourceRequirements: s.resourceRequirements,
   };
+}
+
+/** Internal costs are visible to owners/managers only (services.cost.read). */
+const canSeeCost = (ctx: SalonContext) => ctx.permissions.has("services.cost.read");
+
+/** Writing a cost needs the same permission; omitting cost fields is always allowed. */
+function assertCostWrite(ctx: SalonContext, input: ServiceInputParsed) {
+  const touches =
+    input.cost !== undefined ||
+    input.variants.some((v) => v.cost !== undefined) ||
+    input.addOns.some((a) => a.extraCost !== undefined);
+  if (touches && !canSeeCost(ctx))
+    throw new AppError(403, "common.forbidden", "Internal cost needs services.cost.read");
 }
 
 /**
@@ -95,10 +113,11 @@ export class CatalogService {
       include: SERVICE_INCLUDE,
       take: 500,
     });
-    return { items: rows.map(toDto) };
+    return { items: rows.map((r) => toDto(r, canSeeCost(ctx))) };
   }
 
   async create(ctx: SalonContext, input: ServiceInputParsed): Promise<Service> {
+    assertCostWrite(ctx, input);
     await this.assertRefs(ctx, input);
     return this.prisma.$transaction(async (tx) => {
       const last = await tx.service.aggregate({
@@ -125,11 +144,13 @@ export class CatalogService {
       await this.record(tx, ctx, "catalog.service_created", service.id);
       return toDto(
         await tx.service.findUniqueOrThrow({ where: { id: service.id }, include: SERVICE_INCLUDE }),
+        canSeeCost(ctx),
       );
     });
   }
 
   async update(ctx: SalonContext, serviceId: string, input: ServiceInputParsed): Promise<Service> {
+    assertCostWrite(ctx, input);
     await this.assertRefs(ctx, input);
     return this.prisma.$transaction(async (tx) => {
       await this.findOwned(tx, ctx, serviceId);
@@ -139,6 +160,7 @@ export class CatalogService {
       await this.record(tx, ctx, "catalog.service_updated", serviceId);
       return toDto(
         await tx.service.findUniqueOrThrow({ where: { id: serviceId }, include: SERVICE_INCLUDE }),
+        canSeeCost(ctx),
       );
     });
   }
@@ -205,6 +227,7 @@ export class CatalogService {
       bufferBeforeMinutes: input.bufferBeforeMinutes,
       bufferAfterMinutes: input.bufferAfterMinutes,
       isActive: input.isActive,
+      ...(input.cost !== undefined ? { costAmountMinor: big(input.cost) } : {}),
     };
   }
 
@@ -225,6 +248,7 @@ export class CatalogService {
         durationMinutes: v.durationMinutes,
         isActive: v.isActive,
         sortOrder,
+        ...(v.cost !== undefined ? { costAmountMinor: big(v.cost) } : {}),
       };
       const updated = v.id
         ? await tx.serviceVariant.updateMany({
@@ -256,6 +280,7 @@ export class CatalogService {
         isActive: a.isActive,
         maxQuantity: 1,
         sortOrder,
+        ...(a.extraCost !== undefined ? { extraCostAmountMinor: big(a.extraCost) } : {}),
       };
       const updated = a.id
         ? await tx.serviceAddOn.updateMany({

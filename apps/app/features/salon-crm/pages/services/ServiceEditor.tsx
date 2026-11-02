@@ -9,7 +9,9 @@ import { formatVND } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { crmApi, useCrmMutation } from "../../data/catalog";
+import { useSalon } from "../../data/SalonContext";
 import { AssignList } from "../../ui/AssignList";
+import { marginText } from "./margin";
 import { useErrorText } from "../../ui/errors";
 import {
   ConfirmDialog,
@@ -29,6 +31,7 @@ type VariantDraft = {
   nameEn: string;
   price: number | null;
   duration: number | null;
+  cost?: number | null;
 };
 type AddOnDraft = {
   id?: string;
@@ -36,6 +39,7 @@ type AddOnDraft = {
   nameEn: string;
   extraPrice: number | null;
   extraDuration: number | null;
+  extraCost?: number | null;
 };
 
 type Draft = {
@@ -51,6 +55,7 @@ type Draft = {
   variants: VariantDraft[];
   addOns: AddOnDraft[];
   staffIds: string[];
+  cost: number | null;
   /** New service whose staff list was never touched: the API assigns every bookable member. */
   staffDefault: boolean;
 };
@@ -71,6 +76,7 @@ const fromService = (s: Service | null): Draft => ({
     nameEn: v.name.en,
     price: v.price,
     duration: v.durationMinutes,
+    cost: v.cost,
   })),
   addOns: (s?.addOns ?? []).map((a) => ({
     id: a.id,
@@ -78,12 +84,18 @@ const fromService = (s: Service | null): Draft => ({
     nameEn: a.name.en,
     extraPrice: a.extraPrice,
     extraDuration: a.extraDurationMinutes,
+    extraCost: a.extraCost,
   })),
   staffIds: s?.staffIds ?? [],
   staffDefault: !s,
+  cost: s?.cost ?? null,
 });
 
-const toInput = (d: Draft, description: { vi: string; en: string } | null): ServiceInput => ({
+const toInput = (
+  d: Draft,
+  description: { vi: string; en: string } | null,
+  canCost: boolean,
+): ServiceInput => ({
   name: { vi: d.nameVi.trim(), en: d.nameEn.trim() },
   description: d.descriptionVi.trim()
     ? { vi: d.descriptionVi.trim(), en: description?.en ?? "" }
@@ -101,6 +113,7 @@ const toInput = (d: Draft, description: { vi: string; en: string } | null): Serv
       name: { vi: v.nameVi.trim(), en: v.nameEn.trim() },
       price: v.price,
       durationMinutes: v.duration !== null && v.duration >= 5 ? v.duration : null,
+      ...(canCost ? { cost: v.cost ?? null } : {}),
     })),
   addOns: d.addOns
     .filter((a) => a.nameVi.trim())
@@ -109,8 +122,11 @@ const toInput = (d: Draft, description: { vi: string; en: string } | null): Serv
       name: { vi: a.nameVi.trim(), en: a.nameEn.trim() },
       extraPrice: a.extraPrice ?? 0,
       extraDurationMinutes: a.extraDuration ?? 0,
+      ...(canCost ? { extraCost: a.extraCost ?? null } : {}),
     })),
   ...(d.staffDefault ? {} : { staffIds: d.staffIds }),
+  // Internal cost is only sent by owners/managers (services.cost.read); the API refuses others.
+  ...(canCost ? { cost: d.cost } : {}),
 });
 
 /**
@@ -143,6 +159,8 @@ export function ServiceEditor({
   const create = useCrmMutation(crmApi.createService, ["services", "team"]);
   const update = useCrmMutation(crmApi.updateService, ["services", "team"]);
   const remove = useCrmMutation(crmApi.removeService, ["services", "team"]);
+  const { can } = useSalon();
+  const canCost = can("services.cost.read");
   const bookable = staff.filter((s) => s.isBookable);
   // New service: every bookable member is preselected (and with exactly one, silently assigned).
   const chosen = d.staffDefault ? bookable.map((s) => s.id) : d.staffIds;
@@ -153,7 +171,7 @@ export function ServiceEditor({
   const save = () => {
     setTouched(true);
     if (invalid) return;
-    const body = toInput(d, service?.description ?? null);
+    const body = toInput(d, service?.description ?? null, canCost);
     const done = { onSuccess: onClose };
     if (service) update.mutate({ id: service.id, body }, done);
     else create.mutate(body, done);
@@ -266,6 +284,25 @@ export function ServiceEditor({
           />
         </Field>
       </View>
+      {canCost ? (
+        <Field
+          label={t("services.cost")}
+          hint={
+            d.price !== null && d.cost !== null
+              ? marginText(t, d.price, d.cost, locale)
+              : t("services.costHint")
+          }
+        >
+          <MoneyInput
+            testID="crm-service-cost"
+            label={t("services.cost")}
+            value={d.cost}
+            onChange={(v) => {
+              set({ cost: v });
+            }}
+          />
+        </Field>
+      ) : null}
       <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
         <Field
           label={t("services.duration")}
@@ -352,6 +389,19 @@ export function ServiceEditor({
                   }}
                 />
               </View>
+              {canCost ? (
+                <View style={{ flex: 1 }}>
+                  <MoneyInput
+                    label={t("services.cost")}
+                    value={v.cost ?? null}
+                    onChange={(x) => {
+                      set({
+                        variants: d.variants.map((y, j) => (j === i ? { ...y, cost: x } : y)),
+                      });
+                    }}
+                  />
+                </View>
+              ) : null}
               <NumberInput
                 label={t("services.duration")}
                 value={v.duration}
@@ -404,6 +454,19 @@ export function ServiceEditor({
                   }}
                 />
               </View>
+              {canCost ? (
+                <View style={{ flex: 1 }}>
+                  <MoneyInput
+                    label={t("services.cost")}
+                    value={a.extraCost ?? null}
+                    onChange={(x) => {
+                      set({
+                        addOns: d.addOns.map((y, j) => (j === i ? { ...y, extraCost: x } : y)),
+                      });
+                    }}
+                  />
+                </View>
+              ) : null}
               <NumberInput
                 label={t("services.extraDuration")}
                 value={a.extraDuration}

@@ -83,3 +83,11 @@ _TBD: implemented tools, with their permission and confirmation requirements._
 
 ## Known limitations
 _TBD_
+
+## Bookability, customers, insights, internal cost (2026-11-03)
+
+- **Bookable by default.** A new service without `staffIds` is assigned to every bookable staff member; a new staff member without `serviceIds` gets every active service; updates that omit the list keep links. Editors show prominent checkbox lists (`ui/AssignList`); silent auto-assign only with exactly one bookable member. `onboarding.issues` drives "Not bookable" warnings on Today, Services and Team.
+- **Why nothing is free.** `availability.unavailableReason` (pure `unavailableReason()` in `packages/domain/src/booking`) — the CRM and the Zalo bot show it instead of an empty list. `GET /salons/:id/availability/earliest` powers "Find the earliest slot" (31-day chunks, `perDay` cap).
+- **Customers (M7.7)** — `modules/customers-crm`: profiles materialised from bookings by phone; stats computed at query time; own scope = clients of the member's own appointments (tags too); notes need `customers.notes.write`; phones masked without `customers.phone.read`, and the duplicate-phone 409 then carries no id.
+- **Insights (M7.8)** — `modules/insights` over the metric registry (`packages/domain/src/metrics`); money always carries a RevenueKind badge; own scope filters every CTE incl. new/returning history.
+- **Internal cost** — `services.cost_amount_minor`, variant `cost_amount_minor`, add-on `extra_cost_amount_minor`. Read and write need `services.cost.read` (owner, manager); others get `cost: null, costVisible: false`, and writes with cost fields are refused (403). `margin.estimated` (registry, `agentExposed: false`, `requiresPermission`) = completed line price (incl. add-ons) − current cost, over services with a cost. `catalog/cost-exposure.test.ts` fails if any module other than catalog/insights reads cost columns (Zalo, AI assistant, public).

@@ -3,6 +3,7 @@ import type { Insights } from "@gugu/contracts";
 import {
   dayBounds,
   METRICS,
+  type MetricDefinition,
   METRIC_KEYS,
   type MetricKey,
   previousPeriod,
@@ -21,6 +22,7 @@ type Counts = {
   cancelled: bigint;
   revenue: bigint;
   offline: bigint;
+  margin: bigint;
   new_customers: bigint;
   returning: bigint;
 };
@@ -57,12 +59,15 @@ export class InsightsService {
       "cancellation.rate": ratio(Number(c.cancelled), Number(c.total)),
       "revenue.estimated": Number(c.revenue),
       "revenue.offline_recorded": Number(c.offline),
+      "margin.estimated": Number(c.margin),
     });
     const cur = values(now);
     const old = values(before);
     const metrics: Insights["metrics"] = {};
     for (const key of METRIC_KEYS) {
-      const def = METRICS[key];
+      const def: MetricDefinition = METRICS[key];
+      // Internal cost based metrics (margin) only for owners/managers (services.cost.read).
+      if (def.requiresPermission && !ctx.permissions.has(def.requiresPermission)) continue;
       metrics[key] = {
         value: cur[key],
         previous: old[key],
@@ -186,7 +191,21 @@ export class InsightsService {
         (SELECT coalesce(sum(total_price_minor), 0) FROM period WHERE status = 'completed') AS revenue,
         (SELECT coalesce(sum(o.amount_minor), 0) FROM offline_sales o JOIN period p ON p.id = o.booking_id AND o.salon_id = p.salon_id) AS offline,
         (SELECT count(*) FROM done_phones WHERE phone NOT IN (SELECT phone FROM earlier)) AS new_customers,
-        (SELECT count(*) FROM earlier) AS returning`;
+        (SELECT count(*) FROM earlier) AS returning,
+        -- booking_services.price_minor already includes the line's add-ons.
+        (SELECT coalesce(sum(bs.price_minor - coalesce(v.cost_amount_minor, s.cost_amount_minor) - coalesce(ad.cost, 0)), 0)
+          FROM period p
+          JOIN booking_services bs ON bs.booking_id = p.id AND bs.salon_id = p.salon_id
+          JOIN services s ON s.id = bs.service_id AND s.salon_id = bs.salon_id
+          LEFT JOIN service_variants v ON v.id = bs.variant_id AND v.salon_id = bs.salon_id
+          LEFT JOIN LATERAL (
+            SELECT sum(coalesce(a.extra_cost_amount_minor, 0)) AS cost
+            FROM booking_service_addons x
+            JOIN service_addons a ON a.id = x.add_on_id AND a.salon_id = x.salon_id
+            WHERE x.booking_service_id = bs.id
+          ) ad ON true
+          WHERE p.status = 'completed'
+            AND coalesce(v.cost_amount_minor, s.cost_amount_minor) IS NOT NULL) AS margin`;
     const r = rows[0];
     if (!r) throw new Error("insights: no row");
     return r;

@@ -24,6 +24,8 @@ export interface MetricDefinition {
   definition: string;
   /** Safe for the AI assistant: aggregate only, no personal data (X10). */
   agentExposed: boolean;
+  /** Only computed for readers with this permission (otherwise omitted from the response). */
+  requiresPermission?: "services.cost.read";
 }
 
 export const METRICS = {
@@ -77,6 +79,16 @@ export const METRICS = {
     readModels: ["offline_sales"],
     definition: "Amounts the salon recorded as received at the salon for those appointments.",
     agentExposed: true,
+  },
+  "margin.estimated": {
+    unit: "vnd",
+    revenueKind: "estimated_from_bookings",
+    readModels: ["bookings", "services"],
+    definition:
+      "Completed appointments' service price (incl. add-ons) minus the internal cost entered for " +
+      "the service/variant/add-on, over services that have a cost set. Uses today's costs.",
+    agentExposed: false,
+    requiresPermission: "services.cost.read",
   },
 } as const satisfies Record<string, MetricDefinition>;
 

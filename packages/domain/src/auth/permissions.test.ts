@@ -19,6 +19,13 @@ describe("permission matrix", () => {
     }
   });
 
+  it("internal service cost: owner and manager only", () => {
+    expect(ROLE_PERMISSIONS.owner.has("services.cost.read")).toBe(true);
+    expect(ROLE_PERMISSIONS.manager.has("services.cost.read")).toBe(true);
+    expect(ROLE_PERMISSIONS.receptionist.has("services.cost.read")).toBe(false);
+    expect(ROLE_PERMISSIONS.staff.has("services.cost.read")).toBe(false);
+  });
+
   it("rule overrides: owner, manager, receptionist — not staff (q18)", () => {
     for (const role of ["owner", "manager", "receptionist"] as const) {
       expect(ROLE_PERMISSIONS[role].has("bookings.override_rules")).toBe(true);

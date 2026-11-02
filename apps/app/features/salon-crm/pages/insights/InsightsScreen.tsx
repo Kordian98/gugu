@@ -185,6 +185,11 @@ function MetricCard({
           {delta !== null ? t("insights.vsPrevious") : t("insights.noPrevious")}
         </Text>
       </View>
+      {id === "margin.estimated" ? (
+        <Text size={11} color={c.muted}>
+          {t("insights.marginHint")}
+        </Text>
+      ) : null}
       {m.revenueKind ? <Pill size={10} tone="accent" label={t(KIND_LABEL[m.revenueKind])} /> : null}
     </CalmCard>
   );
