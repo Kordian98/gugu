@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { type Href, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import type { AuthProviders } from "@gugu/contracts";
@@ -11,6 +11,7 @@ import { apiFetch } from "@/services/auth/api";
 import { useAuth } from "@/services/auth/AuthProvider";
 import { useLocale } from "@/services/i18n/useLocale";
 
+import { afterSignInHref, toHref } from "./afterSignIn";
 import { AuthCard } from "./AuthCard";
 import { EMAIL_RE, authErrorMessage } from "./errors";
 import { TextField } from "./TextField";
@@ -42,7 +43,7 @@ export function SignInScreen({ mode }: { mode: "signIn" | "signUp" }) {
   });
 
   const goNext = (path: string | null) => {
-    router.replace((path ?? next ?? `/${locale}/me`) as Href);
+    router.replace(toHref(path ?? next ?? `/${locale}/me`));
   };
 
   const send = async (address: string) => {
@@ -72,7 +73,9 @@ export function SignInScreen({ mode }: { mode: "signIn" | "signUp" }) {
     setError(null);
     try {
       const session = await auth.verify({ email: sentTo, code });
-      goNext(session.redirectPath);
+      router.replace(
+        afterSignInHref(session.user, session.redirectPath ?? next ?? `/${locale}/me`),
+      );
     } catch (e) {
       setError(authErrorMessage(t, e));
     } finally {

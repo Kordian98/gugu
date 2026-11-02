@@ -7,6 +7,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   authSessionSchema,
+  pendingSalonListSchema,
   categoryListSchema,
   locationListSchema,
   problemSchema,
@@ -135,17 +136,17 @@ describe("salons & tenancy (integration)", () => {
     ]);
   });
 
-  it("registration can't bypass per-email magic-link limits; sign-in later activates the owner", async () => {
+  it("registration can't bypass per-email limits; each salon needs its own proof of intent", async () => {
     const email = testEmail("flood");
-    const statuses: string[] = [];
+    const results = [];
     for (let i = 0; i < 4; i++) {
       const res = await request(http(app))
         .post("/api/v1/salons/registrations")
         .send(registration({ email, businessName: `Flood ${String(i)}` }))
         .expect(201);
-      statuses.push(salonRegistrationResultSchema.parse(res.body).magicLinkStatus);
+      results.push(salonRegistrationResultSchema.parse(res.body));
     }
-    expect(statuses).toEqual(["sent", "sent", "sent", "rate_limited"]);
+    expect(results.map((r) => r.magicLinkStatus)).toEqual(["sent", "sent", "sent", "rate_limited"]);
     expect(await countMailsTo(email)).toBe(3);
     // The same per-email counter blocks the public sign-in endpoint too.
     await request(http(app))
@@ -153,15 +154,90 @@ describe("salons & tenancy (integration)", () => {
       .send({ email, locale: "vi" })
       .expect(429);
 
-    // Any proof of the email (here: one of the registration links) activates all 4 pending salons.
-    const { token } = extractMagicLink(await waitForMail(email));
+    // The newest registration email belongs to "Flood 2": it activates that salon only.
+    const mail = await waitForMail(email);
+    expect(mail.subject).toContain("Flood 2");
     const verified = await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
-      .send({ token, client: "native" })
+      .send({ token: extractMagicLink(mail).token, client: "native" })
       .expect(200);
-    const memberships = authSessionSchema.parse(verified.body).user.memberships;
-    expect(memberships).toHaveLength(4);
-    expect(memberships.every((m) => m.status === "active" && m.role === "owner")).toBe(true);
+    const session = authSessionSchema.parse(verified.body);
+    const active = session.user.memberships.filter((m) => m.status === "active");
+    expect(active.map((m) => m.salonId)).toEqual([results[2]?.salonId]);
+    if (session.session.kind !== "native") throw new Error("expected native");
+    const auth = `Bearer ${session.session.tokens.accessToken}`;
+
+    // The other three wait for an explicit decision.
+    const listed = pendingSalonListSchema.parse(
+      (
+        await request(http(app))
+          .get("/api/v1/me/pending-salons")
+          .set("authorization", auth)
+          .expect(200)
+      ).body,
+    );
+    expect(listed.items.map((p) => p.salonName).sort()).toEqual(["Flood 0", "Flood 1", "Flood 3"]);
+    const [confirmId, declineId] = [results[0]?.salonId ?? "", results[1]?.salonId ?? ""];
+    await request(http(app))
+      .post(`/api/v1/me/pending-salons/${confirmId}/confirm`)
+      .set("authorization", auth)
+      .expect(204);
+    await request(http(app))
+      .post(`/api/v1/me/pending-salons/${declineId}/decline`)
+      .set("authorization", auth)
+      .expect(204);
+    await request(http(app))
+      .get(`/api/v1/salons/${confirmId}`)
+      .set("authorization", auth)
+      .expect(200);
+    await request(http(app))
+      .get(`/api/v1/salons/${declineId}`)
+      .set("authorization", auth)
+      .expect(404);
+    // Confirming twice, or a salon you have no pending membership for, is a 404.
+    await request(http(app))
+      .post(`/api/v1/me/pending-salons/${declineId}/confirm`)
+      .set("authorization", auth)
+      .expect(404);
+    await request(http(app))
+      .post(`/api/v1/me/pending-salons/${b.salonId}/confirm`)
+      .set("authorization", auth)
+      .expect(404);
+    const after = pendingSalonListSchema.parse(
+      (await request(http(app)).get("/api/v1/me/pending-salons").set("authorization", auth)).body,
+    );
+    expect(after.items.map((p) => p.salonName)).toEqual(["Flood 3"]);
+    const audit = await prisma.auditLog.findFirst({
+      where: { action: "salon.owner_declined", salonId: declineId },
+    });
+    expect(audit).not.toBeNull();
+  });
+
+  it("a plain sign-in never activates salons someone registered with your email", async () => {
+    const email = testEmail("victim");
+    const res = await request(http(app))
+      .post("/api/v1/salons/registrations")
+      .send(registration({ email, businessName: "Attacker Salon" }))
+      .expect(201);
+    const { salonId } = salonRegistrationResultSchema.parse(res.body);
+    // Victim ignores that email and signs in normally.
+    await request(http(app))
+      .post("/api/v1/auth/magic-link")
+      .send({ email, locale: "vi", client: "native" })
+      .expect(202);
+    const signInMail = await waitForMail(email);
+    expect(signInMail.subject).toBe("Link đăng nhập GuGu của bạn");
+    const verified = await request(http(app))
+      .post("/api/v1/auth/magic-link/verify")
+      .send({ token: extractMagicLink(signInMail).token, client: "native" })
+      .expect(200);
+    const session = authSessionSchema.parse(verified.body);
+    expect(session.user.memberships).toMatchObject([{ salonId, status: "pending_verification" }]);
+    if (session.session.kind !== "native") throw new Error("expected native");
+    await request(http(app))
+      .get(`/api/v1/salons/${salonId}`)
+      .set("authorization", `Bearer ${session.session.tokens.accessToken}`)
+      .expect(404);
   });
 
   it("rejects bad phone numbers and unknown locations", async () => {

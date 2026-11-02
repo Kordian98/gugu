@@ -117,7 +117,7 @@ export class RegisterSalonCommand {
     if (!signedIn && result.ownerEmail) {
       // After commit: never email about a salon that was rolled back. issue() enforces the
       // per-email limits; when they're hit the salon still exists and the owner confirms later by
-      // signing in with that email (any email proof activates pending memberships).
+      // signing in with that email and confirming it (POST /me/pending-salons/:id/confirm).
       magicLinkStatus = "sent";
       await this.magicLinks
         .issue(

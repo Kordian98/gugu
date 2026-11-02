@@ -48,13 +48,14 @@ Migration `20261102122228_add_subscription_salon_fks` adds `salon_id → salons(
 |---|---|---|
 | `GET /api/v1/auth/providers` | public | Which sign-in buttons to show |
 | `POST /api/v1/auth/magic-link` | public | Always 202 `{status:"sent"}`. Limits: 30/15 min per IP prefix here; 3/15 min and 10/day per email (hashed) are enforced inside `MagicLinkService.issue()`, so registration emails count too |
-| `POST /api/v1/auth/magic-link/verify` | public | `{token}` or `{email, code}` + `client`. Wrong codes: 5 per link (atomic counter) and a rolling 10/hour per email across all links. Web sets the cookie and returns `csrfToken`. Native returns tokens |
+| `POST /api/v1/auth/magic-link/verify` | public | `{token}` or `{email, code}` + `client`. Wrong codes count only against the live link they were tried on: after 5 its *code* is locked (429), but its emailed token still works and a newer link is unaffected — so third parties can't lock anyone out. Guessing is bounded by issuance: ≤ 10 links/day × 5 = 50 guesses per email per day. Web sets the cookie and returns `csrfToken`. Native returns tokens |
 | `POST /api/v1/auth/social` | public | Apple/Google ID token. 404 `auth.provider_disabled` when not configured |
 | `POST /api/v1/auth/refresh` | public | Native refresh rotation |
 | `POST /api/v1/auth/sign-out`, `/sign-out-all` | authenticated | Revokes the session(s) and clears the cookie |
 | `GET /api/v1/me` | authenticated | User, memberships, web `csrfToken` |
+| `GET /api/v1/me/pending-salons`, `POST …/:salonId/confirm`, `POST …/:salonId/decline` | authenticated | Explicit confirm/decline of salons registered with my email (audited `salon.owner_verified` / `salon.owner_declined`) |
 | `GET /api/v1/public/categories`, `/public/locations` | public | Reference data for registration |
-| `POST /api/v1/salons/registrations` | public | Signed in → owner at once. Anonymous → `email` required, memberships `pending_verification` until the email is proven (the registration link or any later sign-in). When the per-email limit is hit, the salon is still created and `magicLinkStatus` is `rate_limited`. Starts the 14-day trial in the same transaction |
+| `POST /api/v1/salons/registrations` | public | Signed in → owner at once. Anonymous → `email` required, memberships `pending_verification`. Only that salon's registration link activates it; otherwise the owner confirms explicitly after signing in (`/me/pending-salons`). When the per-email limit is hit, the salon is still created and `magicLinkStatus` is `rate_limited`. Starts the 14-day trial in the same transaction |
 | `GET/PATCH /api/v1/salons/:salonId`, `GET …/members` | `salon.read` / `salon.profile.write` / `members.read` | Minimal workspace read models |
 | `GET /api/v1/salons/:salonId/entitlements` | `subscription.read` | Topic 12, guarded by the membership guard |
 
@@ -66,7 +67,7 @@ Errors: `AUTH_ERRORS` (`packages/contracts/src/auth/auth.ts`) and `SALON_ERRORS`
 - **Magic link (native):** request with `client: "native"` → the user types the 6-digit code → tokens go to SecureStore. Universal links for the emailed URL come with topic 13.
 - **Client IP:** `req.ip` comes from Express `trust proxy`, set from `TRUST_PROXY` (default `false` = no proxy, local). Behind Cloudflare/a load balancer set the hop count (e.g. `1`) or the proxy CIDRs; never `true`. IP limits are the first layer; per-email/per-account limits are the second.
 - **Refresh:** `apiFetch` refreshes once on 401, with one in-flight refresh shared by concurrent calls.
-- **Salon registration (anonymous):** a user row is created unverified → org, salon, memberships and trial are created in one transaction → after commit, a `salon_registration` magic link is emailed → verifying it — or any later sign-in with that email — activates all of the user's pending memberships (audit `salon.owner_verified`).
+- **Salon registration (anonymous):** a user row is created unverified → org, salon, memberships and trial are created in one transaction → after commit, a `salon_registration` magic link is emailed → verifying it activates **only that salon** (audit `salon.owner_verified`). A plain sign-in activates nothing: the app routes users with pending salons to `/{locale}/auth/pending-salons` to confirm or decline each one.
 - Staff invitation, agent tool authorization, Zalo webhook ingest, account deletion/export: _TBD_ (later milestones).
 
 ## Enable Apple / Google
@@ -81,7 +82,7 @@ The source of truth is `packages/domain/src/auth/permissions.ts`, tested in `per
 
 ## Audit events
 
-`AUDIT_ACTIONS` in `apps/api/src/modules/audit/audit.service.ts`: `auth.sign_in`, `auth.sign_out`, `auth.sign_out_all`, `auth.session_reuse_detected`, `auth.identity_linked`, `salon.registered`, `salon.owner_verified`, `salon.profile_updated`. Metadata never holds secrets or personal data.
+`AUDIT_ACTIONS` in `apps/api/src/modules/audit/audit.service.ts`: `auth.sign_in`, `auth.sign_out`, `auth.sign_out_all`, `auth.session_reuse_detected`, `auth.identity_linked`, `salon.registered`, `salon.owner_verified`, `salon.owner_declined`, `salon.profile_updated`. Metadata never holds secrets or personal data.
 
 ## Data inventory
 

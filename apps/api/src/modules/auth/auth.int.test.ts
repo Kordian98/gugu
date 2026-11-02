@@ -14,6 +14,7 @@ import { http } from "../../../test/http-app";
 import { countMailsTo, extractMagicLink, waitForMail } from "../../../test/mailpit";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
+import { RedisService } from "../../infrastructure/redis/redis.service";
 import { configureHttpApp } from "../../bootstrap";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 
@@ -153,10 +154,10 @@ describe("auth: magic link, sessions, CSRF (integration)", () => {
     expect(audit).not.toBeNull();
   });
 
-  it("locks the code after 5 wrong attempts", async () => {
+  it("locks a link's code after 5 wrong attempts, but its emailed token still works", async () => {
     const email = testEmail("lock");
     await requestLink(email);
-    const { code } = extractMagicLink(await waitForMail(email));
+    const { code, token } = extractMagicLink(await waitForMail(email));
     const wrong = code === "000000" ? "111111" : "000000";
     for (let i = 0; i < 4; i++) {
       await request(http(app))
@@ -168,39 +169,46 @@ describe("auth: magic link, sessions, CSRF (integration)", () => {
       .post("/api/v1/auth/magic-link/verify")
       .send({ email, code: wrong });
     expect(locked.status).toBe(429);
+    // Even the right code is refused on a locked link…
     await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
       .send({ email, code })
-      .expect(400);
+      .expect(429);
+    // …but a third party guessing codes can't take away the mailbox owner's link.
+    await request(http(app)).post("/api/v1/auth/magic-link/verify").send({ token }).expect(200);
   });
 
-  it("caps wrong codes per email across links (rolling 10/hour), not only per link", async () => {
-    const email = testEmail("rolling");
-    const wrongFor = (code: string) => (code === "000000" ? "111111" : "000000");
-    // Two links, 5 wrong codes each (each link locks at its 5th) = 10 failures for this email.
-    for (let round = 0; round < 2; round++) {
-      await requestLink(email);
-      const { code } = extractMagicLink(await waitForMail(email));
-      for (let i = 0; i < 5; i++) {
-        await request(http(app))
-          .post("/api/v1/auth/magic-link/verify")
-          .send({ email, code: wrongFor(code) });
-      }
-      await new Promise((r) => setTimeout(r, 50));
+  it("no third-party lockout: guesses without a live link don't count; older failures don't block a newer link", async () => {
+    const email = testEmail("lockout");
+    await clearRateLimits(app);
+    // Attacker guesses while the victim has no live link: nothing is recorded.
+    for (let i = 0; i < 15; i++) {
+      await request(http(app))
+        .post("/api/v1/auth/magic-link/verify")
+        .send({ email, code: String(100000 + i) })
+        .expect(400);
     }
-    // A fresh link with the RIGHT code is refused while the rolling cap is reached.
+    // Attacker burns the victim's first link (5 wrong codes on it).
     await requestLink(email);
-    const fresh = extractMagicLink(await waitForMail(email));
+    const first = extractMagicLink(await waitForMail(email));
+    const wrong = first.code === "000000" ? "111111" : "000000";
+    for (let i = 0; i < 5; i++) {
+      await request(http(app)).post("/api/v1/auth/magic-link/verify").send({ email, code: wrong });
+    }
+    await new Promise((r) => setTimeout(r, 50));
+    // The victim is on another network: reset only the per-IP verify counter the attacker used.
+    const redis = app.get(RedisService).client;
+    const ipKeys = await redis.keys("rl:auth.verify.ip:*");
+    if (ipKeys.length) await redis.del(...ipKeys);
+    // The victim requests a new link: its correct code works despite all earlier failures.
+    await requestLink(email);
+    const second = extractMagicLink(await waitForMail(email));
+    expect(second.code === first.code && second.token === first.token).toBe(false);
     const res = await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
-      .send({ email, code: fresh.code });
-    expect(res.status).toBe(429);
-    expect(problemSchema.parse(res.body).code).toBe("auth.too_many_attempts");
-    // The emailed link itself (256-bit token) still works.
-    await request(http(app))
-      .post("/api/v1/auth/magic-link/verify")
-      .send({ token: fresh.token })
+      .send({ email, code: second.code })
       .expect(200);
+    expect(authSessionSchema.parse(res.body).user.email).toBe(email);
   });
 
   it("stores only hashes: no token or code in the database", async () => {
