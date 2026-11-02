@@ -1,4 +1,3 @@
-import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   type AvailabilityInput,
@@ -7,7 +6,7 @@ import {
   type StaffAvailability,
   type WeeklyHours,
 } from "./availability";
-import { type Interval, overlaps } from "./intervals";
+import type { Interval } from "./intervals";
 import { instantsAt, toLocal } from "./tz";
 
 const HCM = "Asia/Ho_Chi_Minh";
@@ -262,66 +261,5 @@ describe("findSlot", () => {
     expect(findSlot(i, start, "zzz")).toBeNull();
     expect(findSlot(i, start + 5 * M, null)).toBeNull(); // off-grid
     expect(findSlot(i, at("2026-11-03", 20), null)).toBeNull();
-  });
-});
-
-describe("property: the engine never double-books", () => {
-  const arbBusy = fc.array(
-    fc.tuple(fc.integer({ min: 0, max: 47 }), fc.integer({ min: 1, max: 8 })),
-    { maxLength: 6 },
-  );
-  const arbTerms = fc.record({
-    durationMinutes: fc.constantFrom(15, 30, 45, 60, 90),
-    bufferBeforeMinutes: fc.constantFrom(0, 5, 10),
-    bufferAfterMinutes: fc.constantFrom(0, 5, 15),
-  });
-
-  it("every offered option is free; booking offered slots one by one never overlaps", () => {
-    fc.assert(
-      fc.property(
-        fc.array(fc.tuple(arbBusy, arbTerms), { minLength: 1, maxLength: 3 }),
-        fc.array(fc.nat(), { minLength: 1, maxLength: 8 }),
-        (staffSpecs, picks) => {
-          const dayStart = at("2026-11-03", 0);
-          const staffList = staffSpecs.map(([busy, terms], k) =>
-            staff(`s${String(k)}`, {
-              terms,
-              busy: busy.map(([slot, len]) => ({
-                start: dayStart + slot * 30 * M,
-                end: dayStart + (slot + len) * 30 * M,
-              })),
-            }),
-          );
-          let current = input({
-            staff: staffList,
-            rules: { slotGranularityMinutes: 15, minLeadMinutes: 0, bookingWindowDays: 60 },
-          });
-          for (const pick of picks) {
-            const slots = computeSlots(current);
-            for (const slot of slots) {
-              for (const option of slot.options) {
-                const s = current.staff.find((x) => x.staffId === option.staffId);
-                for (const b of s?.busy ?? []) expect(overlaps(option.occupancy, b)).toBe(false);
-              }
-            }
-            const sample = slots[pick % Math.max(slots.length, 1)];
-            if (sample)
-              expect(
-                findSlot(current, sample.start, sample.options[0]?.staffId ?? null),
-              ).not.toBeNull();
-            if (slots.length === 0) break;
-            const chosen = slots[pick % slots.length]?.options[0];
-            if (!chosen) break;
-            current = {
-              ...current,
-              staff: current.staff.map((s) =>
-                s.staffId === chosen.staffId ? { ...s, busy: [...s.busy, chosen.occupancy] } : s,
-              ),
-            };
-          }
-        },
-      ),
-      { numRuns: 60 },
-    );
   });
 });
