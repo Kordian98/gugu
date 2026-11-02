@@ -1,0 +1,21 @@
+{
+  "name": "@gugu/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tsconfig.library.json": "./tsconfig.library.json",
+    "./eslint": "./eslint.config.base.mjs",
+    "./eslint-i18n": "./i18n.mjs"
+  },
+  "dependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint-plugin-i18next": "6.1.5",
+    "globals": "17.14.0",
+    "typescript-eslint": "8.72.1"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0"
+  }
+}

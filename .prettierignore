@@ -1,0 +1,12 @@
+pnpm-lock.yaml
+node_modules
+.turbo
+dist
+.expo
+apps/app/ios
+apps/app/android
+design
+docs
+.claude
+*.md
+dist-web

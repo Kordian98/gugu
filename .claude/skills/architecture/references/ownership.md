@@ -11,10 +11,11 @@ Every path has exactly one primary owner agent. Others propose changes through t
 
 | Path | Owner agent | Topic |
 |---|---|---|
+| `scripts/{agents-check,secrets-scan}.mjs`, `.prettierrc.json`, `.prettierignore`, `.gitignore` | architecture | 01 |
 | Root config (`package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `turbo.json`, `.nvmrc`, `.npmrc`, `.editorconfig`, `.gitleaks.toml`), `packages/config/**`, `packages/api-client/**` (generated) | architecture | 01 |
 | `packages/contracts/` structure + `src/index.ts`, `src/common/**` (problem+json, pagination, ids) | architecture | 01 |
 | `packages/contracts/src/<domain>/**` | that domain's owner (see rows below) | — |
-| `apps/app/app/_layout.tsx`, `apps/app/providers/**`, `apps/api/src/main.ts`, `apps/api/src/app.module.ts` | architecture | 01 |
+| `apps/app/app/_layout.tsx`, `apps/app/app/index.tsx`, `apps/app/app/[locale]/_layout.tsx`, `apps/app/app/[locale]/(*)/_layout.tsx` (group shells), `apps/app/providers/**`, `apps/app/features/shell/**`, `apps/app/{global.css,metro.config.js,postcss.config.mjs,tsconfig.json,eslint.config.mjs,package.json}`, `apps/api/src/main.ts`, `apps/api/src/app.module.ts` | architecture | 01 |
 | `.claude/skills/roadmap-tracker/**`, `docs/tasks/tracker-inbox.jsonl` (sync + truncate), live tracker artifact [GuGu Roadmap](https://claude.ai/artifact/CkweFTJGUNC1M9hoCAmwn3) | orchestrator | 01 |
 | `docs/adr/**` (index + 0001–0005), `docs/llms.txt`, `docs/glossary.md` (structure), `docs/domains/architecture.md`, `.claude/skills/architecture/**`, `.claude/agents/{architecture,orchestrator}.md` | architecture | 01 |
 | `packages/design-system/**`, `apps/app/features/hero/**`, `apps/app/styles/**`, `design/**` | design-system | 02 |

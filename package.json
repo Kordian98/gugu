@@ -1,0 +1,27 @@
+{
+  "name": "gugu",
+  "private": true,
+  "packageManager": "pnpm@10.26.2",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @gugu/app web",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "boundaries": "depcruise apps packages --config packages/config/dependency-cruiser.cjs",
+    "secrets": "node scripts/secrets-scan.mjs",
+    "agents:check": "node scripts/agents-check.mjs",
+    "verify": "pnpm format:check && pnpm boundaries && pnpm secrets && pnpm agents:check && turbo run lint typecheck test"
+  },
+  "devDependencies": {
+    "dependency-cruiser": "18.7.1",
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "~6.0.3"
+  }
+}
