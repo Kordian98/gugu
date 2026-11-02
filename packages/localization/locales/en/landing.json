@@ -23,74 +23,95 @@
     "dive": {
       "eyebrow": "A day at the salon",
       "title": "Step inside.",
-      "body": "Stylists at work, clients in the chair, the phone buzzing at reception. This is where GuGu Studio lives."
+      "sub": "Stylists at work. Clients in the chair. The phone never stops."
     },
-    "before": {
-      "eyebrow": "Before",
-      "title": "Zalo chats, a paper notebook and a lot of guessing.",
-      "body": "Bookings come in from every direction. Someone writes them down — or forgets. Two clients turn up for the same slot. Others never show.",
-      "chat": "Hi, can I come at 3pm tomorrow?",
+    "pain1": {
+      "eyebrow": "08:47 · Reception",
+      "title": "23 new messages.\nBefore the first coffee.",
+      "sub": "Answering Zalo and copying bookings into a notebook eats hours every week — e.g. 2–3 hours.",
+      "chat1": "Hi, can I come at 3pm tomorrow?",
       "chat2": "Is Mai free on Saturday?",
-      "chat3": "Still have a slot today?",
-      "unread": "12 unread",
+      "chat3": "Still a slot today?",
+      "chat4": "Can I move my 10:00?",
+      "chat5": "How much is gel + nail art?",
+      "t1": "08:41",
+      "t2": "08:43",
+      "t3": "08:44",
+      "t4": "08:46",
+      "t5": "08:47",
+      "unread": "23 unread"
+    },
+    "pain2": {
+      "eyebrow": "14:00 · Same chair",
+      "title": "Two clients. One slot.\nOne forgotten reminder.",
+      "sub": "Double bookings, no-shows and stress at reception — lost clients, lost revenue.",
       "note1": "Thu Trang 15:00 gel",
       "note2": "Ngọc Anh 15:00 ???",
-      "note3": "call back Bảo Vy",
+      "note3": "remind Bảo Vy!!",
       "double": "Double booking",
-      "noShow": "No-show"
+      "noShow": "No-show",
+      "forgot": "Reminder forgotten"
     },
     "calendar": {
-      "eyebrow": "After · Team calendar",
-      "title": "The whole team on one screen.",
-      "body": "Every stylist, every break and every appointment for today. Availability is checked for you, so no more double bookings."
-    },
-    "clients": {
-      "eyebrow": "After · Clients",
-      "title": "Every client, remembered.",
-      "body": "Upcoming visits, services, prices and status at a glance, with each client's history building up as they come back."
+      "eyebrow": "With GuGu Studio",
+      "title": "One calendar.\nThe whole team.",
+      "sub": "Every stylist, every break, every booking. No more double bookings."
     },
     "reminders": {
-      "eyebrow": "After · Reminders",
-      "title": "Confirmations and reminders go out by themselves.",
-      "body": "Clients get a confirmation and a reminder by Zalo or email before their visit, so fewer chairs stay empty.",
-      "msg": "Hi Thu Trang! See you tomorrow at 15:00 for gel nails with Mai at GuGu Demo Salon. Reply to change your time.",
+      "eyebrow": "Automatic",
+      "title": "Reminders send themselves.",
+      "sub": "Confirmations and reminders go out by Zalo or email. Fewer empty chairs.",
+      "msg": "Hi Thu Trang! See you tomorrow at 15:00 for gel nails with Mai. Reply to change your time.",
       "sent": "Sent automatically · 24 h before"
-    },
-    "ai": {
-      "eyebrow": "After · AI setup",
-      "title": "Snap your price list. Done.",
-      "body": "Upload photos of your price list and AI builds your service menu for you to check. Included in every plan.",
-      "photo": "Price list photo",
-      "list": "Gel nails ........ 200k\nNail art ........ 150k\nHair cut ........ 120k\nFacial ........... 300k"
-    },
-    "insights": {
-      "eyebrow": "After · Insights",
-      "title": "Know how your salon is doing.",
-      "body": "Bookings, new clients, occupancy and estimated revenue — updated as your day goes."
     },
     "assistant": {
       "eyebrow": "AI assistant · Pro",
-      "title": "Too busy to look? Just ask.",
-      "body": "The assistant answers from your salon's own calendar and drafts the message for you.",
+      "title": "Too busy to check?\nJust ask.",
+      "sub": "Answers come from your salon's own calendar, with a ready-made Zalo reply.",
       "q": "Any free slot for gel nails tomorrow afternoon with Mai?",
-      "a": "Mai is free tomorrow at 14:00 and 16:30 (gel nails, 60 min). Want me to draft a message?",
-      "draft": "Draft message",
-      "privacy": "Works on your salon's own data. No customer personal data is sent to the AI model."
+      "a": "Mai is free tomorrow at 14:00 and 16:30 (gel nails, 60 min). Draft a reply?",
+      "draft": "Draft reply",
+      "privacy": "Uses your salon's own data. No customer personal data goes to the AI model."
     },
     "finale": {
-      "eyebrow": "Every booking, in seconds",
-      "title": "From a Zalo message to a confirmed booking.",
-      "body": "A client asks on Zalo. You check real availability in GuGu Studio, send a ready-made message with free slots, and book it in the calendar. The client gets a confirmation and a reminder automatically.",
-      "step1": "Client asks on Zalo",
-      "step2": "Check availability",
-      "step3": "Send free slots",
-      "step4": "Booked + confirmed",
+      "eyebrow": "Every booking",
+      "title": "From Zalo to booked.\nIn seconds.",
+      "sub": "Check real availability, send free slots, book it. The client gets a confirmation automatically.",
       "ask": "Hi! Can I book gel nails tomorrow afternoon?",
-      "offer": "Hi! Tomorrow we have 14:00 or 16:30 with Mai (gel nails, 60 min). Which one suits you?",
+      "offer": "Tomorrow we have 14:00 or 16:30 with Mai (gel nails, 60 min). Which suits you?",
       "reply": "16:30 please!",
-      "confirm": "Booked: gel nails with Mai, tomorrow 16:30. We'll remind you the day before."
+      "confirm": "Booked: gel nails with Mai, tomorrow 16:30. We'll remind you the day before.",
+      "booked": "Booked"
     },
-    "illustrative": "Message examples are illustrative."
+    "calm": {
+      "eyebrow": "The difference",
+      "title": "Calmer reception.\nTime back.",
+      "sub": "Your whole day at a glance: bookings, clients and numbers in one place."
+    },
+    "switch": {
+      "eyebrow": "Switching",
+      "title": "Switch in minutes.",
+      "sub": "Already using another app or a notebook? Upload a photo of your price list — AI sets up your services. Every plan.",
+      "photo": "Your price list",
+      "list": "Gel nails ........ 200k\nNail art ........ 150k\nHair cut ........ 120k\nFacial ........... 300k",
+      "recognised": "Recognised",
+      "catalog": "Your services",
+      "s1": "Gel nails",
+      "s2": "Nail art",
+      "s3": "Hair cut",
+      "s4": "Facial",
+      "p1": "200.000đ",
+      "p2": "150.000đ",
+      "p3": "120.000đ",
+      "p4": "300.000đ",
+      "d1": "60 min",
+      "d2": "45 min",
+      "d3": "30 min",
+      "d4": "60 min",
+      "effortless": "Effortless. Better. In every plan."
+    },
+    "illustrative": "Illustrative examples.",
+    "pro": "Pro"
   },
   "features": {
     "eyebrow": "Everything in one place",

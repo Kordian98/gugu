@@ -1,0 +1,17 @@
+{
+  "entrance": {
+    "w": 2400,
+    "h": 1695,
+    "placeholder": true
+  },
+  "reception": {
+    "w": 1000,
+    "h": 740,
+    "placeholder": true
+  },
+  "rooms": {
+    "w": 1300,
+    "h": 880,
+    "placeholder": true
+  }
+}

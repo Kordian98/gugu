@@ -1,10 +1,6 @@
-import { View } from "react-native";
-import Animated, {
-  useAnimatedRef,
-  useAnimatedScrollHandler,
-  useReducedMotion,
-  useSharedValue,
-} from "react-native-reanimated";
+import { useRef, type ComponentRef } from "react";
+import { Platform, ScrollView, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 
 import { color } from "@gugu/design-system";
 
@@ -17,51 +13,35 @@ import { Footer } from "./Footer";
 import { LandingNav } from "./LandingNav";
 import { Pricing } from "./Pricing";
 import { Anchor } from "./Section";
-import { StoryScroll } from "./StoryScroll";
 import { StoryStatic } from "./StoryStatic";
+import { Story } from "./story/Story";
 import { StudioHero } from "./StudioHero";
 import { useLandingNav } from "./useLandingNav";
 
 /**
- * GuGu Studio landing (X22/X23): Apple-style hero, pinned scroll story (dive into the salon → before →
- * after chapters with real CRM captures → AI assistant (Pro) → Zalo-to-booking finale), features,
- * business types, plans, final CTA. Light only (X18). Reduced motion → static chapters.
+ * GuGu Studio landing (X22/X23): hero, a pinned scroll story walking through the salon (pain → gain →
+ * switching; web: CSS sticky + GSAP scrub), features, business types, plans, final CTA. Light only (X18).
+ * Native and reduced motion → static chapters.
  */
 export function LandingScreen() {
-  const scroll = useAnimatedRef<Animated.ScrollView>();
+  // Plain ScrollView: no per-frame JS scroll handler. The web story pins with CSS sticky inside it.
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const nav = useLandingNav(scroll);
-  const scrollY = useSharedValue(0);
-  const storyTop = useSharedValue(0);
-  const onScroll = useAnimatedScrollHandler((e) => {
-    scrollY.value = e.contentOffset.y;
-  });
   const reduce = useReducedMotion();
-  const { mounted, width, height } = useViewport();
+  const { mounted, width } = useViewport();
   const w = mounted ? width : 1440;
-  const h = mounted ? height : 900;
   const desktop = w >= 900;
   return (
-    <Animated.ScrollView
-      ref={scroll}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      style={{ flex: 1, backgroundColor: color.canvas }}
-    >
+    <ScrollView ref={scroll} style={{ flex: 1, backgroundColor: color.canvas }}>
       <View style={{ overflow: "hidden" }}>
         <LandingNav nav={nav} desktop={desktop} />
         <StudioHero nav={nav} desktop={desktop} width={w} />
       </View>
-      <Anchor
-        id="story"
-        onY={(id, y) => {
-          storyTop.value = y;
-          nav.onAnchorY(id, y);
-        }}
-      >
-        {reduce || !mounted ? (
-          <StoryStatic width={w} desktop={desktop} />
+      <Anchor id="story" onY={nav.onAnchorY}>
+        {Platform.OS === "web" && mounted && !reduce ? (
+          <Story />
         ) : (
-          <StoryScroll scrollY={scrollY} top={storyTop} width={w} height={h} desktop={desktop} />
+          <StoryStatic width={w} desktop={desktop} />
         )}
       </Anchor>
       <Anchor id="features" onY={nav.onAnchorY}>
@@ -73,6 +53,6 @@ export function LandingScreen() {
       </Anchor>
       <FinalCta nav={nav} />
       <Footer nav={nav} />
-    </Animated.ScrollView>
+    </ScrollView>
   );
 }

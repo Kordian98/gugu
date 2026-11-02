@@ -185,10 +185,10 @@ export function PriceListCard({ width }: { width: number }) {
       }}
     >
       <Text role="eyebrow" size={11} color={color.muted}>
-        {t("story.ai.photo")}
+        {t("story.switch.photo")}
       </Text>
       <Text role="script" size={21} lineHeight={28} color="#3B2A45">
-        {t("story.ai.list")}
+        {t("story.switch.list")}
       </Text>
     </View>
   );

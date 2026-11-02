@@ -23,74 +23,95 @@
     "dive": {
       "eyebrow": "Một ngày ở salon",
       "title": "Bước vào bên trong.",
-      "body": "Thợ đang làm, khách đang ngồi ghế, điện thoại ở quầy liên tục rung. Đây là nơi GuGu Studio làm việc."
+      "sub": "Thợ đang làm. Khách đang ngồi ghế. Điện thoại không ngừng rung."
     },
-    "before": {
-      "eyebrow": "Trước đây",
-      "title": "Tin nhắn Zalo, cuốn sổ tay và rất nhiều phỏng đoán.",
-      "body": "Lịch hẹn đến từ khắp nơi. Có người ghi lại — hoặc quên mất. Hai khách cùng đến một khung giờ. Có khách thì không đến.",
-      "chat": "Mai 3 giờ chiều em qua được không chị?",
+    "pain1": {
+      "eyebrow": "08:47 · Quầy lễ tân",
+      "title": "23 tin nhắn mới.\nTrước cả ly cà phê đầu tiên.",
+      "sub": "Trả lời Zalo và chép lịch vào sổ tay tốn hàng giờ mỗi tuần — ví dụ 2–3 giờ.",
+      "chat1": "Mai 3 giờ chiều em qua được không chị?",
       "chat2": "Thứ Bảy chị Mai có rảnh không ạ?",
       "chat3": "Hôm nay còn chỗ không chị?",
-      "unread": "12 tin chưa đọc",
+      "chat4": "Em dời lịch 10:00 được không?",
+      "chat5": "Gel + vẽ móng bao nhiêu ạ?",
+      "t1": "08:41",
+      "t2": "08:43",
+      "t3": "08:44",
+      "t4": "08:46",
+      "t5": "08:47",
+      "unread": "23 tin chưa đọc"
+    },
+    "pain2": {
+      "eyebrow": "14:00 · Cùng một ghế",
+      "title": "Hai khách. Một khung giờ.\nMột lần quên nhắc.",
+      "sub": "Trùng lịch, khách không đến và áp lực ở quầy — mất khách, mất doanh thu.",
       "note1": "Thu Trang 15:00 gel",
       "note2": "Ngọc Anh 15:00 ???",
-      "note3": "gọi lại Bảo Vy",
+      "note3": "nhắc Bảo Vy!!",
       "double": "Trùng lịch",
-      "noShow": "Khách không đến"
+      "noShow": "Khách không đến",
+      "forgot": "Quên nhắc lịch"
     },
     "calendar": {
-      "eyebrow": "Bây giờ · Lịch cả đội",
-      "title": "Cả đội trên một màn hình.",
-      "body": "Mọi thợ, mọi giờ nghỉ và mọi lịch hẹn trong ngày. Hệ thống tự kiểm tra giờ trống, không còn trùng lịch."
-    },
-    "clients": {
-      "eyebrow": "Bây giờ · Khách hàng",
-      "title": "Nhớ từng vị khách.",
-      "body": "Lịch hẹn sắp tới, dịch vụ, giá và trạng thái trong nháy mắt, lịch sử của từng khách được lưu lại mỗi lần quay lại."
+      "eyebrow": "Với GuGu Studio",
+      "title": "Một lịch.\nCả đội.",
+      "sub": "Mọi thợ, mọi giờ nghỉ, mọi lịch hẹn. Không còn trùng lịch."
     },
     "reminders": {
-      "eyebrow": "Bây giờ · Nhắc lịch",
-      "title": "Xác nhận và nhắc lịch tự động gửi đi.",
-      "body": "Khách nhận tin xác nhận và nhắc lịch qua Zalo hoặc email trước giờ hẹn, ghế trống ít hơn.",
-      "msg": "Chào chị Thu Trang! Hẹn gặp chị ngày mai lúc 15:00, sơn gel với Mai tại GuGu Demo Salon. Chị trả lời tin này nếu muốn đổi giờ nhé.",
+      "eyebrow": "Tự động",
+      "title": "Nhắc lịch tự gửi đi.",
+      "sub": "Xác nhận và nhắc lịch qua Zalo hoặc email. Ít ghế trống hơn.",
+      "msg": "Chào chị Thu Trang! Hẹn gặp chị ngày mai lúc 15:00, sơn gel với Mai. Chị trả lời tin này nếu muốn đổi giờ nhé.",
       "sent": "Tự động gửi · trước 24 giờ"
-    },
-    "ai": {
-      "eyebrow": "Bây giờ · Thiết lập AI",
-      "title": "Chụp bảng giá. Xong.",
-      "body": "Tải ảnh bảng giá lên, AI tạo danh sách dịch vụ để bạn kiểm tra. Có trong mọi gói.",
-      "photo": "Ảnh bảng giá",
-      "list": "Sơn gel .......... 200k\nVẽ móng ......... 150k\nCắt tóc .......... 120k\nChăm sóc da .... 300k"
-    },
-    "insights": {
-      "eyebrow": "Bây giờ · Báo cáo",
-      "title": "Biết salon đang hoạt động thế nào.",
-      "body": "Lượt đặt lịch, khách mới, tỷ lệ lấp đầy và doanh thu ước tính — cập nhật theo từng giờ trong ngày."
     },
     "assistant": {
       "eyebrow": "Trợ lý AI · Pro",
-      "title": "Bận quá không kịp xem? Cứ hỏi.",
-      "body": "Trợ lý trả lời dựa trên lịch của chính salon bạn và soạn sẵn tin nhắn cho bạn.",
+      "title": "Bận quá không kịp xem?\nCứ hỏi.",
+      "sub": "Câu trả lời lấy từ lịch của chính salon, kèm tin nhắn Zalo soạn sẵn.",
       "q": "Chiều mai Mai còn trống giờ nào làm gel không?",
-      "a": "Chiều mai Mai trống lúc 14:00 và 16:30 (sơn gel, 60 phút). Bạn có muốn mình soạn tin nhắn không?",
-      "draft": "Soạn tin nhắn",
+      "a": "Chiều mai Mai trống lúc 14:00 và 16:30 (sơn gel, 60 phút). Soạn tin trả lời nhé?",
+      "draft": "Soạn tin trả lời",
       "privacy": "Chỉ dùng dữ liệu của chính salon. Không gửi thông tin cá nhân của khách cho mô hình AI."
     },
     "finale": {
-      "eyebrow": "Mỗi lịch hẹn, chỉ vài giây",
-      "title": "Từ tin nhắn Zalo đến lịch hẹn đã xác nhận.",
-      "body": "Khách hỏi qua Zalo. Bạn xem giờ trống thật trong GuGu Studio, gửi tin nhắn soạn sẵn với các khung giờ còn trống và đặt lịch. Khách tự động nhận tin xác nhận và nhắc lịch.",
-      "step1": "Khách hỏi qua Zalo",
-      "step2": "Xem giờ trống",
-      "step3": "Gửi khung giờ trống",
-      "step4": "Đã đặt + xác nhận",
+      "eyebrow": "Mỗi lịch hẹn",
+      "title": "Từ Zalo đến lịch hẹn.\nChỉ vài giây.",
+      "sub": "Xem giờ trống thật, gửi khung giờ trống, đặt lịch. Khách tự động nhận tin xác nhận.",
       "ask": "Chị ơi, chiều mai em làm gel được không ạ?",
-      "offer": "Chào em! Chiều mai có 14:00 hoặc 16:30 với Mai (sơn gel, 60 phút). Em chọn giờ nào nhé?",
+      "offer": "Chiều mai có 14:00 hoặc 16:30 với Mai (sơn gel, 60 phút). Em chọn giờ nào nhé?",
       "reply": "Dạ 16:30 ạ!",
-      "confirm": "Đã đặt: sơn gel với Mai, 16:30 ngày mai. Salon sẽ nhắc em trước một ngày."
+      "confirm": "Đã đặt: sơn gel với Mai, 16:30 ngày mai. Salon sẽ nhắc em trước một ngày.",
+      "booked": "Đã đặt"
     },
-    "illustrative": "Tin nhắn chỉ mang tính minh hoạ."
+    "calm": {
+      "eyebrow": "Sự khác biệt",
+      "title": "Quầy lễ tân nhẹ nhàng.\nCó thêm thời gian.",
+      "sub": "Cả ngày làm việc trong nháy mắt: lịch hẹn, khách hàng và số liệu ở một nơi."
+    },
+    "switch": {
+      "eyebrow": "Chuyển đổi",
+      "title": "Chuyển sang trong vài phút.",
+      "sub": "Đang dùng ứng dụng khác hoặc sổ tay? Tải ảnh bảng giá lên — AI thiết lập dịch vụ cho bạn. Có trong mọi gói.",
+      "photo": "Bảng giá của bạn",
+      "list": "Sơn gel .......... 200k\nVẽ móng ......... 150k\nCắt tóc .......... 120k\nChăm sóc da .... 300k",
+      "recognised": "Đã nhận diện",
+      "catalog": "Dịch vụ của bạn",
+      "s1": "Sơn gel",
+      "s2": "Vẽ móng",
+      "s3": "Cắt tóc",
+      "s4": "Chăm sóc da",
+      "p1": "200.000đ",
+      "p2": "150.000đ",
+      "p3": "120.000đ",
+      "p4": "300.000đ",
+      "d1": "60 phút",
+      "d2": "45 phút",
+      "d3": "30 phút",
+      "d4": "60 phút",
+      "effortless": "Nhẹ nhàng. Tốt hơn. Có trong mọi gói."
+    },
+    "illustrative": "Ví dụ minh hoạ.",
+    "pro": "Pro"
   },
   "features": {
     "eyebrow": "Tất cả ở một nơi",
