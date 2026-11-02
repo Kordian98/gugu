@@ -19,9 +19,10 @@ import { StudioHero } from "./StudioHero";
 import { useLandingNav } from "./useLandingNav";
 
 /**
- * GuGu Studio landing (X22/X23): hero, a pinned scroll story walking through the salon (pain → gain →
- * switching; web: CSS sticky + GSAP scrub), features, business types, plans, final CTA. Light only (X18).
- * Native and reduced motion → static chapters.
+ * GuGu Studio landing (X22/X23): hero, then on web a photoreal scroll-scrubbed walk through one salon
+ * (street → front desk pain → calm → treatment area features → back office → business types → switching;
+ * CSS sticky + GSAP scrub), plans, final CTA. Light only (X18). Native and reduced motion → static
+ * chapters + features + business types.
  */
 export function LandingScreen() {
   // Plain ScrollView: no per-frame JS scroll handler. The web story pins with CSS sticky inside it.
@@ -31,6 +32,8 @@ export function LandingScreen() {
   const { mounted, width } = useViewport();
   const w = mounted ? width : 1440;
   const desktop = w >= 900;
+  // Web with motion: the photoreal walk (features and business types live inside it).
+  const flow = Platform.OS === "web" && mounted && !reduce;
   return (
     <ScrollView ref={scroll} style={{ flex: 1, backgroundColor: color.canvas }}>
       <View style={{ overflow: "hidden" }}>
@@ -38,16 +41,16 @@ export function LandingScreen() {
         <StudioHero nav={nav} desktop={desktop} width={w} />
       </View>
       <Anchor id="story" onY={nav.onAnchorY}>
-        {Platform.OS === "web" && mounted && !reduce ? (
-          <Flow />
-        ) : (
-          <StoryStatic width={w} desktop={desktop} />
-        )}
+        {flow ? <Flow /> : <StoryStatic width={w} desktop={desktop} />}
       </Anchor>
-      <Anchor id="features" onY={nav.onAnchorY}>
-        <Features columns={w >= 1100 ? 3 : w >= 700 ? 2 : 1} />
-      </Anchor>
-      <Businesses columns={w >= 1100 ? 5 : w >= 700 ? 3 : 2} />
+      {flow ? null : (
+        <>
+          <Anchor id="features" onY={nav.onAnchorY}>
+            <Features columns={w >= 1100 ? 3 : w >= 700 ? 2 : 1} />
+          </Anchor>
+          <Businesses columns={w >= 1100 ? 5 : w >= 700 ? 3 : 2} />
+        </>
+      )}
       <Anchor id="pricing" onY={nav.onAnchorY}>
         <Pricing nav={nav} stacked={w < 1000} />
       </Anchor>

@@ -16,6 +16,12 @@ export function useLandingNav(scroll: RefObject<Scrollable | null>) {
       offsets.current[id] = y;
     },
     scrollTo: (id: LandingAnchor) => {
+      // Web flow: sections inside the DOM story expose ids (e.g. #fl-features) instead of RN anchors.
+      const el = typeof document === "undefined" ? null : document.getElementById(`fl-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
       scroll.current?.scrollTo({ y: Math.max(0, (offsets.current[id] ?? 0) - 8), animated: true });
     },
     top: () => {

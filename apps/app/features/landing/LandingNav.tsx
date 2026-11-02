@@ -1,16 +1,15 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Button, IconButton, Text, color } from "@gugu/design-system";
+import { Button, IconButton, Logo, Text, color } from "@gugu/design-system";
 
 import { useSwitchLocale } from "@/services/i18n/useLocale";
 
-import { StudioLogo } from "./StudioLogo";
 import type { LandingAnchor, LandingNavActions } from "./useLandingNav";
 
 const LINKS: LandingAnchor[] = ["story", "features", "pricing"];
 
-/** Floating pill navbar: GuGu Studio mark, anchor links (desktop), language, sign in, trial. */
+/** Floating pill navbar: official gugu logo only (owner: no "Studio" in the navbar), anchor links (desktop), language, sign in, trial. */
 export function LandingNav({ nav, desktop }: { nav: LandingNavActions; desktop: boolean }) {
   const { t } = useTranslation("landing");
   const { t: tc } = useTranslation();
@@ -32,7 +31,7 @@ export function LandingNav({ nav, desktop }: { nav: LandingNavActions; desktop: 
         onPress={nav.top}
         className="flex-1 min-[900px]:flex-none"
       >
-        <StudioLogo height={desktop ? 34 : 30} />
+        <Logo height={desktop ? 34 : 30} variant="color" />
       </Pressable>
       {desktop ? (
         <View className="flex-1 flex-row justify-center gap-9">

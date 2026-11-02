@@ -194,30 +194,30 @@
   },
   "flow": {
     "pain": {
-      "eyebrow": "Today at most salons",
+      "eyebrow": "At the front desk",
       "title": "The front desk is drowning.",
-      "sub": "Every booking passes through someone's phone, a notebook and their memory.",
-      "c1": {
-        "k": "e.g. 2–3 h",
-        "t": "a week answering Zalo and copying bookings into a notebook",
-        "p": "Receptionist"
-      },
-      "c2": {
-        "k": "2 clients",
-        "t": "turn up for the same slot because one line in the notebook was missed",
-        "p": "Nail technician"
-      },
-      "c3": {
-        "k": "Empty chair",
-        "t": "when a client forgets — and nobody had time to send a reminder",
-        "p": "Stylist"
-      },
-      "c4": {
-        "k": "Stress",
-        "t": "at reception while clients wait and the phone keeps buzzing",
-        "p": "Client"
-      },
-      "note": "Figures are illustrative examples, not measurements."
+      "pre": "e.g.",
+      "stat": "3 h",
+      "statLabel": "a day lost to Zalo messages, call-backs and a paper notebook",
+      "n1": "Hoa: Any slot tomorrow at 10?",
+      "n2": "Minh: Can I move to 3 pm?",
+      "n3": "Vy: How much is gel + nail art?",
+      "n4": "Thảo: Running 15 min late!",
+      "n5": "Missed call",
+      "zalo": "Zalo",
+      "now": "now",
+      "book": "Notebook",
+      "e1": "10:00 Hoa · gel",
+      "e2": "10:00 Vy · acrylic",
+      "e3": "15:00 Minh → 16:00?",
+      "e4": "Remind Thảo!!",
+      "calmEyebrow": "Same desk, with GuGu Studio",
+      "calmTitle": "Same Saturday. Calm.",
+      "calmSub": "GuGu Studio replies on your salon's Zalo OA, books into one calendar and sends the reminders. Your receptionist just welcomes clients.",
+      "g1": "4 bookings created automatically",
+      "g2": "Reminders scheduled for tomorrow",
+      "g3": "No double bookings",
+      "note": "Illustrative example with fictional names, not a measurement or a customer story."
     },
     "ba": {
       "eyebrow": "Before and after",
@@ -245,37 +245,6 @@
       "note": "Time saved is an illustrative example.",
       "oa": "Zalo OA integration"
     },
-    "gallery": {
-      "eyebrow": "Take a look",
-      "title": "Your salon, in one workspace.",
-      "hint": "Swipe to explore",
-      "prev": "Previous",
-      "next": "Next",
-      "g1": {
-        "t": "Today at a glance",
-        "b": "Revenue estimate, bookings, new clients and occupancy."
-      },
-      "g2": {
-        "t": "Team timeline",
-        "b": "Every stylist's day, breaks included."
-      },
-      "g3": {
-        "t": "Upcoming & queue",
-        "b": "Who is next, what they booked, and the status."
-      },
-      "g4": {
-        "t": "Live numbers",
-        "b": "Know how today is going without opening a spreadsheet."
-      },
-      "g5": {
-        "t": "AI setup",
-        "b": "Build your service menu from a photo of your price list."
-      },
-      "g6": {
-        "t": "A calmer front desk",
-        "b": "The receptionist answers in seconds, not minutes."
-      }
-    },
     "compose": {
       "eyebrow": "Everything connected",
       "title": "Calendar, clients and reminders — together.",
@@ -299,6 +268,77 @@
       "sub": "Snap your price list or your current system's service list. AI sets up your services. Effortless, in every plan.",
       "from": "Your price list",
       "to": "Your services in GuGu Studio"
+    },
+    "walk": {
+      "eyebrow": "Saturday · 9:12 · District 1",
+      "title": "Step inside a salon on its busiest morning.",
+      "hint": "Scroll to walk in",
+      "deeper": "Walk deeper into the salon",
+      "office": "Into the back office"
+    },
+    "saved": {
+      "title": "Time saved this week",
+      "unit": "hours",
+      "eg": "e.g.",
+      "r1": "Replies handled",
+      "r2": "Bookings created",
+      "r3": "Reminders sent",
+      "note": "Illustrative example"
+    },
+    "features": {
+      "eyebrow": "Where the work happens",
+      "title": "Every chair, every hour, in one calendar.",
+      "f1t": "Calendar by team member",
+      "f1b": "See every chair and every hour. Breaks and working hours are built in.",
+      "f2t": "Appointments and live queue",
+      "f2b": "Walk-ins, Zalo bookings and phone bookings in one list.",
+      "f3t": "Services, options and add-ons",
+      "f3b": "Durations, price ranges and who performs each service.",
+      "f4t": "Team, hours and invitations",
+      "f4b": "Invite staff by link and set their working hours."
+    },
+    "office": {
+      "eyebrow": "Back office",
+      "title": "Your whole salon at a glance.",
+      "sub": "Today's bookings, the team's timeline and what's coming up, on one screen. Insights fill up as appointments are completed."
+    },
+    "biz": {
+      "eyebrow": "Every kind of beauty business",
+      "title": "Built for the way you work.",
+      "hint": "Swipe, drag or use the arrows",
+      "prev": "Previous",
+      "next": "Next",
+      "nails": {
+        "t": "Nail bars",
+        "b": "Gel, acrylic and art, with options and add-ons priced in.",
+        "c": "Gel polish · 45 min · 2 options"
+      },
+      "hair": {
+        "t": "Hair salons",
+        "b": "Long colour services and price ranges, booked per stylist.",
+        "c": "Hair colour · 120 min · from 650,000₫"
+      },
+      "barber": {
+        "t": "Barbershops",
+        "b": "Walk-ins and bookings in the same queue.",
+        "c": "Men's haircut · 30 min · walk-in"
+      },
+      "spa": {
+        "t": "Day spas",
+        "b": "Rooms and beds are booked as resources, so they never overlap.",
+        "c": "Facial · 60 min · Room 2"
+      },
+      "lash": {
+        "t": "Lash studios",
+        "b": "Long, precise appointments matched to the right technician.",
+        "c": "Lash extensions · 75 min"
+      },
+      "brow": {
+        "t": "Brow studios",
+        "b": "Short services that fit between longer ones.",
+        "c": "Brow shaping · 30 min"
+      },
+      "note": "Illustrative photos, not customers."
     }
   }
 }
