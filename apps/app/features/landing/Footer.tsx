@@ -1,8 +1,9 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Logo, Text } from "@gugu/design-system";
+import { Text } from "@gugu/design-system";
 
+import { StudioLogo } from "./StudioLogo";
 import type { LandingAnchor, LandingNavActions } from "./useLandingNav";
 
 /** Footer on plum: product anchors, sign-up/sign-in, legal placeholders. */
@@ -28,7 +29,7 @@ export function Footer({ nav }: { nav: LandingNavActions }) {
       <View className="mx-auto w-full max-w-[1240px] gap-10">
         <View className="gap-10 min-[900px]:flex-row min-[900px]:justify-between">
           <View className="max-w-[360px] gap-4">
-            <Logo height={36} variant="onDark" />
+            <StudioLogo height={34} onDark />
             <Text size={14.5} lineHeight={22} color="#BBA6B6">
               {t("footer.tagline")}
             </Text>
