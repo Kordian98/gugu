@@ -3,6 +3,8 @@ import { View, type LayoutChangeEvent } from "react-native";
 
 import { Text, color } from "@gugu/design-system";
 
+import type { LandingAnchor } from "./useLandingNav";
+
 /** Centered content column (max 1240 px) with responsive gutters. */
 export function Container({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -50,8 +52,8 @@ export function Anchor({
   onY,
   children,
 }: {
-  id: string;
-  onY: (id: string, y: number) => void;
+  id: LandingAnchor;
+  onY: (id: LandingAnchor, y: number) => void;
   children: ReactNode;
 }) {
   return (

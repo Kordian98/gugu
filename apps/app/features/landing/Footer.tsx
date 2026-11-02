@@ -1,18 +1,16 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Logo, Text } from "@gugu/design-system";
+import { Text } from "@gugu/design-system";
 
+import { StudioLogo } from "./StudioLogo";
 import type { LandingAnchor, LandingNavActions } from "./useLandingNav";
 
-/** Footer on plum: product anchors, sign-up/sign-in, legal placeholders. */
+const PRODUCT: LandingAnchor[] = ["story", "features", "pricing"];
+
+/** Footer on plum: product anchors, account links, legal placeholders. */
 export function Footer({ nav }: { nav: LandingNavActions }) {
   const { t } = useTranslation("landing");
-  const productLinks: { label: string; anchor: LandingAnchor }[] = [
-    { label: t("nav.features"), anchor: "features" },
-    { label: t("nav.pricing"), anchor: "pricing" },
-    { label: t("nav.marketplace"), anchor: "marketplace" },
-  ];
   const link = (label: string, onPress: () => void) => (
     <Pressable key={label} accessibilityRole="link" onPress={onPress}>
       <Text size={15} color="#E2D2DC">
@@ -22,13 +20,13 @@ export function Footer({ nav }: { nav: LandingNavActions }) {
   );
   return (
     <View
-      className="mt-10 px-4 pb-10 pt-14 min-[900px]:px-10"
+      className="mt-6 px-4 pb-10 pt-14 min-[900px]:px-10"
       style={{ backgroundColor: "#1A0E18" }}
     >
       <View className="mx-auto w-full max-w-[1240px] gap-10">
         <View className="gap-10 min-[900px]:flex-row min-[900px]:justify-between">
-          <View className="max-w-[360px] gap-4">
-            <Logo height={36} variant="onDark" />
+          <View className="max-w-[380px] gap-4">
+            <StudioLogo height={32} onDark />
             <Text size={14.5} lineHeight={22} color="#BBA6B6">
               {t("footer.tagline")}
             </Text>
@@ -38,15 +36,15 @@ export function Footer({ nav }: { nav: LandingNavActions }) {
               <Text role="eyebrow" size={12} color="#BBA6B6">
                 {t("footer.product")}
               </Text>
-              {productLinks.map((l) =>
-                link(l.label, () => {
-                  nav.scrollTo(l.anchor);
+              {PRODUCT.map((a) =>
+                link(t(`nav.${a}`), () => {
+                  nav.scrollTo(a);
                 }),
               )}
             </View>
             <View className="gap-3">
               <Text role="eyebrow" size={12} color="#BBA6B6">
-                {t("footer.company")}
+                {t("footer.account")}
               </Text>
               {link(t("nav.trial"), nav.trial)}
               {link(t("nav.signIn"), nav.signIn)}

@@ -1,22 +1,22 @@
-import { useRef, type ComponentRef, type RefObject } from "react";
-import type { ScrollView } from "react-native";
+import { useRef, type RefObject } from "react";
 import { useRouter } from "expo-router";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-export type LandingAnchor = "features" | "pricing" | "marketplace" | "faq";
+export type LandingAnchor = "story" | "features" | "pricing";
+type Scrollable = { scrollTo: (o: { y: number; animated: boolean }) => void };
 
 /** Landing actions: in-page anchors (scroll) and routes to the business sign-up / sign-in. */
-export function useLandingNav(scroll: RefObject<ComponentRef<typeof ScrollView> | null>) {
+export function useLandingNav(scroll: RefObject<Scrollable | null>) {
   const router = useRouter();
   const locale = useLocale();
   const offsets = useRef<Partial<Record<LandingAnchor, number>>>({});
   return {
-    onAnchorY: (id: string, y: number) => {
-      offsets.current[id as LandingAnchor] = y;
+    onAnchorY: (id: LandingAnchor, y: number) => {
+      offsets.current[id] = y;
     },
     scrollTo: (id: LandingAnchor) => {
-      scroll.current?.scrollTo({ y: Math.max(0, (offsets.current[id] ?? 0) - 16), animated: true });
+      scroll.current?.scrollTo({ y: Math.max(0, (offsets.current[id] ?? 0) - 8), animated: true });
     },
     top: () => {
       scroll.current?.scrollTo({ y: 0, animated: true });

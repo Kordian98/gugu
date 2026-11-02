@@ -1,53 +1,133 @@
 {
+  "brand": {
+    "studio": "Studio"
+  },
   "nav": {
+    "story": "How it works",
     "features": "Features",
     "pricing": "Pricing",
-    "marketplace": "Marketplace",
     "signIn": "Sign in",
     "trial": "Start free trial",
     "trialShort": "Free trial"
   },
   "hero": {
-    "eyebrow": "Salon software for Vietnam",
-    "titleStart": "Run your salon.",
-    "titleAccent": "Fill your chairs.",
-    "subtitle": "Online booking, a smart team calendar and a client CRM in one simple app — set up in minutes with AI. Your clients book from your own link, QR code or Zalo, and pay at your salon as usual.",
-    "trialCta": "Start 14-day free trial",
+    "line1": "Your salon.",
+    "line2": "Your rules.",
+    "line3": "Your glow.",
+    "subtitle": "Less admin, more beauty. Your team calendar, clients, reminders and AI setup — in one calm workspace for your salon.",
+    "trialCta": "Start free trial",
     "howCta": "See how it works",
-    "trialNote": "14-day trial with Pro features · no free plan after the trial"
+    "note": "14-day free trial · made for beauty businesses in Vietnam"
   },
-  "features": {
-    "eyebrow": "Everything your salon runs on",
-    "title": "One app for bookings, team and clients",
-    "bookingPage": {
-      "title": "Your own online booking page",
-      "body": "Share one link, a QR code at reception or your Zalo. Clients pick a service, a stylist and a time — 24/7."
+  "story": {
+    "dive": {
+      "eyebrow": "A day at the salon",
+      "title": "Step inside.",
+      "body": "Stylists at work, clients in the chair, the phone buzzing at reception. This is where GuGu Studio lives."
+    },
+    "before": {
+      "eyebrow": "Before",
+      "title": "Zalo chats, a paper notebook and a lot of guessing.",
+      "body": "Bookings come in from every direction. Someone writes them down — or forgets. Two clients turn up for the same slot. Others never show.",
+      "chat": "Hi, can I come at 3pm tomorrow?",
+      "chat2": "Is Mai free on Saturday?",
+      "chat3": "Still have a slot today?",
+      "unread": "12 unread",
+      "note1": "Thu Trang 15:00 gel",
+      "note2": "Ngọc Anh 15:00 ???",
+      "note3": "call back Bảo Vy",
+      "double": "Double booking",
+      "noShow": "No-show"
     },
     "calendar": {
-      "title": "Smart calendar for the whole team",
-      "body": "Every stylist, room and break in one view. No double bookings — availability is checked for you."
+      "eyebrow": "After · Team calendar",
+      "title": "The whole team on one screen.",
+      "body": "Every stylist, every break and every appointment for today. Availability is checked for you, so no more double bookings."
     },
-    "crm": {
-      "title": "Client CRM",
-      "body": "Visit history, notes, favourite services and no-shows for every client, in one place."
+    "clients": {
+      "eyebrow": "After · Clients",
+      "title": "Every client, remembered.",
+      "body": "Upcoming visits, services, prices and status at a glance, with each client's history building up as they come back."
+    },
+    "reminders": {
+      "eyebrow": "After · Reminders",
+      "title": "Confirmations and reminders go out by themselves.",
+      "body": "Clients get a confirmation and a reminder by Zalo or email before their visit, so fewer chairs stay empty.",
+      "msg": "Hi Thu Trang! See you tomorrow at 15:00 for gel nails with Mai at GuGu Demo Salon. Reply to change your time.",
+      "sent": "Sent automatically · 24 h before"
+    },
+    "ai": {
+      "eyebrow": "After · AI setup",
+      "title": "Snap your price list. Done.",
+      "body": "Upload photos of your price list and AI builds your service menu for you to check. Included in every plan.",
+      "photo": "Price list photo",
+      "list": "Gel nails ........ 200k\nNail art ........ 150k\nHair cut ........ 120k\nFacial ........... 300k"
+    },
+    "insights": {
+      "eyebrow": "After · Insights",
+      "title": "Know how your salon is doing.",
+      "body": "Bookings, new clients, occupancy and estimated revenue — updated as your day goes."
+    },
+    "assistant": {
+      "eyebrow": "AI assistant · Pro",
+      "title": "Too busy to look? Just ask.",
+      "body": "The assistant answers from your salon's own calendar and drafts the message for you.",
+      "q": "Any free slot for gel nails tomorrow afternoon with Mai?",
+      "a": "Mai is free tomorrow at 14:00 and 16:30 (gel nails, 60 min). Want me to draft a message?",
+      "draft": "Draft message",
+      "privacy": "Works on your salon's own data. No customer personal data is sent to the AI model."
+    },
+    "finale": {
+      "eyebrow": "Every booking, in seconds",
+      "title": "From a Zalo message to a confirmed booking.",
+      "body": "A client asks on Zalo. You check real availability in GuGu Studio, send a ready-made message with free slots, and book it in the calendar. The client gets a confirmation and a reminder automatically.",
+      "step1": "Client asks on Zalo",
+      "step2": "Check availability",
+      "step3": "Send free slots",
+      "step4": "Booked + confirmed",
+      "ask": "Hi! Can I book gel nails tomorrow afternoon?",
+      "offer": "Hi! Tomorrow we have 14:00 or 16:30 with Mai (gel nails, 60 min). Which one suits you?",
+      "reply": "16:30 please!",
+      "confirm": "Booked: gel nails with Mai, tomorrow 16:30. We'll remind you the day before."
+    },
+    "illustrative": "Message examples are illustrative."
+  },
+  "features": {
+    "eyebrow": "Everything in one place",
+    "title": "Everything your salon needs. Nothing it doesn’t.",
+    "calendar": {
+      "title": "Team calendar",
+      "body": "Day view for every stylist, breaks and working hours, no double bookings."
+    },
+    "clients": {
+      "title": "Clients",
+      "body": "Visit history, notes, favourite services and no-shows for every client."
+    },
+    "reminders": {
+      "title": "Zalo & email reminders",
+      "body": "Automatic confirmations and reminders before every visit."
     },
     "aiSetup": {
-      "title": "Effortless AI setup",
-      "body": "Upload screenshots of your price list and AI creates your services, prices and durations. Included in every plan."
+      "title": "AI setup from price-list photos",
+      "body": "Your service menu, prices and durations in minutes. Every plan."
     },
     "insights": {
       "title": "Insights",
-      "body": "Bookings, returning clients, busy hours and estimated revenue at a glance."
-    },
-    "reminders": {
-      "title": "Reminders via Zalo and email",
-      "body": "Automatic booking confirmations and reminders cut no-shows without extra work."
+      "body": "Bookings, returning clients, busy hours and estimated revenue."
     },
     "assistant": {
-      "title": "AI business assistant",
-      "body": "Ask in plain language: “How many bookings this week?” “Who hasn’t come back in 3 months?”",
+      "title": "AI assistant",
+      "body": "Ask about your salon in plain language and get answers from your own data.",
       "badge": "Pro"
     }
+  },
+  "businesses": {
+    "title": "Built for every kind of beauty business",
+    "hair": "Hair salons",
+    "nails": "Nails & lashes",
+    "barber": "Barbershops",
+    "spa": "Spa & wellness",
+    "aesthetics": "Aesthetics & makeup"
   },
   "pricing": {
     "eyebrow": "Plans",
@@ -58,57 +138,37 @@
     "billedMonthly": "billed monthly",
     "billedYearly": "billed yearly",
     "cta": "Start free trial",
-    "trial": "Every plan starts with a 14-day trial with Pro features and Basic limits (AI usage and message quotas). There is no free plan.",
     "popular": "Most popular",
+    "trial": "Every plan starts with a 14-day trial with Pro features and Basic limits (AI usage and message quotas). There is no free plan.",
     "basic": {
       "name": "Basic",
       "tagline": "Everything to run one salon",
-      "items": "Online booking page (link, QR, Zalo)\nSmart team calendar\nClient CRM\nAI setup from your price list\nInsights\nReminders via Zalo and email\nFree listing in the GuGu marketplace when it launches"
+      "items": "Team calendar\nClients\nZalo & email reminders\nAI setup from your price list\nInsights"
     },
     "pro": {
       "name": "Pro",
-      "tagline": "AI that works for your business",
-      "items": "Everything in Basic\nAI business assistant\nMonthly AI business review\nZalo inbox\nHigher message quota"
+      "tagline": "AI that works for your salon",
+      "items": "Everything in Basic\nAI assistant\nMonthly AI business review\nZalo inbox\nHigher message quota"
     },
     "ultra": {
       "name": "Ultra",
       "tagline": "For chains and growing brands",
-      "items": "Everything in Pro\nMultiple locations with combined reporting\nHighest AI usage limit\nAdvanced analytics\nPromoted-listing credits when the marketplace launches"
+      "items": "Everything in Pro\nMultiple locations with combined reporting\nHighest AI usage limit\nAdvanced analytics"
     }
   },
-  "marketplace": {
-    "eyebrow": "Coming soon",
-    "title": "The GuGu marketplace",
-    "body": "Once GuGu establishes its Vietnamese company, partner salons will be listed in the GuGu marketplace free of charge, so new clients can discover and book you.",
-    "offer": "Every salon that subscribes before the marketplace launches pays no booking fees for its first 2 years after launch.",
-    "point1": "Free listing for partner salons",
-    "point2": "No booking fees for 2 years for early subscribers",
-    "point3": "Your own booking page works from day one",
-    "disclaimer": "The GuGu marketplace and the terms above will start only after GuGu’s Vietnamese company has been established, in accordance with Vietnamese law. Detailed terms may be published at that time."
-  },
-  "faq": {
-    "eyebrow": "FAQ",
-    "title": "Questions salon owners ask",
-    "q1": "Is there a free trial?",
-    "a1": "Yes. You get 14 days with Pro features and Basic limits. After the trial you choose Basic, Pro or Ultra — there is no free plan.",
-    "q2": "Do my clients need to install an app?",
-    "a2": "No. They book on your booking page from a link, QR code or your Zalo, in Vietnamese or English.",
-    "q3": "Does GuGu take payments?",
-    "a3": "No. Clients pay at your salon as usual. GuGu handles bookings, your calendar and your client list.",
-    "q4": "How long does setup take?",
-    "a4": "Minutes. Upload screenshots of your price list and AI creates your services; add your team and opening hours and share your link.",
-    "q5": "When does the marketplace launch?",
-    "a5": "After GuGu’s Vietnamese company is established, in line with Vietnamese law. Salons that subscribe before then get the early-subscriber terms described above."
+  "cta": {
+    "title": "Ready to glow? Start your 14-day free trial.",
+    "body": "Set up in minutes with AI. Your clients still pay at your salon as usual.",
+    "trial": "Start free trial",
+    "signIn": "Sign in"
   },
   "footer": {
-    "tagline": "Salon software made in Vietnam. Bookings, team and clients in one app.",
+    "tagline": "Salon software made for Vietnam. Team calendar, clients and reminders in one calm workspace.",
     "product": "Product",
-    "company": "Company",
+    "account": "Account",
     "legal": "Legal",
-    "about": "About GuGu",
-    "contact": "Contact",
     "terms": "Terms",
     "privacy": "Privacy",
-    "rights": "© 2026 GuGu. All rights reserved."
+    "rights": "© 2026 GuGu Studio. All rights reserved."
   }
 }
