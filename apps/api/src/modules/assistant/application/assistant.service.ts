@@ -26,6 +26,7 @@ import { TokenVault } from "../firewall/token-vault";
 import { AssistantLlm, type TurnBody, type TurnMessage } from "../llm/assistant-llm";
 import { ReadTools, ToolInputError } from "../tools/read-tools";
 import { type AssistantTool, type ToolContext, toModelTool } from "../tools/tool";
+import { AssistantClock } from "./clock";
 import { AssistantDirectory } from "./directory";
 import { contextLine, SYSTEM_PROMPT } from "./prompt";
 import { MAX_CALLS_PER_TURN, pickRoute, type Route, ROUTES } from "./routing";
@@ -61,6 +62,7 @@ export class AssistantService {
     private readonly directory: AssistantDirectory,
     private readonly readTools: ReadTools,
     private readonly config: AppConfig,
+    private readonly clock: AssistantClock,
   ) {}
 
   async status(ctx: SalonContext): Promise<AssistantStatus> {
@@ -118,7 +120,7 @@ export class AssistantService {
       changed: scrubbed.changed,
     });
 
-    const today = toLocal(Date.now(), salon.timezone).date;
+    const today = toLocal(this.clock.now(), salon.timezone).date;
     const history = await this.history(conversation.id, ctx.salonId);
     const userMessage: Param = {
       role: "user",
@@ -136,7 +138,7 @@ export class AssistantService {
       timeZone: salon.timezone,
       permissions: ctx.permissions,
       vault,
-      now: () => Date.now(),
+      now: () => this.clock.now(),
     };
     let route: Route = ROUTES[pickRoute(scrubbed.text)];
 

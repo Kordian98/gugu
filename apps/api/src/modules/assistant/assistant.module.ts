@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AiImportModule } from "../ai-import/ai-import.facade";
+import { AssistantClock } from "./application/clock";
 import { AssistantDirectory } from "./application/directory";
 import { AssistantService } from "./application/assistant.service";
 import { AssistantController } from "./http/assistant.controller";
@@ -16,6 +17,7 @@ import { ReadTools } from "./tools/read-tools";
   controllers: [AssistantController],
   providers: [
     AssistantService,
+    AssistantClock,
     AssistantDirectory,
     AssistantReadQueries,
     ReadTools,
