@@ -8,6 +8,7 @@ import {
 } from "@gugu/contracts";
 import { AppError } from "../../../common/problem/app-error";
 import { AI_ROUTES, type AiModel, MAX_TOKENS_PER_IMAGE, type TokenUsage } from "./models";
+import { classifyProviderError, type ProviderFailure } from "./provider-errors";
 
 /** The subset of the Anthropic client we call (tests inject a recording fake). */
 export interface AnthropicMessagesClient {
@@ -187,10 +188,12 @@ export class PriceListExtractor {
         { timeout: 120_000, ...(signal ? { signal } : {}) },
       );
     } catch (error) {
-      this.logger.warn({ err: describe(error) }, "price-list extraction request failed");
-      throw new AppError(502, AI_IMPORT_ERRORS.extractionFailed, "Extraction failed", {
-        cause: error,
-      });
+      const failure = classifyProviderError(error);
+      this.logger.warn(
+        { err: describe(error), ...failure },
+        "price-list extraction request failed",
+      );
+      throw new ProviderCallFailed(failure, error);
     }
 
     const usage: TokenUsage = {
@@ -208,6 +211,19 @@ export class PriceListExtractor {
     );
     if (!call) throw new ExtractionFailed("no_tool_call", usage);
     return { items: parseServices(call.input, images.length), model: EXTRACTION_MODEL, usage };
+  }
+}
+
+/**
+ * The request failed at the provider or on the way there. `failure.billing` tells the cost meter
+ * whether the reservation may be released (`not_sent`, `rejected`) or must be committed.
+ */
+export class ProviderCallFailed extends AppError {
+  constructor(
+    readonly failure: ProviderFailure,
+    cause: unknown,
+  ) {
+    super(502, AI_IMPORT_ERRORS.extractionFailed, "Extraction request failed", { cause });
   }
 }
 
