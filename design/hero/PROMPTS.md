@@ -2,7 +2,7 @@
 
 Every fal.ai call for the hero and homepage prototype, generated from `scripts/runs.jsonl` by `scripts/prompts_md.py`. FLUX 3 edit and Kling v4 expose no seed parameter, so the fal request ID plus the exact prompt and reference files are the reproducibility record. Costs are estimates from the fal model pages (2K FLUX tier and BiRefNet price not verified; check the fal dashboard for the actual bill).
 
-**Calls:** 61 · **Estimated spend:** $5.93
+**Calls:** 90 · **Estimated spend:** $5.93
 
 | # | Name | Endpoint | Request ID | Refs | Output | Est. $ |
 |---|---|---|---|---|---|---|
@@ -67,6 +67,35 @@ Every fal.ai call for the hero and homepage prototype, generated from `scripts/r
 | 59 | heart3d-cut | `fal-ai/birefnet/v2` | `01a19bb4-4b4a-7903-949e-e396ae82d232` | `design/hero/ref01/up/heart3d.png` | `design/hero/ref01/up/heart3d-cut.png` | 0.000 |
 | 60 | prop-polish-blank | `blackforestlabs/flux-3/edit-image` | `01a19bb4-9f2d-77a2-8365-01e9ab0341a7` | `design/hero/ref01/up/prop-polish.png` | `design/hero/ref01/up/prop-polish-blank.png` | 0.048 |
 | 61 | reception-calm | `blackforestlabs/flux-3/edit-image` | `01a19da5-8d42-7693-a781-c9f8b9c8832d` | `design/hero/ref01/diorama-base-v4.png` | `design/hero/studio/raw/reception-calm.png` | 0.100 |
+| 62 | photo-stress-a | `fal-ai/nano-banana-pro` | `01a19db8-75ef-7b30-8d53-1c027981ac83` |  |  | 0.000 |
+| 63 | photo-stress-b (unused) | `fal-ai/nano-banana-pro` | `01a19db8-75f3-7a20-a638-4a5de0af087f` |  |  | 0.000 |
+| 64 | photo-owner | `fal-ai/nano-banana-pro` | `01a19db8-75f1-7440-bbf3-0361b1f3dde7` |  |  | 0.000 |
+| 65 | photo-nails | `fal-ai/nano-banana-pro` | `01a19db8-75f5-7682-a4fc-1b832a7af264` |  |  | 0.000 |
+| 66 | photo-calm (same receptionist) | `fal-ai/nano-banana-pro/edit` | `01a19db9-fa4a-7a20-ab09-c0b82e88511f` |  |  | 0.000 |
+| 67 | photo-stress (clean-up) | `fal-ai/nano-banana-pro/edit` | `01a19db9-fa84-71a2-85cf-d65f895c0ebe` |  |  | 0.000 |
+| 68 | photo-owner (logo removed) | `fal-ai/nano-banana-pro/edit` | `01a19db9-fa86-7fc3-a715-fcdcc261a70c` |  |  | 0.000 |
+| 69 | photo-nails (labels removed) | `fal-ai/nano-banana-pro/edit` | `01a19db9-fa8b-7000-ab05-5a7368f29640` |  |  | 0.000 |
+| 70 | photo-phone-close | `fal-ai/nano-banana-pro/edit` | `01a19db9-fa87-70c3-96bc-54a19ec149ab` |  |  | 0.000 |
+| 71 | photo-customer | `fal-ai/nano-banana-pro` | `01a19db9-fa8c-70d3-96c6-42cb46839cf5` |  |  | 0.000 |
+| 72 | photo-hair | `fal-ai/nano-banana-pro` | `01a19db9-fa88-7741-b9da-306496f5ef78` |  |  | 0.000 |
+| 73 | photo-lash | `fal-ai/nano-banana-pro` | `01a19db9-fa8e-7dd1-a696-d171f0f0bc1e` |  |  | 0.000 |
+| 74 | photo-exterior (4K) | `fal-ai/nano-banana-pro/edit` | `01a19dbc-134c-7bc1-a5f5-f17075f43515` |  |  | 0.000 |
+| 75 | photo-treatment (4K) | `fal-ai/nano-banana-pro/edit` | `01a19dbc-134e-7ac3-adb1-e1f4020246e8` |  |  | 0.000 |
+| 76 | photo-office (4K) | `fal-ai/nano-banana-pro/edit` | `01a19dbc-134e-7930-9bd9-5dd3bc01cbfe` |  |  | 0.000 |
+| 77 | photo-barber | `fal-ai/nano-banana-pro` | `01a19dbc-138f-7b93-bb8b-0d2a6437d6c9` |  |  | 0.000 |
+| 78 | photo-spa | `fal-ai/nano-banana-pro` | `01a19dbc-1391-7cc2-ba51-b7a0d0dad91c` |  |  | 0.000 |
+| 79 | photo-brow | `fal-ai/nano-banana-pro` | `01a19dbc-138c-7652-9788-6ce68bdd5dd3` |  |  | 0.000 |
+| 80 | loop-stress | `alibaba/wan-3.0-prime/image-to-video` | `01a19dbb-8de8-7d13-bdfe-f419ac25394d` |  |  | 0.000 |
+| 81 | loop-calm | `alibaba/wan-3.0-prime/image-to-video` | `01a19dbb-8e1d-7cf3-b615-cdaba5173e79` |  |  | 0.000 |
+| 82 | walk1 v1 (rejected: blurred face from bad signage blur) | `alibaba/wan-3.0-prime/image-to-video` | `01a19dbf-12be-74d3-b24e-750dab25c11b` |  |  | 0.000 |
+| 83 | walk1 | `alibaba/wan-3.0-prime/image-to-video` | `01a19dc2-640b-7e70-88cd-2ccdcebb17e5` |  |  | 0.000 |
+| 84 | walk2 | `alibaba/wan-3.0-prime/image-to-video` | `01a19dbf-12bd-7c60-8a2a-1ce8b10e1e42` |  |  | 0.000 |
+| 85 | walk3 | `alibaba/wan-3.0-prime/image-to-video` | `01a19dbf-12bf-7e00-9279-f3218d714883` |  |  | 0.000 |
+| 86 | walk1-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a19dc5-57c7-73e0-a6d6-177199dd827d` |  |  | 0.000 |
+| 87 | walk2-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a19dc2-640b-7613-ad12-91b6c1fbfccb` |  |  | 0.000 |
+| 88 | walk3-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a19dc2-645e-72a3-8571-8f10bc1e0c50` |  |  | 0.000 |
+| 89 | loop-stress-hi | `fal-ai/bytedance-upscaler/upscale/video` | `01a19dc6-338b-7462-9d89-af78ee29d897` |  |  | 0.000 |
+| 90 | loop-calm-hi | `fal-ai/bytedance-upscaler/upscale/video` | `01a19dc6-338f-77f3-83ea-0841f0c1a895` |  |  | 0.000 |
 
 ## Prompts and settings
 
@@ -408,4 +437,236 @@ Edit image 1: remove the white lettering on the nail polish bottle so the glass 
 
 ```
 Same reception desk of the salon in image 1, same cute chibi toy style and palette, now calm and tidy: the same chibi young Vietnamese receptionist (black hair bun, lilac apron) smiling relaxed at a laptop showing a pastel calendar with colored appointment blocks, a smartphone beside it, a happy chibi client arriving and waving, plants, warm light. Isometric 3/4 camera, depth of field. Avoid: any readable text, letters, numbers, logos, watermarks.
+```
+
+### 62. photo-stress-a
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Editorial documentary photograph: stressed Vietnamese receptionist, modern Saigon salon, phone + paper notebook, waiting customers; 50mm f/1.8; no text/logos.
+```
+
+### 63. photo-stress-b (unused)
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Receptionist multitasking with phone and notebook, customers foreground; 85mm.
+```
+
+### 64. photo-owner
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Confident salon owner at marble table with laptop, staff working behind; 50mm.
+```
+
+### 65. photo-nails
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Close-up nail technician painting lilac gel; realistic hands.
+```
+
+### 66. photo-calm (same receptionist)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Edit of photo-stress-a: same woman/place, calm, laptop, tidy desk, one smiling customer; remove sign text and brass letter.
+```
+
+### 67. photo-stress (clean-up)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Edit of photo-stress-a: blur street signs, remove brass letter.
+```
+
+### 68. photo-owner (logo removed)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Edit: remove laptop logo and frame fragment.
+```
+
+### 69. photo-nails (labels removed)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Edit: remove bottle labels.
+```
+
+### 70. photo-phone-close
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Same receptionist close-up with glowing phone and notebook; 85mm.
+```
+
+### 71. photo-customer
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Young Vietnamese customer in Saigon cafe smiling at phone; 50mm.
+```
+
+### 72. photo-hair
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Male stylist blow-drying smiling client; 50mm.
+```
+
+### 73. photo-lash
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Lash technician applying extensions; 85mm.
+```
+
+### 74. photo-exterior (4K)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Street-front exterior of the same salon, closed glass double doors, blank sign; 35mm.
+```
+
+### 75. photo-treatment (4K)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Treatment area of the same salon, nail tables + hair chairs, door to back office.
+```
+
+### 76. photo-office (4K)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Back office with the same owner at desk and monitor.
+```
+
+### 77. photo-barber
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Barber giving skin fade; 50mm.
+```
+
+### 78. photo-spa
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Day spa shoulder massage; 50mm.
+```
+
+### 79. photo-brow
+- Endpoint: `fal-ai/nano-banana-pro` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Brow artist shaping brows; 85mm.
+```
+
+### 80. loop-stress
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Locked-off camera, subtle motion; start=end frame photo-stress for a seamless loop. 5 s.
+```
+
+### 81. loop-calm
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+Locked-off camera, subtle motion; start=end frame photo-calm. 5 s.
+```
+
+### 82. walk1 v1 (rejected: blurred face from bad signage blur)
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+First/last frame walk: exterior -> reception (stress).
+```
+
+### 83. walk1
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+First/last frame steadicam walk: exterior (doors open) -> reception (stress). 6 s.
+```
+
+### 84. walk2
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+First/last frame walk: reception (calm) -> treatment area. 6 s.
+```
+
+### 85. walk3
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+First/last frame walk: treatment area -> back office. 6 s.
+```
+
+### 86. walk1-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+4K upscale, aigc preset, fidelity high.
+```
+
+### 87. walk2-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 88. walk3-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 89. loop-stress-hi
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+1.5x upscale.
+```
+
+### 90. loop-calm-hi
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T01:30:00+00:00
+- Settings: `{}`
+
+```
+1.5x upscale.
 ```

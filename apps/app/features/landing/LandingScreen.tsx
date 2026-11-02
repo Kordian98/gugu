@@ -36,12 +36,23 @@ export function LandingScreen() {
   const flow = Platform.OS === "web" && mounted && !reduce;
   return (
     <ScrollView ref={scroll} style={{ flex: 1, backgroundColor: color.canvas }}>
-      <View style={{ overflow: "hidden" }}>
-        <LandingNav nav={nav} desktop={desktop} />
-        <StudioHero nav={nav} desktop={desktop} width={w} />
-      </View>
+      {flow ? (
+        // Web flow: the hero is the door portal inside the Journey stage; the nav floats above it.
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 20 }}>
+          <LandingNav nav={nav} desktop={desktop} />
+        </View>
+      ) : (
+        <View style={{ overflow: "hidden" }}>
+          <LandingNav nav={nav} desktop={desktop} />
+          <StudioHero nav={nav} desktop={desktop} width={w} />
+        </View>
+      )}
       <Anchor id="story" onY={nav.onAnchorY}>
-        {flow ? <Flow /> : <StoryStatic width={w} desktop={desktop} />}
+        {flow ? (
+          <Flow nav={nav} desktop={desktop} width={w} />
+        ) : (
+          <StoryStatic width={w} desktop={desktop} />
+        )}
       </Anchor>
       {flow ? null : (
         <>

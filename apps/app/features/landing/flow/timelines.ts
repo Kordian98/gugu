@@ -1,5 +1,7 @@
 import { gsap } from "gsap";
 
+import type { Segment, WalkPlayer } from "./sequence";
+
 type Q = (sel: string) => Element[];
 type TL = gsap.core.Timeline;
 
@@ -14,10 +16,10 @@ export function scrollParent(el: HTMLElement | null): Element {
   return document.scrollingElement ?? document.documentElement;
 }
 
-/** Scrubbed timeline over a sticky track (0..1 = track top hits viewport top .. track bottom hits bottom). */
-export function trackTimeline(trigger: HTMLElement, scrub = 0.4): TL {
+/** Scrubbed timeline over a sticky track (0..1 = track top at viewport top .. track bottom at bottom). */
+export function trackTimeline(trigger: HTMLElement, scrub = 0.5): TL {
   return gsap.timeline({
-    defaults: { ease: "power2.out", duration: 0.08 },
+    defaults: { ease: "power2.out", duration: 0.02 },
     scrollTrigger: {
       trigger,
       scroller: scrollParent(trigger),
@@ -35,68 +37,163 @@ const show = (tl: TL, q: Q, sel: string, at: number, from: gsap.TweenVars = { y:
 const hide = (tl: TL, q: Q, sel: string, at: number, to: gsap.TweenVars = { y: -20 }) => {
   tl.to(q(sel), { opacity: 0, ...to }, at);
 };
-const end = (tl: TL) => {
-  tl.to({}, { duration: 0.001 }, 0.999);
+const stagger = (tl: TL, q: Q, sel: string, at: number, step: number, from: gsap.TweenVars) => {
+  q(sel).forEach((el, i) => {
+    tl.fromTo(el, { opacity: 0, ...from }, { opacity: 1, x: 0, y: 0, scale: 1 }, at + i * step);
+  });
 };
 
-/** Walk 1 (street → doors → reception): the title leaves as the doors open. */
-export function buildEnter(tl: TL, q: Q) {
-  tl.to(q(".wk-title"), { opacity: 0, y: -40, duration: 0.14 }, 0.12);
-  end(tl);
+/** Journey phases (fractions of the track). */
+const PH = {
+  portal: [0, 0.05],
+  w1: [0.05, 0.17],
+  pain: 0.17,
+  swap: 0.36,
+  calmOut: 0.47,
+  w2: [0.49, 0.6],
+  feat: 0.6,
+  featOut: 0.72,
+  w3: [0.75, 0.87],
+  office: 0.87,
+} as const;
+
+/** Which walk frame to show at journey time t. */
+function frameAt(t: number): [Segment, number] {
+  const lin = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+  if (t < PH.w1[1]) return ["w1", lin(PH.w1[0], PH.w1[1])];
+  if (t < PH.swap + 0.02) return ["w1", 1];
+  if (t < PH.w2[1]) return ["w2", lin(PH.w2[0], PH.w2[1])];
+  if (t < PH.w3[0]) return ["w2", 1];
+  return ["w3", lin(PH.w3[0], PH.w3[1])];
 }
 
-/** Walk 2 (reception → treatment area): features of the room appear once we arrive. */
-export function buildFeatures(tl: TL, q: Q) {
-  hide(tl, q, ".wk-cap", 0.3);
-  tl.to(q(".wk-scrim"), { opacity: 1, duration: 0.1 }, 0.6);
-  show(tl, q, ".ov .t", 0.64);
-  show(tl, q, ".ft-lap", 0.66, { x: 80, scale: 0.96 });
-  q(".ft-i").forEach((el, i) => {
-    tl.fromTo(el, { opacity: 0, y: 26 }, { opacity: 1, y: 0 }, 0.72 + i * 0.045);
-  });
-  end(tl);
-}
+type Videos = { stress: HTMLVideoElement | null; calm: HTMLVideoElement | null };
 
-/** Walk 3 (treatment → back office): the owner's overview, the cited stat and the assistant. */
-export function buildOffice(tl: TL, q: Q) {
-  hide(tl, q, ".wk-cap", 0.3);
-  tl.to(q(".wk-scrim"), { opacity: 1, duration: 0.1 }, 0.6);
-  show(tl, q, ".ov .t", 0.64);
-  show(tl, q, ".of-lap", 0.66, { x: -80, scale: 0.96 });
-  q(".of-side .card").forEach((el, i) => {
-    tl.fromTo(el, { opacity: 0, y: 26 }, { opacity: 1, y: 0 }, 0.74 + i * 0.06);
+/**
+ * The single-scene journey: arched door portal (hero) → full-bleed walk in → front desk drowning → calm
+ * (same receptionist, matching 16:9 loops) → walk to the treatment area (features) → walk to the back
+ * office (overview, stat, assistant). Canvas frame, loop playback and the portal clip are driven from the
+ * smoothed timeline time; everything else is transform/opacity.
+ */
+export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Videos) {
+  const tl = trackTimeline(root, 0.5);
+  const frame = q(".jr-frame")[0] as HTMLElement | undefined;
+  const media = q(".jr-media")[0] as HTMLElement | undefined;
+  const mobile = player.mobile;
+  let lastClip = "";
+  const portal = (k: number) => {
+    // k: 0 = arched window in the hero column, 1 = full screen.
+    if (!frame || !media) return;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const e = 1 - Math.pow(1 - k, 3);
+    const r = mobile
+      ? { t: H * 0.58, rt: W * 0.05, b: H * 0.03, l: W * 0.05 }
+      : { t: H * 0.15, rt: W * 0.05, b: H * 0.06, l: W * 0.53 };
+    const pw = W - r.l - r.rt;
+    const t = r.t * (1 - e);
+    const rt = r.rt * (1 - e);
+    const b = r.b * (1 - e);
+    const l = r.l * (1 - e);
+    const arch = (pw / 2) * (1 - e);
+    const corner = 26 * (1 - e);
+    const clip = `inset(${t.toFixed(1)}px ${rt.toFixed(1)}px ${b.toFixed(1)}px ${l.toFixed(1)}px round ${arch.toFixed(1)}px ${arch.toFixed(1)}px ${corner.toFixed(1)}px ${corner.toFixed(1)}px)`;
+    if (clip !== lastClip) {
+      lastClip = clip;
+      frame.style.clipPath = clip;
+      // Keep the doors centred in the window while it grows.
+      const cx = (r.l + (W - r.rt)) / 2 - W / 2;
+      const cy = (r.t + (H - r.b)) / 2 - H / 2;
+      media.style.transform = `translate3d(${(cx * (1 - e)).toFixed(1)}px,${(cy * (1 - e)).toFixed(1)}px,0)`;
+    }
+  };
+  const playing = { stress: false, calm: false };
+  const playIf = (vid: HTMLVideoElement | null, key: "stress" | "calm", on: boolean) => {
+    if (!vid || playing[key] === on) return;
+    playing[key] = on;
+    if (on) {
+      vid.preload = "auto";
+      void vid.play().catch(() => undefined);
+    } else vid.pause();
+  };
+  const loaded = new Set<Segment>(["w1"]);
+  tl.eventCallback("onUpdate", () => {
+    const t = tl.duration() > 0 ? tl.time() / tl.duration() : 0;
+    const [seg, p] = frameAt(t);
+    if (t > 0.1 && !loaded.has("w2")) {
+      loaded.add("w2");
+      player.load("w2");
+    }
+    if (t > 0.4 && !loaded.has("w3")) {
+      loaded.add("w3");
+      player.load("w3");
+    }
+    player.set(seg, p);
+    portal(Math.max(0, Math.min(1, t / PH.portal[1])));
+    playIf(v.stress, "stress", t > PH.pain - 0.01 && t < PH.swap + 0.05);
+    playIf(v.calm, "calm", t > PH.swap - 0.01 && t < PH.calmOut + 0.02);
   });
-  end(tl);
-}
+  portal(0);
 
-/** Front desk: Zalo pings stack up, the notebook fills and gets crossed out, then the same desk turns calm. */
-export function buildPain(tl: TL, q: Q) {
-  show(tl, q, ".pn-a", 0.0, { y: 30 });
-  show(tl, q, ".pn-sa", 0.06, { y: 30 });
-  q(".pn-n").forEach((el, i) => {
-    tl.fromTo(el, { opacity: 0, y: -26, scale: 0.94 }, { opacity: 1, y: 0, scale: 1 }, 0.06 + i * 0.06);
-  });
-  show(tl, q, ".pn-book", 0.18, { y: 40, rotate: -7 });
-  tl.set(q(".pn-book"), { rotate: -3 }, 0.27);
-  tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.05 }, 0.34);
-  tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.05 }, 0.4);
-  // transformation
-  tl.to(q(".pn-calmv"), { opacity: 1, duration: 0.1, ease: "none" }, 0.52);
-  hide(tl, q, ".pn-n", 0.52, { y: -14, scale: 0.96, stagger: 0.01 });
-  hide(tl, q, ".pn-book", 0.52, { y: 30 });
-  hide(tl, q, ".pn-a", 0.54);
-  hide(tl, q, ".pn-sa", 0.54);
-  show(tl, q, ".pn-b", 0.6);
-  show(tl, q, ".pn-sb", 0.62);
-  q(".pn-gi").forEach((el, i) => {
-    tl.fromTo(el, { opacity: 0, x: -24 }, { opacity: 1, x: 0 }, 0.66 + i * 0.06);
-  });
-  end(tl);
+  // hero → doors
+  tl.to(q(".jr-hero"), { opacity: 0, x: -60, duration: 0.03, ease: "power1.in" }, 0.004);
+  tl.to(q(".jr-intro"), { opacity: 1, y: 0, duration: 0.015 }, 0.035);
+  tl.to(q(".jr-shade"), { opacity: 1, duration: 0.015 }, 0.035);
+  tl.to(q(".jr-intro"), { opacity: 0, y: -40, duration: 0.02 }, 0.075);
+  tl.to(q(".jr-shade"), { opacity: 0, duration: 0.02 }, 0.08);
+
+  // front desk: drowning
+  const vs = [v.stress].filter((x): x is HTMLVideoElement => x !== null);
+  const vc = [v.calm].filter((x): x is HTMLVideoElement => x !== null);
+  tl.to(vs, { opacity: 1, duration: 0.006, ease: "none" }, PH.pain - 0.004);
+  tl.to(q(".jr-light"), { opacity: 1, duration: 0.02 }, PH.pain);
+  show(tl, q, ".pn-a", PH.pain + 0.005);
+  show(tl, q, ".pn-sa", PH.pain + 0.02);
+  show(tl, q, ".jr-foot", PH.pain + 0.02, { y: 0 });
+  stagger(tl, q, ".pn-n", PH.pain + 0.03, 0.018, { y: -26, scale: 0.94 });
+  show(tl, q, ".pn-book", PH.pain + 0.07, { y: 40, rotate: -7 });
+  tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.012 }, PH.pain + 0.12);
+  tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.012 }, PH.pain + 0.14);
+
+  // same desk: calm
+  tl.to(vc, { opacity: 1, duration: 0.025, ease: "none" }, PH.swap);
+  hide(tl, q, ".pn-n", PH.swap, { y: -14, scale: 0.96 });
+  hide(tl, q, ".pn-book", PH.swap, { y: 30 });
+  hide(tl, q, ".pn-a", PH.swap + 0.004);
+  hide(tl, q, ".pn-sa", PH.swap + 0.004);
+  show(tl, q, ".pn-b", PH.swap + 0.02);
+  show(tl, q, ".pn-sb", PH.swap + 0.026);
+  stagger(tl, q, ".pn-gi", PH.swap + 0.034, 0.012, { x: -24 });
+  hide(tl, q, ".pn-b", PH.calmOut - 0.012);
+  hide(tl, q, ".pn-sb", PH.calmOut - 0.012);
+  hide(tl, q, ".jr-foot", PH.calmOut - 0.012, { y: 0 });
+  tl.to(q(".jr-light"), { opacity: 0, duration: 0.02 }, PH.calmOut - 0.01);
+  tl.to([...vs, ...vc], { opacity: 0, duration: 0.012, ease: "none" }, PH.calmOut + 0.004);
+
+  // walk to the treatment area → features
+  show(tl, q, ".cap-deeper", PH.w2[0], { y: 0 });
+  hide(tl, q, ".cap-deeper", PH.w2[1] - 0.03, { y: 0 });
+  tl.to(q(".jr-veil"), { opacity: 1, duration: 0.02 }, PH.feat);
+  show(tl, q, ".ov-f .t", PH.feat + 0.01);
+  show(tl, q, ".ft-lap", PH.feat + 0.015, { x: 80, scale: 0.96 });
+  stagger(tl, q, ".ft-i", PH.feat + 0.03, 0.01, { y: 26 });
+  hide(tl, q, ".ov-f .t, .ft-lap, .ft-i", PH.featOut);
+  tl.to(q(".jr-veil"), { opacity: 0, duration: 0.02 }, PH.featOut + 0.005);
+
+  // walk to the back office → overview
+  show(tl, q, ".cap-office", PH.w3[0], { y: 0 });
+  hide(tl, q, ".cap-office", PH.w3[1] - 0.03, { y: 0 });
+  tl.to(q(".jr-veil"), { opacity: 1, duration: 0.02 }, PH.office);
+  show(tl, q, ".of-lap", PH.office + 0.01, { x: -80, scale: 0.96 });
+  show(tl, q, ".ov-o .t", PH.office + 0.015);
+  stagger(tl, q, ".of-side .card", PH.office + 0.03, 0.015, { y: 26 });
+  tl.to({}, { duration: 0.001 }, 0.999);
+  return tl;
 }
 
 /**
- * Before/after split + time-saved card. Steps highlight, cards appear; the counter writes text only when
- * its formatted value changes (no per-frame layout), the ring animates stroke-dashoffset on one circle.
+ * Before/after split + time-saved card. Steps highlight, cards appear; counters write text only when the
+ * formatted value changes; the ring animates stroke-dashoffset on one circle.
  */
 export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) => string) {
   const step = (sel: string, at: number) => {
@@ -107,7 +204,12 @@ export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) 
     );
   };
   const card = (sel: string, at: number, from: gsap.TweenVars = { y: 24 }) => {
-    tl.fromTo(q(sel), { opacity: 0, ...from }, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.07 }, at);
+    tl.fromTo(
+      q(sel),
+      { opacity: 0, ...from },
+      { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.07 },
+      at,
+    );
   };
   step(".bs1", 0.04);
   card(".bc-zalo", 0.04);
@@ -159,7 +261,12 @@ export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) 
   const ring = q(".sv-ring .fg")[0];
   if (ring) {
     const c = 2 * Math.PI * 40;
-    tl.fromTo(ring, { strokeDashoffset: c }, { strokeDashoffset: c * 0.22, duration: 0.72, ease: "none" }, 0.04);
+    tl.fromTo(
+      ring,
+      { strokeDashoffset: c },
+      { strokeDashoffset: c * 0.22, duration: 0.72, ease: "none" },
+      0.04,
+    );
   }
-  end(tl);
+  tl.to({}, { duration: 0.001 }, 0.999);
 }

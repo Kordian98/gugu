@@ -6,23 +6,20 @@ import { useTranslation } from "react-i18next";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { screen } from "../screens";
-import { PHOTO, LOOP } from "./media";
-import { buildBeforeAfter, buildPain, trackTimeline } from "./timelines";
+import { PHOTO } from "./media";
+import { buildBeforeAfter, trackTimeline } from "./timelines";
 
-const NOTES = ["n1", "n2", "n3", "n4"] as const;
-const ENTRIES = ["e1", "e2", "e3", "e4"] as const;
-const GUGU = ["g1", "g2", "g3"] as const;
 const BEFORE = ["b1", "b2", "b3", "b4"] as const;
 const AFTER = ["a1", "a2", "a3", "a4", "a5"] as const;
 const SAVED = ["r1", "r2", "r3"] as const;
-const Z = "Z";
-const PHONE = "☎";
-const CHECK = "✓";
 const SEP = " · ";
 const R = 40;
 const C = 2 * Math.PI * R;
 
-function useTrack(build: (tl: gsap.core.Timeline, q: (s: string) => Element[]) => void, dep: unknown) {
+function useTrack(
+  build: (tl: gsap.core.Timeline, q: (s: string) => Element[]) => void,
+  dep: unknown,
+) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -35,89 +32,6 @@ function useTrack(build: (tl: gsap.core.Timeline, q: (s: string) => Element[]) =
     };
   }, [build, dep]);
   return ref;
-}
-
-/**
- * The front desk (pain → calm): bold type and one striking number over full-bleed photography of the
- * receptionist (subtle 5 s video loops, 4K-upscaled), Zalo pings and notebook entries layered on scroll,
- * then the same person and desk, calm. Fictional names; figures are illustrative.
- */
-export function Pain() {
-  const { t } = useTranslation("landing");
-  const locale = useLocale();
-  const ref = useTrack(buildPain, locale);
-  return (
-    <div className="pn" ref={ref}>
-      <div className="pn-stage">
-        <div className="pn-head">
-          <div className="pn-l">
-            <div className="pn-a">
-              <div className="fl-eye">{t("flow.pain.eyebrow")}</div>
-              <h2 className="fl-h">{t("flow.pain.title")}</h2>
-            </div>
-            <div className="pn-b" style={{ opacity: 0 }}>
-              <div className="fl-eye">{t("flow.pain.calmEyebrow")}</div>
-              <h2 className="fl-h">{t("flow.pain.calmTitle")}</h2>
-            </div>
-          </div>
-          <div className="pn-r">
-            <div className="pn-sa">
-              <div className="pn-stat">
-                <span className="pre">{t("flow.pain.pre")}</span>
-                <span className="big">{t("flow.pain.stat")}</span>
-                <p>{t("flow.pain.statLabel")}</p>
-              </div>
-            </div>
-            <div className="pn-sb" style={{ opacity: 0 }}>
-              <p className="pn-calm">{t("flow.pain.calmSub")}</p>
-            </div>
-          </div>
-        </div>
-        <div className="pn-band">
-          <img className="po" src={PHOTO.stress} alt="" decoding="async" />
-          <video src={LOOP.stress} poster={PHOTO.stress} autoPlay muted loop playsInline />
-          <video className="pn-calmv" src={LOOP.calm} poster={PHOTO.calm} autoPlay muted loop playsInline />
-          <div className="lyr pn-notes">
-            {NOTES.map((k) => (
-              <div key={k} className="pn-n">
-                <i>{Z}</i>
-                <div>
-                  <small>
-                    {t("flow.pain.zalo")}
-                    {SEP}
-                    {t("flow.pain.now")}
-                  </small>
-                  {t(`flow.pain.${k}`)}
-                </div>
-              </div>
-            ))}
-            <div className="pn-n call">
-              <i>{PHONE}</i>
-              <div>{t("flow.pain.n5")}</div>
-            </div>
-          </div>
-          <div className="lyr pn-book">
-            <div className="lbl">{t("flow.pain.book")}</div>
-            {ENTRIES.map((k, i) => (
-              <div key={k} className={`pn-e x${String(i + 1)}${i === 3 ? " hot" : ""}`}>
-                {t(`flow.pain.${k}`)}
-                <s />
-              </div>
-            ))}
-          </div>
-          <div className="lyr pn-g">
-            {GUGU.map((k) => (
-              <div key={k} className="pn-gi">
-                <i>{CHECK}</i>
-                {t(`flow.pain.${k}`)}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="pn-foot">{t("flow.pain.note")}</div>
-      </div>
-    </div>
-  );
 }
 
 /** Same booking, two days: Zalo + notebook vs Zalo OA + GuGu Studio, with the time-saved card. */
@@ -150,7 +64,14 @@ export function BeforeAfter() {
             <div className="sv-ring">
               <svg viewBox="0 0 100 100" aria-hidden>
                 <circle className="bg" cx="50" cy="50" r={R} />
-                <circle className="fg" cx="50" cy="50" r={R} strokeDasharray={C} strokeDashoffset={C} />
+                <circle
+                  className="fg"
+                  cx="50"
+                  cy="50"
+                  r={R}
+                  strokeDasharray={C}
+                  strokeDashoffset={C}
+                />
               </svg>
               <div>
                 <span className="sv-num">{zero(1)}</span>
@@ -219,7 +140,11 @@ export function BeforeAfter() {
                 {t("flow.ba.booked")}
               </div>
               <div className="ba-card cal ac-cal" style={{ top: "36%", left: "4%", right: "4%" }}>
-                <img src={Asset.fromModule(screen(locale, "timeline")).uri} alt="" decoding="async" />
+                <img
+                  src={Asset.fromModule(screen(locale, "timeline")).uri}
+                  alt=""
+                  decoding="async"
+                />
               </div>
               <div className="ba-card zalo ac-rem" style={{ top: "68%" }}>
                 {t("flow.ba.remind")}

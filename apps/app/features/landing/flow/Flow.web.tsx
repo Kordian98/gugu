@@ -5,11 +5,11 @@ import { useTranslation } from "react-i18next";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { BeforeAfter, Pain } from "./Desk";
+import type { LandingNavActions } from "../useLandingNav";
+import { BeforeAfter } from "./Desk";
 import { FLOW_CSS } from "./flow.css";
-import { Businesses, FeaturesMobile, FeaturesOverlay, OfficeMobile, OfficeOverlay } from "./Rooms";
-import { buildEnter, buildFeatures, buildOffice } from "./timelines";
-import { Walk } from "./Walk";
+import { Journey } from "./Journey";
+import { Businesses } from "./Rooms";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,13 +18,20 @@ const SEP = " · ";
 const ARROW = "→";
 
 /**
- * v4 landing flow (web): one continuous walk through one salon, photoreal and scroll-scrubbed.
- * Street → doors open → reception (walk 1) · the front desk, drowning → calm (same person) · before/after
- * with the time-saved card · reception → treatment area with the features of that room (walk 2) ·
- * treatment → back office with the overview, cited stat and assistant (walk 3) · business types · switching.
+ * v4 landing flow (web): the hero's arched door grows into ONE full-screen scene that walks through one
+ * salon (street → front desk drowning → calm → treatment area features → back office), then the
+ * before/after with the time-saved card, business types and switching.
  * Native and reduced motion use StoryStatic.
  */
-export function Flow() {
+export function Flow({
+  nav,
+  desktop,
+  width,
+}: {
+  nav: LandingNavActions;
+  desktop: boolean;
+  width: number;
+}) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const root = useRef<HTMLDivElement>(null);
@@ -66,31 +73,8 @@ export function Flow() {
     <div className="fl" ref={root}>
       <style>{FLOW_CSS}</style>
 
-      <Walk seg="w1" vh={260} build={buildEnter}>
-        <div className="wk-title">
-          <div className="fl-eye">{t("flow.walk.eyebrow")}</div>
-          <h2 className="fl-h">{t("flow.walk.title")}</h2>
-          <div className="wk-hint">{t("flow.walk.hint")}</div>
-        </div>
-      </Walk>
-
-      <Pain />
+      <Journey nav={nav} desktop={desktop} width={width} />
       <BeforeAfter />
-
-      <Walk
-        seg="w2"
-        vh={340}
-        walkEnd={0.6}
-        build={buildFeatures}
-        id="fl-features"
-        after={<FeaturesMobile />}
-      >
-        <FeaturesOverlay />
-      </Walk>
-
-      <Walk seg="w3" vh={340} walkEnd={0.6} build={buildOffice} after={<OfficeMobile />}>
-        <OfficeOverlay />
-      </Walk>
 
       <Businesses />
 

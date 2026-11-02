@@ -28,46 +28,22 @@ function Laptop({ src, className }: { src: string; className?: string }) {
   );
 }
 
-/** Treatment area: the calendar and the daily tools, revealed in the room where they are used. */
-export function FeaturesOverlay() {
+/** Treatment area panel (inside the Journey stage): the calendar and daily tools of this room. */
+export function FeaturesPanel() {
   const { t } = useTranslation("landing");
   const shot = useShot();
   return (
-    <>
-      <div className="wk-cap">{t("flow.walk.deeper")}</div>
-      <div className="wk-scrim" style={{ background: "rgba(253,250,247,.86)" }} />
-      <div className="ov">
-        <div className="t">
-          <div className="fl-eye">{t("flow.features.eyebrow")}</div>
-          <h2 className="fl-h">{t("flow.features.title")}</h2>
-        </div>
-        <Laptop className="ft-lap" src={shot("calendar")} />
-        <div className="ft-list">
-          {FEATURES.map((k) => (
-            <div key={k} className="card ft-i">
-              <h3>{t(`flow.features.${k}t`)}</h3>
-              <p>{t(`flow.features.${k}b`)}</p>
-            </div>
-          ))}
-        </div>
+    <div className="ov ov-f" id="fl-features">
+      <div className="t">
+        <div className="fl-eye">{t("flow.features.eyebrow")}</div>
+        <h2 className="fl-h">{t("flow.features.title")}</h2>
       </div>
-    </>
-  );
-}
-
-export function FeaturesMobile() {
-  const { t } = useTranslation("landing");
-  const shot = useShot();
-  return (
-    <div className="ft-m">
-      <div className="fl-eye">{t("flow.features.eyebrow")}</div>
-      <h2 className="fl-h">{t("flow.features.title")}</h2>
-      <Laptop src={shot("calendar")} />
-      <div className="grid">
+      <Laptop className="ft-lap" src={shot("calendar")} />
+      <div className="ft-list">
         {FEATURES.map((k) => (
-          <div key={k} className="card">
-            <h3 style={{ margin: "0 0 4px", fontSize: 14 }}>{t(`flow.features.${k}t`)}</h3>
-            <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.45 }}>{t(`flow.features.${k}b`)}</p>
+          <div key={k} className="card ft-i">
+            <h3>{t(`flow.features.${k}t`)}</h3>
+            <p>{t(`flow.features.${k}b`)}</p>
           </div>
         ))}
       </div>
@@ -101,42 +77,19 @@ function AssistantCard() {
   );
 }
 
-/** Back office: the owner's overview, the cited no-show stat and the AI assistant (Pro). */
-export function OfficeOverlay() {
+/** Back office panel: the owner's overview, the cited no-show stat and the AI assistant (Pro). */
+export function OfficePanel() {
   const { t } = useTranslation("landing");
   const shot = useShot();
   return (
-    <>
-      <div className="wk-cap">{t("flow.walk.office")}</div>
-      <div className="wk-scrim" style={{ background: "rgba(253,250,247,.86)" }} />
-      <div className="ov">
-        <Laptop className="of-lap" src={shot("overview")} />
-        <div className="t r">
-          <div className="fl-eye">{t("flow.office.eyebrow")}</div>
-          <h2 className="fl-h">{t("flow.office.title")}</h2>
-          <p className="fl-sub" style={{ fontSize: 15 }}>
-            {t("flow.office.sub")}
-          </p>
-        </div>
-        <div className="of-side">
-          <StatCard />
-          <AssistantCard />
-        </div>
+    <div className="ov ov-o">
+      <Laptop className="of-lap" src={shot("overview")} />
+      <div className="t r">
+        <div className="fl-eye">{t("flow.office.eyebrow")}</div>
+        <h2 className="fl-h">{t("flow.office.title")}</h2>
+        <p className="fl-sub of-sub">{t("flow.office.sub")}</p>
       </div>
-    </>
-  );
-}
-
-export function OfficeMobile() {
-  const { t } = useTranslation("landing");
-  const shot = useShot();
-  return (
-    <div className="ft-m">
-      <div className="fl-eye">{t("flow.office.eyebrow")}</div>
-      <h2 className="fl-h">{t("flow.office.title")}</h2>
-      <p className="fl-sub">{t("flow.office.sub")}</p>
-      <Laptop src={shot("overview")} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="of-side">
         <StatCard />
         <AssistantCard />
       </div>
@@ -178,7 +131,10 @@ export function Businesses() {
     };
   }, []);
   const slide = (dir: number) => {
-    row.current?.scrollBy({ left: dir * Math.min(580, window.innerWidth * 0.8), behavior: "smooth" });
+    row.current?.scrollBy({
+      left: dir * Math.min(580, window.innerWidth * 0.8),
+      behavior: "smooth",
+    });
   };
   return (
     <section className="bz">
@@ -211,7 +167,11 @@ export function Businesses() {
       </div>
       <div className="bz-row" ref={row}>
         {BIZ.map((k, i) => (
-          <article key={k} className="bz-card rv" style={{ ["--d" as string]: `${String(i * 80)}ms` }}>
+          <article
+            key={k}
+            className="bz-card rv"
+            style={{ ["--d" as string]: `${String(i * 80)}ms` }}
+          >
             <img src={PHOTO[k]} alt="" loading="lazy" decoding="async" draggable={false} />
             <div className="bz-chip">
               <i />

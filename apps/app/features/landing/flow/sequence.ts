@@ -1,45 +1,47 @@
 /**
- * Scroll-scrubbed image sequence on a canvas (web only). Frames are real video frames exported by
- * design/hero/studio/photo (fal walk-through, 4K-upscaled, every 2nd frame) and served from
- * public/studio/walk/<seg>/<d|m>/NNN.webp. Desktop frames are 2560 px wide, mobile 1280 px; the stage
- * is sized so a frame is never drawn larger than ~1.15× its native pixels.
+ * Scroll-scrubbed walk-through on ONE canvas (web only): three frame sequences (street → reception,
+ * reception → treatment area, treatment area → back office) exported by design/hero/scripts/walk_frames.py
+ * from fal-generated 4K video. Desktop frames are 3200 px wide (a 1440×900 @2x viewport at 1.0×); mobile
+ * frames are 960×1706 portrait crops that pan with the subject.
  *
- * Loading is progressive (every 8th frame first, then 4th, 2nd, all), and drawing always uses the nearest
- * loaded frame, so scrubbing never waits on the network. Draws happen in rAF and only when the frame
- * index changes.
+ * Smoothness: the position is a float, and the two neighbouring frames are cross-blended, so slow scrolling
+ * glides instead of stepping. Loading is progressive (every 8th frame first, then 4th, 2nd, all) per walk,
+ * nearest-loaded fallback, draws only in rAF when the position changes.
  */
 export type Segment = "w1" | "w2" | "w3";
+export const SEGMENTS: Segment[] = ["w1", "w2", "w3"];
 export const FRAMES = 90;
 
 const pad = (n: number) => String(n).padStart(3, "0");
-export const frameUrl = (seg: Segment, mobile: boolean, i: number) =>
+const frameUrl = (seg: Segment, mobile: boolean, i: number) =>
   `/studio/walk/${seg}/${mobile ? "m" : "d"}/${pad(i + 1)}.webp`;
 
-export class SeqPlayer {
-  private imgs: (HTMLImageElement | null)[] = Array.from({ length: FRAMES }, () => null);
-  private ready: boolean[] = Array.from({ length: FRAMES }, () => false);
-  private want = 0;
-  private drawn = -1;
-  private raf = 0;
-  private started = false;
-  private ctx: CanvasRenderingContext2D | null;
+type Track = { imgs: (HTMLImageElement | null)[]; started: boolean };
 
-  constructor(
-    private canvas: HTMLCanvasElement,
-    private seg: Segment,
-    private mobile: boolean,
-  ) {
+export class WalkPlayer {
+  private tracks = new Map<Segment, Track>();
+  private seg: Segment = "w1";
+  private pos = 0;
+  private drawnKey = "";
+  private raf = 0;
+  private ctx: CanvasRenderingContext2D | null;
+  readonly mobile: boolean;
+
+  constructor(private canvas: HTMLCanvasElement) {
+    this.mobile = window.matchMedia("(max-width: 899px)").matches;
     this.ctx = canvas.getContext("2d", { alpha: false });
+    for (const s of SEGMENTS)
+      this.tracks.set(s, { imgs: Array.from({ length: FRAMES }, () => null), started: false });
   }
 
-  /** Starts progressive loading (call when the section approaches the viewport). */
-  load() {
-    if (this.started) return;
-    this.started = true;
-    const order: number[] = [];
-    for (const step of [8, 4, 2, 1])
+  /** Progressive load of one walk (idempotent). */
+  load(seg: Segment) {
+    const tr = this.tracks.get(seg);
+    if (!tr || tr.started) return;
+    tr.started = true;
+    const order: number[] = [0, FRAMES - 1];
+    for (const step of [12, 6, 3, 1])
       for (let i = 0; i < FRAMES; i += step) if (!order.includes(i)) order.push(i);
-    if (!order.includes(FRAMES - 1)) order.splice(1, 0, FRAMES - 1);
     let k = 0;
     const next = () => {
       const i = order[k++];
@@ -47,66 +49,87 @@ export class SeqPlayer {
       const img = new Image();
       img.decoding = "async";
       img.onload = () => {
-        this.ready[i] = true;
-        this.imgs[i] = img;
-        if (this.drawn !== this.want) this.schedule();
+        tr.imgs[i] = img;
+        if (seg === this.seg) this.schedule(true);
         next();
       };
       img.onerror = next;
-      img.src = frameUrl(this.seg, this.mobile, i);
+      img.src = frameUrl(seg, this.mobile, i);
     };
-    // A few parallel lanes keep the first coarse pass fast.
     for (let lane = 0; lane < 4; lane++) next();
   }
 
-  /** Sets scrub progress 0..1. */
-  set(progress: number) {
-    const i = Math.max(0, Math.min(FRAMES - 1, Math.round(progress * (FRAMES - 1))));
-    if (i === this.want) return;
-    this.want = i;
-    this.schedule();
+  /** Shows walk `seg` at progress 0..1 (float; neighbouring frames are blended). */
+  set(seg: Segment, progress: number) {
+    const pos = Math.max(0, Math.min(1, progress)) * (FRAMES - 1);
+    if (seg === this.seg && Math.abs(pos - this.pos) < 0.02) return;
+    this.seg = seg;
+    this.pos = pos;
+    // Called from GSAP's ticker (already inside rAF): draw now, never defer — deferring + cancelling on
+    // every tick starved the canvas while scrolling.
+    this.draw();
   }
 
   resize() {
     const r = this.canvas.getBoundingClientRect();
-    const native = this.mobile ? 1280 : 2560;
+    // Backing store at device pixels (max 2×): frames are exported at or above that size.
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.min(Math.round(r.width * dpr), native);
-    this.canvas.width = w;
-    this.canvas.height = Math.round((w * r.height) / Math.max(1, r.width));
-    this.drawn = -1;
-    this.schedule();
+    this.canvas.width = Math.round(r.width * dpr);
+    this.canvas.height = Math.round(r.height * dpr);
+    this.schedule(true);
   }
 
   destroy() {
     cancelAnimationFrame(this.raf);
-    this.imgs = [];
+    this.tracks.clear();
   }
 
-  private nearest(i: number) {
+  private nearest(imgs: (HTMLImageElement | null)[], i: number): number {
     for (let d = 0; d < FRAMES; d++) {
-      if (this.ready[i - d]) return i - d;
-      if (this.ready[i + d]) return i + d;
+      if (imgs[i - d]) return i - d;
+      if (imgs[i + d]) return i + d;
     }
     return -1;
   }
 
-  private schedule() {
-    cancelAnimationFrame(this.raf);
+  /** For async events (a frame finished loading, resize): one pending rAF at most, never cancelled. */
+  private schedule(force: boolean) {
+    if (force) this.drawnKey = "";
+    if (this.raf) return;
     this.raf = requestAnimationFrame(() => {
+      this.raf = 0;
       this.draw();
     });
   }
 
-  private draw() {
-    const i = this.nearest(this.want);
-    const img = i >= 0 ? this.imgs[i] : null;
-    if (!img || !this.ctx || i === this.drawn) return;
+  private cover(img: HTMLImageElement, alpha: number) {
+    const ctx = this.ctx;
+    if (!ctx) return;
     const { width: cw, height: ch } = this.canvas;
     const s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
     const w = img.naturalWidth * s;
     const h = img.naturalHeight * s;
-    this.ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
-    this.drawn = i;
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+  }
+
+  private draw() {
+    const tr = this.tracks.get(this.seg);
+    if (!tr) return;
+    const a = Math.floor(this.pos);
+    const b = Math.min(FRAMES - 1, a + 1);
+    const f = this.pos - a;
+    const ia = tr.imgs[a] ? a : this.nearest(tr.imgs, a);
+    if (ia < 0) return;
+    const ib = tr.imgs[b] ? b : ia;
+    const key = `${this.seg}:${String(ia)}:${String(ib)}:${f.toFixed(2)}`;
+    if (key === this.drawnKey) return;
+    const imgA = tr.imgs[ia];
+    const imgB = tr.imgs[ib];
+    if (!imgA) return;
+    this.cover(imgA, 1);
+    if (imgB && ib !== ia && f > 0.04) this.cover(imgB, f);
+    if (this.ctx) this.ctx.globalAlpha = 1;
+    this.drawnKey = key;
   }
 }
