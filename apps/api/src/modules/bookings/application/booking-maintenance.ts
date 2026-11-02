@@ -9,7 +9,8 @@ const BATCH = 100;
 /**
  * Periodic housekeeping (maintenance queue, every minute): deletes expired holds (their
  * occupancy cascades) and auto-cancels pending bookings the salon didn't confirm in time (q13).
- * Expired holds never block anyone even before the sweep — writers drop them under the staff lock.
+ * Expired holds never block anyone even before the sweep — writers drop them under the staff lock,
+ * and availability already ignores them — so deleting them needs no cache bump (M6.7).
  */
 @Injectable()
 export class BookingMaintenance {

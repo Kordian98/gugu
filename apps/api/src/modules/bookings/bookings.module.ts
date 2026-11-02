@@ -12,6 +12,7 @@ import { BookingContexts } from "./http/booking-contexts";
 import { ResourcesController } from "./http/resources.controller";
 import { SalonBookingsController } from "./http/salon-bookings.controller";
 import { ResourcesService } from "./application/resources.service";
+import { AvailabilityCache } from "./infra/availability-cache";
 import { BookingSecrets } from "./infra/booking-secrets";
 
 /**
@@ -26,6 +27,7 @@ import { BookingSecrets } from "./infra/booking-secrets";
   // Its domain paths (customer actor, holds, draft policy, per-phone limit) stay tested.
   controllers: [SalonBookingsController, ResourcesController],
   providers: [
+    AvailabilityCache,
     BookingActors,
     BookingClock,
     BookingContexts,
@@ -53,7 +55,13 @@ export class BookingsModule {}
 /** Worker-side slice: just what the maintenance sweep needs (no controllers). */
 @Module({
   imports: [AuditModule],
-  providers: [BookingClock, BookingLifecycleCommands, BookingMaintenance, BookingSecrets],
+  providers: [
+    AvailabilityCache,
+    BookingClock,
+    BookingLifecycleCommands,
+    BookingMaintenance,
+    BookingSecrets,
+  ],
   exports: [BookingMaintenance],
 })
 export class BookingsWorkerModule {}
@@ -65,6 +73,7 @@ export class BookingsWorkerModule {}
 @Module({
   imports: [AuditModule],
   providers: [
+    AvailabilityCache,
     BookingClock,
     BookingContexts,
     BookingLifecycleCommands,

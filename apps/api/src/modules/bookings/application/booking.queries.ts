@@ -25,6 +25,7 @@ import {
   resolveSelection,
   type SalonBookingContext,
 } from "../infra/booking-inputs";
+import { AvailabilityCache } from "../infra/availability-cache";
 import { BookingSecrets } from "../infra/booking-secrets";
 import { BookingClock } from "./booking-clock";
 import { bookingNotFound } from "./booking-errors";
@@ -91,9 +92,30 @@ export class BookingQueries {
     private readonly prisma: PrismaService,
     private readonly clock: BookingClock,
     private readonly secrets: BookingSecrets,
+    private readonly cache: AvailabilityCache,
   ) {}
 
+  private scope(ctx: SalonBookingContext, kind: string) {
+    return {
+      salonId: ctx.salonId,
+      availabilityVersion: ctx.availabilityVersion,
+      now: this.clock.now(),
+      kind,
+    };
+  }
+
+  /** Cached (M6.7): see AvailabilityCache for the key and why staleness is safe. */
   async availability(
+    ctx: SalonBookingContext,
+    query: AvailabilityQuery,
+    opts: { hideStaff: boolean; onlyStaffId?: string | null },
+  ): Promise<Availability> {
+    return this.cache.getOrCompute(this.scope(ctx, "availability"), { query, opts }, () =>
+      this.computeAvailability(ctx, query, opts),
+    );
+  }
+
+  private async computeAvailability(
     ctx: SalonBookingContext,
     query: AvailabilityQuery,
     opts: { hideStaff: boolean; onlyStaffId?: string | null },
@@ -142,6 +164,16 @@ export class BookingQueries {
    * chunks of at most MAX_AVAILABILITY_DAYS; stops as soon as `limit` options are found.
    */
   async earliest(
+    ctx: SalonBookingContext,
+    query: EarliestSlotsQuery,
+    opts: { onlyStaffId?: string | null },
+  ): Promise<EarliestSlots> {
+    return this.cache.getOrCompute(this.scope(ctx, "earliest"), { query, opts }, () =>
+      this.computeEarliest(ctx, query, opts),
+    );
+  }
+
+  private async computeEarliest(
     ctx: SalonBookingContext,
     query: EarliestSlotsQuery,
     opts: { onlyStaffId?: string | null },

@@ -19,6 +19,7 @@ import {
   type SalonBookingContext,
   type ServiceSelection,
 } from "../infra/booking-inputs";
+import { AvailabilityCache } from "../infra/availability-cache";
 import { BookingSecrets, MANAGE_TOKEN_TTL_AFTER_END_MS } from "../infra/booking-secrets";
 import { claimIdempotency, completeIdempotency, type IdempotencyClaim } from "../infra/idempotency";
 import {
@@ -58,6 +59,7 @@ export class CreateBookingCommand {
     private readonly secrets: BookingSecrets,
     private readonly clock: BookingClock,
     private readonly audit: AuditService,
+    private readonly cache: AvailabilityCache,
   ) {}
 
   async execute(
@@ -68,7 +70,7 @@ export class CreateBookingCommand {
   ): Promise<{ bookingId: string; manageToken: string | null }> {
     const now = this.clock.now();
     try {
-      return await this.prisma.$transaction(
+      const result = await this.prisma.$transaction(
         async (tx) => {
           const claimed = await claimIdempotency<{ bookingId: string }>(tx, claim, now);
           const bookingId =
@@ -83,6 +85,8 @@ export class CreateBookingCommand {
         },
         { timeout: 20_000, maxWait: 15_000 },
       );
+      await this.cache.bumpOccupancy(ctx.salonId);
+      return result;
     } catch (error) {
       if (isSlotConflict(error)) throw slotTaken();
       throw error;

@@ -58,6 +58,8 @@ export interface SalonBookingContext {
   currency: string;
   /** Public booking pages only serve `active` salons. */
   isLive: boolean;
+  /** `salon_settings.availability_version` (cache key part, M6.7). */
+  availabilityVersion: number;
   settings: BookingSettings;
 }
 
@@ -133,6 +135,7 @@ export async function loadSalonContext(
     timeZone: salon.timezone,
     currency: salon.currency,
     isLive: salon.status === "active",
+    availabilityVersion: s?.availabilityVersion ?? 0,
     settings: s
       ? {
           bookingWindowDays: s.bookingWindowDays,
