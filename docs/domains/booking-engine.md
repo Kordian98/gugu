@@ -6,7 +6,9 @@ Durable reference for how GuGu computes availability and creates bookings withou
 ## Status
 M6.1–M6.5 implemented on `booking/06-core` (2026-11-03): pure slot engine, occupancy schema with
 EXCLUDE constraint, create/transition/reschedule with idempotency + history + outbox, holds with
-TTL + sweeper, CRM and public booking-page APIs. **Not implemented yet:** resources/capacity units
+TTL + sweeper, CRM APIs. The public salon booking page and guest manage links exist in code
+(`http/public-booking.controller.ts`) but are **not routed** (roadmap X23: no customer-facing booking
+surface on gugu.vn until a legal review); tests mount the controller to keep customer paths covered. **Not implemented yet:** resources/capacity units
 (M6.6), availability cache (M6.7), multi-service (M6.8), AI-agent drafts (M6.9), outbox relay
 (04-S5), Turnstile bot check, alternative slots in `409 slot_taken`, account-deletion
 anonymisation (q71).
@@ -54,7 +56,7 @@ Read from topic 07's `salon_settings` (missing row = defaults): `booking_window_
 
 ## API
 CRM (`/api/v1/salons/:salonId`, gate `schedules.read`, then `bookings.read|write` or `.own` scope): `GET availability`, `GET bookings?from&to`, `GET bookings/:id`, `POST bookings`, `POST bookings/:id/transitions`, `POST bookings/:id/reschedule`.
-Public (`/api/v1/public`, live salons only, rate-limited per device/IP/phone): `GET salons/:slug/availability`, `POST salons/:slug/holds`, `POST salons/:slug/bookings` (returns `manageToken`), `GET bookings/:token`, `POST bookings/:token/cancel`, `POST bookings/:token/reschedule`.
+Public — **unrouted (X23)**, kept for later (`/api/v1/public`, live salons only, rate-limited per device/IP/phone): `GET salons/:slug/availability`, `POST salons/:slug/holds`, `POST salons/:slug/bookings` (returns `manageToken`), `GET bookings/:token`, `POST bookings/:token/cancel`, `POST bookings/:token/reschedule`.
 All booking POSTs except holds require `Idempotency-Key`. Error codes: `BOOKING_ERRORS` in `packages/contracts/src/booking/errors.ts`.
 
 ## Events (outbox)

@@ -38,6 +38,9 @@ import { normalizedPhone } from "./phone";
 import { PUBLIC_BOOKING_LIMITS } from "./rate-limits";
 
 /**
+ * NOT ROUTED (roadmap X23): kept for a future customer-facing surface once a Vietnamese legal
+ * review allows it; integration tests mount it explicitly to keep the customer paths covered.
+ *
  * The salon's own public booking page (X19: SaaS first — direct link, QR, Zalo link). Customers
  * book with name + phone, no OTP (X11); abuse is limited by rate limits per device/IP/phone, the
  * per-phone active limit (q15) and holds per device. Bot check (Turnstile) is not implemented yet.

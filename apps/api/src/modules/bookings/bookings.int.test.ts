@@ -25,7 +25,8 @@ import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { BookingClock } from "./application/booking-clock";
-import { BookingMaintenance } from "./bookings.facade";
+import { BookingMaintenance, BookingsModule } from "./bookings.facade";
+import { PublicBookingController } from "./http/public-booking.controller";
 
 /** Typed view of a supertest JSON body (responses are validated by schema where it matters). */
 interface Body {
@@ -51,7 +52,11 @@ describe("booking engine (integration)", () => {
 
   beforeAll(async () => {
     process.env["LOG_LEVEL"] = "silent";
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+    // The public booking page is unrouted in the app (X23); mount it here to cover customer paths.
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule, BookingsModule],
+      controllers: [PublicBookingController],
+    })
       .overrideProvider(BookingClock)
       .useValue(clock)
       .compile();
@@ -540,6 +545,27 @@ describe("booking engine (integration)", () => {
       .query({ serviceId: s.serviceId, from: DAY, to: DAY })
       .expect(200);
     expect(availabilitySchema.parse(avail.body).days[0]?.slots[0]?.staffIds).toEqual([]);
+  });
+
+  it("X23: the app does not route any public booking endpoint", async () => {
+    const plain = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const plainApp = configureHttpApp(plain.createNestApplication());
+    await plainApp.init();
+    try {
+      await request(http(plainApp))
+        .get(`/api/v1/public/salons/${s.slug}/availability`)
+        .query({ serviceId: s.serviceId, from: DAY, to: DAY })
+        .expect(404);
+      await request(http(plainApp))
+        .post(`/api/v1/public/salons/${s.slug}/bookings`)
+        .send({})
+        .expect(404);
+      await request(http(plainApp))
+        .get("/api/v1/public/bookings/abcdefghijklmnopqrstuvwxyz")
+        .expect(404);
+    } finally {
+      await plainApp.close();
+    }
   });
 
   it("database guarantees: EXCLUDE rejects overlap, history is append-only", async () => {
