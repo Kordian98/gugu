@@ -1,5 +1,3 @@
-import { SectionScreen } from "@/features/salon-crm/pages/SectionScreen";
+import { ResourcesScreen } from "@/features/salon-crm/pages/resources/ResourcesScreen";
 
-export default function Screen() {
-  return <SectionScreen id="resources" />;
-}
+export default ResourcesScreen;

@@ -150,7 +150,9 @@ export function NewAppointmentSheet({
       ? { label: t("calendar.unavailable.fixServices"), path: "/business/services" }
       : reason === "no_working_hours"
         ? { label: t("calendar.unavailable.fixHours"), path: "/business/team" }
-        : null;
+        : reason === "no_resource"
+          ? { label: t("calendar.unavailable.fixResources"), path: "/business/resources" }
+          : null;
   const freeDays = new Set(
     (availability.data?.days ?? []).filter((d) => d.slots.length).map((d) => d.date),
   );

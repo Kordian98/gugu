@@ -250,7 +250,11 @@
     "zalo_paid_messages_off": "Tin nhắn tính phí đang tắt (Cài đặt → Zalo).",
     "zalo_not_connected": "Salon chưa kết nối Zalo OA.",
     "zalo_disabled": "Tích hợp Zalo chưa được bật.",
-    "zalo_conversation_not_found": "Không tìm thấy cuộc trò chuyện."
+    "zalo_conversation_not_found": "Không tìm thấy cuộc trò chuyện.",
+    "resource_type_in_use": "Loại này đang được dịch vụ sử dụng hoặc còn phòng/thiết bị đang hoạt động.",
+    "resource_in_use": "Không thể giảm hoặc tắt: đã có lịch hẹn sắp tới đang dùng chỗ này.",
+    "resource_not_found": "Không tìm thấy phòng/thiết bị.",
+    "resource_type_not_found": "Không tìm thấy loại phòng/thiết bị."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",
@@ -305,7 +309,10 @@
     "inactive": "Đang tạm ngưng",
     "cost": "Chi phí nội bộ (đ)",
     "costHint": "Vật tư + chi phí khác. Chỉ chủ salon và quản lý thấy; khách, Zalo và trợ lý AI không bao giờ thấy.",
-    "margin": "Lãi gộp {{amount}} · {{pct}}%"
+    "margin": "Lãi gộp {{amount}} · {{pct}}%",
+    "resources": "Cần phòng / thiết bị",
+    "resourcesHint": "Chọn nếu dịch vụ cần dùng riêng giường, ghế hay phòng. Chỉ nhận lịch khi còn chỗ trống.",
+    "resourceNone": "Chưa có cái nào đang hoạt động"
   },
   "team": {
     "subtitle": "Nhân viên, vai trò, giờ làm việc và lời mời",
@@ -493,11 +500,12 @@
     "unavailable": {
       "no_staff_assigned": "Không đặt được: dịch vụ này chưa gán nhân viên nào.",
       "no_working_hours": "Không đặt được: nhân viên làm dịch vụ này chưa có giờ làm việc (hoặc salon chưa có giờ mở cửa).",
-      "no_resource": "Không đặt được: dịch vụ này cần phòng hoặc thiết bị (ví dụ giường, ghế) nhưng salon chưa có cái nào đang hoạt động.",
+      "no_resource": "Không đặt được: dịch vụ cần phòng/thiết bị nhưng salon chưa có cái nào đang hoạt động.",
       "outside_booking_window": "Ngày này nằm ngoài khoảng thời gian nhận đặt lịch.",
       "fully_booked": "Tháng này không còn giờ trống cho lựa chọn này.",
       "fixServices": "Gán nhân viên",
-      "fixHours": "Thêm giờ làm"
+      "fixHours": "Thêm giờ làm",
+      "fixResources": "Thêm phòng/thiết bị"
     },
     "findEarliest": "Tìm giờ sớm nhất",
     "earliestTitle": "Giờ trống sớm nhất",
@@ -574,7 +582,8 @@
     "addAmount": "Ghi số tiền đã nhận",
     "cancelConfirm": "Huỷ lịch hẹn",
     "rescheduleTitle": "Chọn giờ mới",
-    "sameStaff": "Cùng nhân viên"
+    "sameStaff": "Cùng nhân viên",
+    "resources": "Phòng / thiết bị"
   },
   "wizard": {
     "later": "Để sau",
@@ -730,5 +739,26 @@
     "count": "Đã chọn {{count}}/{{total}}",
     "all": "Chọn tất cả",
     "none": "Bỏ chọn"
+  },
+  "resources": {
+    "subtitle": "Phòng, giường, ghế và thiết bị dùng chung cho các dịch vụ.",
+    "explainer": "Không bắt buộc. Thêm khi một số dịch vụ cần chỗ riêng — VD 2 giường massage thì chỉ nhận tối đa 2 khách massage cùng lúc.",
+    "addType": "Thêm loại",
+    "typeName": "Tên loại",
+    "typePlaceholder": "VD: Giường massage, Ghế pedicure, Phòng VIP",
+    "firstResource": "Tên phòng/thiết bị đầu tiên (không bắt buộc)",
+    "resourceName": "Tên",
+    "resourcePlaceholder": "VD: Phòng 1",
+    "capacity": "Số chỗ",
+    "capacityHint": "Số chỗ = số khách dùng cùng lúc (VD phòng có 3 giường giống nhau → 3).",
+    "addResource": "Thêm",
+    "units": "{{count}} chỗ",
+    "requiredBy": "{{count}} dịch vụ cần",
+    "noResources": "Chưa có phòng/thiết bị nào thuộc loại này.",
+    "deleteType": "Xoá loại {{name}}?",
+    "deleteTypeBody": "Các phòng/thiết bị thuộc loại này cũng sẽ bị xoá. Lịch hẹn cũ vẫn giữ nguyên.",
+    "deleteTypeInUse": "Đang có {{count}} dịch vụ cần loại này. Bỏ yêu cầu trong từng dịch vụ trước khi xoá.",
+    "deleteResource": "Xoá {{name}}",
+    "active": "Bật/tắt {{name}}"
   }
 }

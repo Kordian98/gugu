@@ -8,7 +8,7 @@ import { formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { crmApi, useCrmMutation } from "../../data/catalog";
+import { crmApi, useCrmMutation, useResources } from "../../data/catalog";
 import { useSalon } from "../../data/SalonContext";
 import { AssignList } from "../../ui/AssignList";
 import { marginText } from "./margin";
@@ -20,6 +20,7 @@ import {
   Input,
   MoneyInput,
   NumberInput,
+  Segmented,
   Select,
   Sheet,
   Toggle,
@@ -56,6 +57,7 @@ type Draft = {
   addOns: AddOnDraft[];
   staffIds: string[];
   cost: number | null;
+  resources: { resourceTypeId: string; quantity: number }[];
   /** New service whose staff list was never touched: the API assigns every bookable member. */
   staffDefault: boolean;
 };
@@ -89,6 +91,7 @@ const fromService = (s: Service | null): Draft => ({
   staffIds: s?.staffIds ?? [],
   staffDefault: !s,
   cost: s?.cost ?? null,
+  resources: (s?.resourceRequirements ?? []).map((x) => ({ ...x })),
 });
 
 const toInput = (
@@ -127,6 +130,7 @@ const toInput = (
   ...(d.staffDefault ? {} : { staffIds: d.staffIds }),
   // Internal cost is only sent by owners/managers (services.cost.read); the API refuses others.
   ...(canCost ? { cost: d.cost } : {}),
+  resourceRequirements: d.resources,
 });
 
 /**
@@ -345,6 +349,12 @@ export function ServiceEditor({
           empty={t("services.noStaffYet")}
         />
       )}
+      <ResourcePicker
+        value={d.resources}
+        onChange={(resources) => {
+          set({ resources });
+        }}
+      />
       <Field label={t("services.description")}>
         <Input
           multiline
@@ -553,6 +563,107 @@ function ListEditor<T>({
       <View style={{ alignItems: "flex-start" }}>
         <CalmButton size="sm" variant="secondary" icon="plus" label={addLabel} onPress={onAdd} />
       </View>
+    </View>
+  );
+}
+
+/** Rooms / chairs / beds the service needs at the same time (06 M6.6); hidden until types exist. */
+function ResourcePicker({
+  value,
+  onChange,
+}: {
+  value: { resourceTypeId: string; quantity: number }[];
+  onChange: (v: { resourceTypeId: string; quantity: number }[]) => void;
+}) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  const types = useResources().data?.items ?? [];
+  if (types.length === 0) return null;
+  return (
+    <View
+      testID="crm-service-resources"
+      style={{
+        gap: 10,
+        padding: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: c.line,
+        backgroundColor: c.surface,
+      }}
+    >
+      <Text role="uiSemiBold" size={14} color={c.ink}>
+        {t("services.resources")}
+      </Text>
+      <Text size={12} color={c.muted}>
+        {t("services.resourcesHint")}
+      </Text>
+      {types.map((type) => {
+        const cur = value.find((v) => v.resourceTypeId === type.id);
+        const units = type.resources.filter((r) => r.isActive).reduce((n, r) => n + r.capacity, 0);
+        return (
+          <View
+            key={type.id}
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+          >
+            <Pressable
+              testID={`crm-service-resource-${type.id}`}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: Boolean(cur) }}
+              accessibilityLabel={type.name}
+              onPress={() => {
+                onChange(
+                  cur
+                    ? value.filter((v) => v.resourceTypeId !== type.id)
+                    : [...value, { resourceTypeId: type.id, quantity: 1 }],
+                );
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                flex: 1,
+                minWidth: 180,
+              }}
+            >
+              <View
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: cur ? 0 : 1.5,
+                  borderColor: c.line,
+                  backgroundColor: cur ? c.accentBg : c.surface,
+                }}
+              >
+                {cur ? <Icon name="check" size={14} color={c.onAccent} strokeWidth={2.6} /> : null}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text size={14} color={c.ink}>
+                  {type.name}
+                </Text>
+                <Text size={12} color={units ? c.muted : c.down.text}>
+                  {units ? t("resources.units", { count: units }) : t("services.resourceNone")}
+                </Text>
+              </View>
+            </Pressable>
+            {cur ? (
+              <Segmented<"1" | "2" | "3">
+                value={String(cur.quantity) as "1" | "2" | "3"}
+                options={(["1", "2", "3"] as const).map((q) => ({ id: q, label: q }))}
+                onChange={(q) => {
+                  onChange(
+                    value.map((v) =>
+                      v.resourceTypeId === type.id ? { ...v, quantity: Number(q) } : v,
+                    ),
+                  );
+                }}
+              />
+            ) : null}
+          </View>
+        );
+      })}
     </View>
   );
 }

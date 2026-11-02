@@ -153,6 +153,13 @@ export function BookingSheet({
           {who}
         </Text>
       </Row>
+      {booking.resources.length ? (
+        <Row icon="box" label={t("booking.resources")}>
+          <Text testID="crm-booking-resources" size={15} color={c.ink}>
+            {booking.resources.map((r) => `${r.name} · ${String(r.position)}`).join(", ")}
+          </Text>
+        </Row>
+      ) : null}
       <Row icon="chart" label={t("booking.estimate")}>
         <View style={{ flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <Text role="uiSemiBold" size={15} color={c.ink}>
@@ -435,7 +442,7 @@ function Row({
   label,
   children,
 }: {
-  icon: "users" | "tag" | "team" | "chart" | "clipboard" | "check";
+  icon: "users" | "tag" | "team" | "chart" | "clipboard" | "check" | "box";
   label: string;
   children: ReactNode;
 }) {

@@ -57,9 +57,11 @@ export function Input({
   invalid,
   testID,
   width,
+  onBlur,
 }: {
   value: string;
   onChangeText: (v: string) => void;
+  onBlur?: (() => void) | undefined;
   label: string;
   placeholder?: string | undefined;
   keyboardType?: KeyboardTypeOptions | undefined;
@@ -74,6 +76,7 @@ export function Input({
       testID={testID}
       value={value}
       onChangeText={onChangeText}
+      onBlur={onBlur}
       accessibilityLabel={label}
       placeholder={placeholder}
       placeholderTextColor={c.muted}
@@ -128,16 +131,19 @@ export function NumberInput({
   onChange,
   label,
   width = 96,
+  onBlur,
 }: {
   value: number | null;
   onChange: (v: number | null) => void;
   label: string;
   width?: number | undefined;
+  onBlur?: (() => void) | undefined;
 }) {
   return (
     <Input
       label={label}
       width={width}
+      onBlur={onBlur}
       value={value === null ? "" : String(value)}
       keyboardType="number-pad"
       onChangeText={(s) => {
