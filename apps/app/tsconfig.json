@@ -5,6 +5,13 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "env.d.ts", "nativewind-env.d.ts"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "env.d.ts",
+    "nativewind-env.d.ts",
+    "expo-env.d.ts"
+  ],
   "exclude": ["node_modules", "dist-web", "ios", "android"]
 }

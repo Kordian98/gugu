@@ -11,7 +11,7 @@ How the GuGu repo is put together: one Expo app, one NestJS API, shared TypeScri
 | Secret scan | implemented (fallback) | `pnpm secrets`: built-in pattern scan; gitleaks used automatically once installed |
 | `packages/contracts` common schemas (problem+json, cursor pagination, UUIDv7, locale) | implemented | 5 Vitest tests |
 | App shell (Expo SDK 58, Router, `[locale]` + 5 route groups, providers, shell screen) | implemented | web: export + browser render of `/vi`, `/en`, `/vi/business`, `/en/me`, `/vi/staff`, `/vi/admin`; `/` → `/vi`; iOS: see below |
-| Native: iOS dev build | see ADR-0004 / report | spike verified on iPhone 17 Pro Max sim |
+| Native: iOS dev build | implemented | `cd apps/app && npx expo run:ios --port 8096` → builds (Xcode 26.4.1), installs `vn.gugu.app.dev` on iPhone 17 Pro Max sim (iOS 26.4), `/` → `/vi`, shell screen renders with NativeWind styles |
 | Native: Android dev build | pending | no Android SDK on dev Mac |
 | Unknown locale → HTTP 404 | partial | renders "Unmatched" but status is 200; real 404 + `+not-found` owned by topic 10 |
 | API shell (NestJS 12, health, Zod pipe, problem+json) | not started | — |

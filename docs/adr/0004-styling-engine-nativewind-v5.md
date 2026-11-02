@@ -18,7 +18,7 @@ The default Expo SDK 58 template (expo 58.0.22, RN 0.88.1, React 19.3.0, RNW 0.2
 | Android | ⏳ not verified: no Android SDK on this Mac | ⏳ |
 | Setup cost | metro `withNativewind`, `postcss.config.mjs`, CSS imports, `lightningcss` pinned 1.30.1 | babel preset + `jsxImportSource`, `tailwind.config.js` |
 
-Also verified in the monorepo shell (01-A3, pnpm workspace): web export + browser render with v5 rc. iOS: see `docs/domains/architecture.md` Status.
+Also verified in the monorepo shell (01-A3, pnpm 10 isolated linker): web export + browser render, and an iOS dev build (`vn.gugu.app.dev`) rendering the shell screen with v5 rc styles.
 
 Spike pitfall: a dev build compiled with `--no-bundler` loads from port 8081. On this machine another project's Metro occupied 8081, so the app loaded a foreign bundle and crashed with `TurboModuleRegistry.getEnforcing(...): 'PlatformConstants' could not be found`. Fix: build with `--port <free port>`. This is not a NativeWind problem.
 
