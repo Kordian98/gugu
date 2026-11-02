@@ -6,8 +6,12 @@ export interface RequestMeta {
   userAgent: string | null;
 }
 
+/**
+ * `req.ip` is the client address as resolved by Express `trust proxy` (configured from
+ * TRUST_PROXY in bootstrap): X-Forwarded-For is ignored unless it comes from a trusted hop.
+ */
 export const requestMeta = (req: Request): RequestMeta => ({
-  ipPrefix: ipPrefix(req.ip ?? req.socket.remoteAddress),
+  ipPrefix: ipPrefix(req.ip),
   userAgent: req.headers["user-agent"]?.slice(0, 256) ?? null,
 });
 

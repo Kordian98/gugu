@@ -36,7 +36,8 @@ export const salonRegistrationResultSchema = z.object({
   salonSlug: z.string(),
   organisationId: uuidV7Schema,
   status: z.enum(["draft", "active"]),
-  magicLinkStatus: z.enum(["not_required", "sent"]),
+  /** `rate_limited`: email limit hit — the owner confirms later by signing in with that email. */
+  magicLinkStatus: z.enum(["not_required", "sent", "rate_limited"]),
 });
 export type SalonRegistrationResult = z.infer<typeof salonRegistrationResultSchema>;
 

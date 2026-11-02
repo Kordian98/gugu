@@ -22,7 +22,7 @@ import {
   testEmail,
 } from "../../../test/factories/identity";
 import { http } from "../../../test/http-app";
-import { extractMagicLink, waitForMail } from "../../../test/mailpit";
+import { countMailsTo, extractMagicLink, waitForMail } from "../../../test/mailpit";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
@@ -133,6 +133,35 @@ describe("salons & tenancy (integration)", () => {
     expect(session.user.memberships).toMatchObject([
       { salonId: result.salonId, role: "owner", status: "active" },
     ]);
+  });
+
+  it("registration can't bypass per-email magic-link limits; sign-in later activates the owner", async () => {
+    const email = testEmail("flood");
+    const statuses: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      const res = await request(http(app))
+        .post("/api/v1/salons/registrations")
+        .send(registration({ email, businessName: `Flood ${String(i)}` }))
+        .expect(201);
+      statuses.push(salonRegistrationResultSchema.parse(res.body).magicLinkStatus);
+    }
+    expect(statuses).toEqual(["sent", "sent", "sent", "rate_limited"]);
+    expect(await countMailsTo(email)).toBe(3);
+    // The same per-email counter blocks the public sign-in endpoint too.
+    await request(http(app))
+      .post("/api/v1/auth/magic-link")
+      .send({ email, locale: "vi" })
+      .expect(429);
+
+    // Any proof of the email (here: one of the registration links) activates all 4 pending salons.
+    const { token } = extractMagicLink(await waitForMail(email));
+    const verified = await request(http(app))
+      .post("/api/v1/auth/magic-link/verify")
+      .send({ token, client: "native" })
+      .expect(200);
+    const memberships = authSessionSchema.parse(verified.body).user.memberships;
+    expect(memberships).toHaveLength(4);
+    expect(memberships.every((m) => m.status === "active" && m.role === "owner")).toBe(true);
   });
 
   it("rejects bad phone numbers and unknown locations", async () => {

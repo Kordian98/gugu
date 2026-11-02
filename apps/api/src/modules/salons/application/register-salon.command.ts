@@ -113,27 +113,36 @@ export class RegisterSalonCommand {
       return { organization, salon, ownerEmail: owner.email };
     });
 
+    let magicLinkStatus: SalonRegistrationResult["magicLinkStatus"] = "not_required";
     if (!signedIn && result.ownerEmail) {
-      // After commit: never email about a salon that was rolled back.
-      await this.magicLinks.issue(
-        {
-          email: result.ownerEmail,
-          locale: input.locale,
-          client: "web",
-          purpose: "salon_registration",
-          salonId: result.salon.id,
-          salonName: result.salon.name,
-          redirectPath: `/${input.locale}/business`,
-        },
-        meta,
-      );
+      // After commit: never email about a salon that was rolled back. issue() enforces the
+      // per-email limits; when they're hit the salon still exists and the owner confirms later by
+      // signing in with that email (any email proof activates pending memberships).
+      magicLinkStatus = "sent";
+      await this.magicLinks
+        .issue(
+          {
+            email: result.ownerEmail,
+            locale: input.locale,
+            client: "web",
+            purpose: "salon_registration",
+            salonId: result.salon.id,
+            salonName: result.salon.name,
+            redirectPath: `/${input.locale}/business`,
+          },
+          meta,
+        )
+        .catch((e: unknown) => {
+          if (e instanceof AppError && e.status === 429) magicLinkStatus = "rate_limited";
+          else throw e;
+        });
     }
     return {
       salonId: result.salon.id,
       salonSlug: result.salon.slug,
       organisationId: result.organization.id,
       status: "draft",
-      magicLinkStatus: signedIn ? "not_required" : "sent",
+      magicLinkStatus,
     };
   }
 

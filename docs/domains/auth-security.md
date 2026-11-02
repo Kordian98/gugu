@@ -47,14 +47,14 @@ Migration `20261102122228_add_subscription_salon_fks` adds `salon_id → salons(
 | Route | Policy | Notes |
 |---|---|---|
 | `GET /api/v1/auth/providers` | public | Which sign-in buttons to show |
-| `POST /api/v1/auth/magic-link` | public | Always 202 `{status:"sent"}`. Limits: 3/15 min and 10/day per email (hashed), 30/15 min per IP prefix |
-| `POST /api/v1/auth/magic-link/verify` | public | `{token}` or `{email, code}` + `client`. Web sets the cookie and returns `csrfToken`. Native returns tokens |
+| `POST /api/v1/auth/magic-link` | public | Always 202 `{status:"sent"}`. Limits: 30/15 min per IP prefix here; 3/15 min and 10/day per email (hashed) are enforced inside `MagicLinkService.issue()`, so registration emails count too |
+| `POST /api/v1/auth/magic-link/verify` | public | `{token}` or `{email, code}` + `client`. Wrong codes: 5 per link (atomic counter) and a rolling 10/hour per email across all links. Web sets the cookie and returns `csrfToken`. Native returns tokens |
 | `POST /api/v1/auth/social` | public | Apple/Google ID token. 404 `auth.provider_disabled` when not configured |
 | `POST /api/v1/auth/refresh` | public | Native refresh rotation |
 | `POST /api/v1/auth/sign-out`, `/sign-out-all` | authenticated | Revokes the session(s) and clears the cookie |
 | `GET /api/v1/me` | authenticated | User, memberships, web `csrfToken` |
 | `GET /api/v1/public/categories`, `/public/locations` | public | Reference data for registration |
-| `POST /api/v1/salons/registrations` | public | Signed in → owner at once. Anonymous → `email` required, memberships `pending_verification` until the emailed link is opened. Starts the 14-day trial in the same transaction |
+| `POST /api/v1/salons/registrations` | public | Signed in → owner at once. Anonymous → `email` required, memberships `pending_verification` until the email is proven (the registration link or any later sign-in). When the per-email limit is hit, the salon is still created and `magicLinkStatus` is `rate_limited`. Starts the 14-day trial in the same transaction |
 | `GET/PATCH /api/v1/salons/:salonId`, `GET …/members` | `salon.read` / `salon.profile.write` / `members.read` | Minimal workspace read models |
 | `GET /api/v1/salons/:salonId/entitlements` | `subscription.read` | Topic 12, guarded by the membership guard |
 
@@ -64,8 +64,9 @@ Errors: `AUTH_ERRORS` (`packages/contracts/src/auth/auth.ts`) and `SALON_ERRORS`
 
 - **Magic link (web):** request → SMTP email (Mailpit locally; vi/en, `email` namespace) → `/{locale}/auth/verify?token=…` → `POST verify` → cookie + `csrfToken` → redirect to `redirectPath` or `/{locale}/me`. On reload, `GET /me` returns the CSRF token again; it is kept in memory only.
 - **Magic link (native):** request with `client: "native"` → the user types the 6-digit code → tokens go to SecureStore. Universal links for the emailed URL come with topic 13.
+- **Client IP:** `req.ip` comes from Express `trust proxy`, set from `TRUST_PROXY` (default `false` = no proxy, local). Behind Cloudflare/a load balancer set the hop count (e.g. `1`) or the proxy CIDRs; never `true`. IP limits are the first layer; per-email/per-account limits are the second.
 - **Refresh:** `apiFetch` refreshes once on 401, with one in-flight refresh shared by concurrent calls.
-- **Salon registration (anonymous):** a user row is created unverified → org, salon, memberships and trial are created in one transaction → after commit, a `salon_registration` magic link is emailed → verifying it activates the owner memberships (audit `salon.owner_verified`).
+- **Salon registration (anonymous):** a user row is created unverified → org, salon, memberships and trial are created in one transaction → after commit, a `salon_registration` magic link is emailed → verifying it — or any later sign-in with that email — activates all of the user's pending memberships (audit `salon.owner_verified`).
 - Staff invitation, agent tool authorization, Zalo webhook ingest, account deletion/export: _TBD_ (later milestones).
 
 ## Enable Apple / Google

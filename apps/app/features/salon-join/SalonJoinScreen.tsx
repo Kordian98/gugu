@@ -182,7 +182,9 @@ export function SalonJoinScreen() {
         <Text size={16} color={color.body}>
           {done.magicLinkStatus === "sent"
             ? t("join.doneCheckInbox", { email: form.email.trim().toLowerCase() })
-            : t("join.doneBody")}
+            : done.magicLinkStatus === "rate_limited"
+              ? t("join.doneSignInLater", { email: form.email.trim().toLowerCase() })
+              : t("join.doneBody")}
         </Text>
         {done.magicLinkStatus === "not_required" ? (
           <Button

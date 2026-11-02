@@ -21,6 +21,14 @@ import { AccountsService } from "./accounts.service";
 const LINK_TTL_MS = 15 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 
+/** Per-email limits, keyed on the email HMAC. Enforced in `issue()` so every caller is covered. */
+export const MAGIC_LINK_LIMITS = {
+  email: { name: "auth.magic_link.email", limit: 3, windowSeconds: 900 },
+  emailDay: { name: "auth.magic_link.email_day", limit: 10, windowSeconds: 86_400 },
+  /** Rolling cap on wrong codes across all links of one email (not only per link). */
+  codeFailures: { name: "auth.verify.code_fail.email", limit: 10, windowSeconds: 3_600 },
+} as const;
+
 export interface IssueMagicLink {
   email: string;
   locale: Locale;
@@ -60,33 +68,38 @@ export class MagicLinkService {
 
   /** Public endpoint: rate limits, then issues and sends (or silently skips for unusable accounts). */
   async request(input: MagicLinkRequestInput, meta: RequestMeta): Promise<void> {
-    const subject = this.hash("subject", input.email);
     await this.rateLimit.consume(
       { name: "auth.magic_link.ip", limit: 30, windowSeconds: 900 },
       meta.ipPrefix ?? "none",
-    );
-    await this.rateLimit.consume(
-      { name: "auth.magic_link.email", limit: 3, windowSeconds: 900 },
-      subject,
-    );
-    await this.rateLimit.consume(
-      { name: "auth.magic_link.email_day", limit: 10, windowSeconds: 86_400 },
-      subject,
     );
     const user = await this.prisma.user.findUnique({
       where: { email: input.email },
       select: { status: true },
     });
-    if (user && (user.status === "suspended" || user.status === "deleted")) return;
+    if (user && (user.status === "suspended" || user.status === "deleted")) {
+      // Count the attempt anyway so the response pattern doesn't reveal account status.
+      await this.consumeEmailLimits(input.email);
+      return;
+    }
     await this.issue({ ...input, redirectPath: input.redirectPath ?? null }, meta);
   }
 
-  /** Creates a link and emails it. Also used by salon registration (via the auth facade). */
+  private async consumeEmailLimits(email: string): Promise<void> {
+    const subject = this.hash("subject", email);
+    await this.rateLimit.consume(MAGIC_LINK_LIMITS.email, subject);
+    await this.rateLimit.consume(MAGIC_LINK_LIMITS.emailDay, subject);
+  }
+
+  /**
+   * Creates a link and emails it. Every caller (sign-in request, salon registration via the auth
+   * facade) goes through the per-email limits here; throws 429 `common.rate_limited` when exceeded.
+   */
   async issue(
     input: IssueMagicLink,
     meta: RequestMeta,
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
+    await this.consumeEmailLimits(input.email);
     const token = randomToken();
     const code = randomCode();
     const user = await (tx ?? this.prisma).user.findUnique({
@@ -148,19 +161,39 @@ export class MagicLinkService {
         where: { email: input.email, consumedAt: null, expiresAt: { gt: now } },
         orderBy: { createdAt: "desc" },
       });
+      const subject = this.hash("subject", input.email);
+      const tooMany = () => new AppError(429, AUTH_ERRORS.tooManyAttempts, "Too many attempts");
+      // Rolling cap across all links of this email: checked before any comparison.
+      if (await this.rateLimit.exceeded(MAGIC_LINK_LIMITS.codeFailures, subject)) throw tooMany();
       if (link) {
         const ok = safeEqual(link.codeHash, this.hash("code", `${input.email}:${input.code}`));
         if (!ok) {
-          const attempts = link.attempts + 1;
-          await this.prisma.magicLinkToken.update({
-            where: { id: link.id },
-            data: { attempts, ...(attempts >= MAX_CODE_ATTEMPTS ? { consumedAt: now } : {}) },
+          await this.rateLimit.consume(MAGIC_LINK_LIMITS.codeFailures, subject).catch(() => {
+            // Reaching the cap on this attempt still answers with the per-attempt result below.
           });
-          if (attempts >= MAX_CODE_ATTEMPTS) {
-            throw new AppError(429, AUTH_ERRORS.tooManyAttempts, "Too many attempts");
+          // Atomic increment: parallel guesses can't exceed MAX_CODE_ATTEMPTS on one link.
+          const counted = await this.prisma.magicLinkToken.updateMany({
+            where: { id: link.id, consumedAt: null, attempts: { lt: MAX_CODE_ATTEMPTS } },
+            data: { attempts: { increment: 1 } },
+          });
+          const after = await this.prisma.magicLinkToken.findUniqueOrThrow({
+            where: { id: link.id },
+            select: { attempts: true },
+          });
+          if (counted.count === 0 || after.attempts >= MAX_CODE_ATTEMPTS) {
+            await this.prisma.magicLinkToken.updateMany({
+              where: { id: link.id, consumedAt: null },
+              data: { consumedAt: now },
+            });
+            throw tooMany();
           }
           throw invalid();
         }
+      } else {
+        // No live link: still count the guess so probing an email without links is capped too.
+        await this.rateLimit
+          .consume(MAGIC_LINK_LIMITS.codeFailures, subject)
+          .catch(() => undefined);
       }
     }
     if (!link || link.consumedAt || link.expiresAt <= now) throw invalid();
@@ -172,45 +205,43 @@ export class MagicLinkService {
       });
       if (claimed.count !== 1) throw invalid();
       const user = await this.accounts.upsertVerifiedByEmail(consumed.email, consumed.locale, tx);
-      if (consumed.purpose === "salon_registration" && consumed.salonId) {
-        const organizationId = await activatePendingOwner(tx, consumed.salonId, user.id);
-        if (organizationId) {
-          await this.audit.record(
-            {
-              action: "salon.owner_verified",
-              actor: { type: "user", id: user.id },
-              salonId: consumed.salonId,
-              organizationId,
-              targetType: "salon",
-              targetId: consumed.salonId,
-            },
-            tx,
-          );
-        }
+      // Any proof of the email (sign-in or registration link) activates memberships that were
+      // waiting for it — so a rate-limited registration email can be replaced by a normal sign-in.
+      for (const pending of await activatePendingMemberships(tx, user.id)) {
+        await this.audit.record(
+          {
+            action: "salon.owner_verified",
+            actor: { type: "user", id: user.id },
+            salonId: pending.salonId,
+            organizationId: pending.organizationId,
+            targetType: "salon",
+            targetId: pending.salonId,
+          },
+          tx,
+        );
       }
       return { user, link: consumed };
     });
   }
 }
 
-/** Opening the registration link proves the email: pending owner memberships become active. */
-async function activatePendingOwner(
+/** Proving the email activates the user's `pending_verification` salon and org memberships. */
+async function activatePendingMemberships(
   tx: Prisma.TransactionClient,
-  salonId: string,
   userId: string,
-): Promise<string | null> {
-  const salon = await tx.salon.findUnique({
-    where: { id: salonId },
-    select: { organizationId: true },
+): Promise<{ salonId: string; organizationId: string }[]> {
+  const pending = await tx.salonMember.findMany({
+    where: { userId, status: "pending_verification" },
+    select: { salonId: true, salon: { select: { organizationId: true } } },
   });
-  if (!salon) return null;
-  const activated = await tx.salonMember.updateMany({
-    where: { salonId, userId, status: "pending_verification" },
+  if (pending.length === 0) return [];
+  await tx.salonMember.updateMany({
+    where: { userId, status: "pending_verification" },
     data: { status: "active" },
   });
   await tx.organizationMember.updateMany({
-    where: { organizationId: salon.organizationId, userId, status: "pending_verification" },
+    where: { userId, status: "pending_verification" },
     data: { status: "active" },
   });
-  return activated.count > 0 ? salon.organizationId : null;
+  return pending.map((p) => ({ salonId: p.salonId, organizationId: p.salon.organizationId }));
 }

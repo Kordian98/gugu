@@ -174,6 +174,35 @@ describe("auth: magic link, sessions, CSRF (integration)", () => {
       .expect(400);
   });
 
+  it("caps wrong codes per email across links (rolling 10/hour), not only per link", async () => {
+    const email = testEmail("rolling");
+    const wrongFor = (code: string) => (code === "000000" ? "111111" : "000000");
+    // Two links, 5 wrong codes each (each link locks at its 5th) = 10 failures for this email.
+    for (let round = 0; round < 2; round++) {
+      await requestLink(email);
+      const { code } = extractMagicLink(await waitForMail(email));
+      for (let i = 0; i < 5; i++) {
+        await request(http(app))
+          .post("/api/v1/auth/magic-link/verify")
+          .send({ email, code: wrongFor(code) });
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    // A fresh link with the RIGHT code is refused while the rolling cap is reached.
+    await requestLink(email);
+    const fresh = extractMagicLink(await waitForMail(email));
+    const res = await request(http(app))
+      .post("/api/v1/auth/magic-link/verify")
+      .send({ email, code: fresh.code });
+    expect(res.status).toBe(429);
+    expect(problemSchema.parse(res.body).code).toBe("auth.too_many_attempts");
+    // The emailed link itself (256-bit token) still works.
+    await request(http(app))
+      .post("/api/v1/auth/magic-link/verify")
+      .send({ token: fresh.token })
+      .expect(200);
+  });
+
   it("stores only hashes: no token or code in the database", async () => {
     const email = testEmail("hash");
     await requestLink(email);

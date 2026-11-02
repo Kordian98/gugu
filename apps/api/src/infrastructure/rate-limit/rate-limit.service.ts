@@ -18,6 +18,12 @@ export interface RateLimitRule {
 export class RateLimitService {
   constructor(private readonly redis: RedisService) {}
 
+  /** True once the window's limit has been reached (does not count a hit). */
+  async exceeded(rule: RateLimitRule, subject: string): Promise<boolean> {
+    const count = Number((await this.redis.client.get(`rl:${rule.name}:${subject}`)) ?? 0);
+    return count >= rule.limit;
+  }
+
   /** Counts one hit; throws 429 `common.rate_limited` once the window's limit is exceeded. */
   async consume(rule: RateLimitRule, subject: string): Promise<void> {
     const key = `rl:${rule.name}:${subject}`;

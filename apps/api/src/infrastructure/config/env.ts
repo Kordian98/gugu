@@ -24,6 +24,20 @@ export const envSchema = z
     AUTH_SECRET: z.string().min(32).default(DEV_AUTH_SECRET),
     /** Public web app origin; magic links point here (`/{locale}/auth/verify?token=…`). */
     WEB_APP_URL: z.url().default("http://localhost:8097"),
+    /**
+     * Express `trust proxy` (spec 05 R32): which hops may set X-Forwarded-For, so `req.ip` is the
+     * real client. `false` (default, local: no proxy) | hop count (`1` behind one LB/Cloudflare) |
+     * comma-separated IPs/CIDRs/`loopback`. Never `true` (any client could spoof its IP).
+     */
+    TRUST_PROXY: z
+      .string()
+      .default("false")
+      .transform(parseTrustProxy)
+      .pipe(
+        z.union([z.literal(false), z.number(), z.string()], {
+          error: "false, a hop count, or IP/CIDR list (not true)",
+        }),
+      ),
     /** Comma-separated origins allowed to call the API with credentials (CORS). */
     WEB_ORIGINS: z.string().default("http://localhost:8097"),
     SMTP_URL: z.url({ protocol: /^smtps?$/ }).default("smtp://127.0.0.1:11025"),
@@ -43,6 +57,15 @@ export const envSchema = z
   });
 
 export type Env = z.infer<typeof envSchema>;
+
+/** `false` | hop count | address list; null for invalid input (including `true`). */
+export function parseTrustProxy(raw: string): false | number | string | null {
+  const value = raw.trim();
+  if (value === "" || value === "false" || value === "0") return false;
+  if (/^\d+$/.test(value)) return Number(value);
+  if (value === "true") return null;
+  return /^[\w.:/,\s-]+$/.test(value) ? value : null;
+}
 
 export class InvalidEnvError extends Error {
   constructor(readonly issues: readonly string[]) {
