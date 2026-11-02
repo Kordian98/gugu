@@ -144,6 +144,10 @@ describe("Zalo integration (emulator, end to end)", () => {
     out = await tap(out, "Dài");
     out = await tap(out, "Ai cũng được");
     out = await tap(out, "Thứ 4, 02/12");
+    // Many free times: pick the part of the day first, then the time.
+    const morning = lastText(out).buttons.find((b) => b.title.startsWith("Sáng"));
+    expect(morning).toBeDefined();
+    out = await say({ event: "user_send_text", text: morning?.payload ?? "" });
     out = await tap(out, "09:00");
     expect(out.some((e) => e.message?.kind === "request_info")).toBe(true);
     out = await say({ event: "user_submit_info", name: "Mai", phone: "0901234567" });

@@ -1,5 +1,6 @@
 import { formatVND } from "@gugu/localization";
 import { normalizeVnPhone } from "@gugu/domain";
+import { DAY_PARTS, type DayPart, dayPartOf, type ParsedWhen, parseWhen } from "./when";
 import {
   globalPayload,
   type GlobalCommand,
@@ -22,6 +23,7 @@ import {
   type BotT,
   FLOW_TIMEOUT_MS,
   INITIAL_BOT_STATE,
+  MAX_BUTTONS,
   PAGE_SIZE,
   type Selection,
 } from "./types";
@@ -35,7 +37,11 @@ export interface BotDeps {
 /** One prepared reply: text, the buttons and the option value behind each button. */
 interface Menu {
   text: string;
-  options: { title: string; value: string }[];
+  /**
+   * Option values by index. Hidden options get no button (Zalo shows at most MAX_BUTTONS) but can
+   * still be picked by typing their number — the text lists them all.
+   */
+  options: { title: string; value: string; hidden?: boolean }[];
   /** Leading options that are numbered list items. */
   items: number;
 }
@@ -98,10 +104,16 @@ class BotRun {
     if (this.menu) {
       this.seq += 1;
       const seq = this.seq;
-      const buttons: BotButton[] = this.menu.options.map((o, i) => ({
-        title: o.title,
-        payload: o.value.startsWith("gg|") ? o.value : optionPayload(seq, i),
-      }));
+      const buttons: BotButton[] = this.menu.options.flatMap((o, i) =>
+        o.hidden
+          ? []
+          : [
+              {
+                title: o.title,
+                payload: o.value.startsWith("gg|") ? o.value : optionPayload(seq, i),
+              },
+            ],
+      );
       options = this.menu.options.map((o) => o.value);
       items = this.menu.items;
       this.replies.push({ kind: "text", text: this.menu.text, buttons });
@@ -178,6 +190,11 @@ class BotRun {
         (o) => o.startsWith("time:") && this.timeLabel(o.slice(5)) === hhmm,
       );
       if (value) return this.onOption(value);
+    }
+    const st = this.step;
+    if (st.name === "day" || st.name === "time") {
+      const when = parseWhen(text, this.today());
+      if (when) return this.onWhen(st, when);
     }
     if (this.step.name === "idle") {
       this.showHome(true);
@@ -259,6 +276,17 @@ class BotRun {
         break;
       case "more":
         return this.nextPage();
+      case "prev":
+        return this.prevPage();
+      case "part":
+        if (step.name === "time" && isDayPart(arg)) {
+          return this.showTimes(step.sel, step.date, 0, step.rescheduleId, arg);
+        }
+        break;
+      case "otherpart":
+        if (step.name === "time")
+          return this.showTimes(step.sel, step.date, 0, step.rescheduleId, null);
+        break;
       case "day":
         if (step.name === "day") return this.showTimes(step.sel, arg, 0, step.rescheduleId);
         break;
@@ -301,7 +329,27 @@ class BotRun {
     if (step.name === "service") return this.showServices(step.page + 1);
     if (step.name === "day") return this.showDays(step.sel, step.rescheduleId, step.page + 1);
     if (step.name === "time") {
-      return this.showTimes(step.sel, step.date, step.page + 1, step.rescheduleId);
+      return this.showTimes(
+        step.sel,
+        step.date,
+        step.page + 1,
+        step.rescheduleId,
+        step.part ?? "all",
+      );
+    }
+    return this.repeatStep();
+  }
+  private async prevPage(): Promise<void> {
+    const step = this.step;
+    if (step.name === "day") return this.showDays(step.sel, step.rescheduleId, step.page - 1);
+    if (step.name === "time") {
+      return this.showTimes(
+        step.sel,
+        step.date,
+        step.page - 1,
+        step.rescheduleId,
+        step.part ?? "all",
+      );
     }
     return this.repeatStep();
   }
@@ -322,7 +370,7 @@ class BotRun {
       case "day":
         return this.showDays(step.sel, step.rescheduleId, step.page);
       case "time":
-        return this.showTimes(step.sel, step.date, step.page, step.rescheduleId);
+        return this.showTimes(step.sel, step.date, step.page, step.rescheduleId, step.part ?? null);
       case "phone": {
         this.askPhone();
         return;
@@ -442,40 +490,140 @@ class BotRun {
       ]);
       return;
     }
-    const { slice, hasMore, page: p } = paginate(days, page);
+    const { visible, p, prev, next } = pageOf(days, page);
     this.step = { name: "day", sel, page: p, rescheduleId };
     this.menu = {
       text: [
         this.t("chooseDay"),
-        ...slice.map((d, i) => `${String(i + 1)}. ${this.dayLabel(d)}`),
+        ...days.map((d, i) => `${String(i + 1)}. ${this.dayLabel(d)}`),
+        this.t("typeHint"),
       ].join("\n"),
-      items: slice.length,
+      items: days.length,
       options: [
-        ...slice.map((d) => ({ title: this.dayLabel(d), value: `day:${d}` })),
-        ...(hasMore ? [{ title: this.t("more"), value: "more" }] : []),
+        ...days.map((d) => ({
+          title: this.dayLabel(d),
+          value: `day:${d}`,
+          hidden: !visible.includes(d),
+        })),
+        ...(prev ? [{ title: this.t("prev"), value: "prev" }] : []),
+        ...(next ? [{ title: this.t("next"), value: "more" }] : []),
       ],
     };
   }
 
+  /**
+   * Free times of one day. Many times across the day → first pick a part of the day (sáng / chiều /
+   * tối); then the times of that part, three per page with ‹ › — every time is also listed in the
+   * text and can be typed ("3", "15:30").
+   */
   private async showTimes(
     sel: Selection,
     date: string,
     page: number,
     rescheduleId: string | null,
+    part: DayPart | "all" | null = null,
   ): Promise<void> {
     const slots = await this.ports.slots(sel, date, rescheduleId);
     if (slots.length === 0) return this.showDays(sel, rescheduleId, 0);
-    const { slice, hasMore, page: p } = paginate(slots, page, PAGE_SIZE - 1);
-    this.step = { name: "time", sel, date, page: p, rescheduleId };
+    const groups = DAY_PARTS.map((p) => ({
+      part: p,
+      slots: slots.filter((s) => dayPartOf(this.minuteOf(s)) === p),
+    })).filter((g) => g.slots.length > 0);
+    if (part === null && slots.length > MAX_BUTTONS && groups.length > 1) {
+      this.step = { name: "time", sel, date, page: 0, rescheduleId, part: null };
+      this.menu = {
+        text: [this.t("chooseTimeOfDay", { date: this.dayLabel(date) }), this.t("typeHint")].join(
+          "\n",
+        ),
+        items: groups.length,
+        options: [
+          ...groups.map((g) => ({
+            title: this.t("partCount", { part: this.t(`part.${g.part}`), count: g.slots.length }),
+            value: `part:${g.part}`,
+          })),
+          { title: this.t("otherDay"), value: "otherday" },
+        ],
+      };
+      return;
+    }
+    const chosen =
+      part !== null && part !== "all" ? groups.find((g) => g.part === part) : undefined;
+    const list = chosen?.slots ?? slots;
+    const { visible, p, prev, next } = pageOf(list, page);
+    const extras = [
+      ...(chosen && groups.length > 1 ? [{ title: this.t("otherPart"), value: "otherpart" }] : []),
+      { title: this.t("otherDay"), value: "otherday" },
+    ];
+    const nav = [
+      ...(prev ? [{ title: this.t("prev"), value: "prev" }] : []),
+      ...(next ? [{ title: this.t("next"), value: "more" }] : []),
+    ];
+    const room = MAX_BUTTONS - visible.length - nav.length;
+    this.step = {
+      name: "time",
+      sel,
+      date,
+      page: p,
+      rescheduleId,
+      part: chosen ? chosen.part : "all",
+    };
     this.menu = {
       text: [
-        this.t("chooseTime", { date: this.dayLabel(date) }),
-        ...slice.map((s, i) => `${String(i + 1)}. ${this.timeLabel(s)}`),
+        chosen
+          ? this.t("chooseTimePart", {
+              part: this.t(`partLower.${chosen.part}`),
+              date: this.dayLabel(date),
+            })
+          : this.t("chooseTime", { date: this.dayLabel(date) }),
+        ...rows(list.map((s, i) => `${String(i + 1)}. ${this.timeLabel(s)}`)),
+        this.t("typeHint"),
       ].join("\n"),
-      items: slice.length,
+      items: list.length,
       options: [
-        ...slice.map((s) => ({ title: this.timeLabel(s), value: `time:${s}` })),
-        ...(hasMore ? [{ title: this.t("more"), value: "more" }] : []),
+        ...list.map((s) => ({
+          title: this.timeLabel(s),
+          value: `time:${s}`,
+          hidden: !visible.includes(s),
+        })),
+        ...nav,
+        ...extras.slice(0, Math.max(0, room)),
+      ],
+    };
+  }
+
+  /** "mai 15h", "thứ 7 sáng": jump to that day / part, or the nearest free times. */
+  private async onWhen(
+    st: Extract<BotStep, { name: "day" | "time" }>,
+    when: ParsedWhen,
+  ): Promise<void> {
+    const { sel, rescheduleId } = st;
+    const days = await this.ports.days(sel, rescheduleId);
+    let date = when.date ?? (st.name === "time" ? st.date : null);
+    if (!date && when.minute !== null) date = days[0] ?? null;
+    if (!date) {
+      this.say(this.t("fallback"));
+      return this.repeatStep();
+    }
+    if (!days.includes(date)) {
+      this.say(this.t("dayFull", { date: this.dayLabel(date) }));
+      return this.showDays(sel, rescheduleId, 0);
+    }
+    if (when.minute === null) return this.showTimes(sel, date, 0, rescheduleId, when.part ?? null);
+    const target = when.minute;
+    const slots = await this.ports.slots(sel, date, rescheduleId);
+    const exact = slots.find((s) => this.minuteOf(s) === target);
+    if (exact) return this.pickTime(sel, exact, rescheduleId);
+    const nearest = [...slots]
+      .sort((a, b) => Math.abs(this.minuteOf(a) - target) - Math.abs(this.minuteOf(b) - target))
+      .slice(0, 3)
+      .sort();
+    this.step = { name: "time", sel, date, page: 0, rescheduleId, part: "all" };
+    const hh = `${String(Math.floor(target / 60)).padStart(2, "0")}:${String(target % 60).padStart(2, "0")}`;
+    this.menu = {
+      text: this.t("nearest", { time: hh, date: this.dayLabel(date) }),
+      items: nearest.length,
+      options: [
+        ...nearest.map((s) => ({ title: this.timeLabel(s), value: `time:${s}` })),
         { title: this.t("otherDay"), value: "otherday" },
       ],
     };
@@ -741,6 +889,16 @@ class BotRun {
     return `${weekday}, ${dm}`;
   }
 
+  /** Minutes after midnight in the salon timezone. */
+  private minuteOf(iso: string): number {
+    const [h, m] = this.timeLabel(iso).split(":").map(Number);
+    return (h ?? 0) * 60 + (m ?? 0);
+  }
+
+  private today(): string {
+    return this.localDate(this.deps.now.toISOString());
+  }
+
   /** 24 h "14:30" in the salon timezone. */
   private timeLabel(iso: string): string {
     return new Intl.DateTimeFormat("en-GB", {
@@ -785,3 +943,26 @@ function paginate<T>(list: readonly T[], page: number, size = PAGE_SIZE) {
 function truncate(title: string, max = 20): string {
   return title.length <= max ? title : `${title.slice(0, max - 1)}…`;
 }
+
+/** Three items per page plus ‹ › when needed; up to MAX_BUTTONS items fit on one page. */
+function pageOf<T>(list: readonly T[], page: number) {
+  if (list.length <= MAX_BUTTONS) return { visible: [...list], p: 0, prev: false, next: false };
+  const size = MAX_BUTTONS - 2;
+  const pages = Math.ceil(list.length / size);
+  const p = Math.min(Math.max(0, page), pages - 1);
+  return {
+    visible: list.slice(p * size, p * size + size),
+    p,
+    prev: p > 0,
+    next: p < pages - 1,
+  };
+}
+
+/** Numbered items, three per line, so long lists stay short in the chat. */
+function rows(items: readonly string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < items.length; i += 3) out.push(items.slice(i, i + 3).join("    "));
+  return out;
+}
+
+const isDayPart = (v: string): v is DayPart => (DAY_PARTS as readonly string[]).includes(v);

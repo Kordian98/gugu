@@ -56,7 +56,26 @@
     "bookAgain": "Book again",
     "limitReached": "You already have several upcoming appointments at this salon. You can view or change them.",
     "staffActive": "A salon staff member is chatting with you and will reply soon. You can also go back to the booking assistant.",
-    "backToBot": "Back to assistant"
+    "backToBot": "Back to assistant",
+    "typeHint": "You can also type, e.g. “tomorrow 3pm”, “sat morning”, or a number.",
+    "prev": "‹ Back",
+    "next": "Next ›",
+    "chooseTimeOfDay": "Which part of {{date}}?",
+    "part": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "partLower": {
+      "morning": "in the morning",
+      "afternoon": "in the afternoon",
+      "evening": "in the evening"
+    },
+    "partCount": "{{part}} · {{count}} times",
+    "chooseTimePart": "Free times {{part}}, {{date}}:",
+    "otherPart": "Other part of day",
+    "nearest": "{{time}} on {{date}} isn't free. Nearest free times:",
+    "dayFull": "The salon has no free time on {{date}}. Please pick another day."
   },
   "panel": {
     "title": "Zalo",

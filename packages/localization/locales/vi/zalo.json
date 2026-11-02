@@ -56,7 +56,26 @@
     "bookAgain": "Đặt lịch lại",
     "limitReached": "Bạn đang có nhiều lịch hẹn sắp tới tại salon. Bạn xem hoặc đổi lịch hiện có nhé.",
     "staffActive": "Nhân viên của salon đang trò chuyện với bạn và sẽ trả lời sớm. Bạn cũng có thể quay lại trợ lý đặt lịch.",
-    "backToBot": "Quay lại trợ lý"
+    "backToBot": "Quay lại trợ lý",
+    "typeHint": "Bạn có thể gõ nhanh, ví dụ: “mai 15h”, “thứ 7 sáng” hoặc số thứ tự.",
+    "prev": "‹ Trước",
+    "next": "Sau ›",
+    "chooseTimeOfDay": "Bạn muốn đến buổi nào ngày {{date}}?",
+    "part": {
+      "morning": "Sáng",
+      "afternoon": "Chiều",
+      "evening": "Tối"
+    },
+    "partLower": {
+      "morning": "buổi sáng",
+      "afternoon": "buổi chiều",
+      "evening": "buổi tối"
+    },
+    "partCount": "{{part}} · {{count}} giờ",
+    "chooseTimePart": "Giờ trống {{part}} {{date}}:",
+    "otherPart": "Buổi khác",
+    "nearest": "Không còn đúng {{time}} ngày {{date}}. Giờ trống gần nhất:",
+    "dayFull": "{{date}} salon không còn giờ trống. Bạn chọn ngày khác nhé."
   },
   "panel": {
     "title": "Zalo",

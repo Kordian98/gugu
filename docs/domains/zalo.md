@@ -106,6 +106,19 @@ Salons register their ZBS templates at Zalo with exactly these parameters: `cust
 - App: `features/salon-crm/data/zalo.ts`, `pages/settings/ZaloSection.tsx`, `pages/ZaloInboxScreen.tsx`, and the route `app/[locale]/(business)/business/zalo.tsx`.
 - QA screenshots: `docs/qa/09-zalo/`.
 
+## Zalo message limits the bot works within
+- **Consultation message (tin tư vấn):** text up to 2,000 characters. Up to 5 buttons per message: 5 is the cap in SDK type definitions [3p], and a Zalo community answer confirms more than 5 isn't supported. Button title up to 100 characters; `oa.query.*` payload up to 1,000 characters [3p, eSMS docs].
+  - Button types: `oa.query.show` / `oa.query.hide` (sends a payload back to the OA), `oa.open.url`, `oa.open.phone`, `oa.open.sms`. URL buttons to gugu.vn are not allowed (X24).
+- **List template:** up to 5 elements [3p]. Not used: same cap as buttons.
+- **Request-user-info form:** one per message; the customer shares name and phone with the OA.
+- **ZBS template message:** 0–2 CTA buttons, defined when the template is registered [official, zalo.solutions].
+- **No carousel or calendar widget** is available to OA consultation messages. A calendar UI would need a Zalo Mini App (needs a VN entity) or a web link (not allowed).
+- **How the bot fits more options:**
+  - Every option is numbered in the text and can be typed ("7", "15:30").
+  - Buttons show 3 options plus ‹ ›.
+  - Free times are grouped by part of the day (sáng / chiều / tối).
+  - Short phrases ("mai 15h", "thứ 7 sáng", "15/11 14:00") jump to the right day or the nearest times (`domain/bot/when.ts`).
+
 ## Known limitations
 - Real Zalo behaviour comes from documentation and SDKs, not a live OA, and must be verified in spike S-Z1. That covers endpoints, payload shapes, error codes, the webhook signature formula and button postbacks (`oa.query.hide` arriving as `user_send_text`). Only `http-zalo-client.ts` and `webhook-ingest.service.ts` should need changes.
 - Whether ZBS template buttons can post back to the OA chat is unverified. Reminders inside the 7-day window use chat buttons; template reminders rely on the template's own buttons and typed replies.

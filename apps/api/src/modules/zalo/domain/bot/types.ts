@@ -1,3 +1,5 @@
+import type { DayPart } from "./when";
+
 /**
  * Rule-based Zalo booking bot (roadmap X24). No LLM: every step is a button / quick-reply menu,
  * typed numbers and a few keywords. The bot always speaks as the salon and never mentions GuGu.
@@ -9,8 +11,8 @@ export const MAX_BUTTONS = 5;
 export const PAGE_SIZE = MAX_BUTTONS - 1;
 /** A flow left idle longer than this restarts at the menu. */
 export const FLOW_TIMEOUT_MS = 30 * 60_000;
-/** Days offered for booking (X24: slots for the next 7 days). */
-export const BOOKING_DAYS = 7;
+/** Days offered for booking (owner 2026-11-03: the next 14 days, within the salon's window). */
+export const BOOKING_DAYS = 14;
 
 export interface BotButton {
   title: string;
@@ -42,7 +44,15 @@ export type BotStep =
   | { name: "variant"; serviceId: string }
   | { name: "staff"; serviceId: string; variantId: string | null }
   | { name: "day"; sel: Selection; page: number; rescheduleId: string | null }
-  | { name: "time"; sel: Selection; date: string; page: number; rescheduleId: string | null }
+  | {
+      name: "time";
+      sel: Selection;
+      date: string;
+      page: number;
+      rescheduleId: string | null;
+      /** Times shown: one part of the day, "all", or null = the part-of-day chooser. */
+      part?: DayPart | "all" | null;
+    }
   | { name: "phone"; sel: Selection; startsAt: string }
   | { name: "confirm"; sel: Selection; startsAt: string }
   | { name: "my_bookings" }
