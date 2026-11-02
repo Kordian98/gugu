@@ -18,7 +18,10 @@
     "booking_occupancy_valid",
     "bookings_valid",
     "booking_services_valid",
-    "offline_sales_amount_valid"
+    "offline_sales_amount_valid",
+    "zalo_send_logs_valid",
+    "zalo_webhook_events_status_valid",
+    "zalo_oa_connections_tokens_when_connected"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",
@@ -27,7 +30,8 @@
     "staff_profiles_one_per_member",
     "staff_services_unique_service",
     "staff_services_unique_variant",
-    "outbox_events_unpublished"
+    "outbox_events_unpublished",
+    "zalo_oa_connections_one_live_per_oa"
   ],
   "triggers": ["audit_logs_no_update_delete", "booking_status_history_no_update_delete"]
 }

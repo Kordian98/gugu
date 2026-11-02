@@ -5,6 +5,7 @@ import enCrm from "../locales/en/crm.json";
 import enEmail from "../locales/en/email.json";
 import enLanding from "../locales/en/landing.json";
 import enMarketing from "../locales/en/marketing.json";
+import enZalo from "../locales/en/zalo.json";
 import viA11y from "../locales/vi/a11y.json";
 import viAuth from "../locales/vi/auth.json";
 import viCommon from "../locales/vi/common.json";
@@ -12,6 +13,7 @@ import viCrm from "../locales/vi/crm.json";
 import viEmail from "../locales/vi/email.json";
 import viLanding from "../locales/vi/landing.json";
 import viMarketing from "../locales/vi/marketing.json";
+import viZalo from "../locales/vi/zalo.json";
 
 /** Dictionaries are bundled statically (topic 03 §4). vi is the source of truth for keys. */
 export const resources = {
@@ -23,6 +25,7 @@ export const resources = {
     email: viEmail,
     crm: viCrm,
     landing: viLanding,
+    zalo: viZalo,
   },
   en: {
     common: enCommon,
@@ -32,6 +35,7 @@ export const resources = {
     email: enEmail,
     crm: enCrm,
     landing: enLanding,
+    zalo: enZalo,
   },
 } as const;
 
@@ -43,6 +47,7 @@ export const NAMESPACES = [
   "email",
   "crm",
   "landing",
+  "zalo",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 export type Resources = (typeof resources)["vi"];

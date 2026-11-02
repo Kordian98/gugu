@@ -36,6 +36,11 @@ export const AUDIT_ACTIONS = [
   "ai_import.extracted",
   "ai_import.blocked",
   "ai_import.confirmed",
+  "zalo.oa_connected",
+  "zalo.oa_disconnected",
+  "zalo.settings_updated",
+  "zalo.conversation_taken_over",
+  "zalo.conversation_released",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

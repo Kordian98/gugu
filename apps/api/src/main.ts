@@ -5,7 +5,8 @@ import { AppModule } from "./app.module";
 import { configureHttpApp } from "./bootstrap";
 import { AppConfig } from "./infrastructure/config/app-config";
 
-const app = await NestFactory.create(AppModule, { bufferLogs: true });
+// rawBody: the Zalo webhook signature is computed over the exact request bytes (topic 09).
+const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 app.useLogger(app.get(Logger));
 configureHttpApp(app);
 const { API_PORT } = app.get(AppConfig).env;

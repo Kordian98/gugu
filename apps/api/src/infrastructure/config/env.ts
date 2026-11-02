@@ -6,6 +6,8 @@ import { z } from "zod";
  */
 const DEV_AUTH_SECRET = "dev-only-insecure-auth-secret-do-not-use-in-prod";
 const DEV_BOOKING_TOKEN_SECRET = "dev-only-insecure-booking-token-secret-not-for-prod";
+const DEV_ZALO_TOKEN_KEY = "dev-only-insecure-zalo-token-key-do-not-use-in-prod";
+const DEV_ZALO_OA_SECRET_KEY = "dev-only-zalo-emulator-oa-secret-key";
 
 export const envSchema = z
   .object({
@@ -63,7 +65,28 @@ export const envSchema = z
       .enum(["true", "false"])
       .default("false")
       .transform((v) => v === "true"),
+    /** Public origin of this API (Zalo OAuth callback, emulator pages and webhook target). */
+    API_PUBLIC_URL: z.url().default("http://localhost:3001"),
+    /**
+     * Zalo OA integration (topic 09, X24). `emulated` = built-in emulator, no real Zalo (default
+     * outside production); `http` = real Zalo APIs (needs ZALO_APP_ID/SECRET); `disabled` = off
+     * (default in production).
+     */
+    ZALO_CLIENT: z.enum(["disabled", "emulated", "http"]).optional(),
+    ZALO_APP_ID: z.string().default(""),
+    ZALO_APP_SECRET: z.string().default(""),
+    /** Key Zalo uses to sign webhooks for our app ("OA Secret Key" in the Zalo app console). */
+    ZALO_OA_SECRET_KEY: z.string().min(16).default(DEV_ZALO_OA_SECRET_KEY),
+    /** Encrypts per-salon OA tokens at rest (AES-256-GCM, key derived with SHA-256). ≥ 32 chars. */
+    ZALO_TOKEN_KEY: z.string().min(32).default(DEV_ZALO_TOKEN_KEY),
+    /** Indicative prices for the send log (VND). Override when real prices are known. */
+    ZALO_PRICE_TEMPLATE_VND: z.coerce.number().int().min(0).default(200),
+    ZALO_PRICE_CS_PAID_VND: z.coerce.number().int().min(0).default(55),
   })
+  .transform((env) => ({
+    ...env,
+    ZALO_CLIENT: env.ZALO_CLIENT ?? (env.NODE_ENV === "production" ? "disabled" : "emulated"),
+  }))
   .refine((env) => env.NODE_ENV !== "production" || env.AUTH_SECRET !== DEV_AUTH_SECRET, {
     path: ["AUTH_SECRET"],
     message: "must be set in production",
@@ -71,6 +94,22 @@ export const envSchema = z
   .refine(
     (env) => env.NODE_ENV !== "production" || env.BOOKING_TOKEN_SECRET !== DEV_BOOKING_TOKEN_SECRET,
     { path: ["BOOKING_TOKEN_SECRET"], message: "must be set in production" },
+  )
+  .refine((env) => env.NODE_ENV !== "production" || env.ZALO_CLIENT !== "emulated", {
+    path: ["ZALO_CLIENT"],
+    message: "the Zalo emulator is not allowed in production",
+  })
+  .refine(
+    (env) =>
+      env.ZALO_CLIENT !== "http" ||
+      (env.ZALO_APP_ID !== "" &&
+        env.ZALO_APP_SECRET !== "" &&
+        env.ZALO_OA_SECRET_KEY !== DEV_ZALO_OA_SECRET_KEY &&
+        env.ZALO_TOKEN_KEY !== DEV_ZALO_TOKEN_KEY),
+    {
+      path: ["ZALO_CLIENT"],
+      message: "http needs ZALO_APP_ID, ZALO_APP_SECRET, ZALO_OA_SECRET_KEY, ZALO_TOKEN_KEY",
+    },
   );
 
 export type Env = z.infer<typeof envSchema>;

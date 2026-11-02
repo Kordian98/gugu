@@ -54,3 +54,21 @@ export class BookingsModule {}
   exports: [BookingMaintenance],
 })
 export class BookingsWorkerModule {}
+
+/**
+ * Engine commands and queries without HTTP, for other modules through the facade (topic 09: the
+ * Zalo booking bot books, cancels and reschedules as the customer). Same providers, no controllers.
+ */
+@Module({
+  imports: [AuditModule],
+  providers: [
+    BookingClock,
+    BookingContexts,
+    BookingLifecycleCommands,
+    BookingQueries,
+    BookingSecrets,
+    CreateBookingCommand,
+  ],
+  exports: [BookingContexts, BookingLifecycleCommands, BookingQueries, CreateBookingCommand],
+})
+export class BookingsEngineModule {}
