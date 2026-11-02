@@ -14,6 +14,21 @@ export const AUDIT_ACTIONS = [
   "salon.owner_verified",
   "salon.owner_declined",
   "salon.profile_updated",
+  "salon.settings_updated",
+  "salon.went_live",
+  "catalog.service_created",
+  "catalog.service_updated",
+  "catalog.service_deleted",
+  "team.staff_created",
+  "team.staff_updated",
+  "team.staff_removed",
+  "team.schedule_updated",
+  "team.time_off_added",
+  "team.time_off_removed",
+  "team.invitation_created",
+  "team.invitation_revoked",
+  "team.invitation_accepted",
+  "team.member_role_changed",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

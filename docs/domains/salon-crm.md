@@ -5,7 +5,8 @@
 ## Status
 
 - **Built (crm/07-join, 2026-11-02):** workspace shell (sidebar with collapsible sections, icon rail < 1024 px, mobile header + bottom tabs + "More" sheet), page header (search, Ultra-only location label, New appointment, notifications, avatar), Overview/Today (greeting, AI setup checklist, 4 KPI cards, staff timeline, upcoming & live queue, latest activity), section pages with designed empty states, Services (AI setup + manual paths, UI only), Settings (appearance System/Light/Dark, language). Calm light + dark tokens in `@gugu/design-system` (X18).
-- **Not built:** no data is fetched yet (no salon/calendar/insights API); every number is an empty state unless the dev-only demo seed is on. No auth guard or role filtering (topic 05 session). AI import (08), booking actions (06), registration form (`/business/join`, waits for topic 05's contract on main), search results, notifications feed, salon switcher menu.
+- **Built (crm/07-catalog, 2026-11-02):** catalogue (services, variants, add-ons q17, active, order, staff assignment), team (staff profiles, roles, weekly schedules + breaks, time off, "add myself", invitations by link/email + join-team screen), salon settings (profile/address, opening hours, holidays/special hours, booking/confirmation q13/q66/q18, cut-offs, policies), onboarding checklist from the API + go-live, session/membership guard on `/[locale]/business/**`, role-aware navigation, salon switcher.
+- **Not built:** calendar/appointments data (waits for the booking engine, 06), customers CRM (M7.7), insights (M7.8), AI import (08), photos step (media service), drag-and-drop ordering (arrows for now), per-staff price/duration overrides in the UI (API model exists), date-specific breaks.
 
 ## Glossary
 | Term (en) | vi | Meaning |
@@ -20,6 +21,8 @@
 | Revenue kind | Loại doanh số | `RevenueKind`, the origin label of a money figure (estimated / recorded at salon / reported) |
 
 ## Model
+Tables (migration `20261102125226_add_catalog_staff_settings`, names agreed with topic 06): `salon_settings` (1:1, incl. `confirmation_mode`, `manual_confirm_window_hours`, `confirm_new_clients`, `hide_staff_choice`, `hold_ttl_minutes`, `availability_version`), `salon_opening_hours`, `salon_holidays`, `staff_profiles`, `staff_schedules` (effective-dated), `staff_breaks` (weekday XOR date), `staff_time_off` (GiST expression index on `tstzrange(starts_at, ends_at)`), `staff_services`, `services`, `service_variants`, `service_addons`, `salon_invitations`. Every tenant table has `@@unique([salonId, id])` and composite FKs `(salon_id, x_id)`. Writes that change availability call `bumpAvailabilityVersion` (salon-settings facade).
+
 _TBD: CustomerSalonProfile, CustomerNote, ClientTag, OfflineSale, SalonReportedRevenue, salon_daily_stats. Link to the schema in `docs/database.md`._
 
 ## Invariants
@@ -57,6 +60,13 @@ _TBD: CustomerSalonProfile, CustomerNote, ClientTag, OfflineSale, SalonReportedR
 - Money is VND with a `RevenueKind` label ("Ước tính / Estimated"); never "payments". No SMS actions (X12).
 
 ## Endpoints
+All under `/api/v1`, tenant-scoped by the guard (`@RequirePermission`):
+- Catalog: `GET/POST salons/:salonId/services`, `PATCH salons/:salonId/services/order`, `PATCH|DELETE salons/:salonId/services/:serviceId`, `PATCH …/:serviceId/active` (`salon.read` / `services.write`).
+- Team: `GET/POST salons/:salonId/team`, `PATCH|DELETE …/team/:staffId`, `PATCH …/team/:staffId/schedule`, `POST|DELETE …/team/:staffId/time-off[/:id]`, `POST|DELETE salons/:salonId/invitations[/:id]`, `PATCH salons/:salonId/members/:memberId/role`; public `POST invitations/preview`, authenticated `POST invitations/accept`.
+- Settings: `GET salons/:salonId/settings`, `PATCH …/settings/{profile,booking,policies,opening-hours}`, `POST|DELETE …/settings/holidays[/:id]`, `GET …/onboarding`, `POST …/go-live`.
+
+Invitations: single use, 72 h, HMAC-stored token; seat limit (`staff.max_seats`) checked under a per-salon advisory lock at create and accept; emailed invites rate limited (30/salon/day, 20/inviter/hour), salon name sanitised, no tenant text in the subject.
+
 _TBD: generated from OpenAPI, with links._
 
 ## Metrics

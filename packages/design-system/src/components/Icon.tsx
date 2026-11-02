@@ -31,7 +31,12 @@ export type IconName =
   | "menu"
   | "clock"
   | "store"
-  | "more";
+  | "more"
+  | "close"
+  | "arrowUp"
+  | "arrowDown"
+  | "trash"
+  | "link";
 
 type Props = {
   name: IconName;
@@ -197,6 +202,18 @@ export function Icon({ name, size, color = tokens.ink, strokeWidth = 2, filled =
           />
           <Path d="M5.5 11.5V20h13v-8.5M10 20v-4.5h4V20" {...common} />
         </>
+      )}
+      {name === "close" && <Path d="M6 6l12 12M18 6 6 18" {...common} />}
+      {name === "arrowUp" && <Path d="M12 19V5M6 11l6-6 6 6" {...common} />}
+      {name === "arrowDown" && <Path d="M12 5v14M6 13l6 6 6-6" {...common} />}
+      {name === "trash" && (
+        <Path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" {...common} />
+      )}
+      {name === "link" && (
+        <Path
+          d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"
+          {...common}
+        />
       )}
       {name === "more" && (
         <>

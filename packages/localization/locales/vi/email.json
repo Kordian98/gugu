@@ -17,5 +17,13 @@
     "codeIntro": "Hoặc nhập mã này trong ứng dụng:",
     "ignore": "Nếu bạn không đăng ký salon này, cứ bỏ qua email này. Salon sẽ không được kích hoạt."
   },
+  "teamInvitation": {
+    "subject": "Anh/chị được mời tham gia đội ngũ salon trên GuGu Studio",
+    "preheader": "Lời mời có hiệu lực trong 72 giờ.",
+    "heading": "Lời mời tham gia {{salonName}}",
+    "body": "Anh/chị được mời tham gia {{salonName}} trên GuGu Studio để xem lịch làm việc và lịch hẹn. Bấm nút bên dưới và đăng nhập bằng email này. Lời mời có hiệu lực trong 72 giờ và chỉ dùng được một lần.",
+    "button": "Tham gia đội ngũ",
+    "ignore": "Nếu anh/chị không biết salon này, cứ bỏ qua email này."
+  },
   "footer": "GuGu Studio · Quản lý lịch hẹn cho salon"
 }

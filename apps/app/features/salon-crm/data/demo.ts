@@ -185,6 +185,9 @@ export function demoWorkspace(): Workspace {
         },
       ],
     },
-    setupDone: ["business", "services", "hours", "team"],
+    setupDone: ["business", "services", "hours", "team", "live"],
+    canGoLive: false,
+    setupLoaded: true,
+    role: "owner",
   };
 }

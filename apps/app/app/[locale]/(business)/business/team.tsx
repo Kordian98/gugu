@@ -1,5 +1,3 @@
-import { SectionScreen } from "@/features/salon-crm/pages/SectionScreen";
+import { TeamScreen } from "@/features/salon-crm/pages/TeamScreen";
 
-export default function Screen() {
-  return <SectionScreen id="team" />;
-}
+export default TeamScreen;

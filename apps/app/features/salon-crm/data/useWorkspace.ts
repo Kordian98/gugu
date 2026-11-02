@@ -1,33 +1,41 @@
-import { useMemo } from "react";
+import { useAuth } from "@/services/auth/AuthProvider";
 
+import { useOnboarding } from "./catalog";
 import { demoWorkspace } from "./demo";
+import { useOptionalSalon } from "./SalonContext";
 import type { Workspace } from "./types";
 import { useDemoMode } from "./useDemoMode";
 
-/** Nothing is served yet: the salon/calendar/insights API arrives with topics 05, 06 and 07-M7.8. */
-const EMPTY: Workspace = {
-  demo: false,
-  user: null,
-  salon: null,
-  plan: null,
-  today: {
-    revenueEstimated: null,
-    appointments: null,
-    newCustomers: null,
-    occupancy: null,
-    staff: [],
-    items: [],
-    upcoming: [],
-    activity: [],
-  },
-  setupDone: [],
-};
-
 /**
- * Workspace read model for the shell and Today. Real data comes from the API (TanStack Query) once the
- * endpoints exist; until then screens render their designed empty states, or the dev-only demo seed.
+ * Workspace read model for the shell and Today. Identity, salon and setup progress are real; the
+ * calendar/insights numbers stay empty states until the booking engine (06) and insights (07-M7.8)
+ * serve them. The dev-only demo seed replaces everything when `?demo=1`.
  */
 export function useWorkspace(): Workspace {
   const demo = useDemoMode();
-  return useMemo(() => (demo ? demoWorkspace() : EMPTY), [demo]);
+  const { user } = useAuth();
+  const salon = useOptionalSalon();
+  const onboarding = useOnboarding();
+  const name = user?.displayName ?? user?.email?.split("@")[0] ?? null;
+  if (demo) return demoWorkspace();
+  return {
+    demo: false,
+    user: name ? { name, firstName: name.split(/\s+/).slice(-1)[0] ?? name } : null,
+    salon: salon?.summary ? { name: salon.summary.name } : null,
+    role: salon?.summary?.myRole ?? null,
+    plan: null,
+    today: {
+      revenueEstimated: null,
+      appointments: null,
+      newCustomers: null,
+      occupancy: null,
+      staff: [],
+      items: [],
+      upcoming: [],
+      activity: [],
+    },
+    setupDone: onboarding.data?.done ?? [],
+    canGoLive: onboarding.data?.canGoLive ?? false,
+    setupLoaded: onboarding.isSuccess,
+  };
 }

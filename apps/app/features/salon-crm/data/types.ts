@@ -37,7 +37,7 @@ export type ActivityItem = {
   estimatedVnd: number;
 };
 
-export type SetupStep = "business" | "services" | "hours" | "team" | "photos" | "live";
+export type SetupStep = "business" | "services" | "hours" | "team" | "live";
 
 export type Workspace = {
   demo: boolean;
@@ -56,4 +56,9 @@ export type Workspace = {
     activity: ActivityItem[];
   };
   setupDone: SetupStep[];
+  /** Every step but "live" is done and the salon is still a draft. */
+  canGoLive: boolean;
+  /** False while the checklist is loading (avoid flashing the setup card). */
+  setupLoaded: boolean;
+  role: "owner" | "manager" | "receptionist" | "staff" | null;
 };

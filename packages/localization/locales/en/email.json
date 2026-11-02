@@ -17,5 +17,13 @@
     "codeIntro": "Or enter this code in the app:",
     "ignore": "If you didn't register this salon, ignore this email. The salon won't be activated."
   },
+  "teamInvitation": {
+    "subject": "You've been invited to join a salon team on GuGu Studio",
+    "preheader": "The invitation is valid for 72 hours.",
+    "heading": "Join {{salonName}}",
+    "body": "You've been invited to join {{salonName}} on GuGu Studio to see your working hours and appointments. Tap the button below and sign in with this email. The invitation is valid for 72 hours and can be used once.",
+    "button": "Join the team",
+    "ignore": "If you don't know this salon, you can ignore this email."
+  },
   "footer": "GuGu Studio · Appointment management for salons"
 }

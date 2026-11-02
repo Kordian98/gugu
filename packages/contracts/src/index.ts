@@ -7,3 +7,6 @@ export * from "./subscriptions/start-trial";
 export * from "./auth/auth";
 export * from "./salon/registration";
 export * from "./salon/salon";
+export * from "./catalog/catalog";
+export * from "./team/team";
+export * from "./salon-settings/settings";
