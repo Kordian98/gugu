@@ -17,7 +17,7 @@
     "anyStaff": "Anyone",
     "anyStaffName": "Any staff member",
     "chooseDay": "Which day suits you?",
-    "noDays": "Sorry, the next 7 days are fully booked for this service. Would you like to message a staff member?",
+    "noDays": "Sorry, the next {{days}} days are fully booked for this service. Would you like to message a staff member?",
     "chooseTime": "Which time on {{date}}?",
     "otherDay": "Another day",
     "askPhone": "Please share your phone number so we can hold the booking. Tap the button below, or type your number (e.g. 0901234567).",
@@ -75,7 +75,10 @@
     "chooseTimePart": "Free times {{part}}, {{date}}:",
     "otherPart": "Other part of day",
     "nearest": "{{time}} on {{date}} isn't free. Nearest free times:",
-    "dayFull": "The salon has no free time on {{date}}. Please pick another day."
+    "dayFull": "The salon has no free time on {{date}}. Please pick another day.",
+    "notBookable": "This service can't be booked by message yet. Please call the salon, or message a staff member.",
+    "windowLimit": "The salon takes bookings at most {{days}} days ahead. Please come back later or message a staff member.",
+    "earliestOffer": "The next {{days}} days are fully booked. Earliest free times:"
   },
   "panel": {
     "title": "Zalo",
@@ -191,7 +194,8 @@
         "booking_cancelled": "Customer cancelled via Zalo",
         "booking_rescheduled": "Customer rescheduled via Zalo",
         "booking_confirmed": "Customer confirmed they'll come",
-        "connection_needs_reauth": "Zalo OA needs reconnecting"
+        "connection_needs_reauth": "Zalo OA needs reconnecting",
+        "booking_setup_issue": "A customer couldn't book: the service has no staff, working hours or room/equipment"
       }
     },
     "staffRelease": "Hand back to the assistant after (minutes)",
@@ -200,6 +204,81 @@
       "title": "Customers waiting on Zalo",
       "body": "{{count}} customers need a staff reply.",
       "open": "Reply now"
+    },
+    "stats": {
+      "tabs": {
+        "messages": "Messages",
+        "stats": "Statistics"
+      },
+      "period": {
+        "today": "Today",
+        "d7": "7 days",
+        "d30": "30 days",
+        "custom": "Custom",
+        "from": "From",
+        "to": "To",
+        "apply": "Show",
+        "invalid": "Enter dates as YYYY-MM-DD, at most 366 days."
+      },
+      "kpi": {
+        "customers": "Customers in contact",
+        "sessions": "Booking attempts",
+        "bookings": "Bookings via Zalo",
+        "conversion": "Conversion rate"
+      },
+      "funnelTitle": "Assistant booking funnel",
+      "funnelHint": "An attempt starts when the customer taps “Book”. Skipped steps (one staff member, phone already known) count as passed.",
+      "step": {
+        "service": "Service",
+        "staff": "Staff member",
+        "slot": "Day & time",
+        "phone": "Phone number",
+        "confirm": "Confirmation",
+        "booked": "Booked"
+      },
+      "stepLine": "{{reached}} attempts · {{drop}} dropped ({{rate}})",
+      "inProgress": "{{count}} attempts in progress",
+      "lostTitle": "Why bookings didn't happen",
+      "lostNone": "No attempts were left unfinished.",
+      "reason": {
+        "abandoned": "Left at “{{step}}”",
+        "no_slots": "No free time",
+        "no_services": "No bookable services",
+        "not_bookable": "Service has no staff, hours or room",
+        "handoff": "Asked for a staff member",
+        "not_understood": "Assistant didn't understand",
+        "slot_taken": "Time taken at confirmation",
+        "cancelled": "Cancelled at confirmation",
+        "failed": "Booking error",
+        "limit_reached": "Already has several upcoming bookings",
+        "bot_disabled": "Assistant switched off",
+        "out_of_window": "Over 7 days, can't reply"
+      },
+      "contactsTitle": "Contacts",
+      "followers": "New followers",
+      "unfollows": "Unfollows",
+      "conversations": "New conversations",
+      "notUnderstood": "Messages not understood",
+      "actionsTitle": "Actions via Zalo buttons",
+      "cancelled": "Cancelled",
+      "rescheduled": "Rescheduled",
+      "attendance": "Confirmed they'll come",
+      "remindersTitle": "Reminders",
+      "sent": "Sent",
+      "notSent": "Not sent",
+      "failedSends": "Failed",
+      "staffTitle": "Staff",
+      "handoffs": "Handed to staff",
+      "takeovers": "Take-overs",
+      "staffConversations": "Conversations handled by staff",
+      "staffReplies": "Staff replies",
+      "costsTitle": "Message costs (estimated)",
+      "total": "Total",
+      "templates": "Templates",
+      "paid": "Paid messages",
+      "free": "Free messages",
+      "costNote": "Zalo charges the salon's Zalo wallet; figures are estimates.",
+      "empty": "No Zalo activity in this period."
     }
   }
 }

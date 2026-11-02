@@ -7,7 +7,7 @@ import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { zaloConnectionSchema, zaloConversationListSchema } from "@gugu/contracts";
+import { zaloConnectionSchema, zaloConversationListSchema, zaloStatsSchema } from "@gugu/contracts";
 import { createBookableSalon, type BookableSalonFixture } from "../../../test/factories/booking";
 import { bearerFor, createSalonFixture } from "../../../test/factories/identity";
 import { AppModule } from "../../app.module";
@@ -286,6 +286,67 @@ describe("Zalo integration (emulator, end to end)", () => {
     ).toBe(0);
     out = await say({ event: "user_send_text", text: "alo" });
     expect(lastText(out).buttons[0]?.title).toBe("Đặt lịch");
+  });
+
+  it("counts the Zalo funnel: bookings, abandoned attempts (inactivity sweep), hand-offs, reasons", async () => {
+    await connect();
+    const main = userId;
+    await bookViaBot(); // customer 1: books
+
+    // customer 2: starts, picks the service, then goes silent.
+    userId = `${main}-b`;
+    let out = await say({ event: "follow" });
+    out = await tap(out, "Đặt lịch");
+    await tap(out, "Sơn gel");
+    // customer 3: asks for staff straight away (no booking attempt).
+    userId = `${main}-c`;
+    await say({ event: "user_send_text", text: "cho mình gặp nhân viên" });
+    // customer 4: starts, types something the bot doesn't understand, then leaves.
+    userId = `${main}-d`;
+    await say({ event: "user_send_text", text: "đặt lịch" });
+    await say({ event: "user_send_text", text: "bao nhiêu tiền vậy" });
+    userId = main;
+
+    advance(31 * 60_000);
+    await app.get(ZaloJobs).minute(); // closes the two silent attempts as abandoned
+
+    const res = await http()
+      .get(`${base()}/stats?from=2026-12-01&to=2026-12-01`)
+      .set("authorization", owner)
+      .expect(200);
+    const stats = zaloStatsSchema.parse(res.body);
+    expect(stats.contacts).toMatchObject({
+      uniqueCustomers: 4,
+      newFollowers: 2,
+      conversationsStarted: 4,
+    });
+    expect(stats.funnel).toMatchObject({ sessions: 3, bookings: 1, inProgress: 0 });
+    expect(stats.funnel.conversionRate).toBeCloseTo(1 / 3, 3);
+    expect(stats.funnel.steps.map((x) => [x.step, x.reached])).toEqual([
+      ["service", 3],
+      ["staff", 1], // customer 2 stopped at the variant choice (part of the service step)
+      ["slot", 1],
+      ["phone", 1],
+      ["confirm", 1],
+    ]);
+    expect(stats.lostReasons).toEqual(
+      expect.arrayContaining([
+        { reason: "abandoned:service", count: 1 },
+        { reason: "not_understood", count: 1 },
+      ]),
+    );
+    expect(stats.notUnderstood).toBe(1);
+    expect(stats.staff.handoffs).toBe(1);
+    expect(stats.costs.freeMessages).toBeGreaterThan(0);
+    // Aggregates only: nothing in the payload names a customer.
+    expect(JSON.stringify(stats)).not.toMatch(/Mai|0901234567|\+84/);
+
+    // Staff without analytics.read can't see it; other salons get 404.
+    const other = await createSalonFixture(prisma, "Other Salon");
+    await http()
+      .get(`/api/v1/salons/${s.salonId}/zalo/stats?from=2026-12-01&to=2026-12-01`)
+      .set("authorization", await bearerFor(app, other.ownerUserId))
+      .expect(404);
   });
 
   it("hands off to staff, acknowledges once, lets staff reply and release back to the bot", async () => {

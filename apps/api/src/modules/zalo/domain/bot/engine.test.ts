@@ -104,6 +104,8 @@ function fakePorts(overrides: Partial<BotPorts> = {}) {
       return Promise.resolve({ ok: true as const, booking: { ...booking, startsAt } });
     },
     confirmAttendance: () => Promise.resolve("ok" as const),
+    explainNoDays: () =>
+      Promise.resolve({ reason: "fully_booked" as const, windowDays: 60, earliest: [] }),
     ...overrides,
   };
   return { ports, calls };
@@ -112,6 +114,7 @@ function fakePorts(overrides: Partial<BotPorts> = {}) {
 const { t } = createI18n("vi");
 const deps = (now = NOW) => ({
   now,
+  newId: () => crypto.randomUUID(),
   t: (k: string, v?: Record<string, string | number>) => t(`zalo:${k}`, v ?? {}),
   locale: "vi" as const,
 });
@@ -288,7 +291,7 @@ describe("booking bot state machine", () => {
   it("hands off to staff on request and on unknown text keeps the flow", async () => {
     const { ports } = fakePorts();
     let r = await step(null, { kind: "text", text: "cho mình gặp nhân viên" }, ports);
-    expect(r.effects).toEqual([{ type: "handoff" }]);
+    expect(r.effects).toContainEqual({ type: "handoff" });
     r = await step(
       { ...r.state, step: { name: "service", page: 0 } },
       { kind: "text", text: "giá bao nhiêu vậy" },
@@ -364,6 +367,7 @@ describe("booking bot state machine", () => {
     const en = createI18n("en");
     const r = await runBot(null, { kind: "follow" }, ports, {
       now: NOW,
+      newId: () => crypto.randomUUID(),
       locale: "en",
       t: (k, v) => en.t(`zalo:${k}`, v ?? {}),
     });

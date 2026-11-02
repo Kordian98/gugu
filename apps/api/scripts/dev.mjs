@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// `pnpm dev:api`: rebuild on change (rolldown --watch) and restart the API (node --watch).
-// Set DEV_WORKER=1 to also run the BullMQ worker.
+// `pnpm dev:api`: rebuild on change (rolldown --watch) and restart the API and the BullMQ worker
+// (node --watch-path=dist) whenever the bundle changes, so neither runs stale code.
+// DEV_WORKER=0 skips the worker (e.g. when it runs elsewhere); `pnpm dev:worker` runs it alone.
 import { execFileSync, spawn } from "node:child_process";
 
 execFileSync("pnpm", ["run", "generate"], { stdio: "inherit" });
@@ -16,7 +17,7 @@ const children = [
     "dist/main.js",
   ]),
 ];
-if (process.env.DEV_WORKER === "1") {
+if (process.env.DEV_WORKER !== "0") {
   children.push(
     run("node", [
       "--enable-source-maps",

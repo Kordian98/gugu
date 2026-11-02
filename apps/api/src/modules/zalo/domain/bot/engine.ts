@@ -1,5 +1,6 @@
 import { formatVND } from "@gugu/localization";
 import { normalizeVnPhone } from "@gugu/domain";
+import { type FunnelEventInput, type FunnelStep, type SessionEndReason, stepRank } from "../funnel";
 import { DAY_PARTS, type DayPart, dayPartOf, type ParsedWhen, parseWhen } from "./when";
 import {
   globalPayload,
@@ -18,11 +19,14 @@ import {
   type BotReply,
   type BotResult,
   type BotService,
+  type BotSession,
   type BotState,
   type BotStep,
   type BotT,
   FLOW_TIMEOUT_MS,
+  BOOKING_DAYS,
   INITIAL_BOT_STATE,
+  isSetupIssue,
   MAX_BUTTONS,
   PAGE_SIZE,
   type Selection,
@@ -30,6 +34,8 @@ import {
 
 export interface BotDeps {
   now: Date;
+  /** New random id (funnel session ids). */
+  newId: () => string;
   t: BotT;
   locale: "vi" | "en";
 }
@@ -57,16 +63,49 @@ export async function runBot(
   ports: BotPorts,
   deps: BotDeps,
 ): Promise<BotResult> {
-  return new BotRun(normalizeState(current, deps.now), ports, deps).handle(input);
+  const timedOut = isTimedOut(current, deps.now);
+  const run = new BotRun(normalizeState(current, timedOut), ports, deps);
+  return run.handle(input, timedOut);
 }
 
-function normalizeState(state: BotState | null, now: Date): BotState {
-  if (state?.v !== 1) return { ...INITIAL_BOT_STATE };
+function isTimedOut(state: BotState | null, now: Date): boolean {
+  if (state?.v !== 1) return false;
   const at = state.at ? Date.parse(state.at) : 0;
-  if (state.step.name !== "idle" && now.getTime() - at > FLOW_TIMEOUT_MS) {
-    return { ...state, step: { name: "idle" }, options: [], items: 0 };
-  }
+  return (
+    (state.step.name !== "idle" || Boolean(state.session)) && now.getTime() - at > FLOW_TIMEOUT_MS
+  );
+}
+
+function normalizeState(state: BotState | null, timedOut: boolean): BotState {
+  if (state?.v !== 1) return { ...INITIAL_BOT_STATE };
+  if (timedOut) return { ...state, step: { name: "idle" }, options: [], items: 0 };
   return state;
+}
+
+/**
+ * Closes a booking attempt that went quiet for longer than the flow timeout (the periodic sweep:
+ * customers who never write again). Returns null when nothing is due.
+ */
+export function expireSession(
+  state: BotState | null,
+  now: Date,
+): { state: BotState; effects: BotEffect[] } | null {
+  if (!state?.session || !isTimedOut(state, now)) return null;
+  const s = state.session;
+  return {
+    state: { ...state, step: { name: "idle" }, options: [], items: 0, session: null },
+    effects: [
+      {
+        type: "funnel",
+        event: {
+          event: "session_ended",
+          sessionId: s.id,
+          step: s.step,
+          reason: s.issue ?? "abandoned",
+        },
+      },
+    ],
+  };
 }
 
 class BotRun {
@@ -77,6 +116,7 @@ class BotRun {
   private menu: Menu | null = null;
   private phone: string | null;
   private name: string | null;
+  private session: BotSession | null;
 
   constructor(
     private readonly state: BotState,
@@ -87,13 +127,53 @@ class BotRun {
     this.seq = state.seq;
     this.phone = ports.customer.phone;
     this.name = ports.customer.name;
+    this.session = state.session ?? null;
+  }
+
+  // --- funnel tracking ---------------------------------------------------------------------
+
+  private track(event: FunnelEventInput): void {
+    this.effects.push({ type: "funnel", event });
+  }
+
+  private startSession(): void {
+    this.endSession();
+    this.session = { id: this.deps.newId(), step: "service", issue: null };
+    this.track({ event: "session_started", sessionId: this.session.id, step: "service" });
+    this.track({ event: "step_reached", sessionId: this.session.id, step: "service" });
+  }
+
+  private reach(step: FunnelStep): void {
+    const s = this.session;
+    if (!s || stepRank(step) <= stepRank(s.step)) return;
+    s.step = step;
+    this.track({ event: "step_reached", sessionId: s.id, step });
+  }
+
+  /** Ends the open attempt; without a reason it was left (abandoned or after its last problem). */
+  private endSession(reason?: SessionEndReason): void {
+    const s = this.session;
+    if (!s) return;
+    this.track({
+      event: "session_ended",
+      sessionId: s.id,
+      step: s.step,
+      reason: reason ?? s.issue ?? "abandoned",
+    });
+    this.session = null;
+  }
+
+  private issue(kind: "not_understood" | "slot_taken"): void {
+    this.track({ event: kind, sessionId: this.session?.id ?? null });
+    if (this.session) this.session.issue = kind;
   }
 
   private t(key: string, vars?: Record<string, string | number>): string {
     return this.deps.t(`bot.${key}`, vars);
   }
 
-  async handle(input: BotInput): Promise<BotResult> {
+  async handle(input: BotInput, timedOut = false): Promise<BotResult> {
+    if (timedOut) this.endSession();
     await this.dispatch(input);
     return this.finish();
   }
@@ -126,6 +206,7 @@ class BotRun {
         options,
         items,
         at: this.deps.now.toISOString(),
+        session: this.session,
       },
       replies: this.replies,
       effects: this.effects,
@@ -200,6 +281,7 @@ class BotRun {
       this.showHome(true);
       return;
     }
+    this.issue("not_understood");
     this.say(this.t("fallback"));
     return this.repeatStep();
   }
@@ -207,10 +289,12 @@ class BotRun {
   private async runCommand(command: GlobalCommand): Promise<void> {
     switch (command) {
       case "menu": {
+        this.endSession();
         this.showHome(false);
         return;
       }
       case "book":
+        this.startSession();
         return this.showServices(0);
       case "mine":
         return this.showMyBookings();
@@ -219,6 +303,7 @@ class BotRun {
         return;
       }
       case "bot": {
+        this.endSession();
         this.showHome(false);
         return;
       }
@@ -231,6 +316,8 @@ class BotRun {
    * explicitly taken over (InboundService).
    */
   private handoff(): void {
+    this.endSession("handoff");
+    this.track({ event: "handoff" });
     this.effects.push({ type: "handoff" });
     this.terminal(this.t("handoff"));
   }
@@ -306,6 +393,7 @@ class BotRun {
         }
         break;
       case "abort": {
+        this.endSession("cancelled");
         this.showHome(false);
         return;
       }
@@ -408,6 +496,7 @@ class BotRun {
   private async showServices(page: number): Promise<void> {
     const services = await this.ports.services();
     if (services.length === 0) {
+      this.endSession("no_services");
       this.say(this.t("noServices"));
       this.handoff();
       return;
@@ -466,6 +555,7 @@ class BotRun {
     }
     const staff = await this.ports.staffFor(serviceId, variantId);
     if (staff.length <= 1) return this.showDays({ serviceId, variantId, staffId: null }, null, 0);
+    this.reach("staff");
     this.step = { name: "staff", serviceId, variantId };
     const shown = staff.slice(0, PAGE_SIZE);
     this.menu = {
@@ -484,13 +574,9 @@ class BotRun {
 
   private async showDays(sel: Selection, rescheduleId: string | null, page: number): Promise<void> {
     const days = await this.ports.days(sel, rescheduleId);
-    if (days.length === 0) {
-      this.terminal(this.t("noDays"), [
-        { title: this.t("menu.staff"), value: globalPayload("staff") },
-      ]);
-      return;
-    }
+    if (days.length === 0) return this.explainNoDays(sel, rescheduleId);
     const { visible, p, prev, next } = pageOf(days, page);
+    if (!rescheduleId) this.reach("slot");
     this.step = { name: "day", sel, page: p, rescheduleId };
     this.menu = {
       text: [
@@ -509,6 +595,47 @@ class BotRun {
         ...(next ? [{ title: this.t("next"), value: "more" }] : []),
       ],
     };
+  }
+
+  /** Says why nothing is free instead of a dead end (topic 07 unavailableReason). */
+  private async explainNoDays(sel: Selection, rescheduleId: string | null): Promise<void> {
+    const why = await this.ports.explainNoDays(sel);
+    const staff = { title: this.t("menu.staff"), value: globalPayload("staff") };
+    if (isSetupIssue(why.reason)) {
+      if (!rescheduleId) this.endSession("not_bookable");
+      this.effects.push({ type: "setup_issue", reason: why.reason });
+      this.terminal(this.t("notBookable"), [staff]);
+      return;
+    }
+    if (why.reason === "outside_booking_window") {
+      if (!rescheduleId) this.endSession("no_slots");
+      this.terminal(this.t("windowLimit", { days: why.windowDays }), [staff]);
+      return;
+    }
+    const earliest = why.earliest.slice(0, MAX_BUTTONS - 2);
+    if (earliest.length > 0) {
+      const first = earliest[0] ?? "";
+      this.step = {
+        name: "time",
+        sel,
+        date: this.localDate(first),
+        page: 0,
+        rescheduleId,
+        part: "all",
+      };
+      this.menu = {
+        text: this.t("earliestOffer", { days: BOOKING_DAYS }),
+        items: earliest.length,
+        options: [
+          ...earliest.map((s) => ({ title: this.whenShort(s), value: `time:${s}` })),
+          staff,
+          { title: this.t("menu.home"), value: globalPayload("menu") },
+        ],
+      };
+      return;
+    }
+    if (!rescheduleId) this.endSession("no_slots");
+    this.terminal(this.t("noDays", { days: BOOKING_DAYS }), [staff]);
   }
 
   /**
@@ -632,6 +759,7 @@ class BotRun {
   private async pickTime(sel: Selection, startsAt: string, rescheduleId: string | null) {
     if (rescheduleId) return this.reschedule(rescheduleId, startsAt);
     if (!this.phone) {
+      this.reach("phone");
       this.step = { name: "phone", sel, startsAt };
       this.askPhone();
       return;
@@ -671,6 +799,7 @@ class BotRun {
           ?.name ?? this.t("anyStaffName"))
       : this.t("anyStaffName");
     const priced = variant ?? service;
+    this.reach("confirm");
     this.step = { name: "confirm", sel, startsAt };
     this.menu = {
       text: this.t("confirmSummary", {
@@ -697,20 +826,25 @@ class BotRun {
     const result = await this.ports.book(sel, startsAt, this.phone, this.name ?? this.phone);
     if (!result.ok) {
       if (result.reason === "slot_taken") {
+        this.issue("slot_taken");
         this.say(this.t("slotTaken"));
         return this.showTimes(sel, this.localDate(startsAt), 0, null);
       }
       if (result.reason === "limit_reached") {
+        this.endSession("limit_reached");
         this.terminal(this.t("limitReached"), [
           { title: this.t("menu.myBookings"), value: globalPayload("mine") },
         ]);
         return;
       }
+      this.endSession("failed");
       this.say(this.t("bookingFailed"));
       this.handoff();
       return;
     }
     const b = result.booking;
+    this.track({ event: "booked", sessionId: this.session?.id ?? null, bookingId: b.id });
+    this.session = null;
     this.effects.push({ type: "notify", kind: "booking_created", bookingId: b.id });
     this.terminal(
       this.t(result.pending ? "bookedPending" : "booked", {
@@ -887,6 +1021,11 @@ class BotRun {
       timeZone: "UTC",
     }).format(d);
     return `${weekday}, ${dm}`;
+  }
+
+  /** "14:30 · 20/11" for buttons (title ≤ 20 chars). */
+  private whenShort(iso: string): string {
+    return `${this.timeLabel(iso)} · ${this.localDate(iso).slice(8, 10)}/${this.localDate(iso).slice(5, 7)}`;
   }
 
   /** Minutes after midnight in the salon timezone. */

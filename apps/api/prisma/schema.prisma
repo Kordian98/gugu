@@ -1362,6 +1362,7 @@ model ZaloConversation {
   salon        Salon             @relation(fields: [salonId], references: [id], onDelete: Restrict)
   messages     ZaloMessage[]
   bookingLinks ZaloBookingLink[]
+  funnelEvents ZaloFunnelEvent[]
 
   @@unique([oaId, zaloUserId])
   @@unique([salonId, id])
@@ -1718,4 +1719,29 @@ model ServiceResourceRequirement {
   @@unique([salonId, id])
   @@unique([serviceId, resourceTypeId])
   @@map("service_resource_requirements")
+}
+
+/// Zalo bot funnel and activity events for statistics (owner request 2026-11-03). Append-only
+/// (trigger). Counts and steps only: no message text, names or phones — the conversation id is a
+/// pseudonymous key. Aggregated by modules/zalo/application/stats.queries.ts.
+model ZaloFunnelEvent {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  salonId        String   @map("salon_id") @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  /// One booking attempt of the bot (service → … → booked / ended).
+  sessionId      String?  @map("session_id") @db.Uuid
+  /// See FUNNEL_EVENTS in modules/zalo/domain/funnel.ts.
+  event          String
+  /// service | staff | slot | phone | confirm
+  step           String?
+  /// Why a session ended without a booking, or why the bot could not answer.
+  reason         String?
+  bookingId      String?  @map("booking_id") @db.Uuid
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+
+  conversation ZaloConversation @relation(fields: [salonId, conversationId], references: [salonId, id], onDelete: Restrict)
+
+  @@index([salonId, occurredAt])
+  @@index([salonId, sessionId])
+  @@map("zalo_funnel_events")
 }

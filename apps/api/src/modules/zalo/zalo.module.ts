@@ -9,8 +9,10 @@ import { ConnectionService } from "./application/connection.service";
 import { InboundService } from "./application/inbound.service";
 import { InboxService } from "./application/inbox.service";
 import { OutboundService } from "./application/outbound.service";
+import { FunnelSweepService } from "./application/funnel-sweep.service";
 import { RemindersService } from "./application/reminders.service";
 import { StaffReleaseService } from "./application/staff-release.service";
+import { StatsQueries } from "./application/stats.queries";
 import { UsageQueries } from "./application/usage.queries";
 import { WebhookIngestService } from "./application/webhook-ingest.service";
 import { ZaloJobs } from "./application/zalo-jobs";
@@ -59,7 +61,7 @@ const shared: Provider[] = [
  */
 @Module({
   controllers: [ZaloPanelController, ZaloWebhookController, ZaloEmulatorController],
-  providers: [...shared, WebhookIngestService, InboxService, EmulatorOnlyGuard],
+  providers: [...shared, WebhookIngestService, InboxService, StatsQueries, EmulatorOnlyGuard],
 })
 export class ZaloModule {}
 
@@ -74,6 +76,7 @@ export class ZaloModule {}
     RemindersService,
     BookingUpdatesService,
     StaffReleaseService,
+    FunnelSweepService,
     ZaloJobs,
   ],
   exports: [ZaloJobs],
