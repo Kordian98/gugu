@@ -17,6 +17,8 @@ export const BOOKING_ERRORS = {
   phoneInvalid: "booking.phone_invalid",
   customerRequired: "booking.customer_required",
   overrideNotAllowed: "booking.override_not_allowed",
+  /** Outside hours / lead time / window: retry with `overrides` (listed in `errors`) + a reason. */
+  overrideRequired: "booking.override_required",
   notFound: "booking.not_found",
 } as const;
 export type BookingErrorCode = (typeof BOOKING_ERRORS)[keyof typeof BOOKING_ERRORS];

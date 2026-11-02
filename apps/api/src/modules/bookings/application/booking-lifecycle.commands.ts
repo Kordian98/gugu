@@ -4,6 +4,7 @@ import {
   canReschedule,
   evaluateTransition,
   findSlot,
+  requiredOverrides,
   type RuleOverride,
   type ServiceTerms,
   toLocal,
@@ -20,6 +21,7 @@ import {
   resolveSelection,
   type SalonBookingContext,
 } from "../infra/booking-inputs";
+import { OutboxRelay } from "../../../infrastructure/outbox/outbox.relay";
 import { AvailabilityCache } from "../infra/availability-cache";
 import { BookingSecrets, MANAGE_TOKEN_TTL_AFTER_END_MS } from "../infra/booking-secrets";
 import { claimIdempotency, completeIdempotency, type IdempotencyClaim } from "../infra/idempotency";
@@ -33,7 +35,13 @@ import {
 } from "../infra/occupancy";
 import type { BookingActor } from "./booking-actor";
 import { BookingClock } from "./booking-clock";
-import { bookingNotFound, rescheduleError, slotTaken, transitionError } from "./booking-errors";
+import {
+  bookingNotFound,
+  rescheduleError,
+  slotTaken,
+  transitionError,
+  unbookable,
+} from "./booking-errors";
 
 type Tx = Prisma.TransactionClient;
 type Result = { bookingId: string; manageToken?: string };
@@ -60,6 +68,7 @@ export class BookingLifecycleCommands {
     private readonly audit: AuditService,
     private readonly secrets: BookingSecrets,
     private readonly cache: AvailabilityCache,
+    private readonly outbox: OutboxRelay,
   ) {}
 
   private async run(
@@ -83,6 +92,8 @@ export class BookingLifecycleCommands {
       );
       // Status changes and reschedules change occupancy: new availability cache generation.
       await this.cache.bumpOccupancy(salonId);
+      // Publish the outbox events of this commit now instead of on the relay's fallback tick.
+      await this.outbox.kick();
       return result;
     } catch (error) {
       if (isSlotConflict(error)) throw slotTaken();
@@ -265,7 +276,11 @@ export class BookingLifecycleCommands {
         exclude: { bookingId: booking.id },
       });
       const option = findSlot(availability, start, wanted)?.options[0];
-      if (!option) throw slotTaken();
+      if (!option) {
+        throw actor.kind === "salon_member"
+          ? unbookable(requiredOverrides(availability, start, wanted), input.overrides)
+          : slotTaken();
+      }
 
       const rotated = actor.kind === "customer" ? this.secrets.issueManageToken() : null;
       await deleteBookingOccupancy(tx, booking.id);

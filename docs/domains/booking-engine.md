@@ -68,6 +68,15 @@ CRM (`/api/v1/salons/:salonId`, gate `schedules.read`, then `bookings.read|write
 Public — **unrouted (X23)**, kept for later (`/api/v1/public`, live salons only, rate-limited per device/IP/phone): `GET salons/:slug/availability`, `POST salons/:slug/holds`, `POST salons/:slug/bookings` (returns `manageToken`), `GET bookings/:token`, `POST bookings/:token/cancel`, `POST bookings/:token/reschedule`.
 All booking POSTs except holds require `Idempotency-Key`. Error codes: `BOOKING_ERRORS` in `packages/contracts/src/booking/errors.ts`.
 
+## Outbox relay (04-S5 part, built with 06)
+`infrastructure/outbox/`: `OutboxRelay.publishPending()` claims unpublished `outbox_events` rows (`FOR UPDATE SKIP LOCKED`), enqueues one `outbox.event` job per row on the `outbox` queue (`jobId` = event id) and marks them published. Booking commands call `kick()` right after commit; a scheduler relays every 5 s as the safety net. `jobs/outbox.processor.ts` dispatches each event to the `DOMAIN_EVENT_HANDLERS` registered in `jobs/jobs.module.ts` (today: `zalo.booking_updates`). Delivery is at-least-once and a failure re-runs all handlers of that event — handlers MUST be idempotent.
+
+## Rule overrides in the CRM (q18)
+`GET /salons/:id/booking-check?serviceId&staffId&startsAt[&bookingId]` → `{ bookable, requiredOverrides, blocked, canOverride }` (`requiredOverrides()` in the domain: smallest set of `hours` / `lead_time` / `horizon` that makes the start bookable; `blocked` when nothing helps). Create/reschedule by salon members return `409 booking.override_required` with `errors: [{ path: "overrides", code }]` when overrides would help; real conflicts stay `409 booking.slot_taken`. Customers and the Zalo bot only ever see `slot_taken`.
+
+## Account deletion (q71)
+`BookingAnonymiser.anonymiseCustomer({ userId, phoneE164 })` (bookings facade, for the privacy job of topic 05): cancels upcoming pending/confirmed bookings as `cancelled_by_customer` (actor `system`, reason code `account_deleted`), then replaces the contact snapshot of every matching booking (account link or phone) with a placeholder and sets `customer_anonymised_at`; the read model exposes `customerAnonymised`. Idempotent. Not covered: free-text reasons in the append-only status history, Zalo conversations, salon client profiles.
+
 ## Events (outbox)
 `booking.created` {bookingId, status, source, staffId, startsAt}, `booking.status_changed` {bookingId, from, to, lateCancellation, actorType}, `booking.rescheduled` {bookingId, fromStartsAt, toStartsAt, fromStaffId, toStaffId, actorType}. Relay: 04-S5 (not built).
 

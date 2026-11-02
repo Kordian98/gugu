@@ -48,6 +48,8 @@ describe("evaluateTransition", () => {
     ["confirmed", "cancelled_by_customer", "customer", -119, "cancel_window_passed"],
     ["confirmed", "cancelled_by_customer", "salon", -10, "ok"],
     ["confirmed", "cancelled_by_customer", "salon", 0, "too_late"],
+    ["confirmed", "cancelled_by_customer", "system", -10, "ok"],
+    ["pending", "cancelled_by_customer", "system", -10, "ok"],
     ["checked_in", "completed", "salon", 10, "ok"],
     ["cancelled_by_salon", "confirmed", "salon", -60, "invalid_transition"],
     ["completed", "pending", "salon", 60, "invalid_transition"],
@@ -114,7 +116,10 @@ describe("evaluateTransition", () => {
 describe("nextStatuses / isTerminal", () => {
   it("lists targets per actor", () => {
     expect(nextStatuses("confirmed", "customer")).toEqual(["cancelled_by_customer"]);
-    expect(nextStatuses("pending", "system")).toEqual(["cancelled_by_salon"]);
+    expect(nextStatuses("pending", "system")).toEqual([
+      "cancelled_by_customer",
+      "cancelled_by_salon",
+    ]);
     expect(nextStatuses("cancelled_by_customer", "salon")).toEqual([]);
   });
   it("terminal statuses", () => {

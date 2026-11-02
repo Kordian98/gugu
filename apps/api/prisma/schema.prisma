@@ -1041,6 +1041,8 @@ model Booking {
   manageTokenHash      String?          @unique @map("manage_token_hash")
   /// Manage link stops working after this (booking end + 7 days).
   manageTokenExpiresAt DateTime?        @map("manage_token_expires_at") @db.Timestamptz(6)
+  /// Set when the customer's account was deleted and the contact snapshot anonymised (q71).
+  customerAnonymisedAt DateTime?        @map("customer_anonymised_at") @db.Timestamptz(6)
   /// Manual confirmation mode: auto-cancel when still pending at this time (q13, 12 h).
   pendingExpiresAt     DateTime?        @map("pending_expires_at") @db.Timestamptz(6)
   version              Int              @default(1)

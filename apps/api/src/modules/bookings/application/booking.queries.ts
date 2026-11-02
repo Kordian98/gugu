@@ -2,6 +2,8 @@ import { Injectable } from "@nestjs/common";
 import type {
   Availability,
   AvailabilityQuery,
+  BookingCheck,
+  BookingCheckQuery,
   EarliestSlots,
   EarliestSlotsQuery,
   PublicBooking,
@@ -13,6 +15,7 @@ import {
   computeSlots,
   dayBounds,
   isTerminal,
+  requiredOverrides,
   MAX_AVAILABILITY_DAYS,
   toLocal,
   unavailableReason,
@@ -231,6 +234,44 @@ export class BookingQueries {
     };
   }
 
+  /**
+   * "Book anyway?" check for the CRM (q18): is `startsAt` bookable, and if not, which audited
+   * overrides would make it so (or nothing helps). Not cached: one exact start, one staff set.
+   */
+  async check(
+    ctx: SalonBookingContext,
+    actor: { ownStaffId: string | null; canOverride: boolean },
+    query: BookingCheckQuery,
+  ): Promise<BookingCheck> {
+    const selection = await resolveSelection(this.prisma, ctx.salonId, {
+      serviceId: query.serviceId,
+      variantId: query.variantId ?? null,
+      addOnIds: query.addOnIds,
+    });
+    const wanted = actor.ownStaffId ?? query.staffId ?? null;
+    const staffIds = wanted
+      ? selection.staffTerms.has(wanted)
+        ? [wanted]
+        : []
+      : [...selection.staffTerms.keys()];
+    const start = new Date(query.startsAt).getTime();
+    const date = toLocal(start, ctx.timeZone).date;
+    const input = await loadAvailabilityInput(this.prisma, ctx, selection, {
+      from: date,
+      to: date,
+      staffIds,
+      now: this.clock.now(),
+      exclude: { bookingId: query.bookingId ?? null },
+    });
+    const needs = staffIds.length === 0 ? null : requiredOverrides(input, start, wanted);
+    return {
+      bookable: needs !== null && needs.length === 0,
+      requiredOverrides: needs ?? [],
+      blocked: needs === null,
+      canOverride: actor.canOverride,
+    };
+  }
+
   async list(
     ctx: SalonBookingContext,
     query: SalonBookingListQuery,
@@ -281,6 +322,7 @@ export class BookingQueries {
       customer:
         b.customerName === null ? null : { name: b.customerName, phone: b.customerPhoneE164 },
       identityVerified: b.identityVerified,
+      customerAnonymised: b.customerAnonymisedAt !== null,
       note: b.customerNote,
       lateCancellation: b.lateCancellation,
       ruleOverrides: b.ruleOverrides.filter(

@@ -33,7 +33,8 @@ export const UPCOMING_BOOKING_STATUSES: readonly BookingStatus[] = [
  * Who asks for the transition:
  * - `customer` — the customer themself (booking link);
  * - `salon` — a member with booking write access (also records a customer's phoned-in cancel);
- * - `system` — jobs (pending expiry).
+ * - `system` — jobs (pending expiry) and the account-deletion hook (q71: the customer's upcoming
+ *   bookings are cancelled on their behalf).
  */
 export type TransitionActor = "customer" | "salon" | "system";
 
@@ -106,7 +107,7 @@ const correction = (c: TransitionContext): TransitionResult | null => {
 const TRANSITIONS: Partial<Record<BookingStatus, Partial<Record<BookingStatus, Rule>>>> = {
   pending: {
     confirmed: { actors: ["salon"], check: (c) => (c.now >= c.endsAt ? deny("too_late") : null) },
-    cancelled_by_customer: { actors: ["customer", "salon"], check: customerCancel },
+    cancelled_by_customer: { actors: ["customer", "salon", "system"], check: customerCancel },
     cancelled_by_salon: { actors: ["salon", "system"] },
   },
   confirmed: {
@@ -116,7 +117,7 @@ const TRANSITIONS: Partial<Record<BookingStatus, Partial<Record<BookingStatus, R
         c.now < c.startsAt - CHECK_IN_WINDOW_MINUTES * MINUTE ? deny("too_early") : null,
     },
     completed: { actors: ["salon"], check: (c) => (c.now < c.startsAt ? deny("too_early") : null) },
-    cancelled_by_customer: { actors: ["customer", "salon"], check: customerCancel },
+    cancelled_by_customer: { actors: ["customer", "salon", "system"], check: customerCancel },
     cancelled_by_salon: {
       actors: ["salon"],
       check: (c) => (c.now >= c.endsAt ? deny("too_late") : null),
