@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { uuidV7Schema } from "../common/ids";
 import { localizedNameSchema } from "../salon/registration";
+import { resourceRequirementListSchema, resourceRequirementSchema } from "../booking/resources";
 
 /**
  * Salon service catalogue (topic 07 M7.4; spec 04 §3.2 "Catalog", 06 §3.12). Money is integer VND
@@ -78,6 +79,11 @@ export const serviceInputSchema = z
      * links unchanged. An explicit [] means "nobody".
      */
     staffIds: z.array(uuidV7Schema).max(100).optional(),
+    /**
+     * Resource types the service needs at the same time as the staff member (topic 06 M6.6),
+     * e.g. a massage bed. Omitted → unchanged (none on create); [] → no resources needed.
+     */
+    resourceRequirements: resourceRequirementListSchema.optional(),
   })
   .refine(priceRange, { path: ["priceMax"], message: "price_max_below_price" });
 export type ServiceInput = z.input<typeof serviceInputSchema>;
@@ -119,6 +125,7 @@ export const serviceSchema = z.object({
   variants: z.array(serviceVariantSchema),
   addOns: z.array(serviceAddOnSchema),
   staffIds: z.array(uuidV7Schema),
+  resourceRequirements: z.array(resourceRequirementSchema),
 });
 export type Service = z.infer<typeof serviceSchema>;
 

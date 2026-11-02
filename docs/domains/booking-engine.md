@@ -8,8 +8,8 @@ M6.1–M6.5 implemented on `booking/06-core` (2026-11-03): pure slot engine, occ
 EXCLUDE constraint, create/transition/reschedule with idempotency + history + outbox, holds with
 TTL + sweeper, CRM APIs. The public salon booking page and guest manage links exist in code
 (`http/public-booking.controller.ts`) but are **not routed** (roadmap X23: no customer-facing booking
-surface on gugu.vn until a legal review); tests mount the controller to keep customer paths covered. **Not implemented yet:** resources/capacity units
-(M6.6), availability cache (M6.7), multi-service (M6.8), AI-agent drafts (M6.9), outbox relay
+surface on gugu.vn until a legal review); tests mount the controller to keep customer paths covered. **M6.6 resources** implemented on `booking/06-resources` (2026-11-03). **Not implemented yet:**
+availability cache (M6.7), multi-service (M6.8), AI-agent drafts (M6.9), outbox relay
 (04-S5), Turnstile bot check, alternative slots in `409 slot_taken`, account-deletion
 anonymisation (q71).
 
@@ -39,6 +39,12 @@ anonymisation (q71).
 ## Data model
 Migration `20261102140746_add_booking_core` (after topic 07's catalog migration):
 `bookings` (status, source = `BookingSource`, contact snapshot + `customer_phone_hash`, `identity_verified`, totals, `late_cancellation`, `rule_overrides`, `manage_token_hash/expires_at`, `pending_expires_at`, `version`), `booking_services` (1 per booking, snapshots, `CHECK sequence = 1`), `booking_service_addons`, `booking_holds` (device hash, TTL), `booking_occupancy` (kind booking|hold, `period tstzrange`, `active`), `booking_status_history`, `idempotency_keys`, `outbox_events`. Raw objects: `booking_occupancy_no_staff_overlap`, `booking_occupancy_valid`, `bookings_valid`, `booking_services_valid`, `booking_status_history_no_update_delete`, `outbox_events_unpublished`.
+
+## Resources (M6.6)
+- Tables (migration `20261103180000_add_resources`): `resource_types` (salon-defined kinds), `resources` (type, name, active), `resource_units` (capacity N = N active units, `position` 1..N, managed by the API), `service_resource_requirements` (service → type, quantity 1–3). `booking_occupancy` gains `resource_unit_id`; exactly one of staff/unit per row (`booking_occupancy_one_target`); `booking_occupancy_no_unit_overlap` EXCLUDE guards units like staff.
+- Engine: `pickUnits` (`packages/domain/src/booking/resources.ts`) — every staff option needs `quantity` free units of each required type for the same occupancy interval (buffers included); units fill in resource order then unit number. `unavailableReason` → `no_resource` when a required type has too few active units.
+- Writes lock staff candidates **and** all units of required types in one sorted list (`lockClaims`), release expired holds on both, and insert one occupancy row per unit; holds, reschedule (re-resolves today's requirements), cancel/no-show (deactivate by booking) cover units.
+- CRUD: `GET/POST/PATCH/DELETE /salons/:id/resource-types|resources`, `GET/PUT /salons/:id/services/:serviceId/resource-requirements`; also `resourceRequirements` in the catalog service payload/read model. Lowering capacity, pausing or deleting refuses units with future claims (`409 resource.in_use`); deleting a type in use → `409 resource.type_in_use`.
 
 ## Slot computation
 `packages/domain/src/booking/availability.ts` → `computeSlots(input)` / `findSlot(input, start, staffId)`.

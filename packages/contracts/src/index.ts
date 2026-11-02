@@ -12,6 +12,7 @@ export * from "./team/team";
 export * from "./salon-settings/settings";
 export * from "./booking/booking";
 export * from "./booking/errors";
+export * from "./booking/resources";
 export * from "./booking/source";
 export * from "./ai-import/ai-import";
 export * from "./salon-crm/clients";

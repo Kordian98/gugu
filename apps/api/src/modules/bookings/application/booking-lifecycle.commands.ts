@@ -27,7 +27,7 @@ import {
   deleteBookingOccupancy,
   insertOccupancy,
   isSlotConflict,
-  lockStaff,
+  lockClaims,
   releaseExpiredHolds,
 } from "../infra/occupancy";
 import type { BookingActor } from "./booking-actor";
@@ -245,8 +245,9 @@ export class BookingLifecycleCommands {
       }
       const candidates = wanted === null ? [...selection.staffTerms.keys()] : [wanted];
 
-      await lockStaff(tx, [...candidates, booking.staffId]);
-      await releaseExpiredHolds(tx, ctx.salonId, candidates, now);
+      const unitIds = selection.units.map((u) => u.unitId);
+      await lockClaims(tx, [...candidates, booking.staffId, ...unitIds]);
+      await releaseExpiredHolds(tx, ctx.salonId, candidates, now, unitIds);
       const start = input.startsAt.getTime();
       const date = toLocal(start, ctx.timeZone).date;
       const availability = await loadAvailabilityInput(tx, ctx, selection, {
@@ -265,6 +266,7 @@ export class BookingLifecycleCommands {
       await insertOccupancy(tx, {
         salonId: ctx.salonId,
         staffId: option.staffId,
+        unitIds: option.unitIds,
         period: option.occupancy,
         booking: booking.id,
       });

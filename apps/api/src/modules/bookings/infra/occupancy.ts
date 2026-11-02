@@ -4,15 +4,18 @@ import type { Prisma } from "../../../infrastructure/prisma/generated/client";
 /**
  * Raw SQL for booking_occupancy (tstzrange — Prisma can't model it, ADR-0008). Every write path:
  * lock the staff members it may claim → drop their expired holds → revalidate → insert. The
- * EXCLUDE constraint `booking_occupancy_no_staff_overlap` is the guarantee; the per-staff
+ * EXCLUDE constraints `booking_occupancy_no_{staff,unit}_overlap` are the guarantee; the per-target
  * advisory lock only makes contention serialize instead of deadlocking (ADR-0008 decision 4).
  */
 
 type Tx = Prisma.TransactionClient;
 
-/** Per-staff transaction lock, taken in sorted order so concurrent writers can't deadlock. */
-export async function lockStaff(tx: Tx, staffIds: readonly string[]): Promise<void> {
-  for (const id of [...new Set(staffIds)].sort()) {
+/**
+ * Transaction locks on every claim target (staff and resource unit ids — all UUIDs, one key space)
+ * a write may take, in one globally sorted order so concurrent writers can't deadlock (ADR-0008).
+ */
+export async function lockClaims(tx: Tx, targetIds: readonly string[]): Promise<void> {
+  for (const id of [...new Set(targetIds)].sort()) {
     await tx.$queryRaw`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${id}, 0))) AS l`;
   }
 }
@@ -23,23 +26,66 @@ export async function lockPhone(tx: Tx, salonId: string, phoneHash: string): Pro
   await tx.$queryRaw`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${key}, 1))) AS l`;
 }
 
-/** Deletes expired holds of these staff members (their occupancy rows cascade). */
+/**
+ * Deletes expired holds that claim any of these staff members or units (their occupancy rows
+ * cascade), so an unswept expired hold never blocks a write. Call under `lockClaims`.
+ */
 export async function releaseExpiredHolds(
   tx: Tx,
   salonId: string,
   staffIds: readonly string[],
   now: Date,
+  unitIds: readonly string[] = [],
 ): Promise<void> {
-  if (staffIds.length === 0) return;
-  await tx.bookingHold.deleteMany({
-    where: { salonId, staffId: { in: [...staffIds] }, expiresAt: { lte: now } },
-  });
+  if (staffIds.length > 0) {
+    await tx.bookingHold.deleteMany({
+      where: { salonId, staffId: { in: [...staffIds] }, expiresAt: { lte: now } },
+    });
+  }
+  if (unitIds.length > 0) {
+    await tx.bookingHold.deleteMany({
+      where: {
+        salonId,
+        expiresAt: { lte: now },
+        occupancy: { some: { resourceUnitId: { in: [...unitIds] } } },
+      },
+    });
+  }
 }
 
 export interface BusyRow {
   staffId: string;
   start: number;
   end: number;
+}
+
+export interface UnitBusyRow {
+  unitId: string;
+  start: number;
+  end: number;
+}
+
+/** Active claims of these resource units overlapping `window` (same rules as `loadBusy`). */
+export async function loadUnitBusy(
+  db: Tx,
+  salonId: string,
+  unitIds: readonly string[],
+  window: Interval,
+  now: Date,
+  exclude: { holdId?: string | null; bookingId?: string | null } = {},
+): Promise<UnitBusyRow[]> {
+  if (unitIds.length === 0) return [];
+  const rows = await db.$queryRaw<{ unit_id: string; s: Date; e: Date }[]>`
+    SELECT resource_unit_id AS unit_id, lower(period) AS s, upper(period) AS e
+    FROM booking_occupancy
+    WHERE salon_id = ${salonId}::uuid
+      AND resource_unit_id = ANY(${[...unitIds]}::uuid[])
+      AND active
+      AND (expires_at IS NULL OR expires_at > ${now})
+      AND period && tstzrange(${new Date(window.start)}, ${new Date(window.end)}, '[)')
+      AND (${exclude.holdId ?? null}::uuid IS NULL OR hold_id IS DISTINCT FROM ${exclude.holdId ?? null}::uuid)
+      AND (${exclude.bookingId ?? null}::uuid IS NULL OR booking_id IS DISTINCT FROM ${exclude.bookingId ?? null}::uuid)`;
+  return rows.map((r) => ({ unitId: r.unit_id, start: r.s.getTime(), end: r.e.getTime() }));
 }
 
 /**
@@ -68,23 +114,35 @@ export async function loadBusy(
   return rows.map((r) => ({ staffId: r.staff_id, start: r.s.getTime(), end: r.e.getTime() }));
 }
 
+/**
+ * Claims the staff member and every resource unit for one interval: one occupancy row each, all
+ * owned by the same booking or hold.
+ */
 export async function insertOccupancy(
   tx: Tx,
   row: {
     salonId: string;
     staffId: string;
+    unitIds?: readonly string[];
     period: Interval;
     booking?: string;
     hold?: { id: string; expiresAt: Date };
   },
 ): Promise<void> {
   const kind = row.hold ? "hold" : "booking";
-  await tx.$executeRaw`
-    INSERT INTO booking_occupancy (id, salon_id, kind, booking_id, hold_id, staff_id, period, active, expires_at)
-    VALUES (uuidv7(), ${row.salonId}::uuid, ${kind}::occupancy_kind, ${row.booking ?? null}::uuid,
-      ${row.hold?.id ?? null}::uuid, ${row.staffId}::uuid,
-      tstzrange(${new Date(row.period.start)}, ${new Date(row.period.end)}, '[)'), true,
-      ${row.hold?.expiresAt ?? null})`;
+  const targets: { staffId: string | null; unitId: string | null }[] = [
+    { staffId: row.staffId, unitId: null },
+    ...(row.unitIds ?? []).map((unitId) => ({ staffId: null, unitId })),
+  ];
+  for (const t of targets) {
+    await tx.$executeRaw`
+      INSERT INTO booking_occupancy
+        (id, salon_id, kind, booking_id, hold_id, staff_id, resource_unit_id, period, active, expires_at)
+      VALUES (uuidv7(), ${row.salonId}::uuid, ${kind}::occupancy_kind, ${row.booking ?? null}::uuid,
+        ${row.hold?.id ?? null}::uuid, ${t.staffId}::uuid, ${t.unitId}::uuid,
+        tstzrange(${new Date(row.period.start)}, ${new Date(row.period.end)}, '[)'), true,
+        ${row.hold?.expiresAt ?? null})`;
+  }
 }
 
 /** Turns a hold's claim into the booking's claim in place (same range, no gap for others). */
@@ -123,7 +181,7 @@ export function isSlotConflict(error: unknown): boolean {
     }
     if (
       typeof rec["message"] === "string" &&
-      /\b(23P01|40P01)\b|booking_occupancy_no_staff_overlap/.test(rec["message"])
+      /\b(23P01|40P01)\b|booking_occupancy_no_(staff|unit)_overlap/.test(rec["message"])
     ) {
       return true;
     }

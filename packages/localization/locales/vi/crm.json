@@ -490,6 +490,7 @@
     "unavailable": {
       "no_staff_assigned": "Không đặt được: dịch vụ này chưa gán nhân viên nào.",
       "no_working_hours": "Không đặt được: nhân viên làm dịch vụ này chưa có giờ làm việc (hoặc salon chưa có giờ mở cửa).",
+      "no_resource": "Không đặt được: dịch vụ này cần phòng hoặc thiết bị (ví dụ giường, ghế) nhưng salon chưa có cái nào đang hoạt động.",
       "outside_booking_window": "Ngày này nằm ngoài khoảng thời gian nhận đặt lịch.",
       "fully_booked": "Tháng này không còn giờ trống cho lựa chọn này.",
       "fixServices": "Gán nhân viên",

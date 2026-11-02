@@ -1,4 +1,5 @@
 import { covers, intersect, type Interval, normalize, overlapLength, subtract } from "./intervals";
+import { pickUnits, type ResourceInput } from "./resources";
 import {
   addDays,
   boundaryInstant,
@@ -94,6 +95,8 @@ export interface AvailabilityInput {
   openingHours: readonly WeeklyHours[];
   holidays: readonly SalonHoliday[];
   staff: readonly StaffAvailability[];
+  /** Units the service needs besides a staff member (M6.6); omitted = none. Never overridable. */
+  resources?: ResourceInput;
   overrides?: ReadonlySet<RuleOverride>;
 }
 
@@ -104,6 +107,8 @@ export interface SlotOption {
   end: number;
   /** Time the staff member is blocked, buffers included — written to booking_occupancy. */
   occupancy: Interval;
+  /** Resource units claimed for the same interval (one occupancy row each). */
+  unitIds: string[];
 }
 
 export interface Slot {
@@ -199,11 +204,14 @@ function slotsForDate(input: AvailabilityInput, date: LocalDate, earliest: numbe
       for (const { s, free } of staff) {
         const occupancy = occupancyFor(start, s.terms);
         if (!covers(free, occupancy)) continue;
+        const unitIds = pickUnits(input.resources, occupancy);
+        if (!unitIds) continue;
         options.push({
           staffId: s.staffId,
           start,
           end: start + s.terms.durationMinutes * MINUTE,
           occupancy,
+          unitIds,
         });
       }
       if (options.length > 0) slots.push({ start, options });

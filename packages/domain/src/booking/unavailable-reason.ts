@@ -5,6 +5,7 @@ import { addDays, toLocal } from "./tz";
 export const UNAVAILABLE_REASONS = [
   "no_staff_assigned",
   "no_working_hours",
+  "no_resource",
   "outside_booking_window",
   "fully_booked",
 ] as const;
@@ -13,7 +14,8 @@ export type UnavailableReason = (typeof UNAVAILABLE_REASONS)[number];
 /**
  * Explains an empty availability result, most actionable cause first:
  * nobody performs the service → nobody (eligible) has working hours in the range or the salon has
- * no opening hours → the range starts after the booking window → otherwise taken/past/closed days.
+ * no opening hours → a required resource type has no active units (M6.6) → the range starts after
+ * the booking window → otherwise taken/past/closed days.
  * Call only when the engine returned no slots for `input`.
  */
 export function unavailableReason(input: AvailabilityInput): UnavailableReason {
@@ -25,6 +27,14 @@ export function unavailableReason(input: AvailabilityInput): UnavailableReason {
   );
   if (!hasHours || (input.openingHours.length === 0 && !input.overrides?.has("hours")))
     return "no_working_hours";
+  const resources = input.resources;
+  if (
+    resources?.requirements.some(
+      (r) =>
+        resources.units.filter((u) => u.resourceTypeId === r.resourceTypeId).length < r.quantity,
+    )
+  )
+    return "no_resource";
   const today = toLocal(input.now, input.timeZone).date;
   if (
     !input.overrides?.has("horizon") &&
