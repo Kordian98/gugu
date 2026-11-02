@@ -12,6 +12,7 @@ export const AUDIT_ACTIONS = [
   "auth.identity_linked",
   "salon.registered",
   "salon.owner_verified",
+  "salon.owner_declined",
   "salon.profile_updated",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

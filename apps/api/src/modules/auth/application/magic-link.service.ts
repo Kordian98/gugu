@@ -11,22 +11,25 @@ import { AppConfig } from "../../../infrastructure/config/app-config";
 import { MailService } from "../../../infrastructure/mail/mail.service";
 import type { MagicLinkToken, Prisma, User } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
-import { AuditService } from "../../audit/audit.facade";
 import { RateLimitService } from "../../../infrastructure/rate-limit/rate-limit.service";
 import { renderMagicLinkEmail } from "../infra/email-templates";
 import type { RequestMeta } from "../infra/http-meta";
 import { randomCode, randomToken, safeEqual, tokenHash } from "../infra/tokens";
 import { AccountsService } from "./accounts.service";
+import { PendingMembershipsService } from "./pending-memberships.service";
 
 const LINK_TTL_MS = 15 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 
-/** Per-email limits, keyed on the email HMAC. Enforced in `issue()` so every caller is covered. */
+/**
+ * Per-email issuance limits, keyed on the email HMAC, enforced in `issue()` so every caller is
+ * covered. Together with the per-link lock (5 wrong codes) they bound code guessing to at most
+ * 10 links × 5 = 50 guesses per email per day (≈ 5·10⁻⁵ chance against a 6-digit code). There is no
+ * email-wide failure counter: one would let anyone lock a victim out of code sign-in.
+ */
 export const MAGIC_LINK_LIMITS = {
   email: { name: "auth.magic_link.email", limit: 3, windowSeconds: 900 },
   emailDay: { name: "auth.magic_link.email_day", limit: 10, windowSeconds: 86_400 },
-  /** Rolling cap on wrong codes across all links of one email (not only per link). */
-  codeFailures: { name: "auth.verify.code_fail.email", limit: 10, windowSeconds: 3_600 },
 } as const;
 
 export interface IssueMagicLink {
@@ -59,7 +62,7 @@ export class MagicLinkService {
     private readonly mail: MailService,
     private readonly rateLimit: RateLimitService,
     private readonly accounts: AccountsService,
-    private readonly audit: AuditService,
+    private readonly pendingMemberships: PendingMembershipsService,
   ) {}
 
   private hash(purpose: "magic" | "code" | "subject", value: string): string {
@@ -141,7 +144,9 @@ export class MagicLinkService {
 
   /**
    * Consumes a link (by token, or by email + code) and returns the now-verified user. Single use is
-   * enforced atomically; wrong codes count towards a 5-attempt lock.
+   * enforced atomically. Wrong codes count only against the live link they were tried on; after 5
+   * the link's *code* is locked, but its emailed token still works and a newer link is unaffected,
+   * so nobody but the mailbox owner can block sign-in.
    */
   async verify(input: MagicLinkVerifyInput, meta: RequestMeta): Promise<VerifiedMagicLink> {
     await this.rateLimit.consume(
@@ -161,18 +166,14 @@ export class MagicLinkService {
         where: { email: input.email, consumedAt: null, expiresAt: { gt: now } },
         orderBy: { createdAt: "desc" },
       });
-      const subject = this.hash("subject", input.email);
-      const tooMany = () => new AppError(429, AUTH_ERRORS.tooManyAttempts, "Too many attempts");
-      // Rolling cap across all links of this email: checked before any comparison.
-      if (await this.rateLimit.exceeded(MAGIC_LINK_LIMITS.codeFailures, subject)) throw tooMany();
       if (link) {
+        if (link.attempts >= MAX_CODE_ATTEMPTS) {
+          throw new AppError(429, AUTH_ERRORS.tooManyAttempts, "Too many attempts");
+        }
         const ok = safeEqual(link.codeHash, this.hash("code", `${input.email}:${input.code}`));
         if (!ok) {
-          await this.rateLimit.consume(MAGIC_LINK_LIMITS.codeFailures, subject).catch(() => {
-            // Reaching the cap on this attempt still answers with the per-attempt result below.
-          });
           // Atomic increment: parallel guesses can't exceed MAX_CODE_ATTEMPTS on one link.
-          const counted = await this.prisma.magicLinkToken.updateMany({
+          await this.prisma.magicLinkToken.updateMany({
             where: { id: link.id, consumedAt: null, attempts: { lt: MAX_CODE_ATTEMPTS } },
             data: { attempts: { increment: 1 } },
           });
@@ -180,20 +181,11 @@ export class MagicLinkService {
             where: { id: link.id },
             select: { attempts: true },
           });
-          if (counted.count === 0 || after.attempts >= MAX_CODE_ATTEMPTS) {
-            await this.prisma.magicLinkToken.updateMany({
-              where: { id: link.id, consumedAt: null },
-              data: { consumedAt: now },
-            });
-            throw tooMany();
+          if (after.attempts >= MAX_CODE_ATTEMPTS) {
+            throw new AppError(429, AUTH_ERRORS.tooManyAttempts, "Too many attempts");
           }
           throw invalid();
         }
-      } else {
-        // No live link: still count the guess so probing an email without links is capped too.
-        await this.rateLimit
-          .consume(MAGIC_LINK_LIMITS.codeFailures, subject)
-          .catch(() => undefined);
       }
     }
     if (!link || link.consumedAt || link.expiresAt <= now) throw invalid();
@@ -205,43 +197,12 @@ export class MagicLinkService {
       });
       if (claimed.count !== 1) throw invalid();
       const user = await this.accounts.upsertVerifiedByEmail(consumed.email, consumed.locale, tx);
-      // Any proof of the email (sign-in or registration link) activates memberships that were
-      // waiting for it — so a rate-limited registration email can be replaced by a normal sign-in.
-      for (const pending of await activatePendingMemberships(tx, user.id)) {
-        await this.audit.record(
-          {
-            action: "salon.owner_verified",
-            actor: { type: "user", id: user.id },
-            salonId: pending.salonId,
-            organizationId: pending.organizationId,
-            targetType: "salon",
-            targetId: pending.salonId,
-          },
-          tx,
-        );
+      // Only a registration link shows intent for one specific salon. Plain sign-ins activate
+      // nothing: other pending salons need an explicit confirm (PendingMembershipsService).
+      if (consumed.purpose === "salon_registration" && consumed.salonId) {
+        await this.pendingMemberships.activate(tx, user.id, consumed.salonId);
       }
       return { user, link: consumed };
     });
   }
-}
-
-/** Proving the email activates the user's `pending_verification` salon and org memberships. */
-async function activatePendingMemberships(
-  tx: Prisma.TransactionClient,
-  userId: string,
-): Promise<{ salonId: string; organizationId: string }[]> {
-  const pending = await tx.salonMember.findMany({
-    where: { userId, status: "pending_verification" },
-    select: { salonId: true, salon: { select: { organizationId: true } } },
-  });
-  if (pending.length === 0) return [];
-  await tx.salonMember.updateMany({
-    where: { userId, status: "pending_verification" },
-    data: { status: "active" },
-  });
-  await tx.organizationMember.updateMany({
-    where: { userId, status: "pending_verification" },
-    data: { status: "active" },
-  });
-  return pending.map((p) => ({ salonId: p.salonId, organizationId: p.salon.organizationId }));
 }

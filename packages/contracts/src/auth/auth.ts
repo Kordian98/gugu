@@ -118,3 +118,18 @@ export type RefreshInput = z.infer<typeof refreshInputSchema>;
 /** `GET /me` for web also returns the CSRF token so a reloaded page can keep writing. */
 export const meResponseSchema = z.object({ user: meSchema, csrfToken: z.string().nullable() });
 export type MeResponse = z.infer<typeof meResponseSchema>;
+
+/**
+ * Salons where the user is a pending owner (registered without a session; the registration email
+ * was rate-limited or never opened). Each must be confirmed explicitly — signing in alone never
+ * activates them (security review: no ownership binding without intent).
+ */
+export const pendingSalonSchema = z.object({
+  salonId: uuidV7Schema,
+  salonName: z.string(),
+  createdAt: z.iso.datetime(),
+});
+export type PendingSalon = z.infer<typeof pendingSalonSchema>;
+export const pendingSalonListSchema = z.object({ items: z.array(pendingSalonSchema) });
+export type PendingSalonList = z.infer<typeof pendingSalonListSchema>;
+export const pendingSalonParamsSchema = z.object({ salonId: uuidV7Schema });

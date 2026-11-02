@@ -13,8 +13,22 @@ import viMarketing from "../locales/vi/marketing.json";
 
 /** Dictionaries are bundled statically (topic 03 §4). vi is the source of truth for keys. */
 export const resources = {
-  vi: { common: viCommon, marketing: viMarketing, a11y: viA11y, auth: viAuth, email: viEmail, crm: viCrm },
-  en: { common: enCommon, marketing: enMarketing, a11y: enA11y, auth: enAuth, email: enEmail, crm: enCrm },
+  vi: {
+    common: viCommon,
+    marketing: viMarketing,
+    a11y: viA11y,
+    auth: viAuth,
+    email: viEmail,
+    crm: viCrm,
+  },
+  en: {
+    common: enCommon,
+    marketing: enMarketing,
+    a11y: enA11y,
+    auth: enAuth,
+    email: enEmail,
+    crm: enCrm,
+  },
 } as const;
 
 export const NAMESPACES = ["common", "marketing", "a11y", "auth", "email", "crm"] as const;

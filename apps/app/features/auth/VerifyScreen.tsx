@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator } from "react-native";
-import { type Href, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { Button, Text, color } from "@gugu/design-system";
@@ -8,6 +8,7 @@ import { Button, Text, color } from "@gugu/design-system";
 import { useAuth } from "@/services/auth/AuthProvider";
 import { useLocale } from "@/services/i18n/useLocale";
 
+import { afterSignInHref } from "./afterSignIn";
 import { AuthCard } from "./AuthCard";
 
 /** Landing page of the emailed magic link: exchanges the token once, then redirects. */
@@ -28,7 +29,7 @@ export function VerifyScreen() {
     auth
       .verify({ token: validToken })
       .then((session) => {
-        router.replace((session.redirectPath ?? `/${locale}/me`) as Href);
+        router.replace(afterSignInHref(session.user, session.redirectPath ?? `/${locale}/me`));
       })
       .catch(() => {
         setRejected(true);

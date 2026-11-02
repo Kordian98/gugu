@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AccountsService } from "./application/accounts.service";
 import { MagicLinkService } from "./application/magic-link.service";
+import { PendingMembershipsService } from "./application/pending-memberships.service";
 import { SessionService } from "./application/session.service";
 import { SignInService } from "./application/sign-in.service";
 import { AuthController } from "./http/auth.controller";
@@ -13,7 +14,14 @@ import { IdTokenVerifier } from "./infra/id-token-verifier";
  */
 @Module({
   controllers: [AuthController, MeController],
-  providers: [AccountsService, MagicLinkService, SessionService, SignInService, IdTokenVerifier],
+  providers: [
+    AccountsService,
+    MagicLinkService,
+    PendingMembershipsService,
+    SessionService,
+    SignInService,
+    IdTokenVerifier,
+  ],
   exports: [AccountsService, MagicLinkService, SessionService],
 })
 export class AuthModule {}

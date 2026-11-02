@@ -5,7 +5,8 @@ import { Platform } from "react-native";
  * simulator); 10.0.2.2 is the Android emulator's alias for the host machine.
  */
 export const API_URL: string =
-  process.env["EXPO_PUBLIC_API_URL"] ??
+  // Dot access on purpose: Expo inlines only `process.env.EXPO_PUBLIC_*` written this way.
+  process.env.EXPO_PUBLIC_API_URL ??
   (Platform.OS === "android" ? "http://10.0.2.2:3002" : "http://localhost:3002");
 
 /** Web uses the httpOnly session cookie; native uses bearer tokens in SecureStore (spec 05 R9–R11). */
