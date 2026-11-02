@@ -10,7 +10,7 @@ import { useThemePreference } from "../theme/CrmThemeProvider";
 import type { NavItem, NavSectionId } from "./nav";
 import { useCrmNav, useVisibleNav } from "./useCrmNav";
 
-/** Dark plum sidebar (ref crm-01): wordmark + BUSINESS pill, grouped collapsible nav, user + salon. */
+/** Dark plum sidebar (ref crm-01): wordmark + STUDIO pill, grouped collapsible nav, user + salon. */
 export function Sidebar({ workspace, collapsed }: { workspace: Workspace; collapsed: boolean }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");

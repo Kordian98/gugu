@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { Redirect, usePathname, useRouter } from "expo-router";
+import { Redirect, usePathname } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, CalmCard, useCalm } from "@gugu/design-system";
+import { CalmCard, useCalm } from "@gugu/design-system";
 
 import { useAuth } from "@/services/auth/AuthProvider";
 import { useLocale } from "@/services/i18n/useLocale";
@@ -22,7 +22,6 @@ export function BusinessGuard({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const locale = useLocale();
   const pathname = usePathname();
-  const router = useRouter();
   const demo = useDemoMode();
 
   if (demo) return <SalonProvider>{children}</SalonProvider>;
@@ -46,6 +45,8 @@ export function BusinessGuard({ children }: { children: ReactNode }) {
   const memberships = auth.user?.memberships ?? [];
   if (!memberships.some((m) => m.status === "active")) {
     const pending = memberships.some((m) => m.status === "pending_verification");
+    // A new owner goes straight into registration, then the first-run stepper (owner feedback).
+    if (!pending) return <Redirect href={`/${locale}/business/join` as never} />;
     return (
       <View
         style={{
@@ -60,19 +61,8 @@ export function BusinessGuard({ children }: { children: ReactNode }) {
           <EmptyState
             testID="crm-no-salon"
             icon="store"
-            title={t(pending ? "guard.pendingTitle" : "guard.noSalonTitle")}
-            body={t(pending ? "guard.pendingBody" : "guard.noSalonBody")}
-            action={
-              pending ? undefined : (
-                <CalmButton
-                  label={t("guard.register")}
-                  icon="plus"
-                  onPress={() => {
-                    router.push(`/${locale}/business/join` as never);
-                  }}
-                />
-              )
-            }
+            title={t("guard.pendingTitle")}
+            body={t("guard.pendingBody")}
           />
         </CalmCard>
       </View>

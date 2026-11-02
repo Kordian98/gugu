@@ -33,6 +33,7 @@ type Props = {
   color?: string;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
+  testID?: string | undefined;
   children: ReactNode;
 };
 
@@ -44,6 +45,7 @@ export function Text({
   color,
   style,
   numberOfLines,
+  testID,
   children,
 }: Props) {
   const base: TextStyle = {
@@ -55,7 +57,7 @@ export function Text({
     textTransform: role === "eyebrow" || role === "neon" ? "uppercase" : "none",
   };
   return (
-    <RNText style={[base, style]} numberOfLines={numberOfLines}>
+    <RNText testID={testID} style={[base, style]} numberOfLines={numberOfLines}>
       {children}
     </RNText>
   );

@@ -34,12 +34,16 @@ export function KpiRow({
         r ? (
           <>
             <Pill label={t("revenueKind.estimated")} tone="accent" />
-            <Pill label={pct(r.deltaPct)} tone={r.deltaPct >= 0 ? "up" : "down"} />
+            {r.deltaPct !== null ? (
+              <Pill label={pct(r.deltaPct)} tone={r.deltaPct >= 0 ? "up" : "down"} />
+            ) : null}
           </>
         ) : undefined
       }
-      caption={r ? t("kpi.vsLastWeek") : undefined}
-      visual={r ? <Sparkline values={r.trend} width={84} height={34} /> : undefined}
+      caption={r && r.deltaPct !== null ? t("kpi.vsLastWeek") : undefined}
+      visual={
+        r && r.trend.length > 1 ? <Sparkline values={r.trend} width={84} height={34} /> : undefined
+      }
       emptyCaption={t("kpi.emptyRevenue")}
     />
   );

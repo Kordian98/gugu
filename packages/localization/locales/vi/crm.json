@@ -1,5 +1,5 @@
 {
-  "brandPill": "BUSINESS",
+  "brandPill": "STUDIO",
   "nav": {
     "sections": {
       "workspace": "Không gian làm việc",
@@ -44,7 +44,8 @@
       "manager": "Quản lý",
       "receptionist": "Lễ tân",
       "staff": "Nhân viên"
-    }
+    },
+    "docTitle": "{{page}} · GuGu Studio"
   },
   "greeting": {
     "morning": "Chào buổi sáng",
@@ -111,7 +112,8 @@
       "confirmed": "Đã xác nhận",
       "inProgress": "Đang phục vụ",
       "pending": "Chờ xác nhận",
-      "completed": "Hoàn thành"
+      "completed": "Hoàn thành",
+      "noShow": "Vắng mặt"
     }
   },
   "upcoming": {
@@ -130,7 +132,7 @@
     "calendar": {
       "title": "Lịch",
       "emptyTitle": "Lịch còn trống",
-      "emptyBody": "Thêm dịch vụ và giờ làm việc để bắt đầu nhận lịch hẹn. Lịch theo ngày, tuần và từng nhân viên sẽ hiện ở đây."
+      "emptyBody": "Thêm nhân viên nhận lịch và giờ làm việc, lịch theo từng người sẽ hiện ở đây."
     },
     "appointments": {
       "title": "Lịch hẹn",
@@ -196,7 +198,8 @@
     "saved": "Đã lưu",
     "required": "Vui lòng nhập",
     "edit": "Sửa",
-    "done": "Xong"
+    "done": "Xong",
+    "back": "Quay lại"
   },
   "errors": {
     "generic": "Có lỗi xảy ra. Anh/chị thử lại giúp em nhé.",
@@ -217,7 +220,20 @@
     "common_validation_failed": "Thông tin chưa hợp lệ, anh/chị kiểm tra lại nhé.",
     "common_forbidden": "Anh/chị không có quyền thực hiện thao tác này.",
     "common_rate_limited": "Thao tác quá nhanh, anh/chị thử lại sau ít phút.",
-    "common_not_found": "Không tìm thấy."
+    "common_not_found": "Không tìm thấy.",
+    "booking_slot_taken": "Giờ này vừa có người đặt. Anh/chị chọn giờ khác nhé.",
+    "booking_invalid_transition": "Không thể đổi sang trạng thái này.",
+    "booking_too_early": "Chưa đến giờ để thực hiện thao tác này.",
+    "booking_too_late": "Đã quá thời gian cho thao tác này.",
+    "booking_reason_required": "Vui lòng nhập lý do.",
+    "booking_staff_selection_disabled": "Salon đang ẩn chọn nhân viên.",
+    "booking_service_unavailable": "Dịch vụ hoặc nhân viên không còn nhận lịch.",
+    "booking_phone_invalid": "Số điện thoại không hợp lệ.",
+    "booking_customer_required": "Cần tên và số điện thoại của khách (trừ khách vãng lai).",
+    "booking_override_not_allowed": "Anh/chị không có quyền đặt ngoài quy định.",
+    "booking_not_found": "Không tìm thấy lịch hẹn.",
+    "booking_active_limit_reached": "Số điện thoại này đã có nhiều lịch hẹn đang chờ.",
+    "offline_sale_booking_not_completed": "Chỉ ghi số tiền cho lịch hẹn đã hoàn thành."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",
@@ -381,5 +397,131 @@
     "emailBound": "Lời mời này dành cho một email cụ thể. Anh/chị đăng nhập bằng đúng email đó.",
     "accept": "Tham gia đội ngũ",
     "signIn": "Đăng nhập để tham gia"
+  },
+  "calendar": {
+    "newFor": "Lịch hẹn mới với {{name}}",
+    "today": "Hôm nay",
+    "noSlots": "Không còn giờ trống trong ngày này. Anh/chị chọn ngày khác hoặc nhân viên khác nhé.",
+    "anyStaff": "Bất kỳ ai",
+    "timeOff": "Nghỉ phép",
+    "all": "Tất cả",
+    "dragRevertHint": "Lịch hẹn đã được giữ nguyên.",
+    "newTitle": "Lịch hẹn mới",
+    "confirmBooking": "Xác nhận lịch hẹn",
+    "client": "Khách hàng",
+    "walkIn": "Khách vãng lai (không cần tên, số)",
+    "visits": "{{count}} lần",
+    "noShows": "Vắng {{count}} lần",
+    "change": "Đổi",
+    "clientSearch": "Tìm theo số điện thoại hoặc tên",
+    "newClientName": "Tên khách",
+    "newClientPhone": "Số điện thoại",
+    "service": "Dịch vụ",
+    "staff": "Nhân viên",
+    "time": "Thời gian",
+    "source": "Khách đặt qua"
+  },
+  "booking": {
+    "title": "Lịch hẹn {{code}}",
+    "status": {
+      "pending": "Chờ xác nhận",
+      "confirmed": "Đã xác nhận",
+      "checked_in": "Đang phục vụ",
+      "completed": "Hoàn thành",
+      "no_show": "Vắng mặt",
+      "cancelled_by_customer": "Khách huỷ",
+      "cancelled_by_salon": "Salon huỷ"
+    },
+    "source": {
+      "marketplace": "GuGu",
+      "salon_profile": "Trang salon",
+      "direct_link": "Link đặt lịch",
+      "qr_code": "Mã QR",
+      "social_media": "Mạng xã hội",
+      "repeat_customer": "Khách quen",
+      "staff_created": "Salon tạo",
+      "walk_in": "Khách vãng lai",
+      "phone": "Điện thoại",
+      "zalo_chat": "Chat Zalo",
+      "zalo_oa": "Zalo OA",
+      "zalo_link": "Link Zalo",
+      "zalo_mini_app": "Zalo Mini App",
+      "promoted_listing": "Quảng bá",
+      "gugu_campaign": "Chiến dịch GuGu",
+      "ai_agent": "Trợ lý AI"
+    },
+    "lateCancel": "Huỷ sát giờ",
+    "client": "Khách hàng",
+    "walkIn": "Khách vãng lai",
+    "service": "Dịch vụ",
+    "staff": "Nhân viên",
+    "estimate": "Giá dự kiến",
+    "payAtSalon": "Khách thanh toán tại salon",
+    "note": "Ghi chú",
+    "amountReceived": "Số tiền đã nhận",
+    "cancelTitle": "Lý do huỷ",
+    "reasons": {
+      "customer": "Khách báo huỷ",
+      "unreachable": "Không liên lạc được khách",
+      "salon": "Salon bận",
+      "other": "Khác"
+    },
+    "reasonText": "Ghi chú lý do",
+    "reasonPlaceholder": "Không bắt buộc",
+    "cancelNotice": "Khách sẽ được báo khi có kênh thông báo (Zalo/email).",
+    "correctReason": "Lý do sửa trạng thái",
+    "amountTitle": "Số tiền khách đã trả tại salon",
+    "amountHint": "Không bắt buộc. Chỉ để salon theo dõi, GuGu không xử lý thanh toán.",
+    "methods": {
+      "cash": "Tiền mặt",
+      "bank_transfer": "Chuyển khoản",
+      "ewallet": "Ví điện tử",
+      "card": "Thẻ",
+      "other": "Khác"
+    },
+    "markNoShow": "Sửa thành vắng mặt",
+    "markCompleted": "Sửa thành hoàn thành",
+    "skip": "Bỏ qua",
+    "cancel": "Huỷ lịch",
+    "reschedule": "Đổi giờ",
+    "noShow": "Vắng mặt",
+    "confirm": "Xác nhận",
+    "checkIn": "Khách đã đến",
+    "complete": "Hoàn thành",
+    "editAmount": "Sửa số tiền",
+    "addAmount": "Ghi số tiền đã nhận",
+    "cancelConfirm": "Huỷ lịch hẹn",
+    "rescheduleTitle": "Chọn giờ mới",
+    "sameStaff": "Cùng nhân viên"
+  },
+  "wizard": {
+    "later": "Để sau",
+    "progress": "Bước {{step}}/{{total}}",
+    "next": "Tiếp tục",
+    "toToday": "Vào trang Hôm nay",
+    "quickService": "Thêm nhanh dịch vụ",
+    "servicePlaceholder": "Ví dụ: Sơn gel",
+    "teamHint": "Mỗi người nhận giờ mở cửa của salon và tất cả dịch vụ; anh/chị chỉnh chi tiết sau ở mục Nhân viên.",
+    "steps": {
+      "business": "Thông tin salon",
+      "hours": "Giờ mở cửa",
+      "services": "Dịch vụ",
+      "team": "Nhân viên",
+      "done": "Hoàn tất"
+    },
+    "titles": {
+      "business": "Chào mừng anh/chị đến với GuGu Studio",
+      "hours": "Salon mở cửa lúc nào?",
+      "services": "Thêm dịch vụ đầu tiên",
+      "team": "Ai sẽ phục vụ khách?",
+      "done": "Sẵn sàng nhận lịch hẹn"
+    },
+    "bodies": {
+      "business": "Kiểm tra tên, số điện thoại và địa chỉ salon. Chỉ mất một phút.",
+      "hours": "Chọn mẫu 9:00–21:00 hoặc chỉnh từng ngày. Lịch hẹn chỉ được đặt trong giờ mở cửa.",
+      "services": "Tải ảnh bảng giá để AI tạo danh sách (sắp có), hoặc thêm nhanh vài dịch vụ phổ biến.",
+      "team": "Thêm chính anh/chị nếu trực tiếp làm, và các nhân viên khác. Có thể mời họ tạo tài khoản sau.",
+      "done": "Anh/chị có thể bắt đầu thêm lịch hẹn ngay từ trang Hôm nay hoặc Lịch."
+    }
   }
 }
