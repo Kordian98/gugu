@@ -39,6 +39,7 @@ Only the API shell exists: no domain tables yet (the first migration creates ext
 |---|---|---|---|---|---|
 | health | `apps/api/src/modules/health` | — | — | — (`GET /api/v1/health` readiness: DB + Redis, 200/503; `/health/live`) | implemented |
 | zalo (topic 09) | `apps/api/src/modules/zalo` | zalo_oa_connections, zalo_conversations, zalo_messages, zalo_webhook_events, zalo_send_logs, zalo_booking_links, zalo_staff_notifications | — (consumes `booking.*` outbox events with its own cursor until 04-S5) | `/api/v1/salons/:salonId/zalo/*`; see `docs/domains/zalo.md` |
+| assistant (topic 08) | `apps/api/src/modules/assistant` | assistant_conversations, assistant_messages, assistant_entity_tokens, assistant_tool_calls | — | `/api/v1/salons/:salonId/assistant` (status, SSE turns); see `docs/domains/ai-agent.md` |
 | subscriptions (topic 12) | `apps/api/src/modules/subscriptions` | plans, plan_prices, plan_entitlements, subscriptions, subscription_events, entitlement_overrides | — | `GET /api/v1/salons/:salonId/entitlements` | M12.1 implemented; see `docs/domains/monetization-admin.md` |
 
 Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`), `logger` (nestjs-pino, `REDACT_PATHS`), `prisma` (`PrismaService`, lazy connect), `redis` (`RedisService`), `queue` (`QueueService`, `QUEUES`). Common (`apps/api/src/common`): `context` (RequestContext via AsyncLocalStorage, `x-request-id`), `problem` (`ProblemFilter`, `AppError`, `COMMON_ERRORS`), `validation` (global Zod pipe). Entrypoints: `main.ts` (HTTP), `worker.ts` (BullMQ), `bootstrap.ts` (prefix `/api`, URI versioning v1, Swagger).
@@ -54,6 +55,7 @@ Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`),
 | zalo_conversations, zalo_messages | yes | `Restrict`; customer text = personal data (never to an LLM, X10) | zalo | one conversation per (OA, Zalo user) |
 | zalo_webhook_events | salon set when routed | purged after 30 days (daily job) | zalo | idempotent on `event_key` |
 | zalo_send_logs | yes | kept (cost/audit trail); `request` cleared once final | zalo | unique `dedup_key` |
+| assistant_conversations, assistant_messages, assistant_entity_tokens, assistant_tool_calls | yes (composite FK `salon_id, conversation_id`) | children `Cascade` from the conversation; conversation `Restrict` | assistant | tokenized model transcript only: no names/phones/notes (PII firewall, q03); token map stores entity ids, never names |
 | zalo_booking_links | yes | `Restrict` | zalo | composite FK to bookings and conversations |
 | zalo_staff_notifications | yes | kept | zalo | |
 

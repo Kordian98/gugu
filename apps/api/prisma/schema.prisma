@@ -200,22 +200,23 @@ model User {
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  profile              UserProfile?
-  customer             Customer?
-  identities           AuthIdentity[]
-  sessions             Session[]
-  magicLinks           MagicLinkToken[]
-  salonMemberships     SalonMember[]        @relation("SalonMemberUser")
-  invitedMembers       SalonMember[]        @relation("SalonMemberInvitedBy")
-  orgMemberships       OrganizationMember[]
-  ownedOrganizations   Organization[]
-  ownedSalons          Salon[]
-  approvedTimeOff      StaffTimeOff[]       @relation("StaffTimeOffApprovedBy")
-  sentInvitations      SalonInvitation[]    @relation("SalonInvitationInvitedBy")
-  acceptedInvitations  SalonInvitation[]    @relation("SalonInvitationAcceptedBy")
-  createdBookings      Booking[]            @relation("BookingCreatedBy")
-  customerBookings     Booking[]            @relation("BookingCustomerUser")
-  recordedOfflineSales OfflineSale[]        @relation("OfflineSaleRecordedBy")
+  profile                UserProfile?
+  customer               Customer?
+  identities             AuthIdentity[]
+  sessions               Session[]
+  magicLinks             MagicLinkToken[]
+  salonMemberships       SalonMember[]           @relation("SalonMemberUser")
+  invitedMembers         SalonMember[]           @relation("SalonMemberInvitedBy")
+  orgMemberships         OrganizationMember[]
+  ownedOrganizations     Organization[]
+  ownedSalons            Salon[]
+  approvedTimeOff        StaffTimeOff[]          @relation("StaffTimeOffApprovedBy")
+  sentInvitations        SalonInvitation[]       @relation("SalonInvitationInvitedBy")
+  acceptedInvitations    SalonInvitation[]       @relation("SalonInvitationAcceptedBy")
+  createdBookings        Booking[]               @relation("BookingCreatedBy")
+  customerBookings       Booking[]               @relation("BookingCustomerUser")
+  recordedOfflineSales   OfflineSale[]           @relation("OfflineSaleRecordedBy")
+  assistantConversations AssistantConversation[]
 
   @@map("users")
 }
@@ -507,25 +508,26 @@ model Salon {
   createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  organization         Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  owner                User                  @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
-  primaryCategory      ServiceCategory?      @relation(fields: [primaryCategoryId], references: [id], onDelete: Restrict)
-  location             SalonLocation?
-  members              SalonMember[]
-  magicLinks           MagicLinkToken[]
-  subscriptions        Subscription[]
-  subscriptionEvents   SubscriptionEvent[]
-  entitlementOverrides EntitlementOverride[]
-  settings             SalonSettings?
-  openingHours         SalonOpeningHours[]
-  holidays             SalonHoliday[]
-  staffProfiles        StaffProfile[]
-  services             Service[]
-  invitations          SalonInvitation[]
-  bookings             Booking[]
-  bookingHolds         BookingHold[]
-  zaloConnection       ZaloOaConnection?
-  zaloConversations    ZaloConversation[]
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  owner                  User                    @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  primaryCategory        ServiceCategory?        @relation(fields: [primaryCategoryId], references: [id], onDelete: Restrict)
+  location               SalonLocation?
+  members                SalonMember[]
+  magicLinks             MagicLinkToken[]
+  subscriptions          Subscription[]
+  subscriptionEvents     SubscriptionEvent[]
+  entitlementOverrides   EntitlementOverride[]
+  settings               SalonSettings?
+  openingHours           SalonOpeningHours[]
+  holidays               SalonHoliday[]
+  staffProfiles          StaffProfile[]
+  services               Service[]
+  invitations            SalonInvitation[]
+  bookings               Booking[]
+  bookingHolds           BookingHold[]
+  zaloConnection         ZaloOaConnection?
+  zaloConversations      ZaloConversation[]
+  assistantConversations AssistantConversation[]
 
   @@unique([organizationId, id])
   @@index([organizationId])
@@ -1474,4 +1476,97 @@ model ZaloStaffNotification {
 
   @@index([salonId, createdAt])
   @@map("zalo_staff_notifications")
+}
+
+// ---------------------------------------------------------------------------------------------
+// AI business assistant (topic 08 A1/A2). Model-facing content is stored tokenized: no names,
+// phones, emails or free text about people (PII firewall, spec 08 §4.3). Domain doc:
+// docs/domains/ai-agent.md.
+// ---------------------------------------------------------------------------------------------
+
+enum AssistantToolCallStatus {
+  ok
+  withheld
+  forbidden
+  error
+
+  @@map("assistant_tool_call_status")
+}
+
+/// One chat thread of one salon member. Deleting it removes its messages and token map.
+model AssistantConversation {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  salonId   String    @map("salon_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  locale    String    @default("vi")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  salon     Salon                  @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  messages  AssistantMessage[]
+  tokens    AssistantEntityToken[]
+  toolCalls AssistantToolCall[]
+
+  @@unique([salonId, id])
+  @@index([salonId, userId, updatedAt])
+  @@map("assistant_conversations")
+}
+
+/// Model-facing message (tokenized), stored exactly as sent/returned so the harness stays append-only.
+model AssistantMessage {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  salonId          String   @map("salon_id") @db.Uuid
+  conversationId   String   @map("conversation_id") @db.Uuid
+  role             String
+  content          Json
+  model            String?
+  inputTokens      Int      @default(0) @map("input_tokens")
+  outputTokens     Int      @default(0) @map("output_tokens")
+  cacheReadTokens  Int      @default(0) @map("cache_read_tokens")
+  cacheWriteTokens Int      @default(0) @map("cache_write_tokens")
+  costVnd          Int      @default(0) @map("cost_vnd")
+  stopReason       String?  @map("stop_reason")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation AssistantConversation @relation(fields: [salonId, conversationId], references: [salonId, id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("assistant_messages")
+}
+
+/// Per-conversation pseudonym (`staff_3`) → entity id. Never a name.
+model AssistantEntityToken {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  salonId        String   @map("salon_id") @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  token          String
+  entityType     String   @map("entity_type")
+  entityId       String   @map("entity_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation AssistantConversation @relation(fields: [salonId, conversationId], references: [salonId, id], onDelete: Cascade)
+
+  @@unique([conversationId, token])
+  @@unique([conversationId, entityType, entityId])
+  @@map("assistant_entity_tokens")
+}
+
+/// Audit of every tool call: inputs are tokens/enums/dates; outputs only as a digest.
+model AssistantToolCall {
+  id             String                  @id @default(uuid(7)) @db.Uuid
+  salonId        String                  @map("salon_id") @db.Uuid
+  conversationId String                  @map("conversation_id") @db.Uuid
+  toolName       String                  @map("tool_name")
+  input          Json
+  status         AssistantToolCallStatus
+  outputDigest   String?                 @map("output_digest")
+  latencyMs      Int                     @map("latency_ms")
+  createdAt      DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  conversation AssistantConversation @relation(fields: [salonId, conversationId], references: [salonId, id], onDelete: Cascade)
+
+  @@index([salonId, createdAt])
+  @@map("assistant_tool_calls")
 }

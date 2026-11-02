@@ -278,8 +278,8 @@ evalCases       fixture ids incl. a canary case
 ## 7. Suggested sub-milestones
 0. **IMP — AI onboarding import (roadmap Step 5, every plan)**: OCR spike (Vietnamese), face blur, redaction rules, preview, structured extraction on Sonnet, cost cap on `ai.monthly_cost_cap_vnd`, recorded-request tests. Ships with 07 onboarding, before the chat assistant.
 1. **A0 — Contracts (roadmap Step 3)**: X7 interfaces with 04/07, PII-free field-type allowlist, `ToolDefinition` + generator, `ToolContext`, token vault, entities. ADRs: runtime/routing, PII firewall.
-2. **A1 — Firewall + first tools**: input scrubber, allowlist check, egress check, re-hydration; `resolve_period`, `metrics_get` (3 metrics), `bookings_list`. PII + tenant tests.
-3. **A2 — Runtime + CRM panel**: streaming, entity chips, mask preview, routing (fast/standard), caching, vi/en, source chips, quota stub.
+2. **A1 — Firewall + first tools** *(built, branch `ai/08-assistant`)*: input scrubber, allowlist check, egress check, re-hydration; `resolve_period`, `bookings_count`, `revenue_summary` (by `RevenueKind`), `utilization`, `bookings_list`. PII + tenant tests. Tools are hand-written until the 04/07 registries exist (X7 generation is A0).
+3. **A2 — Runtime + CRM panel** *(built, branch `ai/08-assistant`)*: SSE streaming, mask preview, routing (fast/standard + escalation tool), caching, vi/en, source chips, hard cost cap via the shared meter, floating bubble on every workspace page. Not yet: entity `@`-picker chips in the composer, conversation history list.
 4. **A3 — Evals in CI**: fixture with canaries, 50 quality questions, the full PII suite.
 5. **A4 — Breadth**: remaining metrics, staff/customer token insights, day overview, 100+ evals, usage ledger + cost cap, admin toggle; monthly review job (`assistant.deep`, Pro).
 6. **B — Confirmed writes**: block slot, booking create/reschedule for existing clients, templated reminder.

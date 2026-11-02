@@ -10,6 +10,7 @@ import { useWorkspace } from "../data/useWorkspace";
 import { BottomTabs, MobileHeader, MoreSheet, useMoreSheet } from "./MobileChrome";
 import { Sidebar } from "./Sidebar";
 import { useBreakpoint } from "./useBreakpoint";
+import { AssistantDock } from "../../assistant/AssistantDock";
 
 /**
  * Salon workspace frame (07 §3.1): sidebar on tablet+ (icon rail below 1024 px), mobile header + bottom
@@ -38,7 +39,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <View style={{ flex: 1 }}>{children}</View>
         <BottomTabs onMore={more.show} />
         <MoreSheet open={more.open} onClose={more.hide} />
-        <AssistantSlot bottom={88} />
+        <AssistantSlot bottom={88} mobile />
       </View>
     );
   }
@@ -46,7 +47,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.canvas }}>
       <Sidebar workspace={workspace} collapsed={bp === "tablet"} />
       <View style={{ flex: 1 }}>{children}</View>
-      <AssistantSlot bottom={24} />
+      <AssistantSlot bottom={24} mobile={false} />
     </View>
   );
 }
@@ -55,13 +56,15 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
  * Reserved bottom-right corner for the AI assistant bubble (topic 08 mounts it here). Nothing else
  * in the workspace may place controls in this corner; the mobile "+ New" lives in the tab bar centre.
  */
-function AssistantSlot({ bottom }: { bottom: number }) {
+function AssistantSlot({ bottom, mobile }: { bottom: number; mobile: boolean }) {
   return (
     <View
       testID="crm-assistant-slot"
       nativeID="crm-assistant-slot"
       pointerEvents="box-none"
-      style={{ position: "absolute", right: 20, bottom, width: 64, height: 64 }}
-    />
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <AssistantDock mobile={mobile} bubbleBottom={bottom} />
+    </View>
   );
 }

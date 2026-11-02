@@ -34,5 +34,7 @@ import { OcrEngine, TesseractOcrEngine } from "./pii/ocr-engine";
           : null,
     },
   ],
+  // Shared with the assistant module (topic 08 A2): one Anthropic client, one AI cost cap.
+  exports: [ANTHROPIC_CLIENT, AiCostMeter],
 })
 export class AiImportModule {}
