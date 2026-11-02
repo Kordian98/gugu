@@ -1,0 +1,177 @@
+{
+  "brandPill": "BUSINESS",
+  "nav": {
+    "sections": {
+      "workspace": "Không gian làm việc",
+      "growth": "Phát triển",
+      "business": "Kinh doanh",
+      "system": "Hệ thống"
+    },
+    "items": {
+      "overview": "Tổng quan",
+      "calendar": "Lịch",
+      "appointments": "Lịch hẹn",
+      "customers": "Khách hàng",
+      "services": "Dịch vụ",
+      "team": "Nhân viên",
+      "resources": "Phòng & thiết bị",
+      "reviews": "Đánh giá",
+      "insights": "Phân tích & báo cáo",
+      "settings": "Cài đặt"
+    },
+    "today": "Hôm nay",
+    "more": "Thêm",
+    "toggleSection": "Thu gọn hoặc mở rộng mục {{name}}",
+    "close": "Đóng"
+  },
+  "shell": {
+    "searchPlaceholder": "Tìm lịch hẹn, khách hàng…",
+    "newAppointment": "Lịch hẹn mới",
+    "newShort": "Mới",
+    "notifications": "Thông báo",
+    "noNotifications": "Chưa có thông báo nào.",
+    "allLocations": "Tất cả chi nhánh",
+    "salonLabel": "Salon",
+    "salonFallback": "Salon của anh/chị",
+    "userFallback": "Chưa đăng nhập",
+    "roleOwner": "Chủ salon",
+    "toDark": "Chuyển sang giao diện tối",
+    "toLight": "Chuyển sang giao diện sáng",
+    "openMenu": "Mở menu",
+    "switchSalon": "Đổi salon"
+  },
+  "greeting": {
+    "morning": "Chào buổi sáng",
+    "noon": "Chào buổi trưa",
+    "afternoon": "Chào buổi chiều",
+    "evening": "Chào buổi tối",
+    "named": "{{greeting}}, {{name}} ☕",
+    "plain": "{{greeting}} ☕",
+    "subtitle": "Tổng quan salon của anh/chị hôm nay, {{date}}"
+  },
+  "revenueKind": {
+    "estimated": "Ước tính",
+    "offline": "Đã ghi nhận tại salon",
+    "reported": "Salon báo cáo"
+  },
+  "kpi": {
+    "revenueToday": "Doanh thu hôm nay",
+    "vsLastWeek": "so với tuần trước",
+    "appointments": "Lịch hẹn",
+    "appointmentsValue": "{{count}} lịch hẹn",
+    "remainingToday": "Còn {{count}} lịch hôm nay",
+    "newCustomers": "Khách mới",
+    "newCustomersValue": "{{count}} khách",
+    "thisMonth": "tháng này",
+    "occupancy": "Tỷ lệ lấp đầy",
+    "vsPrevWeek": "So với tuần trước",
+    "emptyRevenue": "Hiện sau lịch hẹn hoàn thành đầu tiên",
+    "emptyAppointments": "Chưa có lịch hẹn nào hôm nay",
+    "emptyNewCustomers": "Khách mới sẽ hiện ở đây",
+    "emptyOccupancy": "Cần giờ làm việc của nhân viên"
+  },
+  "setup": {
+    "eyebrow": "Thiết lập salon",
+    "title": "Thiết lập bằng AI trong vài phút",
+    "body": "Tải ảnh hoặc ảnh chụp màn hình bảng giá hiện tại lên, GuGu sẽ tự tạo danh sách dịch vụ để anh/chị kiểm tra và xác nhận.",
+    "cta": "Tải bảng giá lên",
+    "manual": "Thêm dịch vụ thủ công",
+    "privacy": "Chỉ cần bảng giá, không gửi thông tin khách hàng.",
+    "progress": "Đã xong {{done}}/{{total}} bước",
+    "steps": {
+      "business": "Thông tin salon",
+      "services": "Dịch vụ & bảng giá",
+      "hours": "Giờ mở cửa",
+      "team": "Nhân viên",
+      "photos": "Hình ảnh",
+      "live": "Nhận lịch hẹn online"
+    },
+    "importTitle": "Tải bảng giá lên",
+    "importBody": "Kéo ảnh vào đây hoặc chọn từ máy: ảnh chụp bảng giá, menu, bài đăng Facebook/Zalo hay file Excel. Tối đa 10 ảnh.",
+    "importPending": "Nhập bằng AI sẽ mở tại đây ngay khi được bật cho salon của anh/chị. Trong lúc chờ, anh/chị có thể thêm dịch vụ thủ công.",
+    "manualTitle": "Hoặc thêm từng dịch vụ",
+    "manualBody": "Tên dịch vụ, thời gian và giá. Có thể thêm tùy chọn (ví dụ: tóc ngắn, dài) và dịch vụ thêm."
+  },
+  "timeline": {
+    "title": "Lịch hôm nay",
+    "subtitle": "Theo từng nhân viên",
+    "today": "Hôm nay",
+    "prevDay": "Ngày trước",
+    "nextDay": "Ngày sau",
+    "emptyTitle": "Chưa có lịch hẹn hôm nay",
+    "emptyBody": "Khi khách đặt lịch hoặc anh/chị thêm lịch hẹn, lịch của từng nhân viên sẽ hiện ở đây.",
+    "break": "Nghỉ trưa",
+    "status": {
+      "confirmed": "Đã xác nhận",
+      "inProgress": "Đang phục vụ",
+      "pending": "Chờ xác nhận",
+      "completed": "Hoàn thành"
+    }
+  },
+  "upcoming": {
+    "title": "Lịch hẹn sắp tới",
+    "subtitle": "& hàng chờ",
+    "empty": "Chưa có lịch hẹn sắp tới."
+  },
+  "activity": {
+    "title": "Hoạt động gần đây",
+    "empty": "Hoạt động của salon sẽ hiện ở đây.",
+    "created": "Lịch hẹn mới · {{time}}",
+    "checkedIn": "Khách đã đến · {{time}}",
+    "completed": "Hoàn thành · {{time}}"
+  },
+  "pages": {
+    "calendar": {
+      "title": "Lịch",
+      "emptyTitle": "Lịch còn trống",
+      "emptyBody": "Thêm dịch vụ và giờ làm việc để bắt đầu nhận lịch hẹn. Lịch theo ngày, tuần và từng nhân viên sẽ hiện ở đây."
+    },
+    "appointments": {
+      "title": "Lịch hẹn",
+      "emptyTitle": "Chưa có lịch hẹn nào",
+      "emptyBody": "Lịch hẹn từ GuGu, điện thoại, Zalo và khách vãng lai sẽ được gom về đây."
+    },
+    "customers": {
+      "title": "Khách hàng",
+      "emptyTitle": "Chưa có khách hàng",
+      "emptyBody": "Khách hàng được thêm tự động khi họ đặt lịch. Mỗi khách có lịch sử ghé thăm, ghi chú nội bộ và thẻ phân loại."
+    },
+    "services": {
+      "title": "Dịch vụ"
+    },
+    "team": {
+      "title": "Nhân viên",
+      "emptyTitle": "Hiện chỉ có anh/chị",
+      "emptyBody": "Thêm nhân viên để phân lịch làm việc và giao dịch vụ cho từng người."
+    },
+    "resources": {
+      "title": "Phòng & thiết bị",
+      "emptyTitle": "Chưa có phòng hoặc thiết bị",
+      "emptyBody": "Thêm phòng, ghế hoặc giường nếu một số dịch vụ cần dùng riêng. Không bắt buộc."
+    },
+    "reviews": {
+      "title": "Đánh giá",
+      "emptyTitle": "Chưa có đánh giá",
+      "emptyBody": "Khách có thể đánh giá sau khi hoàn thành lịch hẹn. Anh/chị có thể trả lời từng đánh giá tại đây."
+    },
+    "insights": {
+      "title": "Phân tích & báo cáo",
+      "emptyTitle": "Chưa có số liệu",
+      "emptyBody": "Lịch hẹn, khách mới, tỷ lệ vắng mặt và doanh thu ước tính sẽ hiện sau những lịch hẹn đầu tiên."
+    },
+    "settings": {
+      "title": "Cài đặt",
+      "appearance": "Giao diện",
+      "appearanceBody": "Chỉ áp dụng cho khu vực quản lý salon.",
+      "system": "Theo hệ thống",
+      "light": "Sáng",
+      "dark": "Tối",
+      "language": "Ngôn ngữ"
+    },
+    "newAppointment": {
+      "title": "Trước khi tạo lịch hẹn",
+      "body": "Anh/chị cần có ít nhất một dịch vụ và giờ làm việc để GuGu kiểm tra giờ trống, tránh trùng lịch."
+    },
+    "setupCta": "Thiết lập dịch vụ"
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "brandPill": "BUSINESS",
+  "nav": {
+    "sections": {
+      "workspace": "Workspace",
+      "growth": "Growth",
+      "business": "Business",
+      "system": "System"
+    },
+    "items": {
+      "overview": "Overview",
+      "calendar": "Calendar",
+      "appointments": "Appointments",
+      "customers": "Customers",
+      "services": "Services",
+      "team": "Team",
+      "resources": "Resources",
+      "reviews": "Reviews",
+      "insights": "Insights & reports",
+      "settings": "Settings"
+    },
+    "today": "Today",
+    "more": "More",
+    "toggleSection": "Collapse or expand {{name}}",
+    "close": "Close"
+  },
+  "shell": {
+    "searchPlaceholder": "Search appointments, customers…",
+    "newAppointment": "New appointment",
+    "newShort": "New",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications yet.",
+    "allLocations": "All locations",
+    "salonLabel": "Salon",
+    "salonFallback": "Your salon",
+    "userFallback": "Not signed in",
+    "roleOwner": "Owner",
+    "toDark": "Switch to dark theme",
+    "toLight": "Switch to light theme",
+    "openMenu": "Open menu",
+    "switchSalon": "Switch salon"
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "noon": "Good afternoon",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "named": "{{greeting}}, {{name}} ☕",
+    "plain": "{{greeting}} ☕",
+    "subtitle": "Your salon at a glance for {{date}}"
+  },
+  "revenueKind": {
+    "estimated": "Estimated",
+    "offline": "Recorded at salon",
+    "reported": "Reported"
+  },
+  "kpi": {
+    "revenueToday": "Today's revenue",
+    "vsLastWeek": "vs last week",
+    "appointments": "Appointments",
+    "appointmentsValue": "{{count}} bookings",
+    "remainingToday": "{{count}} remaining today",
+    "newCustomers": "New customers",
+    "newCustomersValue": "{{count}} new",
+    "thisMonth": "this month",
+    "occupancy": "Occupancy rate",
+    "vsPrevWeek": "Compared to prev. week",
+    "emptyRevenue": "Shows after your first completed appointment",
+    "emptyAppointments": "No appointments today yet",
+    "emptyNewCustomers": "New customers will appear here",
+    "emptyOccupancy": "Needs team working hours"
+  },
+  "setup": {
+    "eyebrow": "Salon setup",
+    "title": "Effortless AI setup",
+    "body": "Upload photos or screenshots of your current price list and GuGu builds your service menu for you to review and confirm.",
+    "cta": "Upload your price list",
+    "manual": "Add services manually",
+    "privacy": "Price list only, no customer details are sent.",
+    "progress": "{{done}} of {{total}} steps done",
+    "steps": {
+      "business": "Business details",
+      "services": "Services & prices",
+      "hours": "Opening hours",
+      "team": "Team",
+      "photos": "Photos",
+      "live": "Go live"
+    },
+    "importTitle": "Upload your price list",
+    "importBody": "Drop images here or pick from your device: a photo of the price board, a menu, a Facebook/Zalo post or an Excel sheet. Up to 10 images.",
+    "importPending": "AI import opens here as soon as it is enabled for your salon. Meanwhile you can add services manually.",
+    "manualTitle": "Or add services one by one",
+    "manualBody": "Service name, duration and price. You can add options (e.g. short or long hair) and add-ons."
+  },
+  "timeline": {
+    "title": "Today's timeline",
+    "subtitle": "By team member",
+    "today": "Today",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "emptyTitle": "No appointments today",
+    "emptyBody": "When clients book or you add an appointment, each team member's day shows up here.",
+    "break": "Lunch break",
+    "status": {
+      "confirmed": "Confirmed",
+      "inProgress": "In progress",
+      "pending": "Pending",
+      "completed": "Completed"
+    }
+  },
+  "upcoming": {
+    "title": "Upcoming appointments",
+    "subtitle": "& live queue",
+    "empty": "No upcoming appointments."
+  },
+  "activity": {
+    "title": "Latest activity",
+    "empty": "Your salon's activity will show up here.",
+    "created": "New booking · {{time}}",
+    "checkedIn": "Checked in · {{time}}",
+    "completed": "Completed · {{time}}"
+  },
+  "pages": {
+    "calendar": {
+      "title": "Calendar",
+      "emptyTitle": "Your calendar is empty",
+      "emptyBody": "Add services and working hours to start taking bookings. Day, week and per-team-member views appear here."
+    },
+    "appointments": {
+      "title": "Appointments",
+      "emptyTitle": "No appointments yet",
+      "emptyBody": "Bookings from GuGu, phone calls, Zalo and walk-ins all land here."
+    },
+    "customers": {
+      "title": "Customers",
+      "emptyTitle": "No customers yet",
+      "emptyBody": "Customers are added automatically when they book. Each one gets a visit history, internal notes and tags."
+    },
+    "services": {
+      "title": "Services"
+    },
+    "team": {
+      "title": "Team",
+      "emptyTitle": "It's just you for now",
+      "emptyBody": "Add team members to set their working hours and assign services."
+    },
+    "resources": {
+      "title": "Resources",
+      "emptyTitle": "No rooms or equipment yet",
+      "emptyBody": "Add rooms, chairs or beds if some services need their own. Optional."
+    },
+    "reviews": {
+      "title": "Reviews",
+      "emptyTitle": "No reviews yet",
+      "emptyBody": "Clients can review after a completed appointment. You can reply to each review here."
+    },
+    "insights": {
+      "title": "Insights & reports",
+      "emptyTitle": "No data yet",
+      "emptyBody": "Appointments, new customers, no-show rate and estimated revenue appear after your first appointments."
+    },
+    "settings": {
+      "title": "Settings",
+      "appearance": "Appearance",
+      "appearanceBody": "Applies to the salon workspace only.",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark",
+      "language": "Language"
+    },
+    "newAppointment": {
+      "title": "Before you create an appointment",
+      "body": "You need at least one service and working hours so GuGu can check free times and prevent double bookings."
+    },
+    "setupCta": "Set up services"
+  }
+}
