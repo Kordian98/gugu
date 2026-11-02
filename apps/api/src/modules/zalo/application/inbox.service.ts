@@ -15,6 +15,7 @@ import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../../audit/audit.facade";
 import { INITIAL_BOT_STATE } from "../domain/bot/types";
 import { decideCs, sendWindow } from "../domain/window";
+import { recordFunnel } from "./funnel.recorder";
 import { OutboundService } from "./outbound.service";
 import { ZaloClock } from "./zalo-clock";
 
@@ -210,6 +211,13 @@ export class InboxService {
         where: { id: conversationId },
         data: { mode: "staff", assignedUserId: userId, lastStaffActivityAt: this.clock.now() },
       });
+      await recordFunnel(
+        tx,
+        salonId,
+        conversationId,
+        [{ event: "staff_takeover" }],
+        this.clock.now(),
+      );
       await this.audit.record(
         {
           action: "zalo.conversation_taken_over",

@@ -1,3 +1,5 @@
+import type { UnavailableReasonCode } from "@gugu/contracts";
+import type { FunnelEventInput, FunnelStep } from "../funnel";
 import type { DayPart } from "./when";
 
 /**
@@ -58,6 +60,15 @@ export type BotStep =
   | { name: "my_bookings" }
   | { name: "cancel_confirm"; bookingId: string };
 
+/** The booking attempt in progress, for funnel statistics (no personal data). */
+export interface BotSession {
+  id: string;
+  /** Furthest funnel step reached. */
+  step: FunnelStep;
+  /** Last problem in this attempt; becomes the end reason if the customer then leaves. */
+  issue: "not_understood" | "slot_taken" | null;
+}
+
 /** Persisted per conversation (`zalo_conversations.bot_state`). */
 export interface BotState {
   v: 1;
@@ -69,6 +80,8 @@ export interface BotState {
   /** How many of `options` are numbered list items (typing "2" picks options[1]). */
   items: number;
   at: string | null;
+  /** Open booking attempt (absent in states saved before funnel tracking). */
+  session?: BotSession | null;
 }
 
 export const INITIAL_BOT_STATE: BotState = {
@@ -125,6 +138,11 @@ export interface BotPorts {
   days(sel: Selection, rescheduleId: string | null): Promise<string[]>;
   /** Start times (ISO) on that date. */
   slots(sel: Selection, date: string, rescheduleId: string | null): Promise<string[]>;
+  /**
+   * Why `days()` is empty (booking engine, topic 07): setup problems vs window vs fully booked,
+   * plus the earliest free starts beyond BOOKING_DAYS when fully booked.
+   */
+  explainNoDays(sel: Selection): Promise<NoDaysExplanation>;
   /** Upcoming bookings of this conversation. */
   upcoming(): Promise<BotBooking[]>;
   book(sel: Selection, startsAt: string, phone: string, name: string): Promise<BookResult>;
@@ -135,7 +153,11 @@ export interface BotPorts {
 
 export type BotEffect =
   | { type: "handoff" }
+  /** Funnel statistics event (counts and steps only). */
+  | { type: "funnel"; event: FunnelEventInput }
   | { type: "contact"; phone: string | null; name: string | null }
+  /** The service can't be booked because of the salon's setup: staff should fix it. */
+  | { type: "setup_issue"; reason: SetupIssueReason }
   | {
       type: "notify";
       kind: "booking_created" | "booking_cancelled" | "booking_rescheduled" | "booking_confirmed";
@@ -150,3 +172,21 @@ export interface BotResult {
 
 /** Translation function (vi/en dictionaries, namespace `zalo`, keys under `bot.`). */
 export type BotT = (key: string, vars?: Record<string, string | number>) => string;
+
+export interface NoDaysExplanation {
+  reason: UnavailableReasonCode | null;
+  /** The salon's booking window in days (for "chỉ nhận đặt trước N ngày"). */
+  windowDays: number;
+  /** Earliest free starts (ISO) after the days the bot offers, when fully booked. */
+  earliest: string[];
+}
+
+/** Unavailable reasons the salon must fix in its setup (staff, hours, rooms/equipment). */
+export const SETUP_ISSUE_REASONS = [
+  "no_staff_assigned",
+  "no_working_hours",
+  "no_resource",
+] as const;
+export type SetupIssueReason = (typeof SETUP_ISSUE_REASONS)[number];
+export const isSetupIssue = (r: string | null): r is SetupIssueReason =>
+  (SETUP_ISSUE_REASONS as readonly string[]).includes(r ?? "");

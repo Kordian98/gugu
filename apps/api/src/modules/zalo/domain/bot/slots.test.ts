@@ -53,6 +53,8 @@ const ports: BotPorts = {
   cancel: () => Promise.resolve("ok" as const),
   reschedule: () => Promise.resolve({ ok: false as const, reason: "failed" as const }),
   confirmAttendance: () => Promise.resolve("ok" as const),
+  explainNoDays: () =>
+    Promise.resolve({ reason: "fully_booked" as const, windowDays: 60, earliest: [] }),
 };
 const { t } = createI18n("vi");
 const run = (s: BotState | null, input: BotInput) =>
@@ -68,6 +70,7 @@ const run = (s: BotState | null, input: BotInput) =>
     },
     {
       now: NOW,
+      newId: () => crypto.randomUUID(),
       locale: "vi",
       t: (k, v) => t(`zalo:${k}`, v ?? {}),
     },

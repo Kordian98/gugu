@@ -4,6 +4,7 @@ import { BookingUpdatesService } from "./booking-updates.service";
 import { ConnectionService } from "./connection.service";
 import { InboundService } from "./inbound.service";
 import { OutboundService } from "./outbound.service";
+import { FunnelSweepService } from "./funnel-sweep.service";
 import { RemindersService } from "./reminders.service";
 import { StaffReleaseService } from "./staff-release.service";
 import { ZaloClock } from "./zalo-clock";
@@ -20,6 +21,7 @@ export class ZaloJobs {
     private readonly reminders: RemindersService,
     private readonly updates: BookingUpdatesService,
     private readonly staffRelease: StaffReleaseService,
+    private readonly funnelSweep: FunnelSweepService,
     private readonly connections: ConnectionService,
     private readonly prisma: PrismaService,
     private readonly clock: ZaloClock,
@@ -41,6 +43,7 @@ export class ZaloJobs {
     const updates = await this.updates.scan();
     const reminders = await this.reminders.scan();
     const released = await this.staffRelease.sweep();
+    await this.funnelSweep.sweep();
     return { updates: updates.queued, reminders: reminders.queued, released: released.released };
   }
 

@@ -19,7 +19,9 @@ import {
   useZaloMutation,
   zaloApi,
 } from "../data/zalo";
+import { useOptionalSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
+import { ZaloStatsView } from "./zalo/ZaloStatsView";
 import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
 import { useCrmNav } from "../shell/useCrmNav";
@@ -28,6 +30,7 @@ import { useErrorText } from "../ui/errors";
 import { ErrorBanner } from "../ui/form";
 
 const FILTERS: ConversationFilter[] = ["all", "needs_staff", "unread"];
+const TABS = ["messages", "stats"] as const;
 const KINDS = [
   "button",
   "follow",
@@ -63,7 +66,11 @@ export function ZaloInboxScreen() {
   const ws = useWorkspace();
   const bp = useBreakpoint();
   const { go } = useCrmNav();
-  const params = useLocalSearchParams<{ c?: string }>();
+  const params = useLocalSearchParams<{ c?: string; tab?: string }>();
+  const canStats = useOptionalSalon()?.can("analytics.read") ?? false;
+  const [tab, setTab] = useState<"messages" | "stats">(
+    params.tab === "stats" ? "stats" : "messages",
+  );
   const connection = useZaloConnection();
   const connected =
     connection.data?.status === "connected" || connection.data?.status === "needs_reauth";
@@ -107,7 +114,22 @@ export function ZaloInboxScreen() {
           />
         </CalmCard>
       ) : null}
-      {connected ? (
+      {connected && canStats ? (
+        <View accessibilityRole="tablist" style={{ flexDirection: "row", gap: 6 }}>
+          {TABS.map((id) => (
+            <FilterChip
+              key={id}
+              label={t(`zalo:panel.stats.tabs.${id}`)}
+              selected={tab === id}
+              onPress={() => {
+                setTab(id);
+              }}
+            />
+          ))}
+        </View>
+      ) : null}
+      {connected && tab === "stats" && canStats ? <ZaloStatsView /> : null}
+      {connected && (tab === "messages" || !canStats) ? (
         <>
           {showList ? (
             <Waiting

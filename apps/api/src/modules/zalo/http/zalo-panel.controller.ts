@@ -7,6 +7,10 @@ import {
   salonParamsSchema,
   uuidV7Schema,
   type ZaloAttention,
+  type ZaloStats,
+  type ZaloStatsQuery,
+  zaloStatsQuerySchema,
+  zaloStatsSchema,
   zaloAttentionSchema,
   type ZaloConnection,
   zaloConnectionSchema,
@@ -39,6 +43,8 @@ import {
 import { RequiresEntitlement } from "../../subscriptions/subscriptions.facade";
 import { ConnectionService } from "../application/connection.service";
 import { InboxService } from "../application/inbox.service";
+import { StatsQueries } from "../application/stats.queries";
+import { ZALO_READ_MODELS } from "../zalo.read-models";
 
 const conversationParams = z.object({ salonId: uuidV7Schema, conversationId: uuidV7Schema });
 type ConversationParams = z.infer<typeof conversationParams>;
@@ -54,6 +60,7 @@ export class ZaloPanelController {
   constructor(
     private readonly connections: ConnectionService,
     private readonly inbox: InboxService,
+    private readonly statsQueries: StatsQueries,
   ) {}
 
   @Get("connection")
@@ -219,6 +226,21 @@ export class ZaloPanelController {
   @ApiOperation({ operationId: "zalo.markRead", summary: "Mark a conversation read." })
   async read(@Param({ schema: conversationParams }) p: ConversationParams) {
     await this.inbox.markRead(p.salonId, p.conversationId);
+  }
+
+  @Get("stats")
+  @RequirePermission("analytics.read")
+  @ApiOperation({ operationId: "zalo.stats", summary: ZALO_READ_MODELS["zalo.stats"].description })
+  @ApiResponse({
+    status: 200,
+    description: "Aggregates for the period.",
+    standardSchema: zaloStatsSchema,
+  })
+  stats(
+    @Param({ schema: salonParamsSchema }) p: SalonParams,
+    @Query({ schema: zaloStatsQuerySchema }) query: ZaloStatsQuery,
+  ): Promise<ZaloStats> {
+    return this.statsQueries.stats(p.salonId, query);
   }
 
   @Get("attention")

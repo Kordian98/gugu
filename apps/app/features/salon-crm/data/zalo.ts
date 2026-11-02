@@ -8,6 +8,7 @@ import type {
   ZaloMessageList,
   ZaloNotificationList,
   ZaloSettingsInput,
+  ZaloStats,
   ZaloStartConnectionResult,
 } from "@gugu/contracts";
 
@@ -25,6 +26,7 @@ const keys = {
   notifications: (s: string) => ["salon", s, "zalo", "notifications"] as const,
   attention: (s: string) => ["salon", s, "zalo", "attention"] as const,
   conversation: (s: string, id: string) => ["salon", s, "zalo", "conversation", id] as const,
+  stats: (s: string, from: string, to: string) => ["salon", s, "zalo", "stats", from, to] as const,
 };
 
 /** Live-ish inbox: customers expect quick answers, so lists refresh every few seconds. */
@@ -90,6 +92,16 @@ export function useZaloConversation(id: string | null) {
     queryFn: () => apiFetch<ZaloConversation>(`/salons/${salonId}/zalo/conversations/${id ?? ""}`),
     enabled: salonId !== "" && id !== null,
     refetchInterval: POLL_MS,
+  });
+}
+
+/** Zalo statistics for a salon-local period (aggregates only). */
+export function useZaloStats(from: string, to: string, enabled: boolean) {
+  const salonId = useOptionalSalon()?.salonId ?? "";
+  return useQuery({
+    queryKey: keys.stats(salonId, from, to),
+    queryFn: () => apiFetch<ZaloStats>(`/salons/${salonId}/zalo/stats?from=${from}&to=${to}`),
+    enabled: enabled && salonId !== "",
   });
 }
 

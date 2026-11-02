@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { createI18n } from "@gugu/localization";
 import { normalizeVnPhone } from "@gugu/domain";
@@ -8,11 +9,20 @@ import { runBot } from "../domain/bot/engine";
 import { globalPayload } from "../domain/bot/payload";
 import { routeInbound } from "../domain/bot/routing";
 import type { BotInput, BotReply, BotState } from "../domain/bot/types";
+import type { FunnelEventInput } from "../domain/funnel";
 import { BotPortsFactory } from "./bot-ports";
+import { recordFunnel } from "./funnel.recorder";
 import { ConnectionService } from "./connection.service";
 import { type OutboundItem, OutboundService } from "./outbound.service";
 import { oaIdOf, userIdOf, type ZaloEnvelope } from "./webhook-ingest.service";
 import { ZaloClock } from "./zalo-clock";
+
+/** Booking actions customers take with Zalo buttons → funnel events. */
+const NOTIFY_FUNNEL: Partial<Record<string, FunnelEventInput["event"]>> = {
+  booking_cancelled: "booking_cancelled",
+  booking_rescheduled: "booking_rescheduled",
+  booking_confirmed: "attendance_confirmed",
+};
 
 /** Customer events that count as an interaction (open the 48 h / 7 d window). */
 const INTERACTIONS = new Set([
@@ -158,7 +168,15 @@ export class InboundService {
           ...(inbound.kind === "unfollow" ? { unfollowedAt: at } : {}),
         };
 
+        // Statistics: counts and steps only (no text, no personal data).
+        const funnel: FunnelEventInput[] = [];
+        if (inbound.kind === "follow") funnel.push({ event: "followed" });
+        else if (inbound.kind === "unfollow") funnel.push({ event: "unfollowed" });
+        else funnel.push({ event: "inbound" });
         const route = routeInbound(current, conn.botEnabled, inbound.bot);
+        if (inbound.bot && !conn.botEnabled && current.mode === "bot") {
+          funnel.push({ event: "bot_unavailable", reason: "bot_disabled" });
+        }
         if (route === "resume_bot") {
           update.mode = "bot";
           update.assignedUserId = null;
@@ -203,6 +221,7 @@ export class InboundService {
             now: this.clock.now(),
             locale,
             t: (key, vars) => t(`zalo:${key}`, vars ?? {}),
+            newId: randomUUID,
           });
           update.botState = result.state as unknown as Prisma.InputJsonObject;
           for (const effect of result.effects) {
@@ -210,6 +229,12 @@ export class InboundService {
               if (effect.phone)
                 update.phoneE164 = normalizeVnPhone(effect.phone) ?? current.phoneE164;
               if (effect.name && !current.displayName) update.displayName = effect.name;
+            } else if (effect.type === "funnel") {
+              funnel.push(effect.event);
+            } else if (effect.type === "setup_issue") {
+              await tx.zaloStaffNotification.create({
+                data: { salonId, kind: "booking_setup_issue", conversationId: conv.id },
+              });
             } else if (effect.type === "handoff") {
               update.mode = "staff";
               update.handoffRequestedAt = this.clock.now();
@@ -227,6 +252,8 @@ export class InboundService {
                   bookingId: effect.bookingId,
                 },
               });
+              const action = NOTIFY_FUNNEL[effect.kind];
+              if (action) funnel.push({ event: action, bookingId: effect.bookingId });
             }
           }
           logIds = await this.outbound.record(salonId, this.toItems(conv.id, result.replies), tx);
@@ -235,6 +262,7 @@ export class InboundService {
           if (phone) update.phoneE164 = phone;
         }
 
+        await recordFunnel(tx, salonId, conv.id, funnel, at);
         await tx.zaloConversation.update({ where: { id: conv.id }, data: update });
         await tx.zaloWebhookEvent.update({
           where: { id: eventId },
@@ -275,9 +303,17 @@ export class InboundService {
     }
     const name = await this.lookupName(salonId, zaloUserId);
     try {
-      return await this.prisma.zaloConversation.create({
+      const created = await this.prisma.zaloConversation.create({
         data: { salonId, oaId, zaloUserId, displayName: name },
       });
+      await recordFunnel(
+        this.prisma,
+        salonId,
+        created.id,
+        [{ event: "conversation_started" }],
+        this.clock.now(),
+      );
+      return created;
     } catch (error) {
       // Two first messages processed in parallel: the other one created it.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {

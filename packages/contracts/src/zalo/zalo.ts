@@ -146,6 +146,8 @@ export const zaloNotificationKindSchema = z.enum([
   "booking_rescheduled",
   "booking_confirmed",
   "connection_needs_reauth",
+  /** A customer couldn't book: no staff assigned or no working hours for the service. */
+  "booking_setup_issue",
 ]);
 export const zaloNotificationSchema = z.object({
   id: uuidV7Schema,
@@ -195,3 +197,83 @@ export const zaloAttentionSchema = z.object({
   items: z.array(zaloAttentionItemSchema),
 });
 export type ZaloAttention = z.infer<typeof zaloAttentionSchema>;
+
+/** Funnel steps of one booking attempt in the bot (skipped steps count as passed). */
+export const zaloFunnelStepSchema = z.enum(["service", "staff", "slot", "phone", "confirm"]);
+
+/** Period in the salon's calendar, both ends inclusive, at most 366 days. */
+export const zaloStatsQuerySchema = z
+  .object({ from: z.iso.date(), to: z.iso.date() })
+  .refine((q) => q.from <= q.to, { path: ["to"], message: "before_from" })
+  .refine((q) => Date.parse(q.to) - Date.parse(q.from) <= 365 * 86_400_000, {
+    path: ["to"],
+    message: "range_too_long",
+  });
+export type ZaloStatsQuery = z.infer<typeof zaloStatsQuerySchema>;
+
+/**
+ * Zalo statistics for one salon and period (owner request 2026-11-03). Aggregates only — no names,
+ * phones or message text — so it can also feed the AI assistant.
+ */
+export const zaloStatsSchema = z.object({
+  from: z.iso.date(),
+  to: z.iso.date(),
+  timeZone: z.string(),
+  contacts: z.object({
+    /** Distinct customers who wrote or tapped something. */
+    uniqueCustomers: z.number().int(),
+    newFollowers: z.number().int(),
+    unfollows: z.number().int(),
+    conversationsStarted: z.number().int(),
+  }),
+  funnel: z.object({
+    /** Booking attempts started in the period. */
+    sessions: z.number().int(),
+    bookings: z.number().int(),
+    inProgress: z.number().int(),
+    /** bookings / sessions, 0..1. */
+    conversionRate: z.number(),
+    steps: z.array(
+      z.object({
+        step: zaloFunnelStepSchema,
+        reached: z.number().int(),
+        dropOff: z.number().int(),
+        dropOffRate: z.number(),
+      }),
+    ),
+  }),
+  /**
+   * Why bookings didn't happen, most frequent first. Keys: `abandoned:<step>`, `no_slots`,
+   * `no_services`, `not_bookable`, `handoff`, `not_understood`, `slot_taken`, `cancelled`,
+   * `failed`, `limit_reached`, `bot_disabled`, `out_of_window`.
+   */
+  lostReasons: z.array(z.object({ reason: z.string(), count: z.number().int() })),
+  /** Typed text the bot didn't understand (all conversations). */
+  notUnderstood: z.number().int(),
+  bookingActions: z.object({
+    cancelled: z.number().int(),
+    rescheduled: z.number().int(),
+    attendanceConfirmed: z.number().int(),
+  }),
+  reminders: z.object({
+    sent: z.number().int(),
+    notSent: z.number().int(),
+    failed: z.number().int(),
+  }),
+  staff: z.object({
+    handoffs: z.number().int(),
+    takeovers: z.number().int(),
+    /** Distinct conversations with a staff reply or take-over. */
+    staffHandledConversations: z.number().int(),
+    staffReplies: z.number().int(),
+  }),
+  costs: z.object({
+    totalVnd: z.number().int(),
+    templateVnd: z.number().int(),
+    paidMessagesVnd: z.number().int(),
+    templates: z.number().int(),
+    paidMessages: z.number().int(),
+    freeMessages: z.number().int(),
+  }),
+});
+export type ZaloStats = z.infer<typeof zaloStatsSchema>;

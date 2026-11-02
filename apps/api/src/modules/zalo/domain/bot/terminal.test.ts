@@ -43,11 +43,18 @@ const ports = (o: Partial<BotPorts> = {}): BotPorts => ({
   cancel: () => Promise.resolve("ok" as const),
   reschedule: () => Promise.resolve({ ok: true as const, booking }),
   confirmAttendance: () => Promise.resolve("ok" as const),
+  explainNoDays: () =>
+    Promise.resolve({ reason: "fully_booked" as const, windowDays: 60, earliest: [] }),
   ...o,
 });
 const { t } = createI18n("vi");
 const run = (s: BotState | null, input: BotInput, p: BotPorts) =>
-  runBot(s, input, p, { now: NOW, locale: "vi", t: (k, v) => t(`zalo:${k}`, v ?? {}) });
+  runBot(s, input, p, {
+    now: NOW,
+    newId: () => crypto.randomUUID(),
+    locale: "vi",
+    t: (k, v) => t(`zalo:${k}`, v ?? {}),
+  });
 const confirmState: BotState = {
   v: 1,
   seq: 4,

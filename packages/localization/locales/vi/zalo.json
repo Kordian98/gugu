@@ -17,7 +17,7 @@
     "anyStaff": "Ai cũng được",
     "anyStaffName": "Nhân viên bất kỳ",
     "chooseDay": "Bạn muốn đến ngày nào?",
-    "noDays": "Rất tiếc, 7 ngày tới đã kín lịch cho dịch vụ này. Bạn có muốn nhắn với nhân viên không?",
+    "noDays": "Rất tiếc, {{days}} ngày tới đã kín lịch cho dịch vụ này. Bạn có muốn nhắn với nhân viên không?",
     "chooseTime": "Bạn chọn giờ nào ngày {{date}}?",
     "otherDay": "Ngày khác",
     "askPhone": "Cho salon xin số điện thoại để giữ lịch nhé. Bạn bấm nút bên dưới để chia sẻ, hoặc nhập số (ví dụ 0901234567).",
@@ -75,7 +75,10 @@
     "chooseTimePart": "Giờ trống {{part}} {{date}}:",
     "otherPart": "Buổi khác",
     "nearest": "Không còn đúng {{time}} ngày {{date}}. Giờ trống gần nhất:",
-    "dayFull": "{{date}} salon không còn giờ trống. Bạn chọn ngày khác nhé."
+    "dayFull": "{{date}} salon không còn giờ trống. Bạn chọn ngày khác nhé.",
+    "notBookable": "Salon chưa mở đặt lịch qua tin nhắn cho dịch vụ này. Bạn vui lòng gọi điện cho salon, hoặc nhắn để nhân viên hỗ trợ nhé.",
+    "windowLimit": "Salon chỉ nhận đặt lịch trước tối đa {{days}} ngày. Bạn quay lại sau hoặc nhắn để nhân viên hỗ trợ nhé.",
+    "earliestOffer": "{{days}} ngày tới đã kín lịch. Giờ trống sớm nhất:"
   },
   "panel": {
     "title": "Zalo",
@@ -191,7 +194,8 @@
         "booking_cancelled": "Khách hủy lịch qua Zalo",
         "booking_rescheduled": "Khách đổi lịch qua Zalo",
         "booking_confirmed": "Khách xác nhận sẽ đến",
-        "connection_needs_reauth": "Zalo OA cần kết nối lại"
+        "connection_needs_reauth": "Zalo OA cần kết nối lại",
+        "booking_setup_issue": "Khách không đặt được: dịch vụ chưa có nhân viên, giờ làm hoặc phòng/thiết bị"
       }
     },
     "staffRelease": "Tự trả lại cho trợ lý sau (phút)",
@@ -200,6 +204,81 @@
       "title": "Khách đang chờ trên Zalo",
       "body": "{{count}} khách cần nhân viên trả lời.",
       "open": "Trả lời ngay"
+    },
+    "stats": {
+      "tabs": {
+        "messages": "Tin nhắn",
+        "stats": "Thống kê"
+      },
+      "period": {
+        "today": "Hôm nay",
+        "d7": "7 ngày",
+        "d30": "30 ngày",
+        "custom": "Tùy chọn",
+        "from": "Từ ngày",
+        "to": "Đến ngày",
+        "apply": "Xem",
+        "invalid": "Nhập ngày dạng YYYY-MM-DD, tối đa 366 ngày."
+      },
+      "kpi": {
+        "customers": "Khách liên hệ",
+        "sessions": "Lượt bắt đầu đặt lịch",
+        "bookings": "Lịch hẹn qua Zalo",
+        "conversion": "Tỉ lệ chuyển đổi"
+      },
+      "funnelTitle": "Phễu đặt lịch của trợ lý",
+      "funnelHint": "Mỗi lượt bắt đầu khi khách bấm “Đặt lịch”. Bước bị bỏ qua (chỉ có một nhân viên, đã có số điện thoại) được tính là đã qua.",
+      "step": {
+        "service": "Chọn dịch vụ",
+        "staff": "Chọn nhân viên",
+        "slot": "Chọn ngày giờ",
+        "phone": "Số điện thoại",
+        "confirm": "Xác nhận",
+        "booked": "Đặt thành công"
+      },
+      "stepLine": "{{reached}} lượt · rơi {{drop}} ({{rate}})",
+      "inProgress": "{{count}} lượt đang diễn ra",
+      "lostTitle": "Vì sao chưa đặt được",
+      "lostNone": "Không có lượt nào bị bỏ dở.",
+      "reason": {
+        "abandoned": "Bỏ dở ở bước “{{step}}”",
+        "no_slots": "Không còn giờ trống",
+        "no_services": "Chưa có dịch vụ nhận đặt",
+        "not_bookable": "Dịch vụ chưa có nhân viên, giờ làm hoặc phòng",
+        "handoff": "Khách muốn gặp nhân viên",
+        "not_understood": "Trợ lý không hiểu tin nhắn",
+        "slot_taken": "Giờ đã có người đặt khi xác nhận",
+        "cancelled": "Khách hủy ở bước xác nhận",
+        "failed": "Lỗi khi đặt lịch",
+        "limit_reached": "Khách đã có nhiều lịch sắp tới",
+        "bot_disabled": "Trợ lý đang tắt",
+        "out_of_window": "Quá 7 ngày, không thể trả lời"
+      },
+      "contactsTitle": "Liên hệ",
+      "followers": "Người quan tâm mới",
+      "unfollows": "Bỏ quan tâm",
+      "conversations": "Cuộc trò chuyện mới",
+      "notUnderstood": "Tin trợ lý không hiểu",
+      "actionsTitle": "Thao tác qua nút Zalo",
+      "cancelled": "Hủy lịch",
+      "rescheduled": "Đổi lịch",
+      "attendance": "Xác nhận sẽ đến",
+      "remindersTitle": "Nhắc lịch",
+      "sent": "Đã gửi",
+      "notSent": "Không gửi được",
+      "failedSends": "Lỗi gửi",
+      "staffTitle": "Nhân viên",
+      "handoffs": "Chuyển cho nhân viên",
+      "takeovers": "Tiếp quản",
+      "staffConversations": "Cuộc trò chuyện do nhân viên xử lý",
+      "staffReplies": "Tin nhân viên trả lời",
+      "costsTitle": "Chi phí tin nhắn (ước tính)",
+      "total": "Tổng",
+      "templates": "Tin mẫu",
+      "paid": "Tin tính phí",
+      "free": "Tin miễn phí",
+      "costNote": "Zalo tính phí vào ví Zalo của salon; số liệu là ước tính.",
+      "empty": "Chưa có hoạt động Zalo trong khoảng thời gian này."
     }
   }
 }

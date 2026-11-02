@@ -58,6 +58,7 @@ Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`),
 | assistant_conversations, assistant_messages, assistant_entity_tokens, assistant_tool_calls | yes (composite FK `salon_id, conversation_id`) | children `Cascade` from the conversation; conversation `Restrict` | assistant | tokenized model transcript only: no names/phones/notes (PII firewall, q03); token map stores entity ids, never names |
 | zalo_booking_links | yes | `Restrict` | zalo | composite FK to bookings and conversations |
 | zalo_staff_notifications | yes | kept | zalo | |
+| zalo_funnel_events | yes | append-only (trigger), no PII | zalo | statistics: counts and steps only |
 
 ## Raw SQL objects
 Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails if any is missing — Prisma itself is blind to them, ADR-0008).
@@ -73,7 +74,9 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `salon_members_one_owner` | partial unique index | `20261102115341_add_identity_tenancy` | `db:drift` |
 | `magic_link_tokens_attempts_range` | check | `20261102115341_add_identity_tenancy` | `auth.int.test.ts` (code lock after 5 attempts) |
 | `zalo_oa_connections_one_live_per_oa` | partial unique index | `20261102143451_add_zalo` | `db:drift`; OAuth callback maps P2002 → `zalo=oa_in_use` |
-| `zalo_send_logs_valid`, `zalo_webhook_events_status_valid`, `zalo_oa_connections_tokens_when_connected` | check | `20261102143451_add_zalo` | `db:drift`; `zalo.int.test.ts` |
+| `zalo_send_logs_valid`, `zalo_webhook_events_status_valid`, `zalo_oa_connections_tokens_when_connected` | check | `20261103120000_add_zalo` | `db:drift`; `zalo.int.test.ts` |
+| `zalo_oa_connections_release_minutes_valid` | check | `20261103140000_zalo_staff_mode` | `db:drift` |
+| `zalo_funnel_events_valid`, `zalo_funnel_events_no_update_delete` (+ function) | check, trigger | `20261103190000_add_zalo_funnel_events` | `db:drift`; `zalo.int.test.ts` (funnel stats) |
 
 ## Read-model registry
 Base layer of the registries (X7): read models here → metric catalogue (07, `packages/domain/metrics`) → agent tools (08).

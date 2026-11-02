@@ -8,6 +8,7 @@ import { QUEUES } from "../../../infrastructure/queue/queues";
 import { type CsMessage, ZALO_CLIENT, ZaloApiError, type ZaloClient } from "../client/zalo-client";
 import { decideCs } from "../domain/window";
 import { ConnectionService } from "./connection.service";
+import { recordFunnel } from "./funnel.recorder";
 import { UsageQueries } from "./usage.queries";
 import { ZaloClock } from "./zalo-clock";
 
@@ -153,6 +154,8 @@ export class OutboundService {
           purpose: item.purpose,
           dedupKey: item.dedupKey ?? `${item.purpose}:${messageId ?? randomUUID()}`,
           request: request as unknown as Prisma.InputJsonObject,
+          // Module clock, so send-log periods line up with funnel events (and tests' fake time).
+          createdAt: this.clock.now(),
         },
         select: { id: true },
       });
@@ -231,6 +234,7 @@ export class OutboundService {
   private async sendOne(log: {
     id: string;
     salonId: string;
+    purpose: string;
     conversationId: string | null;
     request: Prisma.JsonValue;
   }): Promise<void> {
@@ -252,7 +256,23 @@ export class OutboundService {
         this.clock.now(),
         conn.allowPaidMessages,
       );
-      if (!decision.send) return this.reject(log.id, decision.reason);
+      if (!decision.send) {
+        if (log.purpose === "bot_reply" && log.conversationId) {
+          await recordFunnel(
+            this.prisma,
+            log.salonId,
+            log.conversationId,
+            [
+              {
+                event: "reply_blocked",
+                reason: decision.reason === "window_closed" ? "out_of_window" : "paid_off",
+              },
+            ],
+            this.clock.now(),
+          );
+        }
+        return this.reject(log.id, decision.reason);
+      }
       tier = decision.tier;
       cost = tier === "paid" ? this.config.env.ZALO_PRICE_CS_PAID_VND : 0;
     } else {

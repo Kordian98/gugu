@@ -86,7 +86,7 @@ Implemented on branch `zalo/09-impl` (2026-11-02). It runs end to end against th
 Salons register their ZBS templates at Zalo with exactly these parameters: `customer_name`, `booking_code`, `service_name`, `booking_time`, `salon_name`.
 
 ## Run locally
-1. Run `pnpm stack:up` and `pnpm db:migrate`, then start the API and the worker with `DEV_WORKER=1 pnpm dev:api`. `ZALO_CLIENT` defaults to `emulated`.
+1. Run `pnpm stack:up` and `pnpm db:migrate`, then start the API and the worker with `pnpm dev:api` (both restart on every rebuild; `DEV_WORKER=0` skips the worker). `ZALO_CLIENT` defaults to `emulated`.
 2. In GuGu Studio: Settings → Zalo → **Kết nối Zalo OA** → the emulator's consent page → **Allow**.
 3. Click **Mở trình giả lập chat** (`/api/v1/dev/zalo-emulator?oa=<oaId>`) and chat as a customer: follow, type "xin chào", tap the buttons, share a phone, confirm. The booking appears in the calendar. The fault buttons simulate 503s and expired tokens.
 4. Watch the inbox at `/{locale}/business/zalo`.
@@ -105,6 +105,24 @@ Salons register their ZBS templates at Zalo with exactly these parameters: `cust
 - Copy: `packages/localization/locales/{vi,en}/zalo.json` (`bot.*`, `panel.*`).
 - App: `features/salon-crm/data/zalo.ts`, `pages/settings/ZaloSection.tsx`, `pages/ZaloInboxScreen.tsx`, and the route `app/[locale]/(business)/business/zalo.tsx`.
 - QA screenshots: `docs/qa/09-zalo/`.
+
+## Statistics (funnel)
+- **Storage:** `zalo_funnel_events`, append-only (trigger `zalo_funnel_events_no_update_delete`), migration `20261103190000_add_zalo_funnel_events`. Rows hold counts and steps only: `conversation_id` (a pseudonymous key), `session_id`, `event`, `step`, `reason`, `booking_id`. No text, names or phones.
+- **Events and where they come from:**
+  - Inbound processing: `inbound`, `followed`, `unfollowed`, `conversation_started`, `bot_unavailable` (bot off).
+  - Bot effects: `session_started`, `step_reached` (service → staff → slot → phone → confirm), `booked`, `session_ended` (with reason), `not_understood`, `slot_taken`, `handoff`.
+  - Inbox: `staff_takeover`.
+  - Outbound: `reply_blocked` (out of window).
+  - Button actions: `booking_cancelled`, `booking_rescheduled`, `attendance_confirmed`.
+- **Sessions:** an attempt starts on "Đặt lịch" and ends with `booked` or `session_ended`.
+  - End reasons: `abandoned` (at its step), `no_slots`, `no_services`, `not_bookable`, `handoff`, `cancelled`, `failed`, `limit_reached`.
+  - The last problem in an attempt (`not_understood` / `slot_taken`) becomes the reason if the customer then leaves.
+  - Silence longer than 30 min closes the attempt: `FunnelSweepService` in the `zalo.minute` job, or the customer's next message.
+- **Read model:** `GET /api/v1/salons/:salonId/zalo/stats?from&to` (permission `analytics.read`, salon-local dates, ≤ 366 days), registered in `zalo.read-models.ts` as `zalo.stats` (aggregate, PII-free, `agentExposed`).
+  - Funnel: sessions started in the period, followed to their end. Reaching a step = highest step ≥ it, or booked. Drop-off = reached minus next step.
+  - Reminders and costs come from `zalo_send_logs`.
+  - `application/stats.queries.ts` runs five indexed GROUP BY queries; no rollup table needed at current volumes.
+- **UI:** Zalo page → "Thống kê" tab (period: today / 7 days / 30 days / custom). An Insights card is planned.
 
 ## Zalo message limits the bot works within
 - **Consultation message (tin tư vấn):** text up to 2,000 characters. Up to 5 buttons per message: 5 is the cap in SDK type definitions [3p], and a Zalo community answer confirms more than 5 isn't supported. Button title up to 100 characters; `oa.query.*` payload up to 1,000 characters [3p, eSMS docs].

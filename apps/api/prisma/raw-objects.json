@@ -29,7 +29,8 @@
     "resource_types_valid",
     "resources_valid",
     "resource_units_valid",
-    "service_resource_requirements_valid"
+    "service_resource_requirements_valid",
+    "zalo_funnel_events_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",
@@ -43,5 +44,9 @@
     "customer_salon_profiles_one_per_phone",
     "customer_salon_profiles_name_trgm"
   ],
-  "triggers": ["audit_logs_no_update_delete", "booking_status_history_no_update_delete"]
+  "triggers": [
+    "audit_logs_no_update_delete",
+    "booking_status_history_no_update_delete",
+    "zalo_funnel_events_no_update_delete"
+  ]
 }

@@ -105,6 +105,32 @@ export class BotPortsFactory {
         const availability = await this.availability(ctx, sel, date, date);
         return availability.days.flatMap((d) => d.slots.map((s) => s.startsAt));
       },
+      explainNoDays: async (sel) => {
+        const today = toLocal(this.clock.now().getTime(), ctx.timeZone).date;
+        const range = await this.availability(ctx, sel, today, addDays(today, BOOKING_DAYS - 1));
+        const reason = range.unavailableReason;
+        const earliest =
+          reason === "fully_booked" || reason === null
+            ? await this.queries.earliest(
+                ctx,
+                {
+                  serviceId: sel.serviceId,
+                  ...(sel.variantId ? { variantId: sel.variantId } : {}),
+                  addOnIds: [],
+                  ...(sel.staffId ? { staffId: sel.staffId } : {}),
+                  from: addDays(today, BOOKING_DAYS),
+                  limit: 3,
+                  perDay: 1,
+                },
+                {},
+              )
+            : null;
+        return {
+          reason: reason ?? earliest?.unavailableReason ?? null,
+          windowDays: ctx.settings.bookingWindowDays,
+          earliest: earliest?.slots.map((s) => s.startsAt) ?? [],
+        };
+      },
       upcoming: () => this.upcoming(conv.id, salonId, locale),
       book: async (sel, startsAt, phone, name) => {
         try {
