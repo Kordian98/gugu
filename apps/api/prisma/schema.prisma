@@ -836,6 +836,8 @@ model Service {
   description         Json?
   priceAmountMinor    BigInt    @map("price_amount_minor")
   priceMaxAmountMinor BigInt?   @map("price_max_amount_minor")
+  /// Internal cost to the salon (materials + other), VND minor. Owner/manager only (services.cost.read).
+  costAmountMinor     BigInt?   @map("cost_amount_minor")
   currency            String    @default("VND") @db.Char(3)
   durationMinutes     Int       @map("duration_minutes")
   bufferBeforeMinutes Int       @default(0) @map("buffer_before_minutes")
@@ -869,6 +871,8 @@ model ServiceVariant {
   name                Json
   priceAmountMinor    BigInt?   @map("price_amount_minor")
   priceMaxAmountMinor BigInt?   @map("price_max_amount_minor")
+  /// Internal cost to the salon (materials + other), VND minor. Owner/manager only (services.cost.read).
+  costAmountMinor     BigInt?   @map("cost_amount_minor")
   durationMinutes     Int?      @map("duration_minutes")
   sortOrder           Int       @default(0) @map("sort_order")
   isActive            Boolean   @default(true) @map("is_active")
@@ -894,6 +898,8 @@ model ServiceAddOn {
   extraDurationMinutes     Int       @default(0) @map("extra_duration_minutes")
   extraPriceAmountMinor    BigInt    @default(0) @map("extra_price_amount_minor")
   extraPriceMaxAmountMinor BigInt?   @map("extra_price_max_amount_minor")
+  /// Internal extra cost (VND minor). Owner/manager only (services.cost.read).
+  extraCostAmountMinor     BigInt?   @map("extra_cost_amount_minor")
   currency                 String    @default("VND") @db.Char(3)
   maxQuantity              Int       @default(1) @map("max_quantity")
   sortOrder                Int       @default(0) @map("sort_order")

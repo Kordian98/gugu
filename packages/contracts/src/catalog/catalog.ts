@@ -42,6 +42,8 @@ export const serviceVariantInputSchema = z
     priceMax: vndAmountSchema.nullable().default(null),
     durationMinutes: durationSchema.nullable().default(null),
     isActive: z.boolean().default(true),
+    /** Internal cost (materials + other), VND. Needs services.cost.read; omitted → unchanged. */
+    cost: vndAmountSchema.nullable().optional(),
   })
   .refine(priceRange, { path: ["priceMax"], message: "price_max_below_price" });
 
@@ -53,6 +55,8 @@ export const serviceAddOnInputSchema = z
     extraPrice: vndAmountSchema.default(0),
     extraPriceMax: vndAmountSchema.nullable().default(null),
     isActive: z.boolean().default(true),
+    /** Internal cost (materials + other), VND. Needs services.cost.read; omitted → unchanged. */
+    extraCost: vndAmountSchema.nullable().optional(),
   })
   .refine((v) => v.extraPriceMax == null || v.extraPriceMax >= v.extraPrice, {
     path: ["extraPriceMax"],
@@ -71,6 +75,8 @@ export const serviceInputSchema = z
     bufferBeforeMinutes: bufferSchema.default(0),
     bufferAfterMinutes: bufferSchema.default(0),
     isActive: z.boolean().default(true),
+    /** Internal cost (materials + other), VND. Needs services.cost.read; omitted → unchanged. */
+    cost: vndAmountSchema.nullable().optional(),
     variants: z.array(serviceVariantInputSchema).max(20).default([]),
     addOns: z.array(serviceAddOnInputSchema).max(20).default([]),
     /**
@@ -97,6 +103,8 @@ export const serviceVariantSchema = z.object({
   durationMinutes: z.number().int().nullable(),
   isActive: z.boolean(),
   sortOrder: z.number().int(),
+  /** null when unset or the reader lacks services.cost.read. */
+  cost: z.number().int().nullable(),
 });
 
 export const serviceAddOnSchema = z.object({
@@ -107,6 +115,7 @@ export const serviceAddOnSchema = z.object({
   extraPriceMax: z.number().int().nullable(),
   isActive: z.boolean(),
   sortOrder: z.number().int(),
+  extraCost: z.number().int().nullable(),
 });
 
 export const serviceSchema = z.object({
@@ -122,6 +131,10 @@ export const serviceSchema = z.object({
   bufferAfterMinutes: z.number().int(),
   isActive: z.boolean(),
   sortOrder: z.number().int(),
+  /** Internal cost; null when unset or hidden (see costVisible). Never on public/Zalo/AI paths. */
+  cost: z.number().int().nullable(),
+  /** The reader has services.cost.read (cost fields are meaningful, margins can be shown). */
+  costVisible: z.boolean(),
   variants: z.array(serviceVariantSchema),
   addOns: z.array(serviceAddOnSchema),
   staffIds: z.array(uuidV7Schema),

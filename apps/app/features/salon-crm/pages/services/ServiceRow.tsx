@@ -7,6 +7,8 @@ import type { Service, StaffMember } from "@gugu/contracts";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
+import { marginText } from "./margin";
+
 import { Toggle } from "../../ui/form";
 
 export const priceText = (price: number, max: number | null, locale: "vi" | "en") =>
@@ -99,9 +101,16 @@ export function ServiceRow({
             </View>
           ) : null}
         </View>
-        <Text role="uiSemiBold" size={14} color={c.ink}>
-          {priceText(service.price, service.priceMax, locale)}
-        </Text>
+        <View style={{ alignItems: "flex-end", gap: 2 }}>
+          <Text role="uiSemiBold" size={14} color={c.ink}>
+            {priceText(service.price, service.priceMax, locale)}
+          </Text>
+          {service.costVisible && service.cost !== null ? (
+            <Text testID={`crm-service-margin-${service.id}`} size={11} color={c.muted}>
+              {marginText(t, service.price, service.cost, locale)}
+            </Text>
+          ) : null}
+        </View>
         <View style={{ flexDirection: "row", minWidth: 44, justifyContent: "flex-end" }}>
           {people.slice(0, 3).map((p, i) => (
             <View key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>

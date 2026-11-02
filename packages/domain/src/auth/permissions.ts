@@ -23,6 +23,8 @@ export const SALON_PERMISSIONS = [
   "members.invite",
   "members.roles.write",
   "services.write",
+  /** Internal cost per service/variant/add-on and margins (owner, manager). Never public/AI. */
+  "services.cost.read",
   "schedules.read",
   "schedules.write",
   "schedules.own.request_time_off",

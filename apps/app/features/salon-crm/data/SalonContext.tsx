@@ -11,6 +11,7 @@ export type SalonPermission =
   | "members.invite"
   | "members.roles.write"
   | "services.write"
+  | "services.cost.read"
   | "schedules.write"
   | "bookings.write"
   | "customers.read"
