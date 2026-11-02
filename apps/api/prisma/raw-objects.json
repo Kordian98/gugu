@@ -5,8 +5,23 @@
     "subscriptions_trial_ends_when_trialing",
     "plan_prices_amount_non_negative",
     "locations_parent_by_level",
-    "magic_link_tokens_attempts_range"
+    "magic_link_tokens_attempts_range",
+    "salon_opening_hours_valid",
+    "salon_holidays_valid",
+    "staff_schedules_valid",
+    "staff_breaks_valid",
+    "staff_time_off_valid",
+    "services_amounts_valid",
+    "service_variants_amounts_valid",
+    "service_addons_amounts_valid"
   ],
-  "indexes": ["subscriptions_one_current_per_salon", "salon_members_one_owner"],
+  "indexes": [
+    "subscriptions_one_current_per_salon",
+    "salon_members_one_owner",
+    "staff_time_off_period_gix",
+    "staff_profiles_one_per_member",
+    "staff_services_unique_service",
+    "staff_services_unique_variant"
+  ],
   "triggers": ["audit_logs_no_update_delete"]
 }

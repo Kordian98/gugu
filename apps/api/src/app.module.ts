@@ -14,7 +14,10 @@ import { AuditModule } from "./modules/audit/audit.facade";
 import { AuthModule } from "./modules/auth/auth.facade";
 import { AuthorizationModule } from "./modules/authorization/authorization.facade";
 import { HealthModule } from "./modules/health/health.module";
+import { CatalogModule } from "./modules/catalog/catalog.facade";
+import { SalonSettingsModule } from "./modules/salon-settings/salon-settings.facade";
 import { SalonsModule } from "./modules/salons/salons.module";
+import { TeamModule } from "./modules/team/team.facade";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 
 /** Shared infrastructure for the HTTP app and the worker. */
@@ -37,6 +40,9 @@ export const INFRASTRUCTURE_MODULES = [
     HealthModule,
     SubscriptionsModule,
     SalonsModule,
+    SalonSettingsModule,
+    CatalogModule,
+    TeamModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },

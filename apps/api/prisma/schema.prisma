@@ -200,16 +200,19 @@ model User {
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  profile            UserProfile?
-  customer           Customer?
-  identities         AuthIdentity[]
-  sessions           Session[]
-  magicLinks         MagicLinkToken[]
-  salonMemberships   SalonMember[]        @relation("SalonMemberUser")
-  invitedMembers     SalonMember[]        @relation("SalonMemberInvitedBy")
-  orgMemberships     OrganizationMember[]
-  ownedOrganizations Organization[]
-  ownedSalons        Salon[]
+  profile             UserProfile?
+  customer            Customer?
+  identities          AuthIdentity[]
+  sessions            Session[]
+  magicLinks          MagicLinkToken[]
+  salonMemberships    SalonMember[]        @relation("SalonMemberUser")
+  invitedMembers      SalonMember[]        @relation("SalonMemberInvitedBy")
+  orgMemberships      OrganizationMember[]
+  ownedOrganizations  Organization[]
+  ownedSalons         Salon[]
+  approvedTimeOff     StaffTimeOff[]       @relation("StaffTimeOffApprovedBy")
+  sentInvitations     SalonInvitation[]    @relation("SalonInvitationInvitedBy")
+  acceptedInvitations SalonInvitation[]    @relation("SalonInvitationAcceptedBy")
 
   @@map("users")
 }
@@ -404,6 +407,7 @@ model ServiceCategory {
   parent   ServiceCategory?  @relation("CategoryParent", fields: [parentId], references: [id], onDelete: Restrict)
   children ServiceCategory[] @relation("CategoryParent")
   salons   Salon[]
+  services Service[]
 
   @@map("service_categories")
 }
@@ -509,6 +513,12 @@ model Salon {
   subscriptions        Subscription[]
   subscriptionEvents   SubscriptionEvent[]
   entitlementOverrides EntitlementOverride[]
+  settings             SalonSettings?
+  openingHours         SalonOpeningHours[]
+  holidays             SalonHoliday[]
+  staffProfiles        StaffProfile[]
+  services             Service[]
+  invitations          SalonInvitation[]
 
   @@unique([organizationId, id])
   @@index([organizationId])
@@ -557,9 +567,10 @@ model SalonMember {
   createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  salon     Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
-  user      User  @relation("SalonMemberUser", fields: [userId], references: [id], onDelete: Restrict)
-  invitedBy User? @relation("SalonMemberInvitedBy", fields: [invitedById], references: [id], onDelete: Restrict)
+  salon         Salon          @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  user          User           @relation("SalonMemberUser", fields: [userId], references: [id], onDelete: Restrict)
+  invitedBy     User?          @relation("SalonMemberInvitedBy", fields: [invitedById], references: [id], onDelete: Restrict)
+  staffProfiles StaffProfile[]
 
   @@unique([salonId, userId])
   @@unique([salonId, id])
@@ -601,4 +612,306 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+// ─── Salon settings, hours, holidays (topic 07 M7.5; spec 04 §3.2, 06 §3.1) ─────────────────────
+
+enum ConfirmationMode {
+  auto
+  manual
+
+  @@map("confirmation_mode")
+}
+
+/// Booking and policy settings (1:1 with salon). Read by the booking engine (06).
+model SalonSettings {
+  id                        String           @id @default(uuid(7)) @db.Uuid
+  salonId                   String           @unique @map("salon_id") @db.Uuid
+  bookingWindowDays         Int              @default(60) @map("booking_window_days")
+  minLeadTimeMinutes        Int              @default(60) @map("min_lead_time_minutes")
+  cancellationCutoffMinutes Int              @default(120) @map("cancellation_cutoff_minutes")
+  rescheduleCutoffMinutes   Int              @default(120) @map("reschedule_cutoff_minutes")
+  /// q13: per-salon auto/manual; manual bookings expire after `manualConfirmWindowHours`.
+  confirmationMode          ConfirmationMode @default(auto) @map("confirmation_mode")
+  manualConfirmWindowHours  Int              @default(12) @map("manual_confirm_window_hours")
+  /// q66: confirm first-time/unverified clients manually (off by default).
+  confirmNewClients         Boolean          @default(false) @map("confirm_new_clients")
+  /// q18: salons may hide staff choice from customers.
+  hideStaffChoice           Boolean          @default(false) @map("hide_staff_choice")
+  maxActiveBookingsPerPhone Int              @default(3) @map("max_active_bookings_per_phone")
+  slotGranularityMinutes    Int              @default(15) @map("slot_granularity_minutes")
+  /// Booking hold lifetime while a customer confirms (06).
+  holdTtlMinutes            Int              @default(7) @map("hold_ttl_minutes")
+  reminderOffsets           Int[]            @default([1440, 120]) @map("reminder_offsets")
+  /// LocalizedText `{ vi, en }` (either may be empty).
+  description               Json?
+  bookingPolicy             Json?            @map("booking_policy")
+  cancellationPolicy        Json?            @map("cancellation_policy")
+  /// Bumped on every schedule/hours/catalog change; availability cache key (06 G19).
+  availabilityVersion       Int              @default(0) @map("availability_version")
+  createdAt                 DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@map("salon_settings")
+}
+
+/// Weekly opening hours (salon wall-clock). Several rows per weekday allowed (split shifts).
+model SalonOpeningHours {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  salonId   String   @map("salon_id") @db.Uuid
+  /// ISO weekday 1 = Monday … 7 = Sunday.
+  weekday   Int      @db.SmallInt
+  opensAt   DateTime @map("opens_at") @db.Time(0)
+  closesAt  DateTime @map("closes_at") @db.Time(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, weekday])
+  @@map("salon_opening_hours")
+}
+
+/// Closed days or special hours for a date range (inclusive, salon-local dates).
+model SalonHoliday {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  salonId   String    @map("salon_id") @db.Uuid
+  startDate DateTime  @map("start_date") @db.Date
+  endDate   DateTime  @map("end_date") @db.Date
+  closed    Boolean   @default(true)
+  opensAt   DateTime? @map("opens_at") @db.Time(0)
+  closesAt  DateTime? @map("closes_at") @db.Time(0)
+  reason    String?
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, startDate])
+  @@map("salon_holidays")
+}
+
+// ─── Staff (topic 07 M7.4; spec 04 §3.2 "Staff") ────────────────────────────────────────────────
+
+/// A bookable person. May exist before the person has an account (salon_member_id null).
+model StaffProfile {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  salonId       String    @map("salon_id") @db.Uuid
+  salonMemberId String?   @map("salon_member_id") @db.Uuid
+  displayName   String    @map("display_name")
+  /// LocalizedText.
+  bio           Json?
+  /// Calendar colour key (design-system tone), not a hex value.
+  color         String    @default("lilac")
+  isBookable    Boolean   @default(true) @map("is_bookable")
+  sortOrder     Int       @default(0) @map("sort_order")
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon       Salon             @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  member      SalonMember?      @relation(fields: [salonId, salonMemberId], references: [salonId, id], onDelete: Restrict)
+  schedules   StaffSchedule[]
+  breaks      StaffBreak[]
+  timeOff     StaffTimeOff[]
+  services    StaffService[]
+  invitations SalonInvitation[]
+
+  @@unique([salonId, id])
+  @@index([salonId, sortOrder])
+  @@map("staff_profiles")
+}
+
+/// Weekly working hours (salon wall-clock), valid from `effectiveFrom` until `effectiveTo` (inclusive).
+model StaffSchedule {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  salonId       String    @map("salon_id") @db.Uuid
+  staffId       String    @map("staff_id") @db.Uuid
+  weekday       Int       @db.SmallInt
+  startsAt      DateTime  @map("starts_at") @db.Time(0)
+  endsAt        DateTime  @map("ends_at") @db.Time(0)
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  staff StaffProfile @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, staffId, weekday])
+  @@map("staff_schedules")
+}
+
+/// Recurring (weekday) or one-day (date) break; exactly one of the two is set (CHECK).
+model StaffBreak {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  salonId   String    @map("salon_id") @db.Uuid
+  staffId   String    @map("staff_id") @db.Uuid
+  weekday   Int?      @db.SmallInt
+  date      DateTime? @db.Date
+  startsAt  DateTime  @map("starts_at") @db.Time(0)
+  endsAt    DateTime  @map("ends_at") @db.Time(0)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  staff StaffProfile @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, staffId])
+  @@map("staff_breaks")
+}
+
+/// Absence as a UTC range [starts_at, ends_at). Engine queries use `tstzrange(starts_at, ends_at)`
+/// (GiST expression index `staff_time_off_period_gix`, raw SQL).
+model StaffTimeOff {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  salonId          String   @map("salon_id") @db.Uuid
+  staffId          String   @map("staff_id") @db.Uuid
+  startsAt         DateTime @map("starts_at") @db.Timestamptz(6)
+  endsAt           DateTime @map("ends_at") @db.Timestamptz(6)
+  reason           String?
+  approvedByUserId String?  @map("approved_by_user_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  staff      StaffProfile @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+  approvedBy User?        @relation("StaffTimeOffApprovedBy", fields: [approvedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, staffId, startsAt])
+  @@map("staff_time_off")
+}
+
+/// Staff ↔ service assignment with optional per-staff overrides (06 G13 resolution order).
+model StaffService {
+  id                      String   @id @default(uuid(7)) @db.Uuid
+  salonId                 String   @map("salon_id") @db.Uuid
+  staffId                 String   @map("staff_id") @db.Uuid
+  serviceId               String   @map("service_id") @db.Uuid
+  variantId               String?  @map("variant_id") @db.Uuid
+  priceOverrideMinor      BigInt?  @map("price_override_minor")
+  durationOverrideMinutes Int?     @map("duration_override_minutes")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  staff   StaffProfile    @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+  service Service         @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  variant ServiceVariant? @relation(fields: [salonId, variantId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, serviceId])
+  @@map("staff_services")
+}
+
+// ─── Catalog (topic 07 M7.4; spec 04 §3.2 "Catalog", 06 §3.12) ───────────────────────────────────
+
+model Service {
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  salonId             String    @map("salon_id") @db.Uuid
+  categoryId          String?   @map("category_id") @db.Uuid
+  /// LocalizedText `{ vi, en }` — vi required.
+  name                Json
+  description         Json?
+  priceAmountMinor    BigInt    @map("price_amount_minor")
+  priceMaxAmountMinor BigInt?   @map("price_max_amount_minor")
+  currency            String    @default("VND") @db.Char(3)
+  durationMinutes     Int       @map("duration_minutes")
+  bufferBeforeMinutes Int       @default(0) @map("buffer_before_minutes")
+  bufferAfterMinutes  Int       @default(0) @map("buffer_after_minutes")
+  isActive            Boolean   @default(true) @map("is_active")
+  sortOrder           Int       @default(0) @map("sort_order")
+  /// Schema owned by the booking engine (06).
+  bookingRestrictions Json?     @map("booking_restrictions")
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon    Salon            @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  category ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants ServiceVariant[]
+  addOns   ServiceAddOn[]
+  staff    StaffService[]
+
+  @@unique([salonId, id])
+  @@index([salonId, sortOrder])
+  @@map("services")
+}
+
+model ServiceVariant {
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  salonId             String    @map("salon_id") @db.Uuid
+  serviceId           String    @map("service_id") @db.Uuid
+  name                Json
+  priceAmountMinor    BigInt?   @map("price_amount_minor")
+  priceMaxAmountMinor BigInt?   @map("price_max_amount_minor")
+  durationMinutes     Int?      @map("duration_minutes")
+  sortOrder           Int       @default(0) @map("sort_order")
+  isActive            Boolean   @default(true) @map("is_active")
+  deletedAt           DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  service Service        @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  staff   StaffService[]
+
+  @@unique([salonId, id])
+  @@index([salonId, serviceId])
+  @@map("service_variants")
+}
+
+/// Optional extra on one service (q17): extra duration + price, performed in the same block.
+model ServiceAddOn {
+  id                       String    @id @default(uuid(7)) @db.Uuid
+  salonId                  String    @map("salon_id") @db.Uuid
+  serviceId                String    @map("service_id") @db.Uuid
+  name                     Json
+  extraDurationMinutes     Int       @default(0) @map("extra_duration_minutes")
+  extraPriceAmountMinor    BigInt    @default(0) @map("extra_price_amount_minor")
+  extraPriceMaxAmountMinor BigInt?   @map("extra_price_max_amount_minor")
+  currency                 String    @default("VND") @db.Char(3)
+  maxQuantity              Int       @default(1) @map("max_quantity")
+  sortOrder                Int       @default(0) @map("sort_order")
+  isActive                 Boolean   @default(true) @map("is_active")
+  deletedAt                DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  service Service @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, serviceId])
+  @@map("service_addons")
+}
+
+// ─── Team invitations (topic 07 minimal flow; spec 05 R6 — 05 may take ownership later) ──────────
+
+/// Single-use, 72 h staff invitation. Only the HMAC of the token is stored. When `email` is set,
+/// only a signed-in user with that verified email can accept.
+model SalonInvitation {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  salonId          String    @map("salon_id") @db.Uuid
+  role             SalonRole
+  email            String?   @db.Citext
+  staffProfileId   String?   @map("staff_profile_id") @db.Uuid
+  tokenHash        String    @unique @map("token_hash")
+  invitedById      String    @map("invited_by_id") @db.Uuid
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedAt       DateTime? @map("accepted_at") @db.Timestamptz(6)
+  acceptedByUserId String?   @map("accepted_by_user_id") @db.Uuid
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  salon        Salon         @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  staffProfile StaffProfile? @relation(fields: [salonId, staffProfileId], references: [salonId, id], onDelete: Restrict)
+  invitedBy    User          @relation("SalonInvitationInvitedBy", fields: [invitedById], references: [id], onDelete: Restrict)
+  acceptedBy   User?         @relation("SalonInvitationAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, createdAt])
+  @@map("salon_invitations")
 }
