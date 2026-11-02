@@ -1,0 +1,28 @@
+// Spike 04-S0 (ADR-0008): Prisma 7 + PostGIS + exclusion constraint + drift check.
+// Not part of the app schema. Run with `pnpm --filter @gugu/api spike:s0`.
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model SpikeLocation {
+  id   String                                 @id @default(uuid(7)) @db.Uuid
+  name String
+  geo  Unsupported("geography(Point,4326)")?
+
+  @@index([geo], type: Gist)
+  @@map("spike_locations")
+}
+
+model SpikeOccupancy {
+  id      String                    @id @default(uuid(7)) @db.Uuid
+  staffId String                    @map("staff_id") @db.Uuid
+  range   Unsupported("tstzrange")
+  active  Boolean                   @default(true)
+
+  @@map("spike_occupancy")
+}

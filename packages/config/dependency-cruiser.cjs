@@ -89,7 +89,8 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
-    exclude: { path: "(^|/)(\\.expo|dist|dist-web|\\.turbo|ios|android|coverage)/" },
+    // `apps/api/**/generated/` is Prisma output (cyclic by design, git-ignored).
+    exclude: { path: "(^|/)(\\.expo|dist|dist-web|\\.turbo|ios|android|coverage|generated)/" },
     tsPreCompilationDeps: true,
     // Resolves the app's "@/..." alias. Add more tsconfigs here if other packages get path aliases.
     tsConfig: { fileName: "apps/app/tsconfig.json" },

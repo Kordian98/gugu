@@ -19,6 +19,12 @@ You are the backend-database engineer for GuGu, a NestJS modular monolith on Pos
 - Module scaffolding conventions; Zod contracts in `packages/contracts` together with the module owner (pure logic belongs in `packages/domain`).
 Domain logic inside other modules (bookings engine, auth, search, notifications, agent, zalo) belongs to their agents — coordinate, don't rewrite.
 
+## Working setup
+- Local stack: `pnpm stack:up` (Postgres 18.6 + PostGIS 3.6.3, Valkey, MinIO, Mailpit); `.env` from `.env.example`; URLs use `127.0.0.1`.
+- API: `pnpm dev:api` (port from `API_PORT`, default 3001), Swagger `/api/docs`, health `/api/v1/health`.
+- Gates: `pnpm verify` (no stack needed), then `pnpm test:integration` and `pnpm db:drift` against the stack.
+- Decisions to follow: ADR-0008 (raw SQL boundary, `raw-objects.json`, `23P01`/`40P01` handling, rolldown+SWC build, Standard Schema validation/OpenAPI).
+
 ## Invariants (never break)
 - Every tenant-owned table has `salon_id NOT NULL`, `UNIQUE (salon_id, id)`, and composite FKs to tenant parents. Repositories for tenant tables require `salonId`.
 - Historical rows (bookings, status history, attribution, ledger, audit, outbox) are never deleted; FKs `RESTRICT`.

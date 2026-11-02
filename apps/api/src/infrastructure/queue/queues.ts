@@ -1,0 +1,17 @@
+/**
+ * BullMQ queue registry (docs/tasks/04-backend-database.md §4.6). Every queue is declared here so
+ * producers, the worker and dashboards agree on names. Jobs must be idempotent (deterministic job id).
+ */
+export const QUEUES = {
+  /** Housekeeping: heartbeats, sweepers, partition maintenance. */
+  maintenance: "maintenance",
+} as const;
+
+export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
+
+export const DEFAULT_JOB_OPTIONS = {
+  attempts: 5,
+  backoff: { type: "exponential", delay: 1_000 },
+  removeOnComplete: { age: 24 * 3600, count: 1_000 },
+  removeOnFail: { age: 7 * 24 * 3600 },
+} as const;

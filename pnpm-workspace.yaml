@@ -4,9 +4,13 @@ packages:
 
 # Native/build-script dependencies allowed to run install scripts (pnpm 10 blocks them by default).
 onlyBuiltDependencies:
+  - "@prisma/engines"
+  - "@swc/core"
   - "@tailwindcss/oxide"
   - esbuild
   - lightningcss
+  - msgpackr-extract
+  - prisma
   - unrs-resolver
 
 # NativeWind v5 rc requires an exact lightningcss (see ADR-0004).
