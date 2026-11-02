@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { ClientSuggestion } from "@gugu/contracts";
 import type { SalonContext } from "../../../common/guards/principal";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
+import type { CrmScope } from "./crm-scope";
 
 type Row = {
   name: string;
@@ -16,13 +17,15 @@ type Row = {
 
 /**
  * Recent clients of this salon from its own bookings, newest first (07 M7.2 quick pick). Matches
- * phone digits ("0912…" also finds "+84912…") or a diacritic-insensitive part of the name.
+ * phone digits ("0912…" also finds "+84912…") or a diacritic-insensitive part of the name. With
+ * an own scope (staff role) only clients of the member's own bookings are visible.
  */
 @Injectable()
 export class ClientLookupQuery {
   constructor(private readonly prisma: PrismaService) {}
 
-  async find(ctx: SalonContext, q: string): Promise<ClientSuggestion[]> {
+  async find(ctx: SalonContext, scope: CrmScope, q: string): Promise<ClientSuggestion[]> {
+    const ownStaff = scope.staffId;
     const digits = q
       .replace(/\D/g, "")
       .replace(/^0+/, "")
@@ -45,6 +48,7 @@ export class ClientLookupQuery {
         FROM bookings b
         JOIN booking_services bs ON bs.booking_id = b.id AND bs.salon_id = b.salon_id
         WHERE b.salon_id = ${ctx.salonId}::uuid
+          AND (${ownStaff}::uuid IS NULL OR b.staff_id = ${ownStaff}::uuid)
           AND b.customer_phone_e164 IS NOT NULL
           AND b.customer_name IS NOT NULL
           AND (
