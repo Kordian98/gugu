@@ -1,0 +1,7 @@
+# gitleaks config used by scripts/secrets-scan.mjs and CI (topic 13).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Lockfiles and binary assets"
+paths = ['''pnpm-lock\.yaml''', '''\.(png|jpe?g|webp|glb|ktx2|mp4|webm)$''']

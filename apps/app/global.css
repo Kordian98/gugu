@@ -1,0 +1,5 @@
+/* Tailwind v4 + NativeWind v5 entry (ADR-0004). Design tokens are injected by packages/design-system (topic 02). */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";

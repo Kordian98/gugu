@@ -1,0 +1,10 @@
+{
+  "extends": ["expo/tsconfig.base", "@gugu/config/tsconfig.base.json"],
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "env.d.ts", "nativewind-env.d.ts"],
+  "exclude": ["node_modules", "dist-web", "ios", "android"]
+}
