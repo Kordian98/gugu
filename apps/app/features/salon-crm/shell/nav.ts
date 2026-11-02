@@ -44,7 +44,7 @@ export const NAV: { id: NavSectionId; items: NavItem[] }[] = [
     id: "growth",
     items: [
       { id: "zalo", icon: "chat", path: "/business/zalo", permission: "zalo.inbox.use" },
-      { id: "reviews", icon: "star", path: "/business/reviews" },
+      // "reviews" returns once topic 11 ships the reviews read model (no placeholder entries).
     ],
   },
   { id: "business", items: [{ id: "insights", icon: "chart", path: "/business/insights" }] },
