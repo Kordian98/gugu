@@ -11,3 +11,145 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ─── Subscriptions & entitlements (topic 12, M12.1; docs/domains/monetization-admin.md) ─────────
+// Commercial access is resolved per salon from plan entitlements + overrides. Plans and their
+// entitlements are reference data inserted by migrations (mirrored in
+// src/modules/subscriptions/domain/plan-catalog.ts; an integration test keeps both in sync).
+// TODO(topic 05): add FKs (salon_id) → salons(id) once the salons table lands on main.
+
+enum PlanBillingInterval {
+  month
+  year
+
+  @@map("plan_billing_interval")
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  cancelled
+  expired
+
+  @@map("subscription_status")
+}
+
+enum BillingMode {
+  manual
+
+  @@map("billing_mode")
+}
+
+enum InvoicingEntity {
+  tbd
+  pl
+  vn
+
+  @@map("invoicing_entity")
+}
+
+model Plan {
+  id            String            @id @default(uuid(7)) @db.Uuid
+  /// Stable code: basic | pro | ultra (public) | trial (internal). Clients translate `plans.<code>.*`.
+  code          String            @unique
+  isPublic      Boolean           @map("is_public")
+  /// Bumped whenever the plan's entitlements change (new migration).
+  version       Int               @default(1)
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  prices        PlanPrice[]
+  entitlements  PlanEntitlement[]
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+/// Display prices (no processor in MVP). Amount in minor units of `currency` (VND has none).
+model PlanPrice {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  planId      String              @map("plan_id") @db.Uuid
+  interval    PlanBillingInterval
+  amountMinor BigInt              @map("amount_minor")
+  currency    String              @default("VND") @db.Char(3)
+  activeFrom  DateTime            @map("active_from") @db.Timestamptz(6)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  plan        Plan                @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, interval, activeFrom])
+  @@map("plan_prices")
+}
+
+/// One value per (plan, entitlement key). `value` is validated against the key registry in
+/// @gugu/contracts (boolean, or a non-negative integer / "unlimited" for limits).
+model PlanEntitlement {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  planId    String   @map("plan_id") @db.Uuid
+  key       String
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, key])
+  @@map("plan_entitlements")
+}
+
+/// A salon's subscription. At most one current (trialing | active | past_due) per salon — enforced
+/// by the partial unique index `subscriptions_one_current_per_salon` (raw SQL).
+model Subscription {
+  id                 String               @id @default(uuid(7)) @db.Uuid
+  salonId            String               @map("salon_id") @db.Uuid
+  planId             String               @map("plan_id") @db.Uuid
+  planVersion        Int                  @map("plan_version")
+  status             SubscriptionStatus
+  /// Null while trialing (no billing interval chosen yet).
+  interval           PlanBillingInterval?
+  billingMode        BillingMode          @default(manual) @map("billing_mode")
+  invoicingEntity    InvoicingEntity      @default(tbd) @map("invoicing_entity")
+  trialEndsAt        DateTime?            @map("trial_ends_at") @db.Timestamptz(6)
+  currentPeriodStart DateTime?            @map("current_period_start") @db.Timestamptz(6)
+  currentPeriodEnd   DateTime?            @map("current_period_end") @db.Timestamptz(6)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  plan               Plan                 @relation(fields: [planId], references: [id], onDelete: Restrict)
+  events             SubscriptionEvent[]
+
+  @@unique([salonId, id])
+  @@index([salonId])
+  @@map("subscriptions")
+}
+
+/// Append-only status history: every transition records previous/new status, actor and reason.
+model SubscriptionEvent {
+  id             String              @id @default(uuid(7)) @db.Uuid
+  salonId        String              @map("salon_id") @db.Uuid
+  subscriptionId String              @map("subscription_id") @db.Uuid
+  fromStatus     SubscriptionStatus? @map("from_status")
+  toStatus       SubscriptionStatus  @map("to_status")
+  /// `user:<id>` | `system` | `admin:<id>` (topic 05 actor model).
+  actor          String
+  reason         String?
+  occurredAt     DateTime            @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  subscription   Subscription        @relation(fields: [salonId, subscriptionId], references: [salonId, id], onDelete: Restrict)
+
+  @@index([subscriptionId, occurredAt])
+  @@map("subscription_events")
+}
+
+/// Admin grant/restriction of one entitlement for one salon (pilots, support). Takes precedence over
+/// the plan while active (not revoked, not expired).
+model EntitlementOverride {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  salonId   String    @map("salon_id") @db.Uuid
+  key       String
+  value     Json
+  reason    String
+  createdBy String    @map("created_by")
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([salonId, id])
+  @@index([salonId, key])
+  @@map("entitlement_overrides")
+}

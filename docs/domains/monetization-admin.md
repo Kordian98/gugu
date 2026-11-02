@@ -2,7 +2,7 @@
 
 Durable reference for booking attribution, commission, plans/entitlements, usage metering, feature flags, analytics/metrics, trust signals and the platform admin. Read this before changing any of them. The spec with rationale is `docs/tasks/12-monetization-admin.md`.
 
-Status: **skeleton.** Nothing is implemented yet. Fill in each section as code lands.
+Status: **M12.1 implemented** (plans, subscriptions, entitlements, trial). Everything else in this doc is still a skeleton.
 
 ## Summary
 - Customers book for free and pay at the salon. GuGu never processes customer payments.
@@ -51,7 +51,19 @@ _TODO: sequence descriptions._
 - Admin override → audit → cache invalidation
 
 ## Entitlement keys
-_TODO: generated table from `packages/domain/entitlements/keys.ts`._
+Registry: `ENTITLEMENT_KEYS` in `packages/contracts/src/subscriptions/entitlements.ts`. Values per plan: `PLAN_CATALOG` in `apps/api/src/modules/subscriptions/domain/plan-catalog.ts`, mirrored by rows inserted in migration `20261102115055_add_subscriptions_entitlements` (an integration test asserts they agree). Resolution: active override (newest wins) → plan of the current subscription → default (deny / 0). An expired, cancelled or missing subscription grants nothing.
+
+## Subscriptions (M12.1)
+- Tables: `plans`, `plan_prices` (empty, prices TBD), `plan_entitlements`, `subscriptions`, `subscription_events` (append-only history), `entitlement_overrides`.
+- State machine (`domain/subscription-status.ts`): trialing → active | expired | cancelled; active → past_due | cancelled | expired; past_due → active | cancelled | expired. `cancelled` and `expired` are terminal; a returning salon gets a new row. Each transition writes a `subscription_events` row (from, to, actor, reason).
+- One current (trialing | active | past_due) subscription per salon: partial unique index `subscriptions_one_current_per_salon`.
+- Trial: `trial` plan (internal), 14 days, Pro features with Basic limits. A trial past `trial_ends_at` reads as `expired` immediately. `SubscriptionsFacade.expireDueTrials()` records the transition; it is not scheduled yet.
+
+## Contract with topic 05 (salon registration)
+Inside the registration transaction, right after inserting the salon, call `SubscriptionsFacade.startTrial({ salonId }, tx)` (input schema `startTrialInputSchema`, result `subscriptionSummarySchema` in `@gugu/contracts`). It is idempotent while that trial is current. If the salon already had a subscription, it throws `subscription.trial_unavailable` (409). It joins the caller's transaction, so a failed registration also rolls back the trial. Open items for topic 05:
+1. Add FKs `subscriptions.salon_id`, `subscription_events.salon_id`, `entitlement_overrides.salon_id` → `salons(id)` (`Restrict`) in its salons migration or right after.
+2. Replace the placeholder `SALON_ACCESS` port (`DenyAllSalonAccess`, which fails closed with 401) with the membership guard and `@RequirePermission('subscription.read')`.
+3. Set `RequestContext.salonId` in the membership guard so `@RequiresEntitlement` uses it.
 
 ## Events
 _TODO: one row per catalog event (name, side, properties, owner, metrics using it)._
@@ -69,8 +81,9 @@ _TODO: active flags, owners, removal dates._
 _TODO: matrix of support_admin vs super_admin per action._
 
 ## File map
-_TODO: paths once created._
-- `apps/api/src/modules/{attribution,commission,subscriptions,usage,feature-flags,analytics,trust,admin}/`
+- `apps/api/src/modules/subscriptions/`: `domain/` (plan catalogue, state machine, resolver), `application/` (`EntitlementService`, `SubscriptionsFacade`, `Clock`, cache port), `infra/` (Redis cache), `http/` (`EntitlementsController`, `@RequiresEntitlement`, `SALON_ACCESS` placeholder)
+- `packages/contracts/src/subscriptions/` (keys, read model, start-trial contract, error codes)
+- Planned: `apps/api/src/modules/{attribution,commission,usage,feature-flags,analytics,trust,admin}/`
 - `packages/analytics/`, `packages/domain/{entitlements,usage,metrics}/`
 - `apps/app/app/[locale]/(admin)/`
 

@@ -9,6 +9,7 @@ import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { QueueModule } from "./infrastructure/queue/queue.module";
 import { RedisModule } from "./infrastructure/redis/redis.module";
 import { HealthModule } from "./modules/health/health.module";
+import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 
 /** Shared infrastructure for the HTTP app and the worker. */
 export const INFRASTRUCTURE_MODULES = [
@@ -20,7 +21,7 @@ export const INFRASTRUCTURE_MODULES = [
 ];
 
 @Module({
-  imports: [...INFRASTRUCTURE_MODULES, HealthModule],
+  imports: [...INFRASTRUCTURE_MODULES, HealthModule, SubscriptionsModule],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },
     { provide: APP_PIPE, useFactory: createValidationPipe },

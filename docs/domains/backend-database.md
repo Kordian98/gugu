@@ -38,13 +38,17 @@ Only the API shell exists: no domain tables yet (the first migration creates ext
 | Module | Path | Tables owned | Events emitted | Read models | Status |
 |---|---|---|---|---|---|
 | health | `apps/api/src/modules/health` | — | — | — (`GET /api/v1/health` readiness: DB + Redis, 200/503; `/health/live`) | implemented |
+| subscriptions (topic 12) | `apps/api/src/modules/subscriptions` | plans, plan_prices, plan_entitlements, subscriptions, subscription_events, entitlement_overrides | — | `GET /api/v1/salons/:salonId/entitlements` | M12.1 implemented; see `docs/domains/monetization-admin.md` |
 
 Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`), `logger` (nestjs-pino, `REDACT_PATHS`), `prisma` (`PrismaService`, lazy connect), `redis` (`RedisService`), `queue` (`QueueService`, `QUEUES`). Common (`apps/api/src/common`): `context` (RequestContext via AsyncLocalStorage, `x-request-id`), `problem` (`ProblemFilter`, `AppError`, `COMMON_ERRORS`), `validation` (global Zod pipe). Entrypoints: `main.ts` (HTTP), `worker.ts` (BullMQ), `bootstrap.ts` (prefix `/api`, URI versioning v1, Swagger).
 
 ## Entities
 | Table | Tenant | Deletion policy | Owner module | Notes |
 |---|---|---|---|---|
-| _(fill as implemented)_ | | | | |
+| plans, plan_entitlements, plan_prices | no (reference data) | never deleted; `Restrict` | subscriptions | rows inserted by migration `20261102115055_add_subscriptions_entitlements` |
+| subscriptions | yes (`salon_id`, no FK until salons lands) | never deleted; `Restrict` | subscriptions | one current per salon |
+| subscription_events | yes | append-only | subscriptions | composite FK `(salon_id, subscription_id)` |
+| entitlement_overrides | yes | revoked via `revoked_at`, never deleted | subscriptions | |
 
 ## Raw SQL objects
 Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails if any is missing — Prisma itself is blind to them, ADR-0008).
@@ -52,6 +56,9 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | Object | Kind | Migration | Test |
 |---|---|---|---|
 | postgis, btree_gist, pg_trgm, unaccent, citext, pgcrypto | extension | `20261102000000_extensions` | `db:drift` |
+| `subscriptions_one_current_per_salon` | partial unique index | `20261102115055_add_subscriptions_entitlements` | `subscriptions.int.test.ts` (one current per salon; concurrent startTrial) |
+| `subscriptions_trial_ends_when_trialing` | check | `20261102115055_add_subscriptions_entitlements` | `db:drift` |
+| `plan_prices_amount_non_negative` | check | `20261102115055_add_subscriptions_entitlements` | `db:drift` |
 
 ## Read-model registry
 Base layer of the registries (X7): read models here → metric catalogue (07, `packages/domain/metrics`) → agent tools (08).
