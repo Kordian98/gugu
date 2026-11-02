@@ -5,6 +5,7 @@ import type {
   BookingStatusValue,
   ClientSuggestion,
   CreateSalonBookingInput,
+  EarliestSlots,
   OfflineSale,
   OfflineSaleInput,
   RescheduleInput,
@@ -83,6 +84,29 @@ export function useAvailability(req: AvailabilityRequest | null) {
     queryKey: [...key(salonId), "availability", q],
     queryFn: () => apiFetch<Availability>(`/salons/${salonId}/availability?${q}`),
     enabled: salonId !== "" && req !== null,
+  });
+}
+
+/** "Find the earliest slot": first free options across the booking window (server-side search). */
+export function useEarliestSlots(
+  req: Omit<AvailabilityRequest, "date" | "to"> | null,
+  enabled: boolean,
+) {
+  const salonId = useOptionalSalon()?.salonId ?? "";
+  const q = req
+    ? new URLSearchParams({
+        serviceId: req.serviceId,
+        limit: "6",
+        perDay: "3",
+        ...(req.variantId ? { variantId: req.variantId } : {}),
+        ...(req.staffId ? { staffId: req.staffId } : {}),
+        ...(req.addOnIds.length ? { addOnIds: req.addOnIds.join(",") } : {}),
+      }).toString()
+    : "";
+  return useQuery({
+    queryKey: [...key(salonId), "availability", "earliest", q],
+    queryFn: () => apiFetch<EarliestSlots>(`/salons/${salonId}/availability/earliest?${q}`),
+    enabled: enabled && salonId !== "" && req !== null,
   });
 }
 

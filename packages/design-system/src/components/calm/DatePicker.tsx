@@ -47,6 +47,15 @@ export function DatePicker({
   const { c } = useCalm();
   const start = parse(value ?? today);
   const [month, setMonth] = useState({ y: start.y, m: start.m });
+  // Follow a value set from outside (e.g. "earliest slot") into another month.
+  const [shownValue, setShownValue] = useState(value);
+  if (value !== shownValue) {
+    setShownValue(value);
+    if (value) {
+      const v = parse(value);
+      if (v.y !== month.y || v.m !== month.m) setMonth({ y: v.y, m: v.m });
+    }
+  }
   const title = new Intl.DateTimeFormat(localeTag, {
     month: "long",
     year: "numeric",

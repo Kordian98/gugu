@@ -32,7 +32,9 @@ export function StaffEditor({
   const [name, setName] = useState(staff?.displayName ?? "");
   const [colorKey, setColorKey] = useState<Color>(staff?.color ?? "lilac");
   const [bookable, setBookable] = useState(staff?.isBookable ?? true);
-  const [serviceIds, setServiceIds] = useState<string[]>(staff?.serviceIds ?? []);
+  // New member: every active service preselected (the API does the same when none are sent).
+  const [picked, setPicked] = useState<string[] | null>(staff?.serviceIds ?? null);
+  const serviceIds = picked ?? services.filter((s) => s.isActive).map((s) => s.id);
   const [touched, setTouched] = useState(false);
   const create = useCrmMutation(crmApi.createStaff, ["team", "services"]);
   const update = useCrmMutation(crmApi.updateStaff, ["team", "services"]);
@@ -42,7 +44,12 @@ export function StaffEditor({
   const save = () => {
     setTouched(true);
     if (!name.trim()) return;
-    const body = { displayName: name.trim(), color: colorKey, isBookable: bookable, serviceIds };
+    const body = {
+      displayName: name.trim(),
+      color: colorKey,
+      isBookable: bookable,
+      ...(picked ? { serviceIds: picked } : {}),
+    };
     if (staff) update.mutate({ id: staff.id, body }, { onSuccess: onClose });
     else create.mutate(body, { onSuccess: onClose });
   };
@@ -127,7 +134,7 @@ export function StaffEditor({
                   value={serviceIds.includes(s.id)}
                   label={label}
                   onChange={(v) => {
-                    setServiceIds((ids) => (v ? [...ids, s.id] : ids.filter((x) => x !== s.id)));
+                    setPicked(v ? [...serviceIds, s.id] : serviceIds.filter((x) => x !== s.id));
                   }}
                 />
               </View>

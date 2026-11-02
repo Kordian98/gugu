@@ -9,6 +9,7 @@ import { formatVND } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { crmApi, useCrmMutation } from "../../data/catalog";
+import { BookabilityWarning } from "../../ui/BookabilityWarning";
 import { useErrorText } from "../../ui/errors";
 import {
   ConfirmDialog,
@@ -50,6 +51,8 @@ type Draft = {
   variants: VariantDraft[];
   addOns: AddOnDraft[];
   staffIds: string[];
+  /** New service whose staff list was never touched: the API assigns every bookable member. */
+  staffDefault: boolean;
 };
 
 const fromService = (s: Service | null): Draft => ({
@@ -77,6 +80,7 @@ const fromService = (s: Service | null): Draft => ({
     extraDuration: a.extraDurationMinutes,
   })),
   staffIds: s?.staffIds ?? [],
+  staffDefault: !s,
 });
 
 const toInput = (d: Draft, description: { vi: string; en: string } | null): ServiceInput => ({
@@ -106,7 +110,7 @@ const toInput = (d: Draft, description: { vi: string; en: string } | null): Serv
       extraPrice: a.extraPrice ?? 0,
       extraDurationMinutes: a.extraDuration ?? 0,
     })),
-  staffIds: d.staffIds,
+  ...(d.staffDefault ? {} : { staffIds: d.staffIds }),
 });
 
 /**
@@ -139,6 +143,10 @@ export function ServiceEditor({
   const create = useCrmMutation(crmApi.createService, ["services", "team"]);
   const update = useCrmMutation(crmApi.updateService, ["services", "team"]);
   const remove = useCrmMutation(crmApi.removeService, ["services", "team"]);
+  const bookable = staff.filter((s) => s.isBookable);
+  // New service: every bookable member is preselected (and with exactly one, silently assigned).
+  const chosen = d.staffDefault ? bookable.map((s) => s.id) : d.staffIds;
+  const unassigned = d.isActive && !bookable.some((s) => chosen.includes(s.id));
   const busy = create.isPending || update.isPending || remove.isPending;
   const invalid = !d.nameVi.trim() || d.price === null || d.duration === null || d.duration < 5;
 
@@ -391,37 +399,49 @@ export function ServiceEditor({
         )}
       />
 
-      <Field label={t("services.staff")} hint={staff.length ? undefined : t("services.noStaffYet")}>
-        <View style={{ gap: 4 }}>
-          {staff.map((s) => {
-            const on = d.staffIds.includes(s.id);
-            return (
-              <View
-                key={s.id}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingVertical: 4,
-                }}
-              >
-                <Text size={14} color={c.ink}>
-                  {s.displayName}
-                </Text>
-                <Toggle
-                  value={on}
-                  label={s.displayName}
-                  onChange={(v) => {
-                    set({
-                      staffIds: v ? [...d.staffIds, s.id] : d.staffIds.filter((x) => x !== s.id),
-                    });
+      {d.staffDefault && bookable.length === 1 && staff.length === 1 ? null : (
+        <Field
+          label={t("services.staff")}
+          hint={staff.length ? undefined : t("services.noStaffYet")}
+        >
+          <View style={{ gap: 4 }}>
+            {unassigned && staff.length ? (
+              <BookabilityWarning
+                testID="crm-service-unassigned"
+                text={t("services.notBookable")}
+              />
+            ) : null}
+            {staff.map((s) => {
+              const on = chosen.includes(s.id);
+              return (
+                <View
+                  key={s.id}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingVertical: 4,
                   }}
-                />
-              </View>
-            );
-          })}
-        </View>
-      </Field>
+                >
+                  <Text size={14} color={c.ink}>
+                    {s.displayName}
+                  </Text>
+                  <Toggle
+                    value={on}
+                    label={s.displayName}
+                    onChange={(v) => {
+                      set({
+                        staffDefault: false,
+                        staffIds: v ? [...chosen, s.id] : chosen.filter((x) => x !== s.id),
+                      });
+                    }}
+                  />
+                </View>
+              );
+            })}
+          </View>
+        </Field>
+      )}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Text size={14} color={c.ink}>
           {t("services.activeLabel")}

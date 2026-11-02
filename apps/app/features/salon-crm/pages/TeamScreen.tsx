@@ -14,6 +14,8 @@ import { useSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
 import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
+import { useCrmNav } from "../shell/useCrmNav";
+import { BookabilityWarning } from "../ui/BookabilityWarning";
 import { EmptyState } from "../ui/EmptyState";
 import { InviteSheet } from "./team/InviteSheet";
 import { ScheduleEditor, weekdayLabel } from "./team/ScheduleEditor";
@@ -54,6 +56,13 @@ export function TeamScreen() {
   const { user } = useAuth();
   const addMe = useCrmMutation(crmApi.createStaff, ["team"]);
   const iHaveProfile = items.some((s) => s.member?.userId === user?.id);
+  const { go } = useCrmNav();
+  const bookableIds = new Set(items.filter((s) => s.isBookable).map((s) => s.id));
+  const activeServices = (services.data?.items ?? []).filter((x) => x.isActive);
+  const activeIds = new Set(activeServices.map((x) => x.id));
+  const unassigned = team.isSuccess
+    ? activeServices.filter((x) => !x.staffIds.some((id) => bookableIds.has(id))).length
+    : 0;
 
   return (
     <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 20 }}>
@@ -99,6 +108,16 @@ export function TeamScreen() {
             </View>
           ) : null}
         </View>
+        {unassigned > 0 ? (
+          <BookabilityWarning
+            testID="crm-team-unassigned"
+            text={t("team.unassignedServices", { count: unassigned })}
+            action={t("pages.services.title")}
+            onPress={() => {
+              go("/business/services");
+            }}
+          />
+        ) : null}
         {canInvite && team.isSuccess && !iHaveProfile ? (
           <View
             style={{
@@ -173,6 +192,14 @@ export function TeamScreen() {
                       <Pill size={11} tone="brand" label={t("team.invited")} />
                     ) : null}
                     {!s.isBookable ? <Pill size={11} label={t("team.notBookable")} /> : null}
+                    {s.isBookable && !s.serviceIds.some((id) => activeIds.has(id)) ? (
+                      <View testID={`crm-staff-no-services-${s.id}`}>
+                        <Pill size={11} tone="down" label={t("team.noServicesWarning")} />
+                      </View>
+                    ) : null}
+                    {s.isBookable && !s.schedule.days.some((d) => d.intervals.length > 0) ? (
+                      <Pill size={11} tone="down" label={t("team.noHoursWarning")} />
+                    ) : null}
                   </View>
                 </View>
               </View>

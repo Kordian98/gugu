@@ -300,7 +300,8 @@
     "deleteNamed": "Xoá {{name}}",
     "deleteTitle": "Xoá dịch vụ \"{{name}}\"?",
     "deleteBody": "Dịch vụ sẽ biến mất khỏi danh sách, không thể đặt mới và không còn gán cho nhân viên. Lịch hẹn đã đặt (kể cả sắp tới) và các báo cáo vẫn giữ nguyên với tên dịch vụ tại thời điểm đặt. Muốn tạm ngừng thì dùng công tắc bật/tắt thay vì xoá.",
-    "deleteConfirm": "Xoá dịch vụ"
+    "deleteConfirm": "Xoá dịch vụ",
+    "notBookable": "Không đặt được: chưa gán nhân viên"
   },
   "team": {
     "subtitle": "Nhân viên, vai trò, giờ làm việc và lời mời",
@@ -364,7 +365,10 @@
     "inviteEmailHint": "Nếu nhập, chỉ email này mới dùng được lời mời và GuGu sẽ gửi email mời.",
     "addMeTitle": "Anh/chị cũng trực tiếp làm dịch vụ?",
     "addMeBody": "Thêm chính mình vào đội ngũ để nhận lịch hẹn và có giờ làm riêng.",
-    "addMe": "Thêm chính tôi"
+    "addMe": "Thêm chính tôi",
+    "unassignedServices": "{{count}} dịch vụ chưa có nhân viên thực hiện nên không đặt được.",
+    "noServicesWarning": "Chưa có dịch vụ",
+    "noHoursWarning": "Chưa có giờ làm"
   },
   "settings": {
     "profile": "Thông tin salon",
@@ -480,7 +484,18 @@
     "overrideReason": "Lý do đặt ngoài giới hạn",
     "overrideNeedsStaff": "Chọn một nhân viên cụ thể",
     "showAllServices": "Hiện thêm {{count}} dịch vụ dài hơn khoảng đã chọn",
-    "fitsRange": "Chỉ hiện dịch vụ vừa {{min}} phút"
+    "fitsRange": "Chỉ hiện dịch vụ vừa {{min}} phút",
+    "unavailable": {
+      "no_staff_assigned": "Không đặt được: dịch vụ này chưa gán nhân viên nào.",
+      "no_working_hours": "Không đặt được: nhân viên làm dịch vụ này chưa có giờ làm việc (hoặc salon chưa có giờ mở cửa).",
+      "outside_booking_window": "Ngày này nằm ngoài khoảng thời gian nhận đặt lịch.",
+      "fully_booked": "Tháng này không còn giờ trống cho lựa chọn này.",
+      "fixServices": "Gán nhân viên",
+      "fixHours": "Thêm giờ làm"
+    },
+    "findEarliest": "Tìm giờ sớm nhất",
+    "earliestTitle": "Giờ trống sớm nhất",
+    "dragUnavailable": "Khung giờ bạn vừa chọn không còn trống."
   },
   "booking": {
     "title": "Lịch hẹn {{code}}",
@@ -625,5 +640,84 @@
       "entitlement_required": "Gói hiện tại chưa có trợ lý AI.",
       "common_rate_limited": "Anh/chị hỏi hơi nhanh, thử lại sau ít phút nhé."
     }
+  },
+  "customers": {
+    "subtitle": "Lịch sử ghé thăm, thẻ phân loại và ghi chú nội bộ của từng khách.",
+    "search": "Tìm theo tên hoặc số điện thoại",
+    "add": "Thêm khách",
+    "segments": {
+      "all": "Tất cả",
+      "new": "Khách mới",
+      "returning": "Khách quen",
+      "at_risk": "Lâu chưa quay lại",
+      "no_shows": "Từng vắng mặt"
+    },
+    "count": "{{count}} khách",
+    "never": "Chưa ghé",
+    "atRisk": "Lâu chưa quay lại",
+    "next": "Lịch tới",
+    "last": "Lần cuối",
+    "phoneOptional": "Không bắt buộc — cần có để đặt lịch và nhắn Zalo.",
+    "bookAgain": "Đặt lịch lại",
+    "visits": "Lượt ghé",
+    "spend": "Chi tiêu",
+    "tags": "Thẻ",
+    "removeTag": "Bỏ thẻ {{tag}}",
+    "addTag": "Thêm thẻ",
+    "tagPlaceholder": "VD: VIP, da nhạy cảm",
+    "consent": "Đồng ý nhận tin",
+    "channels": {
+      "zalo": "Zalo",
+      "email": "Email",
+      "sms": "SMS"
+    },
+    "consentHint": "Chỉ gửi tin ưu đãi khi khách đã đồng ý. Nhắc lịch hẹn không cần đồng ý này.",
+    "notes": "Ghi chú nội bộ",
+    "notesHint": "Chỉ nhân viên salon thấy — khách không bao giờ thấy ghi chú này.",
+    "addNote": "Ghi chú mới",
+    "notePlaceholder": "VD: thích màu nude, dị ứng acetone",
+    "upcoming": "Lịch sắp tới",
+    "history": "Lịch sử",
+    "noUpcoming": "Chưa có lịch hẹn sắp tới.",
+    "noHistory": "Chưa có lượt ghé nào."
+  },
+  "insights": {
+    "subtitle": "Số liệu từ lịch hẹn của salon. Doanh thu là ước tính, không phải tiền đã thu.",
+    "periods": {
+      "d7": "7 ngày",
+      "d30": "30 ngày",
+      "d90": "90 ngày"
+    },
+    "metrics": {
+      "appointments_count": "Lịch hẹn",
+      "appointments_completed": "Hoàn thành",
+      "customers_new": "Khách mới",
+      "customers_returning": "Khách quay lại",
+      "no_show_rate": "Tỷ lệ vắng mặt",
+      "cancellation_rate": "Tỷ lệ huỷ",
+      "revenue_estimated": "Doanh thu ước tính",
+      "revenue_offline_recorded": "Đã ghi nhận tại salon",
+      "margin_estimated": "Lợi nhuận gộp ước tính"
+    },
+    "vsPrevious": "so với kỳ trước",
+    "noPrevious": "Kỳ trước chưa có số liệu",
+    "daily": "Lịch hẹn theo ngày",
+    "services": "Dịch vụ phổ biến",
+    "sources": "Nguồn đặt lịch",
+    "staff": "Theo nhân viên",
+    "appointments": "Lịch hẹn",
+    "completed": "Hoàn thành",
+    "noShows": "Vắng",
+    "revenue": "Doanh thu ước tính",
+    "ownScope": "Bạn đang xem số liệu từ lịch hẹn của chính mình.",
+    "forbiddenTitle": "Bạn chưa có quyền xem báo cáo",
+    "forbiddenBody": "Chủ salon có thể cấp quyền xem báo cáo trong mục Nhân viên.",
+    "marginHint": "Giá dịch vụ trừ chi phí nội bộ, tính trên lịch hẹn đã hoàn thành."
+  },
+  "today": {
+    "unassignedServices": "{{count}} dịch vụ chưa có nhân viên thực hiện — khách và Zalo không đặt được.",
+    "staffWithoutServices": "{{count}} nhân viên nhận lịch nhưng chưa được gán dịch vụ nào.",
+    "fixServices": "Gán nhân viên",
+    "fixTeam": "Gán dịch vụ"
   }
 }

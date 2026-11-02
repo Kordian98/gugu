@@ -30,6 +30,7 @@ export type IconName =
   | "moon"
   | "menu"
   | "clock"
+  | "alert"
   | "store"
   | "more"
   | "close"
@@ -195,6 +196,15 @@ export function Icon({ name, size, color = tokens.ink, strokeWidth = 2, filled =
       )}
       {name === "moon" && <Path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z" {...common} />}
       {name === "menu" && <Path d="M4 7h16M4 12h16M4 17h16" {...common} />}
+      {name === "alert" && (
+        <>
+          <Path
+            d="M10.3 4.6 3.2 17a2 2 0 0 0 1.7 3h14.2a2 2 0 0 0 1.7-3L13.7 4.6a2 2 0 0 0-3.4 0Z"
+            {...common}
+          />
+          <Path d="M12 9.5v4M12 16.8v.2" {...common} />
+        </>
+      )}
       {name === "clock" && (
         <>
           <Circle cx={12} cy={12} r={8.5} {...common} />
