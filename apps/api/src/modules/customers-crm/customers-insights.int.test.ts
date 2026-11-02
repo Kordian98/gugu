@@ -27,6 +27,7 @@ import { BookingClock } from "../bookings/bookings.facade";
 
 const DAY1 = "2026-12-02";
 const DAY2 = "2026-12-09";
+const DAY3 = "2026-12-12";
 let now = new Date("2026-12-01T08:00:00+07:00");
 
 describe("customers & insights (integration)", () => {
@@ -208,11 +209,44 @@ describe("customers & insights (integration)", () => {
       .set("authorization", owner)
       .send({ displayName: "Trùng", phone: "0905777888" })
       .expect(409);
+    const dupOwner = await api()
+      .post(`/api/v1/salons/${s.salonId}/customers`)
+      .set("authorization", owner)
+      .send({ displayName: "Trùng", phone: "0905777888" })
+      .expect(409);
+    expect((dupOwner.body as { detail?: string }).detail).toBeTruthy();
+    // Without customers.phone.read the conflict carries no profile id (no phone-existence oracle).
+    const dupRec = await api()
+      .post(`/api/v1/salons/${s.salonId}/customers`)
+      .set("authorization", rec)
+      .send({ displayName: "Trùng", phone: "0905777888" })
+      .expect(409);
+    expect((dupRec.body as { detail?: string }).detail).toBeUndefined();
+    expect(JSON.stringify(dupRec.body)).not.toContain(String(dupOwner.body.detail));
     await api()
       .post(`/api/v1/salons/${s.salonId}/customers`)
       .set("authorization", staff)
       .send({ displayName: "X", phone: null })
       .expect(403);
+    // Own scope: the tag list only covers clients the member can see (Anh's VIP tag is hidden).
+    const staffList = customerListSchema.parse(
+      (
+        await api()
+          .get(`/api/v1/salons/${s.salonId}/customers`)
+          .set("authorization", staff)
+          .expect(200)
+      ).body,
+    );
+    expect(staffList.tags).toEqual([]);
+    const ownerList = customerListSchema.parse(
+      (
+        await api()
+          .get(`/api/v1/salons/${s.salonId}/customers`)
+          .set("authorization", owner)
+          .expect(200)
+      ).body,
+    );
+    expect([...ownerList.tags].sort()).toEqual(["VIP", "gel"].sort());
   });
 
   it("insights: catalogue values, previous period, breakdowns; own scope; RevenueKind parity", async () => {
@@ -274,6 +308,30 @@ describe("customers & insights (integration)", () => {
     );
     expect(own.scope).toBe("own");
     expect(own.metrics["appointments.count"]?.value).toBe(1);
+    // Own scope: history with other staff does not make a client "returning" for this member.
+    const a3 = await book(DAY3, "10:00", 1, "Nguyễn Thị Ngọc Anh", "0912 111 222");
+    await move(a3, "completed", "10:50", DAY3);
+    const ownDay3 = insightsSchema.parse(
+      (
+        await api()
+          .get(`/api/v1/salons/${s.salonId}/insights`)
+          .query({ from: DAY3, to: DAY3 })
+          .set("authorization", staff)
+          .expect(200)
+      ).body,
+    );
+    expect(ownDay3.metrics["customers.new"]?.value).toBe(1);
+    expect(ownDay3.metrics["customers.returning"]?.value).toBe(0);
+    const salonDay3 = insightsSchema.parse(
+      (
+        await api()
+          .get(`/api/v1/salons/${s.salonId}/insights`)
+          .query({ from: DAY3, to: DAY3 })
+          .set("authorization", owner)
+          .expect(200)
+      ).body,
+    );
+    expect(salonDay3.metrics["customers.returning"]?.value).toBe(1);
     const rec = await bearerFor(app, await addSalonMember(prisma, s.salonId, "receptionist"));
     await api()
       .get(`/api/v1/salons/${s.salonId}/insights`)

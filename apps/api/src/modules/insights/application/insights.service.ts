@@ -174,6 +174,7 @@ export class InsightsService {
         SELECT DISTINCT b.customer_phone_e164 AS phone FROM bookings b
         WHERE b.salon_id = ${salonId}::uuid AND b.status = 'completed' AND b.starts_at < ${start}
           AND b.customer_phone_e164 IN (SELECT phone FROM done_phones)
+          AND (${own}::uuid IS NULL OR b.staff_id = ${own}::uuid)
       )
       SELECT
         (SELECT count(*) FROM period) AS total,

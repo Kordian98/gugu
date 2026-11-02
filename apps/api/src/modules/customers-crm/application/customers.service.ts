@@ -107,9 +107,15 @@ export class CustomersService {
         OR (${query.segment} = 'no_shows' AND no_shows > 0)
       ORDER BY coalesce(next_visit, last_visit, created_at) DESC, id
       LIMIT ${query.limit} OFFSET ${query.offset}`;
+    // Own scope: only tags of profiles visible to the member (same predicate as `stats`).
     const tags = await this.prisma.$queryRaw<{ tag: string }[]>`
-      SELECT DISTINCT unnest(tags) AS tag FROM customer_salon_profiles
-      WHERE salon_id = ${ctx.salonId}::uuid AND deleted_at IS NULL ORDER BY 1 LIMIT 100`;
+      SELECT DISTINCT unnest(p.tags) AS tag FROM customer_salon_profiles p
+      WHERE p.salon_id = ${ctx.salonId}::uuid AND p.deleted_at IS NULL AND p.merged_into_id IS NULL
+        AND (${own}::uuid IS NULL OR EXISTS (
+          SELECT 1 FROM bookings b
+          WHERE b.salon_id = p.salon_id AND b.customer_phone_e164 = p.phone_e164
+            AND b.staff_id = ${own}::uuid))
+      ORDER BY 1 LIMIT 100`;
     return {
       items: rows.map((r) => this.summary(r, showPhone)),
       total: Number(rows[0]?.total ?? 0),
@@ -237,8 +243,14 @@ export class CustomersService {
         where: { salonId: ctx.salonId, phoneE164: phone, deletedAt: null, mergedIntoId: null },
         select: { id: true },
       });
+      // Without customers.phone.read the id would be an oracle for phone numbers: generic conflict.
       if (exists)
-        throw new AppError(409, CUSTOMER_ERRORS.phoneTaken, "Client exists", { detail: exists.id });
+        throw new AppError(
+          409,
+          CUSTOMER_ERRORS.phoneTaken,
+          "Client exists",
+          ctx.permissions.has("customers.phone.read") ? { detail: exists.id } : undefined,
+        );
     }
     const row = await this.prisma.customerSalonProfile.create({
       data: {
