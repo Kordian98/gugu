@@ -2,7 +2,7 @@
 
 Every fal.ai call for the hero and homepage prototype, generated from `scripts/runs.jsonl` by `scripts/prompts_md.py`. FLUX 3 edit and Kling v4 expose no seed parameter, so the fal request ID plus the exact prompt and reference files are the reproducibility record. Costs are estimates from the fal model pages (2K FLUX tier and BiRefNet price not verified; check the fal dashboard for the actual bill).
 
-**Calls:** 60 · **Estimated spend:** $5.83
+**Calls:** 61 · **Estimated spend:** $5.93
 
 | # | Name | Endpoint | Request ID | Refs | Output | Est. $ |
 |---|---|---|---|---|---|---|
@@ -66,6 +66,7 @@ Every fal.ai call for the hero and homepage prototype, generated from `scripts/r
 | 58 | prop-perfume-cut | `fal-ai/birefnet/v2` | `01a19bb4-4ba4-7050-be99-b83f93569a89` | `design/hero/ref01/up/prop-perfume.png` | `design/hero/ref01/up/prop-perfume-cut.png` | 0.000 |
 | 59 | heart3d-cut | `fal-ai/birefnet/v2` | `01a19bb4-4b4a-7903-949e-e396ae82d232` | `design/hero/ref01/up/heart3d.png` | `design/hero/ref01/up/heart3d-cut.png` | 0.000 |
 | 60 | prop-polish-blank | `blackforestlabs/flux-3/edit-image` | `01a19bb4-9f2d-77a2-8365-01e9ab0341a7` | `design/hero/ref01/up/prop-polish.png` | `design/hero/ref01/up/prop-polish-blank.png` | 0.048 |
+| 61 | reception-calm | `blackforestlabs/flux-3/edit-image` | `01a19da5-8d42-7693-a781-c9f8b9c8832d` | `design/hero/ref01/diorama-base-v4.png` | `design/hero/studio/raw/reception-calm.png` | 0.100 |
 
 ## Prompts and settings
 
@@ -399,4 +400,12 @@ Isometric miniature 3D beauty salon diorama with cute toy-like characters, gentl
 
 ```
 Edit image 1: remove the white lettering on the nail polish bottle so the glass body is blank, glossy and clean. Keep everything else identical.
+```
+
+### 61. reception-calm
+- Endpoint: `blackforestlabs/flux-3/edit-image` · at 2026-11-03T00:00:00+00:00
+- Settings: `{"aspect_ratio": "16:9", "resolution": "2k", "output_format": "png"}`
+
+```
+Same reception desk of the salon in image 1, same cute chibi toy style and palette, now calm and tidy: the same chibi young Vietnamese receptionist (black hair bun, lilac apron) smiling relaxed at a laptop showing a pastel calendar with colored appointment blocks, a smartphone beside it, a happy chibi client arriving and waving, plants, warm light. Isometric 3/4 camera, depth of field. Avoid: any readable text, letters, numbers, logos, watermarks.
 ```

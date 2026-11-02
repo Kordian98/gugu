@@ -14,7 +14,7 @@ import { LandingNav } from "./LandingNav";
 import { Pricing } from "./Pricing";
 import { Anchor } from "./Section";
 import { StoryStatic } from "./StoryStatic";
-import { Story } from "./story/Story";
+import { Flow } from "./flow/Flow";
 import { StudioHero } from "./StudioHero";
 import { useLandingNav } from "./useLandingNav";
 
@@ -39,7 +39,7 @@ export function LandingScreen() {
       </View>
       <Anchor id="story" onY={nav.onAnchorY}>
         {Platform.OS === "web" && mounted && !reduce ? (
-          <Story />
+          <Flow />
         ) : (
           <StoryStatic width={w} desktop={desktop} />
         )}

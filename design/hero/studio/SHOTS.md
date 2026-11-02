@@ -1,4 +1,6 @@
-# GuGu Studio landing: story shot list (fal.ai, pending)
+# GuGu Studio landing: story shot list (fal.ai)
+
+Status 2026-11-03: one shot generated via the fal MCP connection (a calm reception/salon scene with the receptionist and a waving client, 2736×1536, used for the people crops); the account then returned "balance exhausted" again. Remaining shots below are still pending.
 
 The story is a walk through the salon. Each "place" is its own high-resolution shot. The page never zooms a raster beyond about 1.15× its native pixels (devicePixelRatio aware). Until fal.ai works, `scripts/story-shots.py` crops **temporary placeholders** from `design/hero/ref01/diorama-base-v4.png`; they are flagged `placeholder: true` in `apps/app/assets/studio/shots/manifest.json`.
 

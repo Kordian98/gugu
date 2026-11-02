@@ -191,5 +191,114 @@
     "terms": "Điều khoản",
     "privacy": "Quyền riêng tư",
     "rights": "© 2026 GuGu Studio. Bảo lưu mọi quyền."
+  },
+  "flow": {
+    "pain": {
+      "eyebrow": "Hôm nay ở hầu hết các salon",
+      "title": "Quầy lễ tân đang quá tải.",
+      "sub": "Mỗi lịch hẹn đều đi qua điện thoại, cuốn sổ tay và trí nhớ của một người.",
+      "c1": {
+        "k": "VD: 2–3 giờ",
+        "t": "mỗi tuần để trả lời Zalo và chép lịch vào sổ tay",
+        "p": "Lễ tân"
+      },
+      "c2": {
+        "k": "2 khách",
+        "t": "đến cùng một khung giờ vì sót một dòng trong sổ",
+        "p": "Thợ nail"
+      },
+      "c3": {
+        "k": "Ghế trống",
+        "t": "khi khách quên hẹn — và không ai kịp gửi tin nhắc",
+        "p": "Thợ tóc"
+      },
+      "c4": {
+        "k": "Áp lực",
+        "t": "ở quầy khi khách đang chờ và điện thoại không ngừng rung",
+        "p": "Khách hàng"
+      },
+      "note": "Số liệu chỉ là ví dụ minh hoạ, không phải đo lường."
+    },
+    "ba": {
+      "eyebrow": "Trước và sau",
+      "title": "Cùng một lịch hẹn. Hai ngày làm việc rất khác.",
+      "before": "Trước đây",
+      "after": "Với GuGu Studio",
+      "b1": "Đọc tin nhắn Zalo",
+      "b2": "Chép lại vào sổ tay",
+      "b3": "Gọi lại cho khách",
+      "b4": "Quên nhắc lịch",
+      "a1": "Khách nhắn Zalo OA của salon",
+      "a2": "Tự động đặt lịch",
+      "a3": "Lịch cả đội được cập nhật",
+      "a4": "Nhắc qua Zalo trước 24 giờ",
+      "a5": "Khách bấm “Em sẽ đến”",
+      "zaloIn": "Chị ơi, mai 16:30 em làm gel với Mai được không ạ?",
+      "notebook": "Thu Trang 16:30 gel — Mai",
+      "call": "Đang gọi Thu Trang…",
+      "forgot": "Chưa gửi tin nhắc",
+      "booked": "Đã đặt · Sơn gel · Mai · 16:30",
+      "remind": "Nhắc lịch: sơn gel với Mai, 16:30 ngày mai tại GuGu Demo Salon.",
+      "come": "Em sẽ đến ✓",
+      "saved": "Thời gian tiết kiệm",
+      "min": "phút",
+      "note": "Thời gian tiết kiệm chỉ là ví dụ minh hoạ.",
+      "oa": "Kết nối Zalo OA"
+    },
+    "gallery": {
+      "eyebrow": "Xem thử",
+      "title": "Cả salon trong một không gian làm việc.",
+      "hint": "Vuốt để xem",
+      "prev": "Trước",
+      "next": "Sau",
+      "g1": {
+        "t": "Cả ngày trong nháy mắt",
+        "b": "Doanh thu ước tính, lịch hẹn, khách mới và tỷ lệ lấp đầy."
+      },
+      "g2": {
+        "t": "Lịch của cả đội",
+        "b": "Một ngày của từng thợ, kể cả giờ nghỉ."
+      },
+      "g3": {
+        "t": "Sắp tới & hàng chờ",
+        "b": "Ai đến tiếp, đặt dịch vụ gì và trạng thái."
+      },
+      "g4": {
+        "t": "Số liệu trực tiếp",
+        "b": "Biết hôm nay thế nào mà không cần mở bảng tính."
+      },
+      "g5": {
+        "t": "Thiết lập AI",
+        "b": "Tạo danh sách dịch vụ từ ảnh bảng giá."
+      },
+      "g6": {
+        "t": "Quầy lễ tân nhẹ nhàng",
+        "b": "Lễ tân trả lời trong vài giây, không phải vài phút."
+      }
+    },
+    "compose": {
+      "eyebrow": "Mọi thứ kết nối",
+      "title": "Lịch, khách hàng và nhắc lịch — cùng một nơi.",
+      "sub": "Một lịch hẹn từ Zalo đồng thời vào lịch, vào hồ sơ khách và vào hàng chờ nhắc lịch.",
+      "stat": "25%",
+      "statLabel": "giảm tỷ lệ không đến khi khách được nhắc lịch, theo phân tích tổng hợp 21 nghiên cứu ở phòng khám.*",
+      "source": "* Robotham và cộng sự, BMJ Open 2016 (phòng khám y tế; kết quả ở salon có thể khác).",
+      "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/27798006/"
+    },
+    "assistant": {
+      "eyebrow": "Trợ lý AI · Pro",
+      "title": "Bận quá không kịp xem? Cứ hỏi.",
+      "sub": "Trợ lý trả lời dựa trên lịch của chính salon và soạn sẵn tin trả lời Zalo. Không gửi thông tin cá nhân của khách cho mô hình AI.",
+      "q": "Chiều mai Mai còn trống giờ nào làm gel không?",
+      "a": "Chiều mai Mai trống lúc 14:00 và 16:30 (sơn gel, 60 phút). Soạn tin trả lời nhé?",
+      "draft": "Soạn tin trả lời"
+    },
+    "switch": {
+      "eyebrow": "Chuyển đổi",
+      "title": "Đang dùng ứng dụng khác hoặc sổ tay?\nChuyển sang trong vài phút.",
+      "sub": "Chụp bảng giá hoặc danh sách dịch vụ ở hệ thống cũ. AI thiết lập dịch vụ cho bạn. Nhẹ nhàng, có trong mọi gói.",
+      "from": "Bảng giá của bạn",
+      "to": "Dịch vụ của bạn trong GuGu Studio"
+    }
   }
 }

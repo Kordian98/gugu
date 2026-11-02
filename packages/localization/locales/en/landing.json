@@ -191,5 +191,114 @@
     "terms": "Terms",
     "privacy": "Privacy",
     "rights": "© 2026 GuGu Studio. All rights reserved."
+  },
+  "flow": {
+    "pain": {
+      "eyebrow": "Today at most salons",
+      "title": "The front desk is drowning.",
+      "sub": "Every booking passes through someone's phone, a notebook and their memory.",
+      "c1": {
+        "k": "e.g. 2–3 h",
+        "t": "a week answering Zalo and copying bookings into a notebook",
+        "p": "Receptionist"
+      },
+      "c2": {
+        "k": "2 clients",
+        "t": "turn up for the same slot because one line in the notebook was missed",
+        "p": "Nail technician"
+      },
+      "c3": {
+        "k": "Empty chair",
+        "t": "when a client forgets — and nobody had time to send a reminder",
+        "p": "Stylist"
+      },
+      "c4": {
+        "k": "Stress",
+        "t": "at reception while clients wait and the phone keeps buzzing",
+        "p": "Client"
+      },
+      "note": "Figures are illustrative examples, not measurements."
+    },
+    "ba": {
+      "eyebrow": "Before and after",
+      "title": "Same booking. Two very different days.",
+      "before": "Before",
+      "after": "With GuGu Studio",
+      "b1": "Reads a Zalo message",
+      "b2": "Retypes it into the notebook",
+      "b3": "Calls the client back",
+      "b4": "Forgets the reminder",
+      "a1": "Client writes to your Zalo OA",
+      "a2": "Booked automatically",
+      "a3": "Calendar updates for the team",
+      "a4": "Zalo reminder 24 h before",
+      "a5": "Client taps “I'll come”",
+      "zaloIn": "Hi! Gel nails tomorrow 16:30 with Mai?",
+      "notebook": "Thu Trang 16:30 gel — Mai",
+      "call": "Calling Thu Trang…",
+      "forgot": "Reminder not sent",
+      "booked": "Booked · Gel nails · Mai · 16:30",
+      "remind": "Reminder: gel nails with Mai tomorrow 16:30 at GuGu Demo Salon.",
+      "come": "I'll come ✓",
+      "saved": "Time saved",
+      "min": "min",
+      "note": "Time saved is an illustrative example.",
+      "oa": "Zalo OA integration"
+    },
+    "gallery": {
+      "eyebrow": "Take a look",
+      "title": "Your salon, in one workspace.",
+      "hint": "Swipe to explore",
+      "prev": "Previous",
+      "next": "Next",
+      "g1": {
+        "t": "Today at a glance",
+        "b": "Revenue estimate, bookings, new clients and occupancy."
+      },
+      "g2": {
+        "t": "Team timeline",
+        "b": "Every stylist's day, breaks included."
+      },
+      "g3": {
+        "t": "Upcoming & queue",
+        "b": "Who is next, what they booked, and the status."
+      },
+      "g4": {
+        "t": "Live numbers",
+        "b": "Know how today is going without opening a spreadsheet."
+      },
+      "g5": {
+        "t": "AI setup",
+        "b": "Build your service menu from a photo of your price list."
+      },
+      "g6": {
+        "t": "A calmer front desk",
+        "b": "The receptionist answers in seconds, not minutes."
+      }
+    },
+    "compose": {
+      "eyebrow": "Everything connected",
+      "title": "Calendar, clients and reminders — together.",
+      "sub": "A booking from Zalo lands in the calendar, on the client's card and in the reminder queue at the same time.",
+      "stat": "25%",
+      "statLabel": "fewer no-shows when people get reminders, in a meta-analysis of 21 clinic studies.*",
+      "source": "* Robotham et al., BMJ Open 2016 (healthcare clinics; results in salons may differ).",
+      "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/27798006/"
+    },
+    "assistant": {
+      "eyebrow": "AI assistant · Pro",
+      "title": "Too busy to check? Just ask.",
+      "sub": "It answers from your salon's own calendar and drafts the Zalo reply. No customer personal data goes to the AI model.",
+      "q": "Any free slot for gel nails tomorrow afternoon with Mai?",
+      "a": "Mai is free tomorrow at 14:00 and 16:30 (gel nails, 60 min). Draft a reply?",
+      "draft": "Draft reply"
+    },
+    "switch": {
+      "eyebrow": "Switching",
+      "title": "Already using another app or a notebook?\nSwitch in minutes.",
+      "sub": "Snap your price list or your current system's service list. AI sets up your services. Effortless, in every plan.",
+      "from": "Your price list",
+      "to": "Your services in GuGu Studio"
+    }
   }
 }
