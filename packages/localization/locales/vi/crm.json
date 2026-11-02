@@ -301,7 +301,8 @@
     "deleteTitle": "Xoá dịch vụ \"{{name}}\"?",
     "deleteBody": "Dịch vụ sẽ biến mất khỏi danh sách, không thể đặt mới và không còn gán cho nhân viên. Lịch hẹn đã đặt (kể cả sắp tới) và các báo cáo vẫn giữ nguyên với tên dịch vụ tại thời điểm đặt. Muốn tạm ngừng thì dùng công tắc bật/tắt thay vì xoá.",
     "deleteConfirm": "Xoá dịch vụ",
-    "notBookable": "Không đặt được: chưa gán nhân viên"
+    "notBookable": "Không đặt được: chưa gán nhân viên",
+    "inactive": "Đang tạm ngưng"
   },
   "team": {
     "subtitle": "Nhân viên, vai trò, giờ làm việc và lời mời",
@@ -368,7 +369,8 @@
     "addMe": "Thêm chính tôi",
     "unassignedServices": "{{count}} dịch vụ chưa có nhân viên thực hiện nên không đặt được.",
     "noServicesWarning": "Chưa có dịch vụ",
-    "noHoursWarning": "Chưa có giờ làm"
+    "noHoursWarning": "Chưa có giờ làm",
+    "noServicesBookable": "Không đặt được: người này chưa làm dịch vụ nào."
   },
   "settings": {
     "profile": "Thông tin salon",
@@ -719,5 +721,10 @@
     "staffWithoutServices": "{{count}} nhân viên nhận lịch nhưng chưa được gán dịch vụ nào.",
     "fixServices": "Gán nhân viên",
     "fixTeam": "Gán dịch vụ"
+  },
+  "assign": {
+    "count": "Đã chọn {{count}}/{{total}}",
+    "all": "Chọn tất cả",
+    "none": "Bỏ chọn"
   }
 }

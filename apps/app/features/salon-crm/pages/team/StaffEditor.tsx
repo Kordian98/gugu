@@ -9,6 +9,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import { crmApi, useCrmMutation } from "../../data/catalog";
 import { useErrorText } from "../../ui/errors";
+import { AssignList } from "../../ui/AssignList";
 import { ErrorBanner, Field, Input, Segmented, Sheet, Toggle } from "../../ui/form";
 
 type Color = (typeof STAFF_COLORS)[number];
@@ -110,38 +111,25 @@ export function StaffEditor({
         </View>
         <Toggle value={bookable} onChange={setBookable} label={t("team.bookable")} />
       </View>
-      <Field
-        label={t("team.services")}
-        hint={services.length ? undefined : t("team.noServicesYet")}
-      >
-        <View style={{ gap: 4 }}>
-          {services.map((s) => {
-            const label = (locale === "en" && s.name.en) || s.name.vi;
-            return (
-              <View
-                key={s.id}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  paddingVertical: 4,
-                }}
-              >
-                <Text size={14} color={c.ink}>
-                  {label}
-                </Text>
-                <Toggle
-                  value={serviceIds.includes(s.id)}
-                  label={label}
-                  onChange={(v) => {
-                    setPicked(v ? [...serviceIds, s.id] : serviceIds.filter((x) => x !== s.id));
-                  }}
-                />
-              </View>
-            );
-          })}
-        </View>
-      </Field>
+      <AssignList
+        testID="crm-staff-services"
+        title={t("team.services")}
+        items={services.map((x) => ({
+          id: x.id,
+          label: (locale === "en" && x.name.en) || x.name.vi,
+          hint: x.isActive ? undefined : t("services.inactive"),
+        }))}
+        selected={serviceIds}
+        onChange={setPicked}
+        warning={
+          bookable &&
+          services.length &&
+          !services.some((x) => x.isActive && serviceIds.includes(x.id))
+            ? t("team.noServicesBookable")
+            : null
+        }
+        empty={t("team.noServicesYet")}
+      />
     </Sheet>
   );
 }
