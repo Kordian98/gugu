@@ -472,7 +472,15 @@
     "service": "Service",
     "staff": "Team member",
     "time": "Time",
-    "source": "Booked via"
+    "source": "Booked via",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "beyondWindow": "This date is beyond the salon's {{days}}-day booking window. You can book outside the limit: enter a time and a reason (recorded).",
+    "manualTime": "Start time",
+    "overrideReason": "Reason for booking outside the limit",
+    "overrideNeedsStaff": "Pick a specific team member",
+    "showAllServices": "Show {{count}} services longer than the selected range",
+    "fitsRange": "Only show services that fit {{min}} min"
   },
   "booking": {
     "title": "Appointment {{code}}",

@@ -472,7 +472,15 @@
     "service": "Dịch vụ",
     "staff": "Nhân viên",
     "time": "Thời gian",
-    "source": "Khách đặt qua"
+    "source": "Khách đặt qua",
+    "prevMonth": "Tháng trước",
+    "nextMonth": "Tháng sau",
+    "beyondWindow": "Ngày này vượt quá {{days}} ngày đặt trước của salon. Anh/chị có thể đặt ngoài giới hạn: nhập giờ và lý do (được ghi lại).",
+    "manualTime": "Giờ bắt đầu",
+    "overrideReason": "Lý do đặt ngoài giới hạn",
+    "overrideNeedsStaff": "Chọn một nhân viên cụ thể",
+    "showAllServices": "Hiện thêm {{count}} dịch vụ dài hơn khoảng đã chọn",
+    "fitsRange": "Chỉ hiện dịch vụ vừa {{min}} phút"
   },
   "booking": {
     "title": "Lịch hẹn {{code}}",

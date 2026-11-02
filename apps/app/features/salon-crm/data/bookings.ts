@@ -63,6 +63,8 @@ export type AvailabilityRequest = {
   addOnIds: string[];
   staffId: string | null;
   date: string;
+  /** Inclusive end date (≤ 31 days); defaults to `date`. */
+  to?: string | undefined;
 };
 
 export function useAvailability(req: AvailabilityRequest | null) {
@@ -71,7 +73,7 @@ export function useAvailability(req: AvailabilityRequest | null) {
     ? new URLSearchParams({
         serviceId: req.serviceId,
         from: req.date,
-        to: req.date,
+        to: req.to ?? req.date,
         ...(req.variantId ? { variantId: req.variantId } : {}),
         ...(req.staffId ? { staffId: req.staffId } : {}),
         ...(req.addOnIds.length ? { addOnIds: req.addOnIds.join(",") } : {}),
