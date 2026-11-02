@@ -18,7 +18,7 @@
     "ignore": "If you didn't register this salon, ignore this email. The salon won't be activated."
   },
   "teamInvitation": {
-    "subject": "{{salonName}} invited you to their team on GuGu",
+    "subject": "You've been invited to join a salon team on GuGu",
     "preheader": "The invitation is valid for 72 hours.",
     "heading": "Join {{salonName}}",
     "body": "You've been invited to join {{salonName}} on GuGu to see your working hours and appointments. Tap the button below and sign in with this email. The invitation is valid for 72 hours and can be used once.",

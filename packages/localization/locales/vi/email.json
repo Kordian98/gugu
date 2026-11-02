@@ -18,7 +18,7 @@
     "ignore": "Nếu bạn không đăng ký salon này, cứ bỏ qua email này. Salon sẽ không được kích hoạt."
   },
   "teamInvitation": {
-    "subject": "{{salonName}} mời anh/chị tham gia đội ngũ trên GuGu",
+    "subject": "Anh/chị được mời tham gia đội ngũ salon trên GuGu",
     "preheader": "Lời mời có hiệu lực trong 72 giờ.",
     "heading": "Lời mời tham gia {{salonName}}",
     "body": "Anh/chị được mời tham gia {{salonName}} trên GuGu để xem lịch làm việc và lịch hẹn. Bấm nút bên dưới và đăng nhập bằng email này. Lời mời có hiệu lực trong 72 giờ và chỉ dùng được một lần.",

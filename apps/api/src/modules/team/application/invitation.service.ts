@@ -14,9 +14,10 @@ import { AppConfig } from "../../../infrastructure/config/app-config";
 import { MailService } from "../../../infrastructure/mail/mail.service";
 import { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
+import { RateLimitService } from "../../../infrastructure/rate-limit/rate-limit.service";
 import { AuditService } from "../../audit/audit.facade";
 import { EntitlementService } from "../../subscriptions/subscriptions.facade";
-import { renderInvitationEmail } from "./invitation-email";
+import { renderInvitationEmail, safeSalonName } from "./invitation-email";
 
 const TTL_MS = 72 * 3600 * 1000;
 
@@ -33,6 +34,7 @@ export class InvitationService {
     private readonly mail: MailService,
     private readonly audit: AuditService,
     private readonly entitlements: EntitlementService,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   private hash(token: string): string {
@@ -50,7 +52,17 @@ export class InvitationService {
     if (input.role === "manager" && ctx.role !== "owner") {
       throw new AppError(403, COMMON_ERRORS.forbidden, "Only the owner can invite managers");
     }
-    await this.assertSeat(ctx);
+    if (input.email) {
+      // Emailed invitations carry tenant text through platform mail: cap them (security review).
+      await this.rateLimit.consume(
+        { name: "team.invite_email.salon", limit: 30, windowSeconds: 86_400 },
+        ctx.salonId,
+      );
+      await this.rateLimit.consume(
+        { name: "team.invite_email.user", limit: 20, windowSeconds: 3600 },
+        user.userId,
+      );
+    }
     if (input.staffProfileId) {
       const staff = await this.prisma.staffProfile.findFirst({
         where: {
@@ -69,6 +81,8 @@ export class InvitationService {
       select: { name: true },
     });
     const invitation = await this.prisma.$transaction(async (tx) => {
+      await this.lockSeats(tx, ctx.salonId);
+      await this.assertSeat(tx, ctx.salonId);
       if (input.staffProfileId) {
         await tx.salonInvitation.updateMany({
           where: {
@@ -183,6 +197,10 @@ export class InvitationService {
       if (existing && existing.status !== "removed") {
         throw new AppError(409, TEAM_ERRORS.alreadyMember, "Already a member");
       }
+      // Seats are re-checked under the same per-salon lock as invitation creation; this invitation
+      // already holds a seat, so it is excluded from the count.
+      await this.lockSeats(tx, inv.salonId);
+      await this.assertSeat(tx, inv.salonId, inv.id);
       // Single use even under concurrent accepts: only one update matches acceptedAt = null.
       const claimed = await tx.salonInvitation.updateMany({
         where: { id: inv.id, acceptedAt: null },
@@ -277,20 +295,31 @@ export class InvitationService {
     });
   }
 
-  /** `staff.max_seats` (topic 12) counts members who are not removed plus open invitations. */
-  private async assertSeat(ctx: SalonContext): Promise<void> {
-    const limit = await this.entitlements.limit(ctx.salonId, "staff.max_seats");
+  /** Serialises seat accounting per salon for the rest of the transaction. */
+  private async lockSeats(tx: Prisma.TransactionClient, salonId: string): Promise<void> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`seats:${salonId}`}, 0))`;
+  }
+
+  /**
+   * `staff.max_seats` (topic 12) counts members who are not removed plus open invitations. Call it
+   * inside a transaction after lockSeats(); `exceptInvitationId` is the invitation being accepted.
+   */
+  private async assertSeat(
+    tx: Prisma.TransactionClient,
+    salonId: string,
+    exceptInvitationId?: string,
+  ): Promise<void> {
+    const limit = await this.entitlements.limit(salonId, "staff.max_seats");
     if (limit === "unlimited") return;
     const [members, invites] = await Promise.all([
-      this.prisma.salonMember.count({
-        where: { salonId: ctx.salonId, status: { not: "removed" } },
-      }),
-      this.prisma.salonInvitation.count({
+      tx.salonMember.count({ where: { salonId, status: { not: "removed" } } }),
+      tx.salonInvitation.count({
         where: {
-          salonId: ctx.salonId,
+          salonId,
           acceptedAt: null,
           revokedAt: null,
           expiresAt: { gt: new Date() },
+          ...(exceptInvitationId ? { id: { not: exceptInvitationId } } : {}),
         },
       }),
     ]);

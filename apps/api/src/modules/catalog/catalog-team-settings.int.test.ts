@@ -26,7 +26,7 @@ import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
-import { SubscriptionsFacade } from "../subscriptions/subscriptions.facade";
+import { EntitlementService, SubscriptionsFacade } from "../subscriptions/subscriptions.facade";
 
 describe("catalog, team & settings (integration)", () => {
   let app: INestApplication;
@@ -435,5 +435,58 @@ describe("catalog, team & settings (integration)", () => {
       ).body,
     );
     expect(link.emailSent).toBe(false);
+  });
+
+  it("seat limit holds under parallel invitations and is re-checked on accept", async () => {
+    const c = await createSalonFixture(prisma, "Seats C");
+    await app.get(SubscriptionsFacade).startTrial({ salonId: c.salonId });
+    // Owner + 1 seat.
+    await prisma.entitlementOverride.create({
+      data: {
+        salonId: c.salonId,
+        key: "staff.max_seats",
+        value: 2,
+        reason: "test",
+        createdBy: "test",
+      },
+    });
+    await app.get(EntitlementService).invalidate(c.salonId);
+    const ownerC = await bearerFor(app, c.ownerUserId);
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () =>
+        api()
+          .post(`/api/v1/salons/${c.salonId}/invitations`)
+          .set("authorization", ownerC)
+          .send({ role: "staff" }),
+      ),
+    );
+    expect(results.filter((r) => r.status === 201)).toHaveLength(1);
+    expect(results.filter((r) => r.status === 403)).toHaveLength(4);
+
+    // A member added out of band takes the last seat: the open invitation can no longer be used.
+    const token = new URL(
+      invitationCreatedSchema.parse(results.find((r) => r.status === 201)?.body).acceptUrl,
+    ).searchParams.get("token");
+    await addSalonMember(prisma, c.salonId, "receptionist");
+    const joiner = await prisma.user.create({
+      data: { email: testEmail("joiner"), emailVerifiedAt: new Date(), profile: { create: {} } },
+    });
+    await api()
+      .post("/api/v1/invitations/accept")
+      .set("authorization", await bearerFor(app, joiner.id))
+      .send({ token })
+      .expect(403);
+  });
+
+  it("emailed invitations are rate limited per inviter", async () => {
+    let last = 0;
+    for (let i = 0; i < 21; i++) {
+      const res = await api()
+        .post(`/api/v1/salons/${a.salonId}/invitations`)
+        .set("authorization", ownerA)
+        .send({ role: "staff", email: testEmail(`burst${String(i)}`) });
+      last = res.status;
+    }
+    expect(last).toBe(429);
   });
 });

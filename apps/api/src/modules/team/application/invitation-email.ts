@@ -18,6 +18,25 @@ const escapeHtml = (s: string): string =>
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c,
   );
 
+/**
+ * Salon names are tenant-controlled. Before they reach platform mail: drop control/format
+ * characters, anything that looks like a URL, domain or email, and characters outside letters,
+ * digits, spaces and basic punctuation; cap the length (security review, phishing via invites).
+ */
+export function safeSalonName(name: string): string {
+  const cleaned = name
+    .normalize("NFC")
+    .replace(/[\p{Cc}\p{Cf}]/gu, " ")
+    .replace(/\b(?:https?:\/\/|www\.)\S*/giu, " ")
+    .replace(/\S+@\S+/gu, " ")
+    .replace(/\b[\p{L}\d-]+(?:\.[\p{L}\d-]+)*\.(?:[a-z]{2,24})\b/giu, " ")
+    .replace(/[^\p{L}\p{M}\d '&().,-]/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+  const short = cleaned.length > 60 ? `${cleaned.slice(0, 59).trimEnd()}…` : cleaned;
+  return short || "GuGu";
+}
+
 /** Localized staff invitation email (`email:teamInvitation`, vi/en). */
 export function renderInvitationEmail(input: {
   locale: Locale;
@@ -26,7 +45,8 @@ export function renderInvitationEmail(input: {
   salonName: string;
 }): OutgoingMail {
   const { t } = createI18n(input.locale);
-  const k = (key: string) => t(`email:teamInvitation.${key}`, { salonName: input.salonName });
+  const salonName = safeSalonName(input.salonName);
+  const k = (key: string) => t(`email:teamInvitation.${key}`, { salonName });
   const text = [
     k("heading"),
     "",
@@ -50,5 +70,6 @@ export function renderInvitationEmail(input: {
 </table>
 <p style="font-size:12px;color:${color.body}">${escapeHtml(t("email:footer"))}</p>
 </td></tr></table></body></html>`;
-  return { to: input.to, subject: k("subject"), text, html };
+  // The subject never contains tenant text.
+  return { to: input.to, subject: t("email:teamInvitation.subject"), text, html };
 }
