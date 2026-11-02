@@ -5,6 +5,7 @@ import { z } from "zod";
  * invalid config. Add a variable here before reading it anywhere (never read process.env directly).
  */
 const DEV_AUTH_SECRET = "dev-only-insecure-auth-secret-do-not-use-in-prod";
+const DEV_BOOKING_TOKEN_SECRET = "dev-only-insecure-booking-token-secret-not-for-prod";
 
 export const envSchema = z
   .object({
@@ -22,6 +23,11 @@ export const envSchema = z
      * The built-in default only works outside production (local dev and tests).
      */
     AUTH_SECRET: z.string().min(32).default(DEV_AUTH_SECRET),
+    /**
+     * Dedicated HMAC key for booking tokens and hashes (customer manage links, phone/device hashes;
+     * topic 06). Separate from AUTH_SECRET so either can rotate alone. ≥ 32 chars.
+     */
+    BOOKING_TOKEN_SECRET: z.string().min(32).default(DEV_BOOKING_TOKEN_SECRET),
     /** Public web app origin; magic links point here (`/{locale}/auth/verify?token=…`). */
     WEB_APP_URL: z.url().default("http://localhost:8097"),
     /**
@@ -54,7 +60,11 @@ export const envSchema = z
   .refine((env) => env.NODE_ENV !== "production" || env.AUTH_SECRET !== DEV_AUTH_SECRET, {
     path: ["AUTH_SECRET"],
     message: "must be set in production",
-  });
+  })
+  .refine(
+    (env) => env.NODE_ENV !== "production" || env.BOOKING_TOKEN_SECRET !== DEV_BOOKING_TOKEN_SECRET,
+    { path: ["BOOKING_TOKEN_SECRET"], message: "must be set in production" },
+  );
 
 export type Env = z.infer<typeof envSchema>;
 

@@ -13,6 +13,7 @@ import { RateLimitModule } from "./infrastructure/rate-limit/rate-limit.module";
 import { AuditModule } from "./modules/audit/audit.facade";
 import { AuthModule } from "./modules/auth/auth.facade";
 import { AuthorizationModule } from "./modules/authorization/authorization.facade";
+import { BookingsModule } from "./modules/bookings/bookings.facade";
 import { HealthModule } from "./modules/health/health.module";
 import { CatalogModule } from "./modules/catalog/catalog.facade";
 import { SalonSettingsModule } from "./modules/salon-settings/salon-settings.facade";
@@ -40,6 +41,7 @@ export const INFRASTRUCTURE_MODULES = [
     HealthModule,
     SubscriptionsModule,
     SalonsModule,
+    BookingsModule,
     SalonSettingsModule,
     CatalogModule,
     TeamModule,

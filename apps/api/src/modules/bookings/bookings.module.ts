@@ -1,0 +1,45 @@
+import { Module } from "@nestjs/common";
+import { AuditModule } from "../audit/audit.facade";
+import { AuthModule } from "../auth/auth.facade";
+import { BookingActors } from "./application/booking-actor";
+import { BookingClock } from "./application/booking-clock";
+import { BookingLifecycleCommands } from "./application/booking-lifecycle.commands";
+import { BookingMaintenance } from "./application/booking-maintenance";
+import { BookingQueries } from "./application/booking.queries";
+import { CreateBookingCommand } from "./application/create-booking.command";
+import { HoldsCommand } from "./application/holds.command";
+import { BookingContexts } from "./http/booking-contexts";
+import { PublicBookingController } from "./http/public-booking.controller";
+import { SalonBookingsController } from "./http/salon-bookings.controller";
+import { BookingSecrets } from "./infra/booking-secrets";
+
+/**
+ * Booking engine (topic 06): availability, holds, booking creation, state machine, reschedule.
+ * Pure rules live in packages/domain/src/booking; this module loads inputs, runs the write
+ * transaction and owns booking_occupancy. Spec: docs/tasks/06-booking-engine.md.
+ */
+@Module({
+  imports: [AuditModule, AuthModule],
+  controllers: [SalonBookingsController, PublicBookingController],
+  providers: [
+    BookingActors,
+    BookingClock,
+    BookingContexts,
+    BookingLifecycleCommands,
+    BookingMaintenance,
+    BookingQueries,
+    BookingSecrets,
+    CreateBookingCommand,
+    HoldsCommand,
+  ],
+  exports: [BookingMaintenance],
+})
+export class BookingsModule {}
+
+/** Worker-side slice: just what the maintenance sweep needs (no controllers). */
+@Module({
+  imports: [AuditModule],
+  providers: [BookingClock, BookingLifecycleCommands, BookingMaintenance, BookingSecrets],
+  exports: [BookingMaintenance],
+})
+export class BookingsWorkerModule {}

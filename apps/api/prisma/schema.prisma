@@ -213,6 +213,8 @@ model User {
   approvedTimeOff     StaffTimeOff[]       @relation("StaffTimeOffApprovedBy")
   sentInvitations     SalonInvitation[]    @relation("SalonInvitationInvitedBy")
   acceptedInvitations SalonInvitation[]    @relation("SalonInvitationAcceptedBy")
+  createdBookings     Booking[]            @relation("BookingCreatedBy")
+  customerBookings    Booking[]            @relation("BookingCustomerUser")
 
   @@map("users")
 }
@@ -519,6 +521,8 @@ model Salon {
   staffProfiles        StaffProfile[]
   services             Service[]
   invitations          SalonInvitation[]
+  bookings             Booking[]
+  bookingHolds         BookingHold[]
 
   @@unique([organizationId, id])
   @@index([organizationId])
@@ -714,13 +718,17 @@ model StaffProfile {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  salon       Salon             @relation(fields: [salonId], references: [id], onDelete: Restrict)
-  member      SalonMember?      @relation(fields: [salonId, salonMemberId], references: [salonId, id], onDelete: Restrict)
-  schedules   StaffSchedule[]
-  breaks      StaffBreak[]
-  timeOff     StaffTimeOff[]
-  services    StaffService[]
-  invitations SalonInvitation[]
+  salon           Salon              @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  member          SalonMember?       @relation(fields: [salonId, salonMemberId], references: [salonId, id], onDelete: Restrict)
+  schedules       StaffSchedule[]
+  breaks          StaffBreak[]
+  timeOff         StaffTimeOff[]
+  services        StaffService[]
+  invitations     SalonInvitation[]
+  bookings        Booking[]
+  bookingServices BookingService[]
+  bookingHolds    BookingHold[]
+  occupancy       BookingOccupancy[]
 
   @@unique([salonId, id])
   @@index([salonId, sortOrder])
@@ -831,11 +839,13 @@ model Service {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  salon    Salon            @relation(fields: [salonId], references: [id], onDelete: Restrict)
-  category ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  variants ServiceVariant[]
-  addOns   ServiceAddOn[]
-  staff    StaffService[]
+  salon           Salon            @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  category        ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants        ServiceVariant[]
+  addOns          ServiceAddOn[]
+  staff           StaffService[]
+  bookingServices BookingService[]
+  bookingHolds    BookingHold[]
 
   @@unique([salonId, id])
   @@index([salonId, sortOrder])
@@ -856,8 +866,9 @@ model ServiceVariant {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  service Service        @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
-  staff   StaffService[]
+  service         Service          @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  staff           StaffService[]
+  bookingServices BookingService[]
 
   @@unique([salonId, id])
   @@index([salonId, serviceId])
@@ -881,7 +892,8 @@ model ServiceAddOn {
   createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  service Service @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  service      Service               @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  bookedAddOns BookingServiceAddOn[]
 
   @@unique([salonId, id])
   @@index([salonId, serviceId])
@@ -914,4 +926,285 @@ model SalonInvitation {
   @@unique([salonId, id])
   @@index([salonId, createdAt])
   @@map("salon_invitations")
+}
+
+// ─── Bookings (topic 06 engine; spec 06 §3, spec 04 §3.2 "Bookings") ────────────────────────────
+// Overlap protection lives on booking_occupancy as an EXCLUDE constraint (raw SQL, X4, ADR-0008).
+// Writes to booking_occupancy are raw SQL only (tstzrange) and always take a per-staff advisory lock.
+
+enum BookingStatus {
+  pending
+  confirmed
+  checked_in
+  completed
+  cancelled_by_customer
+  cancelled_by_salon
+  no_show
+
+  @@map("booking_status")
+}
+
+/// Single enum owned by topic 12 (X6); mirrored by BOOKING_SOURCES in @gugu/contracts (sync test).
+enum BookingSource {
+  marketplace
+  salon_profile
+  direct_link
+  qr_code
+  social_media
+  repeat_customer
+  staff_created
+  walk_in
+  phone
+  zalo_chat
+  zalo_oa
+  zalo_link
+  zalo_mini_app
+  promoted_listing
+  gugu_campaign
+  ai_agent
+
+  @@map("booking_source")
+}
+
+enum BookingActorType {
+  customer
+  salon_member
+  ai_agent
+  system
+
+  @@map("booking_actor_type")
+}
+
+enum OccupancyKind {
+  booking
+  hold
+
+  @@map("occupancy_kind")
+}
+
+enum PaymentMethod {
+  pay_at_salon
+
+  @@map("payment_method")
+}
+
+/// One appointment. Never deleted (history); contact fields are anonymised on account deletion (q71).
+model Booking {
+  id                   String           @id @default(uuid(7)) @db.Uuid
+  salonId              String           @map("salon_id") @db.Uuid
+  /// Short code read out on the phone; unique per salon.
+  referenceCode        String           @map("reference_code")
+  status               BookingStatus
+  source               BookingSource
+  createdByActorType   BookingActorType @map("created_by_actor_type")
+  createdByUserId      String?          @map("created_by_user_id") @db.Uuid
+  customerUserId       String?          @map("customer_user_id") @db.Uuid
+  /// Contact snapshot of the person attending (no booking on behalf of others, q16). Null only for anonymous walk-ins.
+  customerName         String?          @map("customer_name")
+  customerPhoneE164    String?          @map("customer_phone_e164")
+  /// HMAC of the E.164 phone: per-phone limits and reliability history without scanning raw numbers.
+  customerPhoneHash    String?          @map("customer_phone_hash")
+  identityVerified     Boolean          @default(false) @map("identity_verified")
+  customerNote         String?          @map("customer_note")
+  /// Staff member of the (single, q17) booked service; denormalised for calendar queries.
+  staffId              String           @map("staff_id") @db.Uuid
+  startsAt             DateTime         @map("starts_at") @db.Timestamptz(6)
+  endsAt               DateTime         @map("ends_at") @db.Timestamptz(6)
+  totalPriceMinor      BigInt           @map("total_price_minor")
+  totalPriceMaxMinor   BigInt?          @map("total_price_max_minor")
+  currency             String           @default("VND") @db.Char(3)
+  paymentMethod        PaymentMethod    @default(pay_at_salon) @map("payment_method")
+  /// Cancelled by/for the customer inside the cutoff — reliability signal (q14).
+  lateCancellation     Boolean          @default(false) @map("late_cancellation")
+  cancellationReason   String?          @map("cancellation_reason")
+  /// Audited rule overrides used at creation/reschedule (hours | lead_time | horizon).
+  ruleOverrides        String[]         @default([]) @map("rule_overrides")
+  overrideReason       String?          @map("override_reason")
+  /// HMAC (BOOKING_TOKEN_SECRET) of the customer's random manage-link token; rotated on reschedule
+  /// and on idempotent replay, cleared on cancellation.
+  manageTokenHash      String?          @unique @map("manage_token_hash")
+  /// Manage link stops working after this (booking end + 7 days).
+  manageTokenExpiresAt DateTime?        @map("manage_token_expires_at") @db.Timestamptz(6)
+  /// Manual confirmation mode: auto-cancel when still pending at this time (q13, 12 h).
+  pendingExpiresAt     DateTime?        @map("pending_expires_at") @db.Timestamptz(6)
+  version              Int              @default(1)
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon        Salon                  @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  staff        StaffProfile           @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+  createdBy    User?                  @relation("BookingCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  customerUser User?                  @relation("BookingCustomerUser", fields: [customerUserId], references: [id], onDelete: Restrict)
+  services     BookingService[]
+  history      BookingStatusHistory[]
+  occupancy    BookingOccupancy[]
+
+  @@unique([salonId, id])
+  @@unique([salonId, referenceCode])
+  @@index([salonId, startsAt])
+  @@index([salonId, staffId, startsAt])
+  @@index([salonId, customerPhoneHash])
+  @@index([status, pendingExpiresAt])
+  @@map("bookings")
+}
+
+/// Booked service with price/duration snapshots (MVP: exactly one per booking, q17).
+model BookingService {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  salonId             String   @map("salon_id") @db.Uuid
+  bookingId           String   @map("booking_id") @db.Uuid
+  sequence            Int      @default(1)
+  serviceId           String   @map("service_id") @db.Uuid
+  variantId           String?  @map("variant_id") @db.Uuid
+  staffId             String   @map("staff_id") @db.Uuid
+  startsAt            DateTime @map("starts_at") @db.Timestamptz(6)
+  endsAt              DateTime @map("ends_at") @db.Timestamptz(6)
+  /// Snapshots (never updated when the catalog changes).
+  name                Json
+  variantName         Json?    @map("variant_name")
+  durationMinutes     Int      @map("duration_minutes")
+  bufferBeforeMinutes Int      @map("buffer_before_minutes")
+  bufferAfterMinutes  Int      @map("buffer_after_minutes")
+  priceMinor          BigInt   @map("price_minor")
+  priceMaxMinor       BigInt?  @map("price_max_minor")
+  currency            String   @default("VND") @db.Char(3)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  booking Booking               @relation(fields: [salonId, bookingId], references: [salonId, id], onDelete: Restrict)
+  service Service               @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  variant ServiceVariant?       @relation(fields: [salonId, variantId], references: [salonId, id], onDelete: Restrict)
+  staff   StaffProfile          @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+  addOns  BookingServiceAddOn[]
+
+  @@unique([salonId, id])
+  @@unique([bookingId, sequence])
+  @@map("booking_services")
+}
+
+/// Add-on chosen with a booked service, snapshotted (q17).
+model BookingServiceAddOn {
+  id                   String   @id @default(uuid(7)) @db.Uuid
+  salonId              String   @map("salon_id") @db.Uuid
+  bookingServiceId     String   @map("booking_service_id") @db.Uuid
+  addOnId              String   @map("add_on_id") @db.Uuid
+  name                 Json
+  extraDurationMinutes Int      @map("extra_duration_minutes")
+  extraPriceMinor      BigInt   @map("extra_price_minor")
+  extraPriceMaxMinor   BigInt?  @map("extra_price_max_minor")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  bookingService BookingService @relation(fields: [salonId, bookingServiceId], references: [salonId, id], onDelete: Restrict)
+  addOn          ServiceAddOn   @relation(fields: [salonId, addOnId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@unique([bookingServiceId, addOnId])
+  @@map("booking_service_addons")
+}
+
+/// Temporary reservation while the customer reviews (TTL from salon_settings.hold_ttl_minutes).
+/// Its time claim is a booking_occupancy row (kind = hold); swept by the maintenance worker.
+model BookingHold {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  salonId    String   @map("salon_id") @db.Uuid
+  staffId    String   @map("staff_id") @db.Uuid
+  serviceId  String   @map("service_id") @db.Uuid
+  variantId  String?  @map("variant_id") @db.Uuid
+  addOnIds   String[] @default([]) @map("add_on_ids") @db.Uuid
+  startsAt   DateTime @map("starts_at") @db.Timestamptz(6)
+  endsAt     DateTime @map("ends_at") @db.Timestamptz(6)
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  /// HMAC of the client device id (one active hold per device and salon).
+  deviceHash String   @map("device_hash")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  salon     Salon              @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  staff     StaffProfile       @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+  service   Service            @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  occupancy BookingOccupancy[]
+
+  @@unique([salonId, id])
+  @@index([salonId, deviceHash])
+  @@index([expiresAt])
+  @@map("booking_holds")
+}
+
+/// Engine-owned time claims (bookings and holds), buffers included. EXCLUDE constraint
+/// `booking_occupancy_no_staff_overlap` (raw SQL) guarantees no double booking.
+model BookingOccupancy {
+  id        String                   @id @default(uuid(7)) @db.Uuid
+  salonId   String                   @map("salon_id") @db.Uuid
+  kind      OccupancyKind
+  bookingId String?                  @map("booking_id") @db.Uuid
+  holdId    String?                  @map("hold_id") @db.Uuid
+  staffId   String                   @map("staff_id") @db.Uuid
+  period    Unsupported("tstzrange")
+  active    Boolean                  @default(true)
+  expiresAt DateTime?                @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  booking Booking?     @relation(fields: [salonId, bookingId], references: [salonId, id], onDelete: Restrict)
+  /// Cascade: a hold's claim has no meaning without the hold (swept together).
+  hold    BookingHold? @relation(fields: [salonId, holdId], references: [salonId, id], onDelete: Cascade)
+  staff   StaffProfile @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+
+  @@index([salonId, staffId])
+  @@index([bookingId])
+  @@index([holdId])
+  @@map("booking_occupancy")
+}
+
+/// Append-only status history: previous/new status, actor, time, reason (master §12).
+model BookingStatusHistory {
+  id         String           @id @default(uuid(7)) @db.Uuid
+  salonId    String           @map("salon_id") @db.Uuid
+  bookingId  String           @map("booking_id") @db.Uuid
+  fromStatus BookingStatus?   @map("from_status")
+  toStatus   BookingStatus    @map("to_status")
+  actorType  BookingActorType @map("actor_type")
+  actorId    String?          @map("actor_id") @db.Uuid
+  reasonCode String?          @map("reason_code")
+  reasonText String?          @map("reason_text")
+  occurredAt DateTime         @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  booking Booking @relation(fields: [salonId, bookingId], references: [salonId, id], onDelete: Restrict)
+
+  @@index([bookingId, occurredAt])
+  @@map("booking_status_history")
+}
+
+// ─── Infrastructure: idempotency + transactional outbox (spec 04 §3.3; built with 06) ───────────
+
+/// Replay protection for POSTs (`Idempotency-Key`). Inserted first inside the business transaction,
+/// so a failed request leaves nothing behind and a concurrent duplicate waits for the first.
+model IdempotencyKey {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  /// `user:<id>` or `device:<hash>` — keys are only unique per caller.
+  scope          String
+  route          String
+  key            String
+  requestHash    String   @map("request_hash")
+  responseStatus Int?     @map("response_status")
+  responseBody   Json?    @map("response_body")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@unique([scope, route, key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+/// Domain events written in the same transaction as the change; a relay (04-S5) publishes them.
+model OutboxEvent {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  salonId       String?   @map("salon_id") @db.Uuid
+  aggregateType String    @map("aggregate_type")
+  aggregateId   String    @map("aggregate_id") @db.Uuid
+  type          String
+  payload       Json
+  occurredAt    DateTime  @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
+  attempts      Int       @default(0)
+
+  @@index([aggregateType, aggregateId])
+  @@map("outbox_events")
 }
