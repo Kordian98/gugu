@@ -29,13 +29,13 @@ Shared, coordinate: `apps/app/styles/**` (theme wiring), localization keys for a
 - Every font passes the Vietnamese glyph test at every shipped weight/line-height.
 - Calm mode (business/staff/admin routes) has no decorative motion, no 3D, no bouncy springs.
 - Reduced motion is honored on every platform.
-- The hero is an AI-produced 2.5D living diorama (no 3D artist): decorative, poster-first, client-only motion, inside its budgets; every AI output logged in `design/hero-assets/PROMPTS.md` + `LICENSES.md`; R3F only after the 3D gate; native uses a video loop.
+- The hero is an AI-produced 2.5D living diorama (no 3D artist): decorative, poster-first, client-only motion, inside its budgets; generated on fal.ai with `FAL_KEY` from env only (never in files or client code); every AI output logged in `design/hero/PROMPTS.md` + `LICENSES.md`; R3F only after the 3D gate; native uses a video loop.
 - No baked text in 3D except the brand wordmark; `gradient.glow` on ≤ 2 headline words; script accents are live i18n text; text on pastels is plum ink.
 - Mobile first: design and verify at 360–430 px before desktop.
-- Dark mode ships at launch for marketplace and CRM; verify both themes.
+- Theme rule (X18): expressive/public surfaces are light-only (force `color-scheme: light`); calm surfaces (CRM, admin) are light + dark.
 - Display serif is Noto Serif Display (condensed, 800–900); paid replacements need full Vietnamese + license.
 - Platform files (`.web.tsx`/`.native.tsx`) only when behavior genuinely differs.
-- Every component ships states (default/hover/pressed/focused/disabled/loading/error), light+dark, a11y props, and a catalog entry with a `meta` export.
+- Every component ships states (default/hover/pressed/focused/disabled/loading/error), light (+dark for calm components), a11y props, and a catalog entry with a `meta` export.
 
 ## Definition of done
 - Strict TS passes; catalog renders on web + native; contrast check and visual regression pass; hero budgets pass if touched.
