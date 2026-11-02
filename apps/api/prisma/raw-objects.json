@@ -1,6 +1,13 @@
 {
   "$comment": "Database objects Prisma cannot see. `pnpm db:drift` fails if any is missing. Keep in sync with docs/domains/backend-database.md#raw-sql-objects.",
-  "extensions": ["postgis", "btree_gist", "pg_trgm", "unaccent", "citext", "pgcrypto"],
+  "extensions": [
+    "postgis",
+    "btree_gist",
+    "pg_trgm",
+    "unaccent",
+    "citext",
+    "pgcrypto"
+  ],
   "constraints": [
     "subscriptions_trial_ends_when_trialing",
     "plan_prices_amount_non_negative",
@@ -17,7 +24,8 @@
     "booking_occupancy_no_staff_overlap",
     "booking_occupancy_valid",
     "bookings_valid",
-    "booking_services_valid"
+    "booking_services_valid",
+    "offline_sales_amount_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",
@@ -28,5 +36,8 @@
     "staff_services_unique_variant",
     "outbox_events_unpublished"
   ],
-  "triggers": ["audit_logs_no_update_delete", "booking_status_history_no_update_delete"]
+  "triggers": [
+    "audit_logs_no_update_delete",
+    "booking_status_history_no_update_delete"
+  ]
 }

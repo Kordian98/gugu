@@ -16,6 +16,7 @@ import { AuthorizationModule } from "./modules/authorization/authorization.facad
 import { BookingsModule } from "./modules/bookings/bookings.facade";
 import { HealthModule } from "./modules/health/health.module";
 import { CatalogModule } from "./modules/catalog/catalog.facade";
+import { SalonCrmModule } from "./modules/salon-crm/salon-crm.facade";
 import { SalonSettingsModule } from "./modules/salon-settings/salon-settings.facade";
 import { SalonsModule } from "./modules/salons/salons.module";
 import { TeamModule } from "./modules/team/team.facade";
@@ -43,6 +44,7 @@ export const INFRASTRUCTURE_MODULES = [
     SalonsModule,
     BookingsModule,
     SalonSettingsModule,
+    SalonCrmModule,
     CatalogModule,
     TeamModule,
   ],

@@ -200,21 +200,22 @@ model User {
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  profile             UserProfile?
-  customer            Customer?
-  identities          AuthIdentity[]
-  sessions            Session[]
-  magicLinks          MagicLinkToken[]
-  salonMemberships    SalonMember[]        @relation("SalonMemberUser")
-  invitedMembers      SalonMember[]        @relation("SalonMemberInvitedBy")
-  orgMemberships      OrganizationMember[]
-  ownedOrganizations  Organization[]
-  ownedSalons         Salon[]
-  approvedTimeOff     StaffTimeOff[]       @relation("StaffTimeOffApprovedBy")
-  sentInvitations     SalonInvitation[]    @relation("SalonInvitationInvitedBy")
-  acceptedInvitations SalonInvitation[]    @relation("SalonInvitationAcceptedBy")
-  createdBookings     Booking[]            @relation("BookingCreatedBy")
-  customerBookings    Booking[]            @relation("BookingCustomerUser")
+  profile              UserProfile?
+  customer             Customer?
+  identities           AuthIdentity[]
+  sessions             Session[]
+  magicLinks           MagicLinkToken[]
+  salonMemberships     SalonMember[]        @relation("SalonMemberUser")
+  invitedMembers       SalonMember[]        @relation("SalonMemberInvitedBy")
+  orgMemberships       OrganizationMember[]
+  ownedOrganizations   Organization[]
+  ownedSalons          Salon[]
+  approvedTimeOff      StaffTimeOff[]       @relation("StaffTimeOffApprovedBy")
+  sentInvitations      SalonInvitation[]    @relation("SalonInvitationInvitedBy")
+  acceptedInvitations  SalonInvitation[]    @relation("SalonInvitationAcceptedBy")
+  createdBookings      Booking[]            @relation("BookingCreatedBy")
+  customerBookings     Booking[]            @relation("BookingCustomerUser")
+  recordedOfflineSales OfflineSale[]        @relation("OfflineSaleRecordedBy")
 
   @@map("users")
 }
@@ -1038,6 +1039,7 @@ model Booking {
   services     BookingService[]
   history      BookingStatusHistory[]
   occupancy    BookingOccupancy[]
+  offlineSale  OfflineSale?
 
   @@unique([salonId, id])
   @@unique([salonId, referenceCode])
@@ -1207,4 +1209,39 @@ model OutboxEvent {
 
   @@index([aggregateType, aggregateId])
   @@map("outbox_events")
+}
+
+// ─── Offline sales (topic 07 §4.5, RevenueKind recorded_offline_sale) ───────────────────────────
+
+enum OfflineSaleMethod {
+  cash
+  bank_transfer
+  ewallet
+  card
+  other
+
+  @@map("offline_sale_method")
+}
+
+/// Amount a salon says it received at the salon for one completed booking. Informational only:
+/// GuGu processes no payment (master §2); never presented as a verified payment.
+model OfflineSale {
+  id               String            @id @default(uuid(7)) @db.Uuid
+  salonId          String            @map("salon_id") @db.Uuid
+  bookingId        String            @map("booking_id") @db.Uuid
+  amountMinor      BigInt            @map("amount_minor")
+  currency         String            @default("VND") @db.Char(3)
+  method           OfflineSaleMethod @default(cash)
+  note             String?
+  recordedByUserId String            @map("recorded_by_user_id") @db.Uuid
+  recordedAt       DateTime          @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  booking    Booking @relation(fields: [salonId, bookingId], references: [salonId, id], onDelete: Restrict)
+  recordedBy User    @relation("OfflineSaleRecordedBy", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@unique([salonId, bookingId])
+  @@index([salonId, recordedAt])
+  @@map("offline_sales")
 }
