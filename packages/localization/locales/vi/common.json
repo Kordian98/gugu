@@ -1,0 +1,27 @@
+{
+  "nav": {
+    "discover": "Khám phá",
+    "services": "Dịch vụ làm đẹp",
+    "pros": "Dành cho salon",
+    "signIn": "Đăng nhập",
+    "getStarted": "Bắt đầu"
+  },
+  "language": {
+    "switchTo": "EN",
+    "current": "Tiếng Việt"
+  },
+  "comingSoon": {
+    "eyebrow": "Sắp ra mắt",
+    "body": "Chúng mình đang hoàn thiện trang này. Quay lại sớm nhé!",
+    "back": "Về trang chủ",
+    "search": "Tìm kiếm salon",
+    "category": "Danh mục: {{name}}",
+    "salon": "Salon: {{name}}",
+    "signIn": "Đăng nhập",
+    "signUp": "Tạo tài khoản",
+    "businessJoin": "Đưa salon của bạn lên GuGu"
+  },
+  "demo": {
+    "notice": "Dữ liệu demo"
+  }
+}

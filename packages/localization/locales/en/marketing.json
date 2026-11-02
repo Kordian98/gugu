@@ -1,0 +1,68 @@
+{
+  "home": {
+    "hero": {
+      "eyebrow": "Beauty for a brighter you",
+      "titleStart": "Your beauty\nera starts",
+      "titleAccent": "here.",
+      "subtitleStart": "Discover your ",
+      "subtitleBold": "next favorite salon",
+      "subtitleEnd": ", book your treatment, and glow on your own terms.",
+      "exploreCta": "Find your spot",
+      "proCta": "List your salon",
+      "scroll": "Scroll\nto explore"
+    },
+    "trust": {
+      "verified": "Verified\nprofessionals",
+      "easy": "Easy\nbooking",
+      "reviews": "Real\nreviews"
+    },
+    "accent": {
+      "selfLove": "More\nSelf Love\nPlease ♡",
+      "goodBeauty": "Good\nBeauty\nBrighter\nYou ♡",
+      "pillar": "Good\nPeople\nGreat\nBeauty\nAlways\n♡"
+    },
+    "sign": {
+      "lives": "Beauty\nlives\nhere",
+      "hair": "Hair",
+      "skin": "Skin\ncare"
+    },
+    "search": {
+      "tabBook": "Book a treatment",
+      "tabFind": "Find salons",
+      "location": "Ho Chi Minh City",
+      "service": "Nail art",
+      "when": "Today",
+      "cta": "Find my glow"
+    },
+    "categories": {
+      "nails": "Nails",
+      "hair": "Hair",
+      "skin": "Skin",
+      "brows": "Brows",
+      "lashes": "Lashes",
+      "massage": "Massage"
+    },
+    "proof": {
+      "count": "10K +",
+      "quoteBold": "“ Self care",
+      "quoteMid": "looks good",
+      "quoteEnd": "on you. ”"
+    },
+    "spots": {
+      "eyebrow": "Real people. Amazing places.",
+      "title": "The spots everyone is saving",
+      "viewAll": "View all salons",
+      "from": "From {{price}}",
+      "book": "Book now",
+      "demo": "Demo"
+    },
+    "glow": {
+      "eyebrow": "More than treatments",
+      "titleStart": "Your next",
+      "titleAccent": "glow-up.",
+      "card1": "Fresh\nLooks\nHappier\nYou",
+      "card2": "Better\nBeauty\nEveryday",
+      "card3": "Different\nBeauties\nSame Glow\n♡"
+    }
+  }
+}
