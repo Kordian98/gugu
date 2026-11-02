@@ -17,7 +17,7 @@ import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { RateLimitService } from "../../../infrastructure/rate-limit/rate-limit.service";
 import { AuditService } from "../../audit/audit.facade";
 import { EntitlementService } from "../../subscriptions/subscriptions.facade";
-import { renderInvitationEmail, safeSalonName } from "./invitation-email";
+import { renderInvitationEmail } from "./invitation-email";
 
 const TTL_MS = 72 * 3600 * 1000;
 

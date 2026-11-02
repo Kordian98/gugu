@@ -5,15 +5,17 @@ import { useTranslation } from "react-i18next";
 import { Avatar, Icon, Logo, Pill, Text, useCalm } from "@gugu/design-system";
 
 import type { Workspace } from "../data/types";
+import { useOptionalSalon } from "../data/SalonContext";
 import { useThemePreference } from "../theme/CrmThemeProvider";
-import { NAV, type NavItem, type NavSectionId } from "./nav";
-import { useCrmNav } from "./useCrmNav";
+import type { NavItem, NavSectionId } from "./nav";
+import { useCrmNav, useVisibleNav } from "./useCrmNav";
 
 /** Dark plum sidebar (ref crm-01): wordmark + BUSINESS pill, grouped collapsible nav, user + salon. */
 export function Sidebar({ workspace, collapsed }: { workspace: Workspace; collapsed: boolean }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const { active, go } = useCrmNav();
+  const { sections } = useVisibleNav();
   const [closed, setClosed] = useState<Partial<Record<NavSectionId, boolean>>>({});
   const width = collapsed ? 76 : 248;
   const badge = (item: NavItem) =>
@@ -36,7 +38,7 @@ export function Sidebar({ workspace, collapsed }: { workspace: Workspace; collap
         {collapsed ? null : <Pill align="center" label={t("brandPill")} tone="brand" size={10} />}
       </View>
       <ScrollView contentContainerStyle={{ paddingHorizontal: collapsed ? 12 : 14, gap: 14 }}>
-        {NAV.map((section) => {
+        {sections.map((section) => {
           const isClosed = closed[section.id] === true;
           const name = t(`nav.sections.${section.id}`);
           return (
@@ -214,37 +216,93 @@ function SidebarFooter({ workspace, collapsed }: { workspace: Workspace; collaps
               </Text>
               {workspace.user ? (
                 <Text size={12} color={c.sidebarMuted}>
-                  {t("shell.roleOwner")}
+                  {workspace.role ? t(`shell.roles.${workspace.role}`) : ""}
                 </Text>
               ) : null}
             </View>
             {toggle}
           </View>
-          {/* Salon switcher: becomes a menu once an owner has several salons (Ultra chains, 07 G6). */}
-          <View testID="crm-salon" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: c.badgeBg,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Icon name="store" size={18} color={c.badgeText} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text size={11} color={c.sidebarMuted}>
-                {t("shell.salonLabel")}
-              </Text>
-              <Text role="uiSemiBold" size={14} color={c.sidebarText} numberOfLines={1}>
-                {salonName}
-              </Text>
-            </View>
-          </View>
+          <SalonSwitcher name={salonName} />
         </>
       )}
+    </View>
+  );
+}
+
+/**
+ * Current salon + switcher (07 G6). With one membership it is a label; with several it opens a list.
+ * Combined chain reporting stays Ultra-only (q75) and is not part of this switcher.
+ */
+function SalonSwitcher({ name }: { name: string }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  const salon = useOptionalSalon();
+  const [open, setOpen] = useState(false);
+  const others = salon?.memberships.filter((m) => m.salonId !== salon.salonId) ?? [];
+  return (
+    <View>
+      {open ? (
+        <View
+          style={{
+            position: "absolute",
+            bottom: 48,
+            left: 0,
+            right: 0,
+            padding: 6,
+            borderRadius: 12,
+            backgroundColor: c.surface,
+            borderWidth: 1,
+            borderColor: c.line,
+          }}
+        >
+          {others.map((m) => (
+            <Pressable
+              key={m.salonId}
+              accessibilityRole="button"
+              onPress={() => {
+                setOpen(false);
+                salon?.switchSalon(m.salonId);
+              }}
+              style={{ padding: 10, borderRadius: 8 }}
+            >
+              <Text size={14} color={c.ink} numberOfLines={1}>
+                {m.salonName}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      <Pressable
+        testID="crm-salon"
+        disabled={others.length === 0}
+        accessibilityLabel={`${t("shell.salonLabel")}: ${name}`}
+        onPress={() => {
+          setOpen((o) => !o);
+        }}
+        style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+      >
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: c.badgeBg,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name="store" size={18} color={c.badgeText} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text size={11} color={c.sidebarMuted}>
+            {t("shell.salonLabel")}
+          </Text>
+          <Text role="uiSemiBold" size={14} color={c.sidebarText} numberOfLines={1}>
+            {name}
+          </Text>
+        </View>
+        {others.length > 0 ? <Icon name="chevronUp" size={14} color={c.sidebarText} /> : null}
+      </Pressable>
     </View>
   );
 }

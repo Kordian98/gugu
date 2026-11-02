@@ -14,7 +14,13 @@ export type NavItemId =
 
 export type NavSectionId = "workspace" | "growth" | "business" | "system";
 
-export type NavItem = { id: NavItemId; icon: IconName; path: string };
+export type NavItem = {
+  id: NavItemId;
+  icon: IconName;
+  path: string;
+  /** Hidden for members without it (UX only; the API enforces). */
+  permission?: "members.read";
+};
 
 /**
  * Workspace navigation (07 §3.1, owner decision: only features in GuGu's scope, no "soon" entries).
@@ -29,7 +35,7 @@ export const NAV: { id: NavSectionId; items: NavItem[] }[] = [
       { id: "appointments", icon: "clipboard", path: "/business/appointments" },
       { id: "customers", icon: "users", path: "/business/customers" },
       { id: "services", icon: "tag", path: "/business/services" },
-      { id: "team", icon: "team", path: "/business/team" },
+      { id: "team", icon: "team", path: "/business/team", permission: "members.read" },
       { id: "resources", icon: "box", path: "/business/resources" },
     ],
   },

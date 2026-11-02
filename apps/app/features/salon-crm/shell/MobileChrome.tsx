@@ -7,7 +7,7 @@ import { Icon, Logo, Pill, Text, alpha, color, useCalm } from "@gugu/design-syst
 
 import { useThemePreference } from "../theme/CrmThemeProvider";
 import { ALL_ITEMS, TABS } from "./nav";
-import { useCrmNav } from "./useCrmNav";
+import { useCrmNav, useVisibleNav } from "./useCrmNav";
 
 /** Mobile header (ref crm-02 phone): menu, wordmark + BUSINESS pill, theme toggle. */
 export function MobileHeader({ onMenu }: { onMenu: () => void }) {
@@ -159,6 +159,7 @@ export function MoreSheet({ open, onClose }: { open: boolean; onClose: () => voi
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const { active, go } = useCrmNav();
+  const { items } = useVisibleNav();
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
@@ -192,7 +193,7 @@ export function MoreSheet({ open, onClose }: { open: boolean; onClose: () => voi
             marginBottom: 8,
           }}
         />
-        {ALL_ITEMS.map((item) => {
+        {items.map((item) => {
           const on = active === item.id;
           const fg = on ? c.navActiveText : c.sidebarText;
           return (
