@@ -27,7 +27,7 @@ Personal Zalo accounts: there is **no API**. Support them only through links, QR
 | Z0 links/snippets/QR | live in MVP | none |
 | ZR emulated build | default in dev/CI | `EmulatedZaloClient` |
 | Z2a salon OA inbox + free replies | first live path (pilot) | `salon_oa` |
-| Z2b salon-branded templates | after spike S-Z2; salon's ZBS Account pays | `salon_oa` |
+| Z2b salon-branded templates | **not planned** (q70): salon OAs are inbox only; paid templates come only from `central` | — |
 | Z1 central/partner OA, Zalo OTP | **blocked** (entity or partner) | `central` / `partner_oa` |
 | Zalo Login | built against the emulator, hidden until a `central` profile is active (q28) | `central` |
 | Z4 Mini App | **not planned** (q41) | n/a |

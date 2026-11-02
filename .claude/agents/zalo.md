@@ -21,6 +21,7 @@ GuGu has **no Vietnamese legal entity**. The central GuGu OA, Zalo OTP and the M
 - No SMS (X12): channel order is push → `zalo_template` → email, and Zalo becomes the preferred verification channel once live.
 - GuGu pays messaging and meters it per salon (q33).
 - The Zalo App is owned by the Polish company.
+- Paid template messages are sent only from the central GuGu OA. Salon OAs are used only for the free chat inbox (q70).
 
 Never write code that assumes a central OA exists: always resolve a `ZaloSenderProfile`. See `docs/tasks/09-zalo.md` §2a and §8.
 

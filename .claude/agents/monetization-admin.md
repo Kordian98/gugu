@@ -22,7 +22,8 @@ Shared, coordinate with their owners: the Prisma schema (topic 04 owner), the bo
 ## Invariants (MUST / MUST NOT)
 - MUST NOT charge salons automatically or integrate a payment processor. `paid` is a manual flag.
 - Revenue is monthly/yearly SaaS subscriptions only on plans Basic, Pro and Ultra. There is **no free plan** (X17). Commission is **dormant** (spec kept, not built for launch): do not build commission jobs or UI unless the roadmap moves M12.8 out of `later`. Even then, never create commission for cancelled or no-show bookings, and the default rule is inactive.
-- MUST enforce plan placement by entitlement key: `ai.onboarding_import` in Basic, Pro and Ultra; `ai.agent.enabled` and `ai.monthly_review` (Opus) from Pro (Pro and Ultra). Never seed or reference a `free` plan. Ultra contents and the trial are provisional until tracker q75 (spec R-S2a, G19).
+- MUST enforce plan placement by entitlement key: `ai.onboarding_import` in Basic, Pro and Ultra; `ai.agent.enabled` and `ai.monthly_review` (Opus) from Pro (Pro and Ultra). Never seed or reference a `free` plan. The final matrix is spec R-S2a (Zalo inbox from Pro; chain reporting, admin-level analytics and promoted credits in Ultra; 14-day Pro trial). Items marked "Later" there get no seed rows.
+- Paid Zalo template messages go only from the central GuGu OA (q70). SMS is mocked for now, but metering runs on every send.
 - MUST check every LLM call against the **hard** per-salon cap `ai.monthly_cost_cap_vnd` (atomic reserve of the estimated cost, commit of the actual cost). Overshoot is a bug.
 - Analytics is **in-house only**: events go to our `/api/v1/events` → `analytics_event` (Postgres partitions) → rollups. MUST NOT add PostHog or any third-party analytics SDK or service.
 - Salons see their own reliability score and breakdown. Raw risk signals stay admin-only.

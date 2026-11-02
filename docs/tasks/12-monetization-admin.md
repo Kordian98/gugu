@@ -2,7 +2,7 @@
 
 Covers master prompt sections 17 (booking attribution & monetization), 18 (platform admin), 27 (analytics & product metrics), plus the extra requirements: subscription plans and entitlements that gate the AI business agent (topic 08) and Zalo features (topic 09), usage metering, and a PII-free Admin Copilot.
 
-Product-owner decisions applied (roadmap X13, X14, X17; tracker q21, q31–q37, q42, q43, q63, q64): GuGu is primarily a salon SaaS. Revenue is **monthly/yearly SaaS subscriptions only**, on plans **Basic, Pro and Ultra**. There is **no free plan** (X17). Commissions come later (ledger kept dormant). The AI assistant and the monthly Opus business review are included **from Pro** (Pro and Ultra), with a hard cost cap per salon. AI onboarding import is in all three plans. Ultra contents and any trial are open (q75). GuGu pays for messaging inside the plan and tracks the costs. Analytics is **built in-house** on our Postgres, with no third-party tool. Salons see their reliability score. Promoted listings and star ratings are allowed at launch. The PII-free Admin Copilot ships in v1.
+Product-owner decisions applied (roadmap X13, X14, X17; tracker q21, q31–q37, q42, q43, q63, q64, q70, q73–q75): GuGu is primarily a salon SaaS. Revenue is **monthly/yearly SaaS subscriptions only**, on plans **Basic, Pro and Ultra**. There is **no free plan** (X17). Commissions come later (ledger kept dormant). The AI assistant and the monthly Opus business review are included **from Pro** (Pro and Ultra), with a hard cost cap per salon. AI onboarding import is in all three plans. New salons get a 14-day Pro trial (q75). The final entitlement matrix is R-S2a. GuGu pays for messaging inside the plan and tracks the costs. Analytics is **built in-house** on our Postgres, with no third-party tool. Salons see their reliability score. Promoted listings and star ratings are allowed at launch. The PII-free Admin Copilot ships in v1.
 
 Status: spec. No code exists yet.
 
@@ -45,7 +45,7 @@ Status: spec. No code exists yet.
 | G8 | Subscriptions entity exists, but no plan, entitlement or quota model. | `Plan`, `PlanEntitlement`, `Subscription`, `EntitlementOverride` and `UsageCounter` (§3.3). Code checks **entitlement keys**, never plan names. |
 | G9 | The AI agent and Zalo are gated by subscription with no metering. | Metered keys: `ai.requests`, `ai.tokens.input`, `ai.tokens.output`, `zalo_template.messages`, `sms.messages`, `sms.cost`. Topics 08, 09 and 11 call `UsageService.reserve()` / `commit()` (§3.4). |
 | G10 | "Do not implement billing complexity" vs. "subscription management" in admin. | MVP: subscriptions (monthly or yearly) are **invoiced manually** by the owner's company. Whether that is a Polish or a Vietnamese entity is still to be decided (q35). Payment is by bank transfer, the invoice is issued outside GuGu, and admin activates plans by hand. No processor. `Subscription.billingMode = manual`, `invoicingEntity ∈ {tbd, pl, vn}` (default `tbd`). A future `billingProvider` field exists but stays unused. |
-| G11 | Promoted listings have no transparency requirement. | Promoted results MUST be labeled "Được tài trợ / Sponsored", capped per page, and never override search filters. Impressions and clicks are logged for billing later. Consumer-protection advertising labeling is flagged for legal review. |
+| G11 | Promoted listings have no transparency requirement. | Promoted results MUST be labeled "Được tài trợ / Sponsored", **max 2 per search page** (q74), and never override search filters. Impressions and clicks are logged for billing later. Consumer-protection advertising labeling is flagged for legal review. |
 | G12 | Analytics tool not chosen; consent model vague. | **Built in-house** (owner, q36): client events are batched to our own ingest endpoint, stored in a monthly-partitioned `analytics_event` table in Postgres and aggregated into rollups. No third-party analytics SDK or service, so no cross-border transfer to an analytics vendor. Server-side events for business facts (booking_completed etc.) are the source of truth; client events are behavioral and consent-gated. |
 | G13 | Platform metrics need definitions (what does "active" mean?). | Metric dictionary in §3.6, shared with the topic 08 semantic layer. A single definition per metric, versioned. |
 | G14 | Admin "feature flags" has no model or evaluation location. | Flags are evaluated on the server and exposed to the client via `/api/v1/me/flags` (cached). Flags do not depend on analytics, so they keep working without analytics consent. |
@@ -53,7 +53,7 @@ Status: spec. No code exists yet.
 | G16 | Revenue figures from analytics could be mistaken for processed payments. | Every money metric carries `RevenueKind = estimated_from_bookings \| recorded_offline_sale \| reported_by_salon` (roadmap X5). The enum is **owned by topic 07** in `packages/domain/metrics`; this topic imports it. Kinds are never summed without a label, and UI and the AI agent must render the label. |
 | G17 | No admin-side AI assistance despite the AI-first goal; product-owner rule says no personal data may go to any LLM. | **Admin Copilot in v1** (q64, §3.8), limited to aggregate/tokenised platform analytics. No PII, no review or dispute text, no write actions. Support, moderation and dispute work stays human. |
 | G18 | AI features differ by plan and AI cost could run away. | `ai.onboarding_import` (price-list screenshots → services, marketed as "effortless AI setup") is in **all three plans**: Basic, Pro, Ultra (q42, X17). `ai.agent.enabled` and `ai.monthly_review` (monthly business review on Opus) are included **from Pro** (q31, q63, X17). Every AI call is checked against a **hard monthly cost cap per salon** (`ai.monthly_cost_cap_vnd`, q32). Onboarding import has its own run cap so Basic salons cannot drain cost. |
-| G19 | X17 removed the free plan, so what does a newly registered salon get? | **Provisional (q75):** a 14-day trial with Pro entitlements (`status = trialing`). After that, the salon must be on a paid plan. Without one, the subscription becomes `expired`: the workspace is read-only, the public profile stays visible, and new online bookings are paused with a localized message. No data is deleted. If q75 decides "no trial", registration creates `pending_activation` until admin activates a paid plan. |
+| G19 | X17 removed the free plan, so what does a newly registered salon get? | **Decided (q75):** a 14-day trial with Pro entitlements and Pro caps (`status = trialing`). After that, the salon must be on a paid plan (Basic, Pro or Ultra). Without one, the subscription becomes `expired`: the workspace is read-only, the public profile stays visible, and new online bookings are paused with a localized message. No data is deleted. One trial per salon (and per owner phone). |
 
 ---
 
@@ -112,43 +112,35 @@ Rules:
 ### 3.3 Plans, subscriptions, entitlements
 - R-S1: `Plan` holds `code` (`basic`, `pro`, `ultra`; there is no free plan, X17), localized name and description, `version` and `isPublic`. `PlanPrice(planId, interval ∈ {month, year}, priceVnd, activeFrom)` stores prices for display only, and prices are TBD (q31).
 - R-S2: `PlanEntitlement(planId, key, valueType, value)`, where `valueType ∈ {boolean, limit, enum}`. Initial keys:
-  - `booking.marketplace_listing` (bool)
-  - `staff.max_seats` (limit)
-  - `crm.customer_tags`, `crm.internal_notes` (bool)
-  - `analytics.advanced` (bool)
-  - `ai.onboarding_import` (bool, **all plans**), `ai.onboarding_import.monthly_runs` (limit)
-  - `ai.agent.enabled` (bool, **Pro**), `ai.agent.monthly_requests` (limit), `ai.agent.monthly_tokens` (limit), `ai.agent.write_actions` (bool)
-  - `ai.monthly_review` (bool, **Pro**: monthly business review generated on Opus)
-  - `ai.monthly_cost_cap_vnd` (limit, **hard**, every plan; covers all AI features of the salon)
-  - `salon.max_locations` (limit; multi-location chains with combined reporting, X13)
-  - `zalo.oa_connect` (bool), `zalo.inbox` (bool), `zalo_template.monthly_messages` (limit), `zalo.mini_app` (bool)
-  - `notifications.sms.monthly_messages` (limit), `notifications.sms.monthly_cost_cap_vnd` (limit). GuGu pays for messaging inside the plan (q33); these are fair-use caps, not charges to the salon.
-  - `promotion.promoted_listing` (bool)
-  - `branding.custom_subdomain` (bool, future)
-- R-S2a: Entitlement matrix (seeded as `PlanEntitlement` rows):
+  - bool: `crm.core`, `calendar.core`, `booking.marketplace_listing`, `ai.onboarding_import`, `ai.agent.enabled`, `ai.monthly_review`, `zalo.oa_connect`, `zalo.inbox`, `analytics.chain_reporting`, `analytics.advanced`
+  - limit: `ai.monthly_cost_cap_vnd` (**hard**, covers all AI features of the salon), `zalo_template.monthly_messages`, `notifications.sms.monthly_messages`, `salon.max_locations`, `promotion.weekly_credits_per_month`, `staff.max_seats`
+  - GuGu pays for messaging inside the plan (q33); the message limits are fair-use caps, not charges to the salon. AI usage is bounded only by the cost cap (no separate request/token/run limits at launch).
+  - Values per plan: R-S2a.
+- R-S2a: **Final** entitlement matrix (seeded as `PlanEntitlement` rows):
 
 | Entitlement key | Basic | Pro | Ultra |
 |---|---|---|---|
+| `crm.core` (CRM, clients, tags, internal notes) | yes | yes | yes |
+| `calendar.core` (calendar, booking management) | yes | yes | yes |
 | `booking.marketplace_listing` | yes | yes | yes |
-| `staff.max_seats` | 3 | 10 | unlimited |
-| `salon.max_locations` | 1 | 1 | 5 (+ combined reporting for chains) |
-| `crm.customer_tags`, `crm.internal_notes` | yes | yes | yes |
-| `analytics.advanced` | no | yes | yes |
-| `ai.onboarding_import` (price-list screenshots → services) | **yes** (decided) | **yes** (decided) | **yes** (decided) |
-| `ai.onboarding_import.monthly_runs` | 3 | 10 | 30 |
-| `ai.agent.enabled` (AI assistant) | **no** (decided) | **yes** (decided) | **yes** (decided) |
-| `ai.monthly_review` (Opus business review) | **no** (decided) | **yes** (decided) | **yes** (decided) |
-| `ai.agent.write_actions` (phase B) | no | no | yes |
-| `ai.monthly_cost_cap_vnd` (hard) | small | medium | large (values: q73) |
-| `zalo.oa_connect`, `zalo.inbox` | yes | yes | yes |
-| `zalo.mini_app` | no | no | no (not planned, q41) |
-| `zalo_template.monthly_messages` / `notifications.sms.monthly_messages` (GuGu-paid, fair use) | low | medium | high (values: q73) |
-| `promotion.promoted_listing` | add-on | add-on | 1 week/month included |
-| `branding.custom_subdomain` (future) | no | no | yes |
+| `ai.onboarding_import` (price-list screenshots → services) | yes | yes | yes |
+| `ai.agent.enabled` (AI assistant) | no | yes | yes |
+| `ai.monthly_review` (monthly business review on Opus) | no | yes | yes |
+| `ai.monthly_cost_cap_vnd` (**hard**, all AI features) | 20,000 | 250,000 | 600,000 |
+| `zalo.oa_connect` + `zalo.inbox` (salon's own OA in the CRM inbox) | no | yes | yes |
+| `zalo_template.monthly_messages` (GuGu-paid, sent **only from the central GuGu OA**, q70) | 100 | 300 | 1,000 |
+| `notifications.sms.monthly_messages` (GuGu-paid; provider **mocked** for now) | 30 | 80 | 200 |
+| `salon.max_locations` | 1 | 1 | unlimited |
+| `analytics.chain_reporting` (combined reporting across locations) | no | no | yes |
+| `analytics.advanced` (admin-level analytics: cohorts, funnels, acquisition, exports) | no | no | yes |
+| `promotion.weekly_credits_per_month` (promoted-listing credits) | 0 | 0 | 1 (admin-tunable) |
+| `staff.max_seats` | unlimited | unlimited | unlimited (not a plan differentiator at launch; key kept) |
 
-Rows marked **(decided)** come from the owner (X13, X17). Every other cell is the topic 12 recommendation and is **provisional until q75** (Ultra contents, trial).
+Owner-approved (X13, X17, q73, q74, q75), 2026-11-02. Caps are VND or messages per salon per calendar month and are reviewed after the first 20 salons. Any plan may buy extra promoted-listing weeks (flat weekly fee, invoiced manually, q74).
 
-- R-S3: `Subscription(salonId, planId, planVersion, status ∈ {pending_activation, trialing, active, past_due, cancelled, expired}, billingMode = manual, invoicingEntity ∈ {tbd, pl, vn}, interval ∈ {month, year}, currentPeriodStart/End, trialEndsAt)`. Each salon has exactly one current subscription. At registration it gets the trial per G19 (provisional, q75). There is no free plan.
+**Later (not in any plan at launch; no seed rows):** `ai.agent.write_actions` (assistant phase B), `branding.custom_subdomain`, `zalo.mini_app` (not planned, q41), `notifications.sms.monthly_cost_cap_vnd` (only once a real SMS provider replaces the mock).
+
+- R-S3: `Subscription(salonId, planId, planVersion, status ∈ {trialing, active, past_due, cancelled, expired}, billingMode = manual, invoicingEntity ∈ {tbd, pl, vn}, interval ∈ {month, year}, currentPeriodStart/End, trialEndsAt)`. Each salon has exactly one current subscription. At registration it gets the 14-day Pro trial (G19). There is no free plan.
 - R-S4: `EntitlementOverride(salonId, key, value, expiresAt, reason, createdBy)` supports admin grants and pilots.
 - R-S5: The resolver `EntitlementService.get(salonId, key)` returns override if present, otherwise plan, otherwise default. Results are cached in Redis with a 60 s TTL and invalidated on change. A **NestJS guard/decorator** `@RequiresEntitlement('ai.agent.enabled')` exists, and the client gets `/api/v1/salons/:id/entitlements` for UI gating, which is for display only. The backend always enforces.
 - R-S6: Downgrades never delete data. Over-limit resources become read-only (for example, extra staff seats are kept but cannot take new bookings until the salon is back within the limit, with a grace period of 14 days).
@@ -157,8 +149,9 @@ Rows marked **(decided)** come from the owner (X13, X17). Every other cell is th
 - R-U1: `UsageCounter(salonId, key, periodStart, used)` holds the aggregate, and `UsageEvent` (append-only, partitioned monthly) holds the raw entries with `idempotencyKey`.
 - R-U2: API: `reserve(salonId, key, amount, idemKey)` returns allow or deny along with the remaining amount, `commit(reservationId, actualAmount)` and `release(reservationId)`. AI tokens are reserved by estimate and committed with the actual usage reported by the Claude API. Counters are kept atomically in Redis and flushed to Postgres by a BullMQ job. Postgres is authoritative for reporting.
 - R-U3: Soft limit at 80% triggers a notification to the owner. Hard limit means deny with error `ENTITLEMENT_QUOTA_EXCEEDED` (localized). Transactional booking messages (Zalo template, SMS) may fall back to push/email instead of failing the booking (topic 11 fallback order).
+- R-U2a: Paid Zalo template messages are sent **only from the central GuGu OA** (q70), never from a salon's own OA. Metering and the `zalo_template.monthly_messages` cap apply to these sends. A salon's connected OA (Pro+) is used for the inbox only.
 - R-U3a: **Hard AI cost cap:** before every LLM call (assistant, monthly review, onboarding import), reserve the estimated cost against `ai.cost` within `ai.monthly_cost_cap_vnd`, then commit the actual cost computed from the reported token usage and the model price table. At the cap, AI features stop for that salon until the next period (localized message). Admin can raise the cap via override. Overshoot is impossible by design (reservation is atomic).
-- R-U4: Cost tracking per unit (`unitCost` + `costCurrency` snapshot, converted to VND with a stored FX rate) enables margin reporting in admin. **SMS goes through an international provider, so SMS cost is metered per salon per message** (`sms.cost`, using the provider's per-message price and segment count). Zalo template sends are metered the same way (`zalo_template.messages` + cost). Because GuGu pays for messaging inside the plan, admin shows messaging cost per salon and per plan against the subscription price.
+- R-U4: Cost tracking per unit (`unitCost` + `costCurrency` snapshot, converted to VND with a stored FX rate) enables margin reporting in admin. **SMS will go through an international provider and is mocked for now (provider-sink)**. Metering still runs on every send against a configured mock unit cost, so SMS cost is metered per salon per message (`sms.cost`, using the provider's per-message price and segment count). Zalo template sends are metered the same way (`zalo_template.messages` + cost). Because GuGu pays for messaging inside the plan, admin shows messaging cost per salon and per plan against the subscription price.
 
 ### 3.5 Feature flags
 - R-F1: `FeatureFlag(key, description, defaultValue, rules jsonb)`. Rules target environment, salonId, userId, role, plan, locale, platform (ios/android/web), app version, and percentage (sticky hash).
@@ -244,7 +237,7 @@ Attribution & commission
 
 Entitlements & metering
 - [ ] `@RequiresEntitlement` returns 403 `ENTITLEMENT_REQUIRED` with a localized message (vi/en) when the key is false.
-- [ ] An AI request beyond `ai.agent.monthly_requests` is denied with `ENTITLEMENT_QUOTA_EXCEEDED`, and concurrent reservations never overshoot the limit (concurrency test, 50 parallel reserves).
+- [ ] A Zalo template send beyond `zalo_template.monthly_messages` is denied (booking messages fall back per R-U3) with `ENTITLEMENT_QUOTA_EXCEEDED`, and concurrent reservations never overshoot the limit (concurrency test, 50 parallel reserves).
 - [ ] Usage commits are idempotent (the same idempotencyKey twice equals one count).
 - [ ] AI calls stop exactly at `ai.monthly_cost_cap_vnd`: 50 parallel AI requests near the cap never push committed cost above it. A Basic salon can run onboarding import but gets `ENTITLEMENT_REQUIRED` for the assistant and the monthly review. Pro and Ultra get both.
 - [ ] Seed contains exactly the plans `basic`, `pro`, `ultra` (each with month and year prices) and no `free` plan. An expired subscription makes the workspace read-only and pauses online bookings without deleting data.
@@ -302,7 +295,7 @@ Admin Copilot (v1)
 8. **M12.8 Commission foundation:** **moved to the roadmap `later` bucket** (q34). Spec kept; attribution (M12.2) already captures what it needs.
 9. **M12.9 Metrics rollups + platform analytics dashboard.**
 10. **M12.10 Moderation, taxonomy, locations, notification admin.**
-11. **M12.11 Promoted listings (launch scope, q43):** data, ranking hook, Sponsored labeling, impression/click logging, admin-granted placements. No self-serve ad billing.
+11. **M12.11 Promoted listings (launch scope, q43, q74):** data, ranking hook, Sponsored label, max 2 per page, impression/click logging. Placements are sold as a flat weekly fee invoiced manually; admin switches them on, or the salon spends Ultra credits. No self-serve ad billing.
 12. **M12.12 Admin Copilot (v1, q64):** aggregate/tokenised platform analytics, PII guard, PII-canary tests. Depends on M12.9 rollups and the topic 08 runtime.
 
 ---
@@ -344,13 +337,11 @@ The agent MUST label all revenue figures by `RevenueKind` and MUST NOT describe 
 
 ## 10. Open questions for the product owner
 
-Answered and applied: q21/q34 (subscriptions only, commission later), q31 (AI assistant in Pro, pricing later), q32 (hard AI cost cap), q33 (GuGu pays messaging in plan, track costs), q36 (in-house analytics), q37 (salons see reliability score), q42 (AI onboarding import in every plan), X17 (no free plan; Basic/Pro/Ultra; AI assistant + review from Pro), q43 (promoted listings at launch), q63 (monthly Opus review in Pro), q64 (Admin Copilot in v1, PII-free).
+Answered and applied: q21/q34 (subscriptions only, commission later), q31 (AI assistant from Pro, pricing later), q32 (hard AI cost cap), q33 (GuGu pays messaging in plan, track costs), q36 (in-house analytics), q37 (salons see reliability score), q42 (AI onboarding import in every plan), X17 (no free plan; Basic/Pro/Ultra), q43 (promoted listings at launch), q63 (monthly Opus review from Pro), q64 (Admin Copilot in v1, PII-free), q70 (paid Zalo messages only from the central GuGu OA), q73 (cap values), q74 (promoted listings: flat weekly fee, max 2 per page), q75 (plan contents, 14-day Pro trial).
 
 Still open:
-1. **q75:** Ultra contents and whether there is a trial (length, which plan's entitlements). The matrix in R-S2a and the trial in G19 are provisional until answered.
-2. Basic, Pro and Ultra prices (monthly and yearly) and the yearly discount (q31: later).
-3. Invoicing entity: Polish or Vietnamese company (q35). Tax and e-invoice obligations depend on it, and legal and tax review is needed before charging the first salon.
-4. Initial value of the hard AI cost cap per salon and per plan (VND/month), and the messaging fair-use caps (q32/q33 confirmed the mechanism, not the numbers).
-5. Subscription payment before a processor: is bank transfer + manual activation acceptable? (assumed yes)
-6. Attribution window length (30 days proposed), relevant once commissions are introduced.
-7. Promoted listings: how placements are sold at launch (flat weekly fee via manual invoice proposed) and the per-page cap.
+1. Basic, Pro and Ultra prices (monthly and yearly), the yearly discount and the promoted-listing weekly fee (q31: later).
+2. Invoicing entity: Polish or Vietnamese company (q35). Tax and e-invoice obligations depend on it, and legal and tax review is needed before charging the first salon.
+3. Subscription payment before a processor: is bank transfer + manual activation acceptable? (assumed yes)
+4. Attribution window length (30 days proposed), relevant once commissions are introduced.
+5. Real SMS provider choice (mocked until then); add `notifications.sms.monthly_cost_cap_vnd` when it lands.

@@ -38,7 +38,9 @@ description: Rules and procedures for GuGu's salon workspace (Today, calendar UI
 
 ## Product rules from the owner
 - The CRM and onboarding are the core product (X13). AI setup from screenshots is in every plan and MUST stay the first onboarding card. The assistant is Pro only.
-- Chains: every metric supports `scope: salon | organization`. Operational screens stay per location.
+- Plans (q75): Basic = CRM, calendar, AI import, listing; Pro = + assistant, monthly review, Zalo inbox; Ultra = + chains with combined reporting and admin analytics. Gate with 12 entitlements; show calm upsells for locked features.
+- Chains (Ultra only, entitlement `multi_location`): every metric supports `scope: salon | organization`.
+- Deleted customers (q71): render "Khách đã xoá / Deleted customer" and never assume a client name or phone exists on a booking. Operational screens stay per location.
 - One service per appointment; combos are services or add-on options. No prepaid packages and no staff commission.
 - Staff see their own ratings and, by default, client phones (`client.view_contact`, revocable).
 - Shared-tablet and personal-device setups both work with no configuration.

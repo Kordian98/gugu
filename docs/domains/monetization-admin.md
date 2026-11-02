@@ -6,7 +6,7 @@ Status: **skeleton.** Nothing is implemented yet. Fill in each section as code l
 
 ## Summary
 - Customers book for free and pay at the salon. GuGu never processes customer payments.
-- Revenue is monthly/yearly SaaS subscriptions only: **Basic, Pro, Ultra**, monthly or yearly (prices TBD). There is **no free plan**. AI onboarding import is in all three. The AI assistant and the monthly Opus review are included from Pro. Ultra contents and any trial are provisional (q75; matrix in spec R-S2a). Every salon has a hard AI cost cap. GuGu pays for messaging inside the plan and tracks its cost. Plans are assigned manually in the MVP.
+- Revenue is monthly/yearly SaaS subscriptions only: **Basic, Pro, Ultra**, monthly or yearly (prices TBD). There is **no free plan**. AI onboarding import is in all three. The AI assistant and the monthly Opus review are included from Pro. Basic: CRM, calendar, AI import, marketplace listing. Pro adds the AI assistant, the monthly review, the Zalo inbox and higher message quotas. Ultra adds multi-location chain reporting, the highest AI cap, admin-level analytics and promoted-listing credits. New salons get a 14-day Pro trial. Final matrix: spec R-S2a. Every salon has a hard AI cost cap. GuGu pays for messaging inside the plan and tracks its cost. Plans are assigned manually in the MVP.
 - Every booking has one immutable attribution record. Commission is **dormant**: specified (append-only ledger, no automatic charging) but not built for launch.
 
 ## Invariants
@@ -23,7 +23,8 @@ Status: **skeleton.** Nothing is implemented yet. Fill in each section as code l
 - Subscriptions are invoiced manually by the owner's company (Polish or Vietnamese, TBD). No processor in the MVP.
 - Analytics is in-house: `/api/v1/events` → `analytics_event` (Postgres) → rollups. No third-party analytics.
 - Salons see their own reliability score; raw risk signals are admin-only.
-- Promoted listings are allowed at launch, always labeled Sponsored. The Admin Copilot ships in v1, PII-free.
+- Promoted listings are allowed at launch: flat weekly fee invoiced manually, max 2 Sponsored per page, always labeled.
+- Paid Zalo template messages are sent only from the central GuGu OA. SMS is mocked for now; metering runs anyway. The Admin Copilot ships in v1, PII-free.
 - Admin mutations require a reason and are audit logged.
 
 ## Model

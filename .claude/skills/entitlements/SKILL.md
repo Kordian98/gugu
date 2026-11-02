@@ -25,7 +25,7 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 ## Key naming
 `<domain>.<feature>[.<qualifier>]`, lowercase, dot-separated. Value types:
 - `boolean`: `ai.agent.enabled`
-- `limit` (integer per billing period or absolute): `ai.agent.monthly_tokens`, `staff.max_seats`
+- `limit` (integer per billing period or absolute): `ai.monthly_cost_cap_vnd`, `zalo_template.monthly_messages`
 - `enum`: `analytics.retention_window` = `30d|90d|365d`
 
 ## Procedure: add a boolean-gated feature
@@ -62,12 +62,12 @@ Use `EntitlementOverride` via the admin UI or API with `reason` and an optional 
 ## Metered usage keys (current)
 | Usage key | Limit key | Unit | Notes |
 |---|---|---|---|
-| `ai.requests` | `ai.agent.monthly_requests` | request | topic 08 |
-| `ai.tokens.input` / `ai.tokens.output` | `ai.agent.monthly_tokens` | token | commit actual usage from the API response |
-| `zalo_template.messages` | `zalo_template.monthly_messages` | message | ZBS Template Message (formerly ZNS), channel `zalo_template`. Never name keys `zns.*` |
-| `sms.messages` | `notifications.sms.monthly_messages` | message (segments counted) | international provider |
-| `ai.cost` | `ai.monthly_cost_cap_vnd` | VND | **hard cap**: reserve the estimated cost before every LLM call, commit the actual cost from token usage × model price; deny at the cap |
-| `sms.cost` | `notifications.sms.monthly_cost_cap_vnd` | VND (converted from the provider currency at the stored FX rate) | **metered per salon on every send**, even when no cap applies |
+| `ai.requests` | none (cost cap only) | request | topic 08; recorded for reporting |
+| `ai.tokens.input` / `ai.tokens.output` | none (cost cap only) | token | commit actual usage from the API response; drives `ai.cost` |
+| `zalo_template.messages` | `zalo_template.monthly_messages` (100 / 300 / 1,000) | message | ZBS Template Message (formerly ZNS), channel `zalo_template`, sent **only from the central GuGu OA**. Never name keys `zns.*` |
+| `sms.messages` | `notifications.sms.monthly_messages` (30 / 80 / 200) | message (segments counted) | provider **mocked** for now (provider-sink); metering still runs |
+| `ai.cost` | `ai.monthly_cost_cap_vnd` (Basic 20,000 / Pro 250,000 / Ultra 600,000 VND) | VND | **hard cap**: reserve the estimated cost before every LLM call, commit the actual cost from token usage × model price; deny at the cap |
+| `sms.cost` | none yet (`notifications.sms.monthly_cost_cap_vnd` later) | VND (converted from the provider currency at the stored FX rate) | **metered per salon on every send**, even when no cap applies |
 
 Each usage event stores `unitCost`, `costCurrency` and `fxRateToVnd` for margin reporting in admin.
 
@@ -82,26 +82,27 @@ Plans: **Basic, Pro, Ultra**, billed monthly or yearly. **There is no free plan*
 
 | Entitlement key | Basic | Pro | Ultra |
 |---|---|---|---|
+| `crm.core` (CRM, clients, tags, internal notes) | yes | yes | yes |
+| `calendar.core` (calendar, booking management) | yes | yes | yes |
 | `booking.marketplace_listing` | yes | yes | yes |
-| `staff.max_seats` | 3 | 10 | unlimited |
-| `salon.max_locations` | 1 | 1 | 5 (+ combined reporting for chains) |
-| `crm.customer_tags`, `crm.internal_notes` | yes | yes | yes |
-| `analytics.advanced` | no | yes | yes |
-| `ai.onboarding_import` (price-list screenshots → services) | **yes** (decided) | **yes** (decided) | **yes** (decided) |
-| `ai.onboarding_import.monthly_runs` | 3 | 10 | 30 |
-| `ai.agent.enabled` (AI assistant) | **no** (decided) | **yes** (decided) | **yes** (decided) |
-| `ai.monthly_review` (Opus business review) | **no** (decided) | **yes** (decided) | **yes** (decided) |
-| `ai.agent.write_actions` (phase B) | no | no | yes |
-| `ai.monthly_cost_cap_vnd` (hard) | small | medium | large (values: q73) |
-| `zalo.oa_connect`, `zalo.inbox` | yes | yes | yes |
-| `zalo.mini_app` | no | no | no (not planned, q41) |
-| `zalo_template.monthly_messages` / `notifications.sms.monthly_messages` (GuGu-paid, fair use) | low | medium | high (values: q73) |
-| `promotion.promoted_listing` | add-on | add-on | 1 week/month included |
-| `branding.custom_subdomain` (future) | no | no | yes |
+| `ai.onboarding_import` (price-list screenshots → services) | yes | yes | yes |
+| `ai.agent.enabled` (AI assistant) | no | yes | yes |
+| `ai.monthly_review` (monthly business review on Opus) | no | yes | yes |
+| `ai.monthly_cost_cap_vnd` (**hard**, all AI features) | 20,000 | 250,000 | 600,000 |
+| `zalo.oa_connect` + `zalo.inbox` (salon's own OA in the CRM inbox) | no | yes | yes |
+| `zalo_template.monthly_messages` (GuGu-paid, sent **only from the central GuGu OA**, q70) | 100 | 300 | 1,000 |
+| `notifications.sms.monthly_messages` (GuGu-paid; provider **mocked** for now) | 30 | 80 | 200 |
+| `salon.max_locations` | 1 | 1 | unlimited |
+| `analytics.chain_reporting` (combined reporting across locations) | no | no | yes |
+| `analytics.advanced` (admin-level analytics: cohorts, funnels, acquisition, exports) | no | no | yes |
+| `promotion.weekly_credits_per_month` (promoted-listing credits) | 0 | 0 | 1 (admin-tunable) |
+| `staff.max_seats` | unlimited | unlimited | unlimited (not a plan differentiator at launch; key kept) |
 
-Rows marked **(decided)** come from the owner (X13, X17). Every other cell is the topic 12 recommendation and is **provisional until q75** (Ultra contents, trial).
+Owner-approved (X13, X17, q73, q74, q75), 2026-11-02. Caps are VND or messages per salon per calendar month and are reviewed after the first 20 salons. Any plan may buy extra promoted-listing weeks (flat weekly fee, invoiced manually, q74).
 
-New salons: provisional 14-day trial with Pro entitlements, then `expired` (read-only workspace, online bookings paused, no data deleted) until a paid plan is active. See spec G19 / q75.
+**Later (not in any plan at launch; no seed rows):** `ai.agent.write_actions` (assistant phase B), `branding.custom_subdomain`, `zalo.mini_app` (not planned, q41), `notifications.sms.monthly_cost_cap_vnd` (only once a real SMS provider replaces the mock).
+
+New salons: 14-day trial with Pro entitlements (decided, q75), then `expired` (read-only workspace, online bookings paused, no data deleted) until a paid plan is active. Spec G19.
 
 Prices are TBD. Never hardcode these in code; seed them as `PlanEntitlement` rows.
 

@@ -26,6 +26,8 @@ _TBD: CustomerSalonProfile, CustomerNote, ClientTag, OfflineSale, SalonReportedR
 - Money values carry `revenueKind` and are never called payments.
 - Dashboard numbers come from the metric catalogue only; it is built on 04 read models, and 08 tools are generated from both.
 - Booking sources come from the 12-owned enum.
+- Multi-location combined reporting is Ultra only; assistant and Zalo inbox are Pro+.
+- Deleted customers are anonymised on bookings; their salon notes and tags are deleted.
 - No personal data to any LLM: the agent surface is aggregate or tokenised only.
 - UI uses calm surface mode (same brand tokens, no expressive effects).
 

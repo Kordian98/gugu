@@ -39,11 +39,11 @@
 | G11 | AI agent (topic 08) would read business data — no access envelope. | Agent runs **on behalf of the asking member** with the intersection of: that member's permissions ∩ agent tool allowlist ∩ subscription entitlement. Read-only by default; write tools require explicit human confirmation token. Every tool call audited. |
 | G12 | Prompt injection not considered. | Treat reviews, notes, Zalo messages, salon descriptions as untrusted data. Agent tools never accept tenant IDs from model output (injected from server context). Outputs that trigger writes go through confirmation. Detailed in §3.8. |
 | G13 | Zalo webhooks & OA tokens (topic 09) have no security spec. | Verify webhook signature (`X-ZEvent-Signature`/MAC per Zalo docs — topic 09 confirms exact algorithm), timestamp window, idempotency by event ID; OA access/refresh tokens encrypted at rest (envelope encryption, KMS key) and scoped to one salon. |
-| G14 | "Delete account" conflicts with keeping booking history for salons and commission ledger. | Account deletion = erase/pseudonymise personal data on `User`, keep bookings with snapshot pseudonymised ("Deleted customer"), keep ledger rows. 30-day grace with cancel; active future bookings cancelled with notifications. Legal retention exceptions documented. |
+| G14 | "Delete account" conflicts with keeping booking history for salons and commission ledger. | Account deletion = erase/pseudonymise personal data on `User`, keep bookings with snapshot pseudonymised ("Deleted customer"), **delete the salon's notes and tags about that customer** (q71), keep ledger rows. 30-day grace with cancel; active future bookings cancelled with notifications. Legal retention exceptions documented. |
 | G15 | No phone-number normalisation; Vietnamese numbers have multiple formats (0xxx, +84, carrier prefix changes from 2018). | Store E.164 (`+84…`) via libphonenumber; display localised. Unique constraint on normalised verified phone. |
 | G16 | Phone recycling (carriers reassign numbers) can hand an account to a new owner. | Relevant once phone becomes a login factor (later, SMS). On phone login after ≥ N months inactivity, or when SIM change suspected, require secondary factor if available (email link / social) or start a fresh account and flag the old one; documented risk. |
 | G17 | Rate limiting only mentions OTP. | Layered limits: per phone, per IP, per device fingerprint, global per-channel send cap per hour (email/Zalo now; SMS-pumping protection when SMS returns); CAPTCHA/Turnstile challenge on web after thresholds. |
-| G18 | Admin access not hardened. | Platform admins: separate login policy (email + TOTP/passkey mandatory), IP allowlist optional, impersonation ("view as salon") only read-only, time-boxed, reason required, audited, visible to the salon. |
+| G18 | Admin access not hardened. | Platform admins: separate login policy (email + passkey mandatory, TOTP as backup — q72), IP allowlist optional, impersonation ("view as salon") only read-only, time-boxed, reason required, audited, visible to the salon. |
 | G19 | Audit log lacks definition of "sensitive". | Enumerated audit events list (§3.7), append-only table, no updates/deletes from app role. |
 | G21 | Master prompt §10 requires a verified phone before booking. **Superseded by PO decision X11 (2026-11-02):** booking must be as frictionless as Polish booking apps. | No OTP wall at booking. Bookings carry `identity_verified=false` until proven. Abuse is handled by the anti-abuse layer and salon confirmation policies (§3.11). Verification uses email/Zalo links, no SMS (X12). |
 | G20 | Secrets management vague. | Env via secrets manager in deploy (topic 13); `.env` only locally, `.env.example` committed; gitleaks in CI; field-level encryption key separate from DB credentials. |
@@ -186,7 +186,7 @@ The matrix lives as code in `packages/domain/src/auth/permissions.ts` (single so
 | Changing account email | Link to both old and new email |
 | Account recovery | Email magic link (Apple/Google accounts recover via their provider) |
 | Sensitive changes: data export, account deletion, linking a new social login | Fresh re-auth (≤ 10 min) with an existing method |
-| Salon member: new device login, invitation acceptance, ownership transfer | Email magic link; passkey required for owner ownership transfer |
+| Salon member: new device login, invitation acceptance, ownership transfer | Email magic link; passkey (TOTP backup) required for ownership transfer |
 | Customer opts to verify for perks (skip salon confirmation, "verified" badge) | Confirm link (email now, Zalo later) |
 
 Phone numbers are **not verified** in the near term. Bookings by phone-only guests stay `identity_verified=false` unless the salon marks `salon_verified` or the guest also gave an email and clicked the confirm link. **OTP/SMS cost now: 0.** Email cost is negligible. Zalo message cost is owned by 09/12 (q33).
@@ -234,7 +234,7 @@ Phone numbers are **not verified** in the near term. Bookings by phone-only gues
 6. RLS policies + context extension + RLS tests.
 7. Zalo Login (hidden flag) and `zalo_template` verification channel with 09. **Later:** real SMS provider + sender-ID registration + phone OTP + pumping controls.
 8. Privacy: consents, export, deletion jobs; data inventory.
-9. Admin hardening (TOTP/passkey, impersonation).
+9. Admin hardening (passkeys + TOTP backup, impersonation).
 10. Agent principal envelope (with 08); Zalo webhook verification & token encryption (with 09).
 
 ## 8. AI-first deliverables
@@ -255,10 +255,8 @@ Auth exposes **no data tools** to the agent beyond:
 Prohibited for the agent: role changes, invitations, session management, exports, Zalo token ops, any platform-admin action.
 
 ## 10. Open questions for the product owner
-Answered (2026-11-02): q48/q11 no SMS for now (X12) · q28 Zalo Login hidden until OA · q05/q47 Polish company holds accounts · q24 staff see phones by default · q37 salons see own reliability score · q39 30-day deletion grace · q04 legal review postponed · q68 cross-salon label only after legal sign-off.
+Answered (2026-11-02): q48/q11 no SMS for now (X12) · q28 Zalo Login hidden until OA · q05/q47 Polish company holds accounts · q24 staff see phones by default · q37 salons see own reliability score · q39 30-day deletion grace · q04 legal review postponed · q68 cross-salon label only after legal sign-off · q71 after the 30-day grace: bookings anonymised, salon notes/tags deleted · q72 passkeys, TOTP as backup.
 
 Still open:
-1. Salon records after a customer deletes their account → tracker **q71** (proposed: bookings anonymised, salon notes/tags deleted).
-2. Admin / owner second factor → tracker **q72** (proposed: passkeys + TOTP backup).
-3. Before public launch: when does the postponed legal review (Law 91/2025 + Decree 356/2025, EU controller + SG hosting) get scheduled? (q04 follow-up)
-4. Default salon confirmation policy for unverified customers → tracker q66.
+1. Before public launch: when does the postponed legal review (Law 91/2025 + Decree 356/2025, EU controller + SG hosting) get scheduled? (q04 follow-up)
+2. Default salon confirmation policy for unverified customers → tracker q66.

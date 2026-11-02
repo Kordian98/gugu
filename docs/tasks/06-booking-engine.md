@@ -6,7 +6,7 @@ The booking engine decides which appointment times are offered and guarantees th
 
 > Cross-topic resolutions applied (see `docs/tasks/00-roadmap.md`): **X2** Zalo transactional messages are *ZBS Template Message* (channel id `zalo_template`; "ZNS" only as a historical alias) · **X3** Zod schemas, inferred types and error codes live in `packages/contracts`; pure logic in `packages/domain` · **X4** capacity units · **X6** booking source is the single `BookingSource` enum owned by topic 12 · **X9 + X11** draft status depends on the actor, not the source; booking does **not** require OTP — only AI-agent bookings are always drafts (§3.9a, §3.11) · **X10** no personal data to any LLM, incl. staff names (§9) · **X12** no SMS; phone verification via email link or Zalo · **X13** GuGu is SaaS-first: salon-side (CRM) booking paths are first-class, marketplace is additive.
 >
-> **Owner answers applied (tracker, 2026-11-02):** q13 per-salon auto/manual, manual window 12 h · q66 instant by default, GuGu *suggests* confirmation after repeated no-shows · q14 2 h cutoff, late cancels are a reliability signal · q15 3 active bookings per phone per salon · q16 no booking on behalf of others · q17 one service per appointment at launch, combos = own services or **add-ons** (§3.12) · q18 reception may book outside the schedule (audited); salons may hide staff choice.
+> **Owner answers applied (tracker, 2026-11-02):** q13 per-salon auto/manual, manual window 12 h · q66 instant by default, GuGu *suggests* confirmation after repeated no-shows · q14 2 h cutoff, late cancels are a reliability signal · q15 3 active bookings per phone per salon · q16 no booking on behalf of others · q17 one service per appointment at launch, combos = own services or **add-ons** (§3.12) · q18 reception may book outside the schedule (audited); salons may hide staff choice · q69 suggestion threshold = 3 no-shows from first-time/unverified phones in 30 days · q71 bookings stay, anonymised, after a customer deletes their account (§3.13).
 
 ---
 
@@ -165,7 +165,7 @@ Engine-side hooks; limits configured centrally (05) with salon overrides where n
 - **Bot check on web** (Cloudflare Turnstile token) required for guest holds/bookings; native apps rely on device attestation later.
 - **Reliability history per phone:** no-show and late-cancel counts per `(salon, phone)` exposed **only to that salon** in CRM (07) — cross-salon labels wait for legal sign-off (q68) and usable by `require_confirmation_for` rules later; platform-wide signals belong to 12 (trust).
 - **Optional confirm link** in the booking message (email or Zalo — no SMS, X12): sets `customer_confirmed_at` and `identity_verified=true`; never required for the booking to stand.
-- **Confirmation suggestion (q66):** `require_confirmation_for` defaults to `none`. When a salon accumulates repeated no-shows from first-time/unverified phones (default threshold: ≥ 3 in 30 days, configurable centrally), the engine emits `booking.confirmation_suggested`; CRM (07) shows a one-tap suggestion to switch to `first_time_or_unverified`. The engine never changes the setting by itself.
+- **Confirmation suggestion (q66):** `require_confirmation_for` defaults to `none`. When a salon accumulates repeated no-shows from first-time/unverified phones (decided, q69: 3 no-shows within 30 days; constant in central config), the engine emits `booking.confirmation_suggested`; CRM (07) shows a one-tap suggestion to switch to `first_time_or_unverified`. The engine never changes the setting by itself.
 - **No booking on behalf of others (q16):** the booking contact (name + phone) is the person attending; no separate "guest name" field at launch. Salon staff entries are exempt (they enter the attending client).
 - **Hold abuse:** max 1 active hold per device and per phone; hold TTL unchanged; repeated hold-without-book patterns emit `booking.hold_abuse_suspected` to 12.
 
@@ -180,6 +180,9 @@ Launch has one service per appointment; combos are either their own service or a
 - Add-ons are performed by the same staff in the same occupancy block; no separate staff or resource requirement at launch (later: optional `resource_requirement` per add-on).
 - Snapshot per booking in `booking_service_addon`; later add-on edits never change history.
 - Availability queries take `addonIds[]`; slots are computed for the full effective length.
+
+### 3.13 Customer account deletion (q71)
+Bookings are never deleted when a customer deletes their account: they stay for the salon's history, occupancy and metrics, **anonymised**. The privacy job (05/11) calls the engine's `anonymiseCustomerBookings(customerId)`: contact snapshot (name, phone, email) replaced by a placeholder, `phone_hash` cleared, `customer_id` detached, notes from the customer removed; times, services, add-on/price snapshots, statuses, status history (actor shown as "deleted customer") and source stay. Future active bookings are cancelled first (`cancelled_by_customer`, reason `account_deleted`) so salons are notified. Per-phone reliability counts for that phone are dropped.
 
 ---
 
@@ -213,6 +216,7 @@ Launch has one service per appointment; combos are either their own service or a
 15a. Add-ons: a 45-min service with a +15-min add-on blocks a 60-min occupancy (+ buffers); slots are offered only where the full length fits; add-on snapshot stored.
 15b. `staff_selection=hidden` rejects customer requests that name a staff member (`422 STAFF_SELECTION_DISABLED`) and assigns via the any-staff strategy.
 15c. Salon receptionist can create a booking outside schedule hours with `booking.override_rules` + reason → audit row; without the permission → `403`; overlap still rejected.
+15e. Account deletion: future bookings cancelled with `account_deleted`, past bookings remain with contact data anonymised and snapshots/status history intact.
 15d. Repeated no-shows from first-time/unverified phones emit `booking.confirmation_suggested` once per threshold crossing; the setting is not changed automatically.
 15. Anti-abuse: the 4th active booking for the same phone at a salon returns `429 ACTIVE_LIMIT_REACHED`; exceeding hold/booking rate limits returns `429 RATE_LIMITED`; guest web requests without a valid bot-check token are rejected.
 
@@ -274,5 +278,4 @@ When the customer confirms an agent draft, they receive a confirmation link or a
 ---
 
 ## 11. Open questions for the product owner
-Answered by the owner (tracker q13–q18, q66) and applied above. Remaining open items are tracked in the GuGu Roadmap tracker, not here:
-- q69 — threshold for the "switch confirmation on" suggestion (default ≥ 3 no-shows from first-time/unverified phones in 30 days).
+Answered by the owner (tracker q13–q18, q66) and applied above. New open items go to the GuGu Roadmap tracker, not here. Decided since: q69 (3 no-shows in 30 days), q71 (anonymise bookings on account deletion).
