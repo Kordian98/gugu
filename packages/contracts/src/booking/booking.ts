@@ -20,7 +20,29 @@ export const BOOKING_STATUS_VALUES = [
 export const bookingStatusSchema = z.enum(BOOKING_STATUS_VALUES);
 export type BookingStatusValue = z.infer<typeof bookingStatusSchema>;
 
-export const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "local_date");
+/** Real calendar date `YYYY-MM-DD` (2026-02-30 is rejected). */
+export const localDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "local_date")
+  .refine((v) => {
+    const [y, m, d] = v.split("-").map(Number) as [number, number, number];
+    const t = new Date(Date.UTC(y, m - 1, d));
+    return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d;
+  }, "local_date");
+
+/** Longest date range one availability or list request may cover (inclusive). */
+export const MAX_BOOKING_QUERY_DAYS = 31;
+
+const spanDays = (from: string, to: string) =>
+  Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
+
+const dateRangeChecks = <T extends { from: string; to: string }>(schema: z.ZodType<T>) =>
+  schema
+    .refine((q) => q.from <= q.to, { path: ["to"], message: "to_before_from" })
+    .refine((q) => q.from > q.to || spanDays(q.from, q.to) <= MAX_BOOKING_QUERY_DAYS, {
+      path: ["to"],
+      message: "range_too_long",
+    });
 const instantSchema = z.iso.datetime({ offset: true });
 
 /** Comma-separated (query string) or repeated values → unique uuid list. */
@@ -38,8 +60,8 @@ export const publicBookingParamsSchema = z.object({ token: z.string().min(20).ma
 
 // ─── Availability ───────────────────────────────────────────────────────────────────────────────
 
-export const availabilityQuerySchema = z
-  .object({
+export const availabilityQuerySchema = dateRangeChecks(
+  z.object({
     serviceId: uuidV7Schema,
     variantId: uuidV7Schema.optional(),
     addOnIds: uuidListParam,
@@ -47,8 +69,8 @@ export const availabilityQuerySchema = z
     staffId: uuidV7Schema.optional(),
     from: localDateSchema,
     to: localDateSchema,
-  })
-  .refine((q) => q.from <= q.to, { path: ["to"], message: "to_before_from" });
+  }),
+);
 export type AvailabilityQuery = z.infer<typeof availabilityQuerySchema>;
 
 export const availabilitySlotSchema = z.object({
@@ -194,14 +216,14 @@ export const salonBookingSchema = z.object({
 });
 export type SalonBooking = z.infer<typeof salonBookingSchema>;
 
-export const salonBookingListQuerySchema = z
-  .object({
+export const salonBookingListQuerySchema = dateRangeChecks(
+  z.object({
     from: localDateSchema,
     to: localDateSchema,
     staffId: uuidV7Schema.optional(),
     status: bookingStatusSchema.optional(),
-  })
-  .refine((q) => q.from <= q.to, { path: ["to"], message: "to_before_from" });
+  }),
+);
 export type SalonBookingListQuery = z.infer<typeof salonBookingListQuerySchema>;
 export const salonBookingListSchema = z.object({ items: z.array(salonBookingSchema) });
 

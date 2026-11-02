@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  daysBetween,
+  isLocalDate,
   assertTimeZone,
   boundaryInstant,
   datesBetween,
@@ -44,6 +46,18 @@ describe("tz", () => {
 
   it("minute 1440 is the next midnight", () => {
     expect(instantsAt("2026-11-03", 1440, HCM)).toEqual(instantsAt("2026-11-04", 0, HCM));
+  });
+
+  it("validates calendar dates and spans in O(1)", () => {
+    expect(isLocalDate("2026-02-28")).toBe(true);
+    expect(isLocalDate("2028-02-29")).toBe(true);
+    expect(isLocalDate("2026-02-30")).toBe(false);
+    expect(isLocalDate("2026-13-01")).toBe(false);
+    expect(isLocalDate("26-1-1")).toBe(false);
+    expect(daysBetween("2026-11-03", "2026-11-03")).toBe(0);
+    expect(daysBetween("2026-11-03", "2026-12-03")).toBe(30);
+    expect(daysBetween("2026-11-03", "2026-11-01")).toBe(-2);
+    expect(daysBetween("1000-01-01", "9999-12-31")).toBeGreaterThan(2_900_000);
   });
 
   it("calendar helpers", () => {

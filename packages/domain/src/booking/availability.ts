@@ -4,7 +4,9 @@ import {
   boundaryInstant,
   datesBetween,
   dayBounds,
+  daysBetween,
   instantsAt,
+  isLocalDate,
   isoWeekday,
   type LocalDate,
   toLocal,
@@ -212,10 +214,12 @@ function slotsForDate(input: AvailabilityInput, date: LocalDate, earliest: numbe
 
 /** Every bookable start in `[from, to]` (salon-local dates) with the staff who can take it. */
 export function computeSlots(input: AvailabilityInput): Slot[] {
-  const dates = datesBetween(input.from, input.to);
-  if (dates.length > MAX_AVAILABILITY_DAYS) {
+  // Check the span before allocating anything: callers pass request input (security review).
+  if (!isLocalDate(input.from) || !isLocalDate(input.to)) throw new RangeError("invalid date");
+  if (daysBetween(input.from, input.to) + 1 > MAX_AVAILABILITY_DAYS) {
     throw new RangeError(`availability window exceeds ${String(MAX_AVAILABILITY_DAYS)} days`);
   }
+  const dates = datesBetween(input.from, input.to);
   const { rules, timeZone: tz, overrides } = input;
   if (rules.slotGranularityMinutes <= 0 || 1440 % rules.slotGranularityMinutes !== 0) {
     throw new RangeError("slot granularity must divide a day");

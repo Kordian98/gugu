@@ -158,6 +158,22 @@ export function isoWeekday(date: LocalDate): number {
   return day === 0 ? 7 : day;
 }
 
+/** True for a real calendar date in `YYYY-MM-DD` form (rejects 2026-02-30). */
+export function isLocalDate(value: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const t = new Date(Date.UTC(y, mo - 1, d));
+  return t.getUTCFullYear() === y && t.getUTCMonth() === mo - 1 && t.getUTCDate() === d;
+}
+
+/** Whole days from `from` to `to` (0 for the same day, negative when `to` < `from`). O(1). */
+export function daysBetween(from: LocalDate, to: LocalDate): number {
+  const [y1, m1, d1] = parseDate(from);
+  const [y2, m2, d2] = parseDate(to);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / (DAY_MINUTES * MINUTE));
+}
+
 /** Inclusive list of dates from `from` to `to` (empty when `to` < `from`). */
 export function datesBetween(from: LocalDate, to: LocalDate): LocalDate[] {
   const out: LocalDate[] = [];

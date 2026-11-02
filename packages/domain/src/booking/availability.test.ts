@@ -214,6 +214,12 @@ describe("computeSlots", () => {
 
   it("validates the window and granularity", () => {
     expect(() => computeSlots(input({ from: "2026-11-03", to: "2026-12-31" }))).toThrow(RangeError);
+    // A huge range is rejected before any per-day work (security review: no O(range) allocation).
+    const started = Date.now();
+    expect(() => computeSlots(input({ from: "0001-01-01", to: "9999-12-31" }))).toThrow(RangeError);
+    expect(Date.now() - started).toBeLessThan(50);
+    expect(() => computeSlots(input({ from: "2026-02-30", to: "2026-03-01" }))).toThrow(RangeError);
+    expect(computeSlots(input({ from: "2026-11-04", to: "2026-11-03" }))).toEqual([]);
     expect(() =>
       computeSlots(
         input({ rules: { slotGranularityMinutes: 7, minLeadMinutes: 0, bookingWindowDays: 1 } }),
