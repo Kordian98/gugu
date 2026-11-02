@@ -257,3 +257,25 @@ export function findSlot(
   const options = staffId ? slot.options.filter((o) => o.staffId === staffId) : slot.options;
   return options.length > 0 ? { start, options } : null;
 }
+
+/**
+ * Which audited rule overrides (q18) would make `start` bookable for `staffId` (null = any staff):
+ * `[]` when it already is, the smallest set (fewest overrides, then RULE_OVERRIDES order) when the
+ * rules block it, or null when nothing helps — busy time, time off, breaks, missing resources
+ * (overlap is never overridable). Drives the CRM's "book anyway?" prompt.
+ */
+export function requiredOverrides(
+  input: Omit<AvailabilityInput, "from" | "to" | "overrides">,
+  start: number,
+  staffId: string | null,
+): RuleOverride[] | null {
+  const subsets: RuleOverride[][] = [[]];
+  for (const o of RULE_OVERRIDES) {
+    for (const s of [...subsets]) subsets.push([...s, o]);
+  }
+  subsets.sort((a, b) => a.length - b.length);
+  for (const subset of subsets) {
+    if (findSlot({ ...input, overrides: new Set(subset) }, start, staffId)) return subset;
+  }
+  return null;
+}

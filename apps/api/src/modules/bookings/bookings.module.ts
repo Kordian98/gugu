@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AuditModule } from "../audit/audit.facade";
 import { AuthModule } from "../auth/auth.facade";
 import { BookingActors } from "./application/booking-actor";
+import { BookingAnonymiser } from "./application/booking-anonymiser";
 import { BookingClock } from "./application/booking-clock";
 import { BookingLifecycleCommands } from "./application/booking-lifecycle.commands";
 import { BookingMaintenance } from "./application/booking-maintenance";
@@ -29,6 +30,7 @@ import { BookingSecrets } from "./infra/booking-secrets";
   providers: [
     AvailabilityCache,
     BookingActors,
+    BookingAnonymiser,
     BookingClock,
     BookingContexts,
     BookingLifecycleCommands,
@@ -73,6 +75,7 @@ export class BookingsWorkerModule {}
 @Module({
   imports: [AuditModule],
   providers: [
+    BookingAnonymiser,
     AvailabilityCache,
     BookingClock,
     BookingContexts,
@@ -81,6 +84,12 @@ export class BookingsWorkerModule {}
     BookingSecrets,
     CreateBookingCommand,
   ],
-  exports: [BookingContexts, BookingLifecycleCommands, BookingQueries, CreateBookingCommand],
+  exports: [
+    BookingAnonymiser,
+    BookingContexts,
+    BookingLifecycleCommands,
+    BookingQueries,
+    CreateBookingCommand,
+  ],
 })
 export class BookingsEngineModule {}

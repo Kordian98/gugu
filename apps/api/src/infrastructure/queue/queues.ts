@@ -7,6 +7,8 @@ export const QUEUES = {
   maintenance: "maintenance",
   /** Zalo OA (topic 09): inbound webhook events, ordered send batches, reminders, token refresh. */
   zalo: "zalo",
+  /** Transactional outbox relay and domain-event delivery (04-S5; infrastructure/outbox). */
+  outbox: "outbox",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

@@ -420,7 +420,8 @@ describe("booking engine (integration)", () => {
     ]);
 
     const evening = crmBody({ startsAt: vnAt(DAY, "20:00"), source: "walk_in" });
-    expect(body(await crmCreate(evening).expect(409)).code).toBe("booking.slot_taken");
+    // Outside hours: the CRM is told which override would help (q18), not "taken".
+    expect(body(await crmCreate(evening).expect(409)).code).toBe("booking.override_required");
     expect(
       body(
         await crmCreate(

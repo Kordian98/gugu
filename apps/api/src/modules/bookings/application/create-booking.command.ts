@@ -3,6 +3,7 @@ import { BOOKING_ERRORS, type BookingSource } from "@gugu/contracts";
 import {
   decideInitialStatus,
   findSlot,
+  requiredOverrides,
   type RuleOverride,
   toLocal,
   UPCOMING_BOOKING_STATUSES,
@@ -19,6 +20,7 @@ import {
   type SalonBookingContext,
   type ServiceSelection,
 } from "../infra/booking-inputs";
+import { OutboxRelay } from "../../../infrastructure/outbox/outbox.relay";
 import { AvailabilityCache } from "../infra/availability-cache";
 import { BookingSecrets, MANAGE_TOKEN_TTL_AFTER_END_MS } from "../infra/booking-secrets";
 import { claimIdempotency, completeIdempotency, type IdempotencyClaim } from "../infra/idempotency";
@@ -32,7 +34,7 @@ import {
 } from "../infra/occupancy";
 import type { BookingActor } from "./booking-actor";
 import { BookingClock } from "./booking-clock";
-import { slotTaken } from "./booking-errors";
+import { slotTaken, unbookable } from "./booking-errors";
 
 export interface CreateBookingRequest {
   source: BookingSource;
@@ -60,6 +62,7 @@ export class CreateBookingCommand {
     private readonly clock: BookingClock,
     private readonly audit: AuditService,
     private readonly cache: AvailabilityCache,
+    private readonly outbox: OutboxRelay,
   ) {}
 
   async execute(
@@ -86,6 +89,8 @@ export class CreateBookingCommand {
         { timeout: 20_000, maxWait: 15_000 },
       );
       await this.cache.bumpOccupancy(ctx.salonId);
+      // Publish the outbox events of this commit now instead of on the relay's fallback tick.
+      await this.outbox.kick();
       return result;
     } catch (error) {
       if (isSlotConflict(error)) throw slotTaken();
@@ -141,9 +146,14 @@ export class CreateBookingCommand {
       overrides: new Set(req.overrides),
       exclude: { holdId },
     });
-    const slot = findSlot(input, start, candidates.length === 1 ? (candidates[0] ?? null) : null);
-    const option = slot?.options[0];
-    if (!option) throw slotTaken();
+    const staffFilter = candidates.length === 1 ? (candidates[0] ?? null) : null;
+    const option = findSlot(input, start, staffFilter)?.options[0];
+    if (!option) {
+      // Only salon members can act on "outside the rules"; customers (Zalo bot) just see taken.
+      throw actor.kind === "salon_member"
+        ? unbookable(requiredOverrides(input, start, staffFilter), req.overrides)
+        : slotTaken();
+    }
     const terms = selection.staffTerms.get(option.staffId);
     if (!terms) throw slotTaken();
 

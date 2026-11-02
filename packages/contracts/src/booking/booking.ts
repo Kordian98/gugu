@@ -246,6 +246,8 @@ export const salonBookingSchema = z.object({
   source: bookingSourceSchema,
   customer: z.object({ name: z.string(), phone: z.string().nullable() }).nullable(),
   identityVerified: z.boolean(),
+  /** The customer deleted their account (q71): contact data removed, show a "deleted" label. */
+  customerAnonymised: z.boolean(),
   note: z.string().nullable(),
   lateCancellation: z.boolean(),
   ruleOverrides: z.array(ruleOverrideSchema),
@@ -314,3 +316,29 @@ export const publicCancelInputSchema = z.object({
   reason: z.string().trim().max(500).nullish(),
 });
 export const publicRescheduleInputSchema = z.object({ startsAt: instantSchema });
+
+// ─── Rule check for the CRM "book anyway?" prompt (q18) ─────────────────────────────────────────
+
+export const bookingCheckQuerySchema = z.object({
+  serviceId: uuidV7Schema,
+  variantId: uuidV7Schema.optional(),
+  addOnIds: uuidListParam,
+  /** Omit for any staff. */
+  staffId: uuidV7Schema.optional(),
+  startsAt: instantSchema,
+  /** Check a reschedule of this booking (its own time doesn't count as busy). */
+  bookingId: uuidV7Schema.optional(),
+});
+export type BookingCheckQuery = z.infer<typeof bookingCheckQuerySchema>;
+
+export const bookingCheckSchema = z.object({
+  /** Bookable as is. */
+  bookable: z.boolean(),
+  /** Overrides that would make it bookable ([] when bookable, empty + blocked when none help). */
+  requiredOverrides: z.array(ruleOverrideSchema),
+  /** Nothing helps: staff busy, time off, break, no free resource. Overlap is never overridable. */
+  blocked: z.boolean(),
+  /** The caller may send `overrides` (`bookings.override_rules`). */
+  canOverride: z.boolean(),
+});
+export type BookingCheck = z.infer<typeof bookingCheckSchema>;

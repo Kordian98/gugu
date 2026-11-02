@@ -18,8 +18,9 @@ type Update = "confirmed" | "cancelled" | "rescheduled";
  * Tells Zalo customers about changes the salon makes in GuGu Studio (topic 06 outbox events):
  * staff-entered bookings for a known Zalo customer (confirmation), a pending booking confirmed,
  * a booking cancelled or moved by the salon. Changes the customer made in the chat are skipped
- * (the bot already answered). Reads the transactional outbox with its own cursor until the shared
- * relay (04-S5) exists; then this becomes a normal event consumer.
+ * (the bot already answered). Primary path: `ZaloBookingEventsHandler` receives the events from the
+ * outbox relay (04-S5) within moments of the commit. `scan()` (minute job, own cursor) remains as a
+ * safety net; sends are deduped by `booking_update:<eventId>`, so both paths together send once.
  */
 @Injectable()
 export class BookingUpdatesService {
@@ -58,11 +59,7 @@ export class BookingUpdatesService {
     return { queued };
   }
 
-  private async handle(
-    eventId: string,
-    type: string,
-    payload: Record<string, unknown>,
-  ): Promise<number> {
+  async handle(eventId: string, type: string, payload: Record<string, unknown>): Promise<number> {
     const bookingId = typeof payload["bookingId"] === "string" ? payload["bookingId"] : null;
     if (!bookingId) return 0;
     const booking = await this.prisma.booking.findUnique({

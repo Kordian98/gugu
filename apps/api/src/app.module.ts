@@ -5,6 +5,7 @@ import { ProblemFilter } from "./common/problem/problem.filter";
 import { createValidationPipe } from "./common/validation/validation.pipe";
 import { ConfigModule } from "./infrastructure/config/config.module";
 import { LoggerModule } from "./infrastructure/logger/logger.module";
+import { OutboxModule } from "./infrastructure/outbox/outbox.module";
 import { PrismaModule } from "./infrastructure/prisma/prisma.module";
 import { QueueModule } from "./infrastructure/queue/queue.module";
 import { RedisModule } from "./infrastructure/redis/redis.module";
@@ -34,6 +35,7 @@ export const INFRASTRUCTURE_MODULES = [
   PrismaModule,
   RedisModule,
   QueueModule,
+  OutboxModule,
 ];
 
 @Module({

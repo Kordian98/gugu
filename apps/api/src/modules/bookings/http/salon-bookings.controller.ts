@@ -5,6 +5,10 @@ import {
   type AvailabilityQuery,
   availabilityQuerySchema,
   availabilitySchema,
+  type BookingCheck,
+  type BookingCheckQuery,
+  bookingCheckQuerySchema,
+  bookingCheckSchema,
   earliestSlotsQuerySchema,
   earliestSlotsSchema,
   type EarliestSlots,
@@ -105,6 +109,25 @@ export class SalonBookingsController {
     const scope = await this.actors.readScope(salon, user.userId);
     const ctx = await this.contexts.forSalon(salon.salonId);
     return this.queries.earliest(ctx, query, { onlyStaffId: scope });
+  }
+
+  @Get("booking-check")
+  @RequirePermission("schedules.read")
+  @ApiOperation({
+    operationId: "bookings.check",
+    summary:
+      "Is this start bookable? If not, which audited overrides (hours, lead time, window) would allow it.",
+  })
+  @ApiResponse({ status: 200, description: "Check result.", standardSchema: bookingCheckSchema })
+  async check(
+    @Param({ schema: salonParamsSchema }) _p: { salonId: string },
+    @Query({ schema: bookingCheckQuerySchema }) query: BookingCheckQuery,
+    @CurrentSalon() salon: SalonContext,
+    @CurrentUser() user: UserPrincipal,
+  ): Promise<BookingCheck> {
+    const actor = await this.actors.writer(salon, user.userId);
+    const ctx = await this.contexts.forSalon(salon.salonId);
+    return this.queries.check(ctx, actor, query);
   }
 
   @Get("bookings")

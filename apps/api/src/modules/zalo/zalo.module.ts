@@ -3,6 +3,7 @@ import { AppConfig } from "../../infrastructure/config/app-config";
 import { AuditModule } from "../audit/audit.facade";
 import { BookingsEngineModule } from "../bookings/bookings.facade";
 import { SubscriptionsModule } from "../subscriptions/subscriptions.facade";
+import { ZaloBookingEventsHandler } from "./application/booking-events.handler";
 import { BookingUpdatesService } from "./application/booking-updates.service";
 import { BotPortsFactory } from "./application/bot-ports";
 import { ConnectionService } from "./application/connection.service";
@@ -70,12 +71,13 @@ export class ZaloModule {}
   providers: [
     ...shared,
     BotPortsFactory,
+    ZaloBookingEventsHandler,
     InboundService,
     RemindersService,
     BookingUpdatesService,
     StaffReleaseService,
     ZaloJobs,
   ],
-  exports: [ZaloJobs],
+  exports: [ZaloJobs, ZaloBookingEventsHandler],
 })
 export class ZaloWorkerModule {}

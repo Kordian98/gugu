@@ -15,3 +15,5 @@ export type { IdempotencyClaim } from "./infra/idempotency";
 export type { SalonBookingContext } from "./infra/booking-inputs";
 // Resource requirements saved with a service by the catalog editor (topic 07, M6.6).
 export { replaceServiceResourceRequirements } from "./infra/resource-requirements";
+// Account-deletion hook for the privacy job (topic 05, q71).
+export { ANONYMISED_CUSTOMER_NAME, BookingAnonymiser } from "./application/booking-anonymiser";
