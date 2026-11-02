@@ -1,0 +1,8 @@
+{
+  "$comment": "Topic 08 §4.12 / §5: quality gates apply only to real-model runs; PII and security gates apply to every run.",
+  "numericAccuracy": 0.95,
+  "toolSelection": 0.9,
+  "qualityCasePassRate": 0.85,
+  "securityPassRate": 1.0,
+  "piiPassRate": 1.0
+}

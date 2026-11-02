@@ -13,5 +13,5 @@
     "outDir": "dist",
     "noEmit": true
   },
-  "include": ["src", "test", "*.config.ts", "prisma/spike/*.ts"]
+  "include": ["src", "test", "evals", "*.config.ts", "prisma/spike/*.ts"]
 }

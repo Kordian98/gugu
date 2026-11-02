@@ -329,6 +329,64 @@ describe("AI assistant (integration)", () => {
       await entitlements.invalidate(salonId);
     }
   });
+  it("masks crafted customer names (common words, staff names) but is never blocked by them", async () => {
+    // Security review 08-A2: names equal to words in questions, the context line ("Reply in
+    // Vietnamese"), tool output ("confirmed", "staff_1") or a staff member's name must neither block
+    // the assistant nor weaken masking of the staff member.
+    const staffId = (await prisma.staffProfile.findFirstOrThrow({ where: { salonId } })).id;
+    const crafted = [
+      "Lịch",
+      "Vietnamese",
+      "Context",
+      "Confirmed",
+      "staff_1",
+      "Doanh",
+      CANARY.staff,
+    ];
+    for (const [i, name] of crafted.entries()) {
+      await prisma.booking.create({
+        data: {
+          salonId,
+          referenceCode: `EVIL${String(i)}`,
+          status: "cancelled_by_customer",
+          source: "salon_profile",
+          createdByActorType: "customer",
+          staffId,
+          startsAt: new Date(Date.now() + (48 + i) * 3600_000),
+          endsAt: new Date(Date.now() + (48.5 + i) * 3600_000),
+          totalPriceMinor: 0n,
+          customerName: name,
+        },
+      });
+    }
+    llm.script = (_b, call) =>
+      call === 1
+        ? { content: [toolUse("v", "resolve_period", { expression: "today" })] }
+        : { text: "staff_1 hôm nay ổn ạ." };
+    const events = parseSse(
+      (
+        await ask(
+          `Lịch hôm nay thế nào? Doanh thu có confirmed không? Còn chị ${CANARY.staff}?`,
+        ).expect(200)
+      ).text,
+    );
+    expect(events.some((e) => e.type === "error")).toBe(false);
+    expect(events.at(-1)).toMatchObject({ type: "done" });
+    const masked = events.find((e) => e.type === "masked") as { text: string; changed: boolean };
+    expect(masked.changed).toBe(true);
+    expect(masked.text).toContain(`@${CANARY.staff}`); // still the staff token, not weakened
+    const sent = JSON.stringify(llm.requests);
+    expect(sent).not.toContain(CANARY.staff);
+    expect(sent).toContain("hôm nay thế nào?");
+  });
+
+  it("still redacts a typed multi-word customer name", async () => {
+    llm.script = () => ({ text: "OK" });
+    // Multi-word customer names are always redacted; the redacted text then passes the egress check.
+    const events = parseSse((await ask(`Khách ${CANARY.customer} đến chưa?`).expect(200)).text);
+    expect(events.find((e) => e.type === "masked")).toMatchObject({ changed: true });
+    expect(JSON.stringify(llm.requests)).not.toContain(CANARY.customer);
+  });
 });
 
 describe("AI assistant without an API key (integration)", () => {

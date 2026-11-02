@@ -39,17 +39,40 @@ const CUES = [
 ];
 
 /**
- * Whole-word occurrences of any of `names` in `text`, longest names first, non-overlapping.
- * Names shorter than two letters are ignored. Many Vietnamese given names are ordinary words
- * ("Thu" in "doanh thu", "Xuân", "Minh"), so a **single-word** name only matches when it is written
- * with a capital letter or follows a cue word such as "anh", "chị", "KTV", "nhân viên".
+ * How strictly a single-word name must be marked as a person before it matches:
+ * - `capital_or_cue`: written with a capital letter, or after a cue word (used for masking);
+ * - `capital_and_cue`: capitalised **and** after a cue word ("khách Hoa"). Used only by the egress
+ *   block check for customer/salon names, so a customer cannot block the assistant by booking under
+ *   a common word.
+ * Multi-word names always match.
  */
-export function findNames(text: string, names: readonly string[]): NameSpan[] {
+export type SingleWordRule = "capital_or_cue" | "capital_and_cue";
+
+export interface NameList {
+  names: readonly string[];
+  singleWord: SingleWordRule;
+}
+
+/**
+ * Whole-word occurrences of any of the names in `text`, longest names first, non-overlapping.
+ * Names shorter than two letters are ignored. Many Vietnamese given names are ordinary words
+ * ("Thu" in "doanh thu", "Xuân", "Minh"), so single-word names follow their list's rule. Each list
+ * applies independently: a name in a `capital_or_cue` list (e.g. staff) matches under that rule even
+ * if the same name also appears in a stricter list — a customer can never weaken a staff entry.
+ */
+export function findNames(text: string, lists: readonly NameList[]): NameSpan[] {
   const src = text.normalize("NFC");
   const hay = fold(src);
-  const candidates = [...new Set(names.map((n) => n.trim()).filter((n) => n.length >= 2))].sort(
-    (a, b) => b.length - a.length,
-  );
+  const rule = new Map<string, SingleWordRule>();
+  for (const list of lists) {
+    for (const raw of list.names) {
+      const n = raw.trim();
+      if (n.length < 2) continue;
+      // Any lenient list containing the name makes it match leniently (lists never weaken each other).
+      if (rule.get(n) !== "capital_or_cue") rule.set(n, list.singleWord);
+    }
+  }
+  const candidates = [...rule.keys()].sort((a, b) => b.length - a.length);
   const taken: NameSpan[] = [];
   for (const name of candidates) {
     const needle = fold(name.normalize("NFC"));
@@ -63,7 +86,12 @@ export function findNames(text: string, names: readonly string[]): NameSpan[] {
       const after = end < hay.length ? hay[end] : "";
       if ((before && LETTER.test(before)) || (after && LETTER.test(after))) continue;
       if (taken.some((t) => i < t.end && t.start < end)) continue;
-      if (!name.includes(" ") && !UPPER.test(src.slice(i, i + 1)) && !hasCue(hay, i)) continue;
+      if (!name.includes(" ")) {
+        const capital = UPPER.test(src.slice(i, i + 1));
+        const cue = hasCue(hay, i);
+        const ok = rule.get(name) === "capital_and_cue" ? capital && cue : capital || cue;
+        if (!ok) continue;
+      }
       taken.push({ start: i, end, name });
     }
   }

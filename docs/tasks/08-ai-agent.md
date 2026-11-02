@@ -280,7 +280,7 @@ evalCases       fixture ids incl. a canary case
 1. **A0 — Contracts (roadmap Step 3)**: X7 interfaces with 04/07, PII-free field-type allowlist, `ToolDefinition` + generator, `ToolContext`, token vault, entities. ADRs: runtime/routing, PII firewall.
 2. **A1 — Firewall + first tools** *(built, branch `ai/08-assistant`)*: input scrubber, allowlist check, egress check, re-hydration; `resolve_period`, `bookings_count`, `revenue_summary` (by `RevenueKind`), `utilization`, `bookings_list`. PII + tenant tests. Tools are hand-written until the 04/07 registries exist (X7 generation is A0).
 3. **A2 — Runtime + CRM panel** *(built, branch `ai/08-assistant`)*: SSE streaming, mask preview, routing (fast/standard + escalation tool), caching, vi/en, source chips, hard cost cap via the shared meter, floating bubble on every workspace page. Not yet: entity `@`-picker chips in the composer, conversation history list.
-4. **A3 — Evals in CI**: fixture with canaries, 50 quality questions, the full PII suite.
+4. **A3 — Evals** *(harness built, branch `ai/08-assistant-fix`)*: canary fixture with fixed clock, independent oracle, 50 vi/en cases (38 quality, 12 security), echo-adversary PII/security suite that runs without a key, real-model grading with thresholds and cost report. Not yet: a real-model baseline run (needs `ANTHROPIC_API_KEY`), CI wiring (no remote yet), LLM-judge rubric for Vietnamese tone.
 5. **A4 — Breadth**: remaining metrics, staff/customer token insights, day overview, 100+ evals, usage ledger + cost cap, admin toggle; monthly review job (`assistant.deep`, Pro).
 6. **B — Confirmed writes**: block slot, booking create/reschedule for existing clients, templated reminder.
 7. **D — MCP server** (tokenized output).

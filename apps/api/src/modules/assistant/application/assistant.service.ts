@@ -21,11 +21,12 @@ import {
 import { EntitlementService } from "../../subscriptions/subscriptions.facade";
 import { checkToolResult } from "../firewall/allowlist";
 import { StreamRehydrator } from "../firewall/rehydrate";
-import { containsPersonalData, type Directory, scrubUserText } from "../firewall/scrubber";
+import { containsPersonalData, scrubUserText } from "../firewall/scrubber";
 import { TokenVault } from "../firewall/token-vault";
 import { AssistantLlm, type TurnBody, type TurnMessage } from "../llm/assistant-llm";
 import { ReadTools, ToolInputError } from "../tools/read-tools";
 import { type AssistantTool, type ToolContext, toModelTool } from "../tools/tool";
+import { AssistantClock } from "./clock";
 import { AssistantDirectory } from "./directory";
 import { contextLine, SYSTEM_PROMPT } from "./prompt";
 import { MAX_CALLS_PER_TURN, pickRoute, type Route, ROUTES } from "./routing";
@@ -61,6 +62,7 @@ export class AssistantService {
     private readonly directory: AssistantDirectory,
     private readonly readTools: ReadTools,
     private readonly config: AppConfig,
+    private readonly clock: AssistantClock,
   ) {}
 
   async status(ctx: SalonContext): Promise<AssistantStatus> {
@@ -96,6 +98,13 @@ export class AssistantService {
     const vault = await TokenVault.load(this.prisma, ctx.salonId, conversation.id);
     const directory = await this.directory.load(ctx.salonId);
     const scrubbed = await scrubUserText(input.text, directory, vault);
+    // Egress check on what the user typed (after scrubbing) — the only free text the model gets.
+    // Server-made content (context line, tool results) is fixed vocabulary guarded by the
+    // allowlist; scanning it would let a crafted customer name block the assistant.
+    if (containsPersonalData(scrubbed.text, directory)) {
+      this.logger.warn({ salonId: ctx.salonId }, "assistant egress check blocked a request");
+      throw new AppError(422, ASSISTANT_ERRORS.privacyBlocked, "Request blocked by privacy check");
+    }
     await vault.flush();
     let names = await this.directory.displayNames(
       ctx.salonId,
@@ -111,7 +120,7 @@ export class AssistantService {
       changed: scrubbed.changed,
     });
 
-    const today = toLocal(Date.now(), salon.timezone).date;
+    const today = toLocal(this.clock.now(), salon.timezone).date;
     const history = await this.history(conversation.id, ctx.salonId);
     const userMessage: Param = {
       role: "user",
@@ -129,7 +138,7 @@ export class AssistantService {
       timeZone: salon.timezone,
       permissions: ctx.permissions,
       vault,
-      now: () => Date.now(),
+      now: () => this.clock.now(),
     };
     let route: Route = ROUTES[pickRoute(scrubbed.text)];
 
@@ -140,7 +149,6 @@ export class AssistantService {
         route,
         tools,
         messages,
-        directory,
         (delta) => {
           const text = rehydrator.push(delta);
           if (text) emit({ type: "delta", text });
@@ -239,23 +247,16 @@ export class AssistantService {
   }
 
   /**
-   * One metered model call. Egress check first: if user-side content still contains a contact
-   * detail or a known name, nothing is sent. Cost settles like the AI import (security review).
+   * One metered model call. Cost settles like the AI import (security review).
    */
   private async callModel(
     ctx: SalonContext,
     route: Route,
     tools: AssistantTool[],
     messages: Param[],
-    directory: Directory,
     onText: (delta: string) => void,
     signal?: AbortSignal,
   ): Promise<TurnMessage> {
-    const userSide = JSON.stringify(messages.filter((m) => m.role === "user"));
-    if (containsPersonalData(userSide, directory)) {
-      this.logger.warn({ salonId: ctx.salonId }, "assistant egress check blocked a request");
-      throw new AppError(422, ASSISTANT_ERRORS.privacyBlocked, "Request blocked by privacy check");
-    }
     const body: TurnBody = {
       model: route.model,
       max_tokens: route.maxTokens,

@@ -30,10 +30,12 @@ export class AssistantDirectory {
         take: MAX_CUSTOMER_NAMES,
       }),
     ]);
+    // Full lists: masking over-masks on purpose; the egress block check applies its own exclusions.
+    const keep = (name: string) => name.trim() !== "";
     return {
-      staff: staff.map((s) => ({ id: s.id, name: s.displayName })),
-      customers: customers.map((c) => c.customerName ?? "").filter(Boolean),
-      salon: [salonName(salon.name)].filter(Boolean),
+      staff: staff.map((s) => ({ id: s.id, name: s.displayName })).filter((s) => keep(s.name)),
+      customers: customers.map((c) => c.customerName ?? "").filter(keep),
+      salon: [salonName(salon.name)].filter(keep),
     };
   }
 
