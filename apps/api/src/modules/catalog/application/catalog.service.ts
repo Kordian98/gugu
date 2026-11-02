@@ -11,6 +11,7 @@ import { AppError } from "../../../common/problem/app-error";
 import { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../../audit/audit.facade";
+import { replaceServiceResourceRequirements } from "../../bookings/bookings.facade";
 import { bumpAvailabilityVersion } from "../../salon-settings/salon-settings.facade";
 
 type Tx = Prisma.TransactionClient;
@@ -21,6 +22,11 @@ const SERVICE_INCLUDE = {
   staff: {
     where: { variantId: null, staff: { deletedAt: null } },
     select: { staffId: true },
+  },
+  resourceRequirements: {
+    where: { type: { deletedAt: null } },
+    select: { resourceTypeId: true, quantity: true },
+    orderBy: { createdAt: "asc" },
   },
 } as const satisfies Prisma.ServiceInclude;
 
@@ -66,6 +72,7 @@ function toDto(s: ServiceRow): Service {
       sortOrder: a.sortOrder,
     })),
     staffIds: s.staff.map((x) => x.staffId),
+    resourceRequirements: s.resourceRequirements,
   };
 }
 
@@ -266,6 +273,11 @@ export class CatalogService {
       where: { salonId, serviceId, deletedAt: null, id: { notIn: keepAddOns } },
       data: { deletedAt: now, isActive: false },
     });
+
+    // Resources the service needs (topic 06 M6.6); omitted = unchanged, like staffIds.
+    if (input.resourceRequirements) {
+      await replaceServiceResourceRequirements(tx, salonId, serviceId, input.resourceRequirements);
+    }
 
     if (!input.staffIds) return;
     const staffIds = [...new Set(input.staffIds)];

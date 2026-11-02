@@ -3,6 +3,7 @@ export * from "./availability";
 export * from "./draft-policy";
 export * from "./intervals";
 export * from "./policy";
+export * from "./resources";
 export * from "./state-machine";
 export * from "./terms";
 export * from "./tz";

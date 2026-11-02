@@ -26,7 +26,7 @@ import {
   insertOccupancy,
   isSlotConflict,
   lockPhone,
-  lockStaff,
+  lockClaims,
   releaseExpiredHolds,
 } from "../infra/occupancy";
 import type { BookingActor } from "./booking-actor";
@@ -103,12 +103,13 @@ export class CreateBookingCommand {
     let candidates = this.candidates(ctx, actor, selection.staffTerms, req.selection.staffId);
     const phoneHash = req.customer ? this.secrets.phoneHash(req.customer.phoneE164) : null;
 
-    await lockStaff(tx, candidates);
+    const unitIds = selection.units.map((u) => u.unitId);
+    await lockClaims(tx, [...candidates, ...unitIds]);
     if (actor.kind === "customer" && phoneHash) {
       await lockPhone(tx, salonId, phoneHash);
       await this.checkActiveLimit(tx, ctx, phoneHash, now);
     }
-    await releaseExpiredHolds(tx, salonId, candidates, now);
+    await releaseExpiredHolds(tx, salonId, candidates, now, unitIds);
 
     let holdId: string | null = null;
     if (actor.kind === "customer") {
@@ -239,6 +240,7 @@ export class CreateBookingCommand {
       await insertOccupancy(tx, {
         salonId,
         staffId: option.staffId,
+        unitIds: option.unitIds,
         period: option.occupancy,
         booking: booking.id,
       });

@@ -12,7 +12,7 @@ import {
 import {
   insertOccupancy,
   isSlotConflict,
-  lockStaff,
+  lockClaims,
   releaseExpiredHolds,
 } from "../infra/occupancy";
 import { BookingClock } from "./booking-clock";
@@ -53,8 +53,9 @@ export class HoldsCommand {
           const candidates = req.staffId ? [req.staffId] : [...selection.staffTerms.keys()];
           if (candidates.length === 0) throw slotTaken();
 
-          await lockStaff(tx, candidates);
-          await releaseExpiredHolds(tx, ctx.salonId, candidates, now);
+          const unitIds = selection.units.map((u) => u.unitId);
+          await lockClaims(tx, [...candidates, ...unitIds]);
+          await releaseExpiredHolds(tx, ctx.salonId, candidates, now, unitIds);
           await tx.bookingHold.deleteMany({ where: { salonId: ctx.salonId, deviceHash } });
 
           const start = req.startsAt.getTime();
@@ -85,6 +86,7 @@ export class HoldsCommand {
           await insertOccupancy(tx, {
             salonId: ctx.salonId,
             staffId: option.staffId,
+            unitIds: option.unitIds,
             period: option.occupancy,
             hold: { id: hold.id, expiresAt },
           });

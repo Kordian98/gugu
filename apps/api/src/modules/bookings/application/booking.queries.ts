@@ -29,7 +29,18 @@ import { BookingSecrets } from "../infra/booking-secrets";
 import { BookingClock } from "./booking-clock";
 import { bookingNotFound } from "./booking-errors";
 
-const BOOKING_INCLUDE = { services: { include: { addOns: true } } } as const;
+const BOOKING_INCLUDE = {
+  services: { include: { addOns: true } },
+  // Resource units held by the booking (M6.6).
+  occupancy: {
+    where: { resourceUnitId: { not: null } },
+    select: {
+      unit: {
+        select: { id: true, position: true, resource: { select: { id: true, name: true } } },
+      },
+    },
+  },
+} as const;
 type BookingRow = Prisma.BookingGetPayload<{ include: typeof BOOKING_INCLUDE }>;
 
 const num = (v: bigint | null): number | null => (v === null ? null : Number(v));
@@ -243,6 +254,18 @@ export class BookingQueries {
       ruleOverrides: b.ruleOverrides.filter(
         (o): o is "hours" | "lead_time" | "horizon" =>
           o === "hours" || o === "lead_time" || o === "horizon",
+      ),
+      resources: b.occupancy.flatMap((o) =>
+        o.unit
+          ? [
+              {
+                resourceId: o.unit.resource.id,
+                unitId: o.unit.id,
+                name: o.unit.resource.name,
+                position: o.unit.position,
+              },
+            ]
+          : [],
       ),
       createdAt: b.createdAt.toISOString(),
       updatedAt: b.updatedAt.toISOString(),

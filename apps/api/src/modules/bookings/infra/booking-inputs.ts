@@ -11,7 +11,7 @@ import {
 import { BOOKING_ERRORS } from "@gugu/contracts";
 import { AppError } from "../../../common/problem/app-error";
 import type { Prisma } from "../../../infrastructure/prisma/generated/client";
-import { loadBusy } from "./occupancy";
+import { loadBusy, loadUnitBusy } from "./occupancy";
 
 /**
  * Loads what the pure engine needs (packages/domain/src/booking) in a handful of batched queries
@@ -88,6 +88,10 @@ export interface ResolvedSelection extends ServiceSelection {
   /** Per eligible staff member: terms with that member's override applied. */
   staffTerms: Map<string, ServiceTerms>;
   staffSortOrder: Map<string, number>;
+  /** Resource types the service needs (M6.6). */
+  requirements: { resourceTypeId: string; quantity: number }[];
+  /** Active units of those types (lock targets and availability input). */
+  units: { unitId: string; resourceTypeId: string; sortOrder: number }[];
 }
 
 const num = (v: bigint | null): number | null => (v === null ? null : Number(v));
@@ -166,6 +170,7 @@ export async function resolveSelection(
     where: { id: selection.serviceId, salonId, isActive: true, deletedAt: null },
     include: {
       variants: { where: { isActive: true, deletedAt: null } },
+      resourceRequirements: { where: { type: { deletedAt: null } } },
       addOns: { where: { id: { in: addOnIds }, isActive: true, deletedAt: null } },
       staff: {
         where: {
@@ -243,7 +248,48 @@ export async function resolveSelection(
     addOns,
     staffTerms,
     staffSortOrder,
+    requirements: service.resourceRequirements.map((r) => ({
+      resourceTypeId: r.resourceTypeId,
+      quantity: r.quantity,
+    })),
+    units: await loadUnits(
+      db,
+      salonId,
+      service.resourceRequirements.map((r) => r.resourceTypeId),
+    ),
   };
+}
+
+/** Active units of active, non-deleted resources of these types, in fill order. */
+async function loadUnits(
+  db: Db,
+  salonId: string,
+  resourceTypeIds: readonly string[],
+): Promise<ResolvedSelection["units"]> {
+  if (resourceTypeIds.length === 0) return [];
+  const units = await db.resourceUnit.findMany({
+    where: {
+      salonId,
+      isActive: true,
+      resource: {
+        isActive: true,
+        deletedAt: null,
+        resourceTypeId: { in: [...resourceTypeIds] },
+        type: { deletedAt: null },
+      },
+    },
+    select: {
+      id: true,
+      position: true,
+      resource: { select: { resourceTypeId: true, sortOrder: true } },
+    },
+  });
+  return units.map((u) => ({
+    unitId: u.id,
+    resourceTypeId: u.resource.resourceTypeId,
+    // Resource order first, then unit number (units of one resource stay together).
+    sortOrder: u.resource.sortOrder * 1_000 + u.position,
+  }));
 }
 
 /** Builds the engine input for dates `[from, to]` and the given staff members. */
@@ -266,7 +312,8 @@ export async function loadAvailabilityInput(
     end: dayBounds(addDays(args.to, 1), timeZone).end,
   };
   const staffIds = [...args.staffIds];
-  const [hours, holidays, schedules, breaks, timeOff, busy] = await Promise.all([
+  const unitIds = selection.units.map((u) => u.unitId);
+  const [hours, holidays, schedules, breaks, timeOff, busy, unitBusy] = await Promise.all([
     db.salonOpeningHours.findMany({ where: { salonId } }),
     db.salonHoliday.findMany({
       where: {
@@ -286,6 +333,7 @@ export async function loadAvailabilityInput(
       },
     }),
     loadBusy(db, salonId, staffIds, window, args.now, args.exclude),
+    loadUnitBusy(db, salonId, unitIds, window, args.now, args.exclude),
   ]);
 
   const staff: StaffAvailability[] = staffIds.flatMap((staffId) => {
@@ -348,6 +396,15 @@ export async function loadAvailabilityInput(
           : null,
     })),
     staff,
+    resources: {
+      requirements: selection.requirements,
+      units: selection.units.map((u) => ({
+        ...u,
+        busy: unitBusy
+          .filter((b) => b.unitId === u.unitId)
+          .map((b) => ({ start: b.start, end: b.end })),
+      })),
+    },
     ...(args.overrides ? { overrides: args.overrides } : {}),
   };
 }

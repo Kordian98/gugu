@@ -22,7 +22,13 @@
     "zalo_send_logs_valid",
     "zalo_webhook_events_status_valid",
     "zalo_oa_connections_tokens_when_connected",
-    "customer_notes_body_len"
+    "customer_notes_body_len",
+    "booking_occupancy_one_target",
+    "booking_occupancy_no_unit_overlap",
+    "resource_types_valid",
+    "resources_valid",
+    "resource_units_valid",
+    "service_resource_requirements_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",

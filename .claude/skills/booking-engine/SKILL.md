@@ -13,7 +13,7 @@ Any change to slot computation, booking writes, statuses, schedules as consumed 
 ## Invariants
 - MUST: every staff/resource-unit time occupation is a row in `booking_occupancy` with a half-open `tstzrange` `[start − buffer_before, end + buffer_after)`.
 - MUST: exclusion constraints `(staff_id =, range &&) WHERE active` and `(resource_unit_id =, range &&) WHERE active` exist. They are the final guard; never drop, never bypass.
-- MUST: capacity N = N `resource_unit` rows; never count-based capacity checks without units.
+- MUST: capacity N = N `resource_unit` rows; never count-based capacity checks without units. Lock staff and unit targets together via `lockClaims` (one sorted list) before writing occupancy.
 - MUST: booking writes run in one transaction: idempotency check → sorted advisory locks (staff-day, then customer) → delete overlapping expired holds → revalidate with `computeSlots` → insert booking + snapshots + occupancy + status history + outbox event.
 - MUST: map Postgres `23P01` to `409 SLOT_TAKEN` with alternative slots.
 - MUST: all timestamps UTC in DB; schedules are local wall-clock + salon IANA tz, converted via core tz helpers only.

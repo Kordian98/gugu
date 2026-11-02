@@ -528,6 +528,7 @@ model Salon {
   customerProfiles       CustomerSalonProfile[]
   bookings               Booking[]
   bookingHolds           BookingHold[]
+  resourceTypes          ResourceType[]
   zaloConnection         ZaloOaConnection?
   zaloConversations      ZaloConversation[]
   assistantConversations AssistantConversation[]
@@ -847,13 +848,14 @@ model Service {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  salon           Salon            @relation(fields: [salonId], references: [id], onDelete: Restrict)
-  category        ServiceCategory? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  variants        ServiceVariant[]
-  addOns          ServiceAddOn[]
-  staff           StaffService[]
-  bookingServices BookingService[]
-  bookingHolds    BookingHold[]
+  salon                Salon                        @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  category             ServiceCategory?             @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants             ServiceVariant[]
+  addOns               ServiceAddOn[]
+  staff                StaffService[]
+  bookingServices      BookingService[]
+  bookingHolds         BookingHold[]
+  resourceRequirements ServiceResourceRequirement[]
 
   @@unique([salonId, id])
   @@index([salonId, sortOrder])
@@ -1143,23 +1145,27 @@ model BookingHold {
 /// Engine-owned time claims (bookings and holds), buffers included. EXCLUDE constraint
 /// `booking_occupancy_no_staff_overlap` (raw SQL) guarantees no double booking.
 model BookingOccupancy {
-  id        String                   @id @default(uuid(7)) @db.Uuid
-  salonId   String                   @map("salon_id") @db.Uuid
-  kind      OccupancyKind
-  bookingId String?                  @map("booking_id") @db.Uuid
-  holdId    String?                  @map("hold_id") @db.Uuid
-  staffId   String                   @map("staff_id") @db.Uuid
-  period    Unsupported("tstzrange")
-  active    Boolean                  @default(true)
-  expiresAt DateTime?                @map("expires_at") @db.Timestamptz(6)
-  createdAt DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  id             String                   @id @default(uuid(7)) @db.Uuid
+  salonId        String                   @map("salon_id") @db.Uuid
+  kind           OccupancyKind
+  bookingId      String?                  @map("booking_id") @db.Uuid
+  holdId         String?                  @map("hold_id") @db.Uuid
+  /// Exactly one of staff_id / resource_unit_id (CHECK booking_occupancy_one_target).
+  staffId        String?                  @map("staff_id") @db.Uuid
+  resourceUnitId String?                  @map("resource_unit_id") @db.Uuid
+  period         Unsupported("tstzrange")
+  active         Boolean                  @default(true)
+  expiresAt      DateTime?                @map("expires_at") @db.Timestamptz(6)
+  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  booking Booking?     @relation(fields: [salonId, bookingId], references: [salonId, id], onDelete: Restrict)
+  booking Booking?      @relation(fields: [salonId, bookingId], references: [salonId, id], onDelete: Restrict)
   /// Cascade: a hold's claim has no meaning without the hold (swept together).
-  hold    BookingHold? @relation(fields: [salonId, holdId], references: [salonId, id], onDelete: Cascade)
-  staff   StaffProfile @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+  hold    BookingHold?  @relation(fields: [salonId, holdId], references: [salonId, id], onDelete: Cascade)
+  staff   StaffProfile? @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+  unit    ResourceUnit? @relation(fields: [salonId, resourceUnitId], references: [salonId, id], onDelete: Restrict)
 
   @@index([salonId, staffId])
+  @@index([salonId, resourceUnitId])
   @@index([bookingId])
   @@index([holdId])
   @@map("booking_occupancy")
@@ -1620,4 +1626,84 @@ model CustomerNote {
   @@unique([salonId, id])
   @@index([salonId, profileId, createdAt])
   @@map("customer_notes")
+}
+
+// ─── Resources (topic 06 M6.6; spec 06 §3.4, X4) ────────────────────────────────────────────────
+// A resource of capacity N has N resource_units; units are claimed in booking_occupancy under the
+// EXCLUDE constraint `booking_occupancy_no_unit_overlap`, so capacity is never counted.
+
+/// Salon-defined kind of resource ("Giường massage", "Ghế pedicure", "Phòng VIP").
+model ResourceType {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  salonId   String    @map("salon_id") @db.Uuid
+  name      String
+  sortOrder Int       @default(0) @map("sort_order")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon        Salon                        @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  resources    Resource[]
+  requirements ServiceResourceRequirement[]
+
+  @@unique([salonId, id])
+  @@index([salonId, sortOrder])
+  @@map("resource_types")
+}
+
+/// One room/chair/bed/device (or a group of identical ones: capacity = active units).
+model Resource {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  salonId        String    @map("salon_id") @db.Uuid
+  resourceTypeId String    @map("resource_type_id") @db.Uuid
+  name           String
+  isActive       Boolean   @default(true) @map("is_active")
+  sortOrder      Int       @default(0) @map("sort_order")
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  type  ResourceType   @relation(fields: [salonId, resourceTypeId], references: [salonId, id], onDelete: Restrict)
+  units ResourceUnit[]
+
+  @@unique([salonId, id])
+  @@index([salonId, resourceTypeId])
+  @@map("resources")
+}
+
+/// One bookable capacity slot of a resource. Managed by the API (capacity changes), never deleted
+/// while referenced by occupancy history — deactivated instead.
+model ResourceUnit {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  salonId    String   @map("salon_id") @db.Uuid
+  resourceId String   @map("resource_id") @db.Uuid
+  /// 1-based position within the resource ("Giường 2").
+  position   Int
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  resource  Resource           @relation(fields: [salonId, resourceId], references: [salonId, id], onDelete: Restrict)
+  occupancy BookingOccupancy[]
+
+  @@unique([salonId, id])
+  @@unique([resourceId, position])
+  @@map("resource_units")
+}
+
+/// A service needs `quantity` units of a resource type at the same time as the staff member.
+model ServiceResourceRequirement {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  salonId        String   @map("salon_id") @db.Uuid
+  serviceId      String   @map("service_id") @db.Uuid
+  resourceTypeId String   @map("resource_type_id") @db.Uuid
+  quantity       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  service Service      @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  type    ResourceType @relation(fields: [salonId, resourceTypeId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@unique([serviceId, resourceTypeId])
+  @@map("service_resource_requirements")
 }

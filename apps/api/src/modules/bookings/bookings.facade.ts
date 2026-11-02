@@ -13,3 +13,5 @@ export {
 export type { BookingActor } from "./application/booking-actor";
 export type { IdempotencyClaim } from "./infra/idempotency";
 export type { SalonBookingContext } from "./infra/booking-inputs";
+// Resource requirements saved with a service by the catalog editor (topic 07, M6.6).
+export { replaceServiceResourceRequirements } from "./infra/resource-requirements";

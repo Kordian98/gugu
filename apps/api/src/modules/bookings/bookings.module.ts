@@ -9,7 +9,9 @@ import { BookingQueries } from "./application/booking.queries";
 import { CreateBookingCommand } from "./application/create-booking.command";
 import { HoldsCommand } from "./application/holds.command";
 import { BookingContexts } from "./http/booking-contexts";
+import { ResourcesController } from "./http/resources.controller";
 import { SalonBookingsController } from "./http/salon-bookings.controller";
+import { ResourcesService } from "./application/resources.service";
 import { BookingSecrets } from "./infra/booking-secrets";
 
 /**
@@ -22,7 +24,7 @@ import { BookingSecrets } from "./infra/booking-secrets";
   // PublicBookingController (salon booking page, guest manage links) is deliberately NOT routed:
   // roadmap X23 — no customer-facing booking surface on gugu.vn until a Vietnamese legal review.
   // Its domain paths (customer actor, holds, draft policy, per-phone limit) stay tested.
-  controllers: [SalonBookingsController],
+  controllers: [SalonBookingsController, ResourcesController],
   providers: [
     BookingActors,
     BookingClock,
@@ -33,6 +35,7 @@ import { BookingSecrets } from "./infra/booking-secrets";
     BookingSecrets,
     CreateBookingCommand,
     HoldsCommand,
+    ResourcesService,
   ],
   exports: [
     BookingMaintenance,

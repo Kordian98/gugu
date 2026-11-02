@@ -83,6 +83,7 @@ export const availabilitySlotSchema = z.object({
 export const unavailableReasonSchema = z.enum([
   "no_staff_assigned",
   "no_working_hours",
+  "no_resource",
   "outside_booking_window",
   "fully_booked",
 ]);
@@ -248,6 +249,16 @@ export const salonBookingSchema = z.object({
   note: z.string().nullable(),
   lateCancellation: z.boolean(),
   ruleOverrides: z.array(ruleOverrideSchema),
+  /** Resource units this booking holds (M6.6), e.g. "Giường massage · 2". */
+  resources: z.array(
+    z.object({
+      resourceId: uuidV7Schema,
+      unitId: uuidV7Schema,
+      name: z.string(),
+      /** 1-based unit number within the resource. */
+      position: z.number().int(),
+    }),
+  ),
   createdAt: instantSchema,
   updatedAt: instantSchema,
   version: z.number().int(),

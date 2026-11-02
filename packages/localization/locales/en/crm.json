@@ -488,6 +488,7 @@
     "unavailable": {
       "no_staff_assigned": "Not bookable: no team member is assigned to this service.",
       "no_working_hours": "Not bookable: the team members for this service have no working hours (or the salon has no opening hours).",
+      "no_resource": "Not bookable: this service needs a room or equipment (e.g. a bed or chair) and none is active yet.",
       "outside_booking_window": "This date is outside the booking window.",
       "fully_booked": "No free times this month for this choice.",
       "fixServices": "Assign staff",

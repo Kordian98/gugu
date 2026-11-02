@@ -65,4 +65,25 @@ describe("unavailableReason", () => {
   it("otherwise the time is taken", () => {
     expect(unavailableReason(input())).toBe("fully_booked");
   });
+  it("a required resource type has no (or too few) active units — after hours, before window", () => {
+    const resources = {
+      requirements: [{ resourceTypeId: "bed", quantity: 1 }],
+      units: [] as { unitId: string; resourceTypeId: string; sortOrder: number; busy: [] }[],
+    };
+    expect(unavailableReason(input({ resources }))).toBe("no_resource");
+    expect(unavailableReason(input({ resources, staff: [] }))).toBe("no_staff_assigned");
+    expect(unavailableReason(input({ resources, from: "2027-03-01", to: "2027-03-01" }))).toBe(
+      "no_resource",
+    );
+    const one = {
+      ...resources,
+      units: [{ unitId: "u1", resourceTypeId: "bed", sortOrder: 0, busy: [] }],
+    };
+    expect(unavailableReason(input({ resources: one }))).toBe("fully_booked");
+    expect(
+      unavailableReason(
+        input({ resources: { ...one, requirements: [{ resourceTypeId: "bed", quantity: 2 }] } }),
+      ),
+    ).toBe("no_resource");
+  });
 });
