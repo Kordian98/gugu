@@ -5,22 +5,24 @@ Durable reference for how GuGu is built, run, tested, merged, deployed, and obse
 > Status: skeleton — filled as milestones M13.1–M13.9 land. Unbuilt items are marked **NOT IMPLEMENTED**.
 
 ## Decisions in force
-- Hosting: **AWS ap-southeast-1** (ECS Fargate, RDS PostgreSQL + PostGIS/btree_gist, ElastiCache Valkey node-based, S3 + CloudFront media, SES, Secrets Manager/SSM), Cloudflare at the edge, CDK TypeScript.
-- No Vietnamese legal entity yet; data residency pending legal review.
-- **No git remote**: local merge gate (below). GitHub Actions design is dormant until a remote exists.
-- Channel ids: `push`, `email`, `sms`, `zalo_template` (ZBS Template Message, formerly ZNS), `zalo_oa`.
+- **Localhost only** until there is an app: no AWS account, staging, cloud backups, git remote, or on-call.
+- Later hosting target (13-M13.6): AWS ap-southeast-1 (ECS Fargate, RDS PostgreSQL + PostGIS/btree_gist, ElastiCache Valkey node-based, S3 + CloudFront media, SES, Secrets Manager/SSM), **Cloudflare in front**, CDK TypeScript.
+- No Vietnamese entity; accounts owned by the owner's Polish company; legal review deferred.
+- Local merge gate (below); GitHub Actions design dormant until a remote exists. No repo-bundle backups for now.
+- Channels: `push`, `email`, `zalo_template` (ZBS Template Message, formerly ZNS), `zalo_oa`; `sms` exists only as a mock. Analytics in-house.
+- Pre-release libraries allowed; pin exact versions.
 
 ## Environments
 | Env | Purpose | URL | App IDs | Data |
 |---|---|---|---|---|
 | local | development | localhost | `vn.gugu.app.dev` | deterministic seed |
-| staging | internal testing | NOT IMPLEMENTED (`staging.gugu.vn`) | `vn.gugu.app.staging` | seed + test data |
-| production | live | NOT IMPLEMENTED (`gugu.vn`) | `vn.gugu.app` | real |
+| staging | internal testing (later, 13-M13.6) | NOT IMPLEMENTED (`staging.gugu.vn`) | `vn.gugu.app.staging` | seed + test data |
+| production | live (later, 13-M13.9) | NOT IMPLEMENTED (`gugu.vn`) | `vn.gugu.app` | real |
 
 ## Local stack
 - Compose services, ports, volumes: NOT IMPLEMENTED
 - Scripts (`bootstrap`, `dev`, `reset`, `verify`, `gate`, `merge-to-main`, `deploy:*`): NOT IMPLEMENTED
-- Provider sink API (SMS, `zalo_template`, push, Zalo OA emulation): NOT IMPLEMENTED
+- Provider sink API (push, `zalo_template`, `zalo_oa`, SMS mock): NOT IMPLEMENTED
 
 ## Seed
 Fixed IDs/slugs/phones per seed entity (salons, roles, customers). NOT IMPLEMENTED.
@@ -29,8 +31,7 @@ Fixed IDs/slugs/phones per seed entity (salons, roles, customers). NOT IMPLEMENT
 - Branch `agent/<agent-slug>/<task-id>-<short>`, one worktree per agent in `../gugu-worktrees/`.
 - Hooks (lefthook): pre-commit blocks `main`, lint/format staged, gitleaks; commit-msg Conventional Commits. NOT IMPLEMENTED
 - Reviewer verdicts: `.git/gugu-reviews/<branch>/<reviewer>.json`, bound to HEAD SHA. Required-reviewer table: `.claude/skills/testing/SKILL.md`. NOT IMPLEMENTED
-- `pnpm merge-to-main`: rebase → gate → verdict check → `--no-ff` merge → repo bundle backup. NOT IMPLEMENTED
-- Repo backups (`git bundle` after each merge + daily): NOT IMPLEMENTED
+- `pnpm merge-to-main`: rebase → gate → verdict check → `--no-ff` merge. NOT IMPLEMENTED
 
 ## Later: remote + CI
 GitHub Actions tiers calling the same scripts, `claude-code-action` reviews, OIDC deploys. NOT IMPLEMENTED (no remote).
@@ -43,15 +44,15 @@ GitHub Actions tiers calling the same scripts, `claude-code-action` reviews, OID
 ## Deep links
 Scheme, associated domains, path patterns, AASA/assetlinks: NOT IMPLEMENTED
 
-## AWS topology
+## AWS topology (later, 13-M13.6)
 - Accounts: `gugu-staging`, `gugu-prod`, `gugu-backup` — NOT IMPLEMENTED
 - CDK stacks (`Network`, `Data`, `Services`, `Edge`, `Observability`, `Backup`): NOT IMPLEMENTED
 - Diagram: NOT IMPLEMENTED
 
 ## Observability
-Sentry projects, CloudWatch log groups, dashboards, alarms → runbooks: NOT IMPLEMENTED
+Now: JSON logs + Sentry dev. Later: Sentry projects, CloudWatch log groups, dashboards, alarms → runbooks: NOT IMPLEMENTED
 
-## Backups & DR
+## Backups & DR (later)
 RDS PITR, cross-account snapshot copies, S3 versioning, restore drill log: NOT IMPLEMENTED
 
 ## Secrets
@@ -60,7 +61,7 @@ Secret classes and where each lives (Secrets Manager / SSM / EAS env): NOT IMPLE
 ## Decisions
 | ADR | Title | Status |
 |---|---|---|
-| — | Hosting: AWS ap-southeast-1; Cloudflare edge + CloudFront media | proposed (PO leaning AWS) |
+| — | Hosting (later): AWS ap-southeast-1; Cloudflare in front + CloudFront media | accepted by owner (q02, q56) |
 | — | Compute: ECS Fargate (Lambda unsuitable, App Runner closed to new customers) | proposed |
 | — | Queue store: ElastiCache Valkey node-based, noeviction | proposed |
 | — | IaC: AWS CDK TypeScript | proposed |

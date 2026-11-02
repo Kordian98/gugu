@@ -10,14 +10,16 @@ Status: skeleton — no code yet. Fill each section as code lands.
 - **Idempotency key** — `sha256(event_type|entity_id|entity_version|recipient_id|channel|variant)`.
 - **Transactional vs marketing** — marketing needs consent and respects quiet hours.
 - **`zalo_template`** — channel id for ZBS Template Message (formerly ZNS), adapter owned by the zalo domain.
-- **SMS route** — country → ordered provider list (config); provider-agnostic adapters.
+- **SMS (mock)** — no real SMS for now (X12); mock adapter behind a provider-agnostic port with country → provider routing ready for later.
+- **Messaging cost** — each paid delivery stores salon id, units and estimated cost; daily per-salon rollup (GuGu pays inside the plan).
 - **`vi-ascii`** — diacritic-free SMS template variant used when `vi` exceeds the segment budget (UCS-2 = 70 chars/segment).
 
 ## Invariants
 - Notifications are produced only via the outbox.
 - One delivery per idempotency key (BullMQ jobId + DB unique index).
 - Every event × channel has vi and en templates.
-- Reviews: one per completed booking, own booking, within 30 days.
+- Reviews: one per completed booking, own booking, within 30 days; editable for 7 days or until the salon responds.
+- Account deletion: 30-day grace period, then anonymization.
 - Account deletion anonymizes; bookings are never hard-deleted.
 - Moderation is rule-based (keywords, phone/email/URL patterns, report threshold) + manual queue; automatic actions only move to `pending_review`. No personal data, review text included, is sent to any LLM.
 

@@ -13,7 +13,7 @@ description: Boot the full GuGu stack locally (Postgres+PostGIS, Redis, MinIO, M
 - Fresh machine or broken environment.
 
 ## Invariants
-- MUST NOT point local runs at staging/production data or real SMS / `zalo_template` (ZBS Template Message) / Zalo OA / email providers.
+- Localhost is the only environment for now (no staging/AWS). MUST NOT call real providers: provider-sink emulates push, `zalo_template` (ZBS Template Message), `zalo_oa` and an SMS mock; Mailpit catches email.
 - MUST use the deterministic seed; refer to seed entities by their fixed slugs/IDs (`docs/domains/platform-devops.md#seed`).
 - `make reset` / `pnpm reset --yes` only ever touches local Docker volumes.
 
@@ -31,7 +31,7 @@ description: Boot the full GuGu stack locally (Postgres+PostGIS, Redis, MinIO, M
 | Web app | http://localhost:8081 (redirects to `/vi`) |
 | Mailpit (emails) | http://localhost:8025 |
 | MinIO console | http://localhost:9001 |
-| Provider sink (SMS / `zalo_template` / push / Zalo OA) | http://localhost:4010/messages |
+| Provider sink (push / `zalo_template` / `zalo_oa` / SMS mock) | http://localhost:4010/messages |
 
 ## Procedure: verify web
 1. Open `http://localhost:8081/vi` and `/en`; confirm locale strings differ and no raw keys (`booking.bookNow`) render.
@@ -57,7 +57,7 @@ description: Boot the full GuGu stack locally (Postgres+PostGIS, Redis, MinIO, M
 ## Procedure: deep links
 - Android: `adb shell am start -a android.intent.action.VIEW -d "gugu://vi/salon/<seed-slug>"`
 - iOS: `xcrun simctl openurl booted "gugu://vi/salon/<seed-slug>"`
-- Universal/App Links need a domain with AASA/assetlinks — test on staging builds, not locally.
+- Universal/App Links need a deployed domain with AASA/assetlinks — not testable until staging exists (13-M13.6); use the custom scheme locally.
 
 ## Troubleshooting
 | Symptom | Fix |

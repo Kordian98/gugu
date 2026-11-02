@@ -6,8 +6,8 @@ Status: **skeleton.** Nothing is implemented yet. Fill in each section as code l
 
 ## Summary
 - Customers book for free and pay at the salon. GuGu never processes customer payments.
-- Salons get a free plan by default. Paid plans unlock entitlements (AI agent, Zalo inbox, quotas…). Plans are assigned manually in the MVP.
-- Every booking has one immutable attribution record. Commission is a configurable, inactive-by-default foundation with an append-only ledger and no automatic charging.
+- Revenue is monthly/yearly SaaS subscriptions only: **Basic, Pro, Ultra**, monthly or yearly (prices TBD). There is **no free plan**. AI onboarding import is in all three. The AI assistant and the monthly Opus review are included from Pro. Ultra contents and any trial are provisional (q75; matrix in spec R-S2a). Every salon has a hard AI cost cap. GuGu pays for messaging inside the plan and tracks its cost. Plans are assigned manually in the MVP.
+- Every booking has one immutable attribution record. Commission is **dormant**: specified (append-only ledger, no automatic charging) but not built for launch.
 
 ## Invariants
 - No automatic charging. `paid` is a manual flag.
@@ -20,7 +20,10 @@ Status: **skeleton.** Nothing is implemented yet. Fill in each section as code l
 - `BookingSource` is a single enum owned here and mapped to `gugu_acquired | salon_acquired` (spec §3.1a).
 - Zalo transactional channel is `zalo_template` (ZBS Template Message, formerly ZNS). SMS count and cost are metered per salon.
 - No personal data goes to any LLM. Agent tools and the Admin Copilot use aggregates and opaque tokens only.
-- Subscriptions are invoiced manually by a foreign entity. No Vietnamese entity, no processor in the MVP.
+- Subscriptions are invoiced manually by the owner's company (Polish or Vietnamese, TBD). No processor in the MVP.
+- Analytics is in-house: `/api/v1/events` → `analytics_event` (Postgres) → rollups. No third-party analytics.
+- Salons see their own reliability score; raw risk signals are admin-only.
+- Promoted listings are allowed at launch, always labeled Sponsored. The Admin Copilot ships in v1, PII-free.
 - Admin mutations require a reason and are audit logged.
 
 ## Model
@@ -36,7 +39,8 @@ _TODO: entity list with key fields and relations once the Prisma schema exists (
 | UsageEvent / UsageCounter | metering | yes |
 | FeatureFlag | rollout control | no |
 | RiskSignal / SalonReliabilitySnapshot | trust | yes |
-| MetricDaily | rollups | yes/platform |
+| AnalyticsEvent | in-house raw events (partitioned) | pseudonymous |
+| MetricDaily / FunnelDaily / CohortMonthly | rollups | yes/platform |
 
 ## Flows
 _TODO: sequence descriptions._
@@ -70,4 +74,4 @@ _TODO: paths once created._
 - `apps/app/app/[locale]/(admin)/`
 
 ## ADRs
-_TODO: attribution model & window · entitlement keys vs plan names · analytics vendor & data residency · append-only commission ledger._
+_TODO: attribution model & window · entitlement keys vs plan names · in-house analytics on Postgres · append-only commission ledger (dormant) · hard AI cost cap._

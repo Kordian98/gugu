@@ -34,10 +34,11 @@ Hand-write a tool only for helpers or write-action proposals. Zod schemas live i
 - MUST declare `permission` (05 matrix) and `kind`. Write tools: `confirmation: "required"`, return an `ActionProposal` with token/enum/time payload only, and never draft free text to customers (template enum instead).
 - Business numbers MUST come from `MetricCatalog`. Money MUST carry `RevenueKind` (`estimated_from_bookings` | `recorded_offline_sale` | `reported_by_salon`) and MUST NOT be summed across kinds unlabelled (X5).
 - Dates are ISO ranges in `ctx.timezone`; relative periods go through `resolve_period`.
+- Admin Copilot tools (12) follow the same rules; salons are `salon_N` tokens.
 - Inputs: Zod `.strict()`, tool registered with `strict: true`. Outputs compact: aggregates or ≤ 50 rows + cursor.
 
 ## Procedure
-0. **Check the rule first.** If answering needs any personal data or free text, stop: the feature is out of scope (spec §1). Raise it with the orchestrator instead of working around the firewall.
+0. **Check the rule first.** If answering needs any personal data or free text, stop: the feature is out of scope (spec §1), and lifting that needs a legal review plus explicit consent (spec §4.11). Raise it with the orchestrator instead of working around the firewall.
 1. **Prefer generation.**
    - Classify every field of the read model (04) or metric (07) in its registry entry: `pii: none | personal | freeText`.
    - Set `agentExposed: true`.

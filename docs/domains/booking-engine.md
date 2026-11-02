@@ -12,6 +12,7 @@ Durable reference for how GuGu computes availability and creates bookings withou
 | Resource unit | One capacity slot of a resource; capacity N → N units. |
 | Buffer | Prep/cleanup time before/after a service, included in occupancy. |
 | Draft | Unconfirmed booking needing human confirmation — only AI-agent bookings (X9 + X11). Customer self-service needs no OTP; it may start `pending` via `require_confirmation_for`. |
+| Add-on | Optional per-service extra (extra duration + price) chosen with the service; snapshotted per booking (q17). |
 | identity_verified | Whether the booking phone has been verified; `false` does not block a booking (X11). |
 | Source | `BookingSource` enum owned by topic 12, imported from `packages/contracts`. |
 | ZBS Template Message | Zalo transactional message (formerly ZNS); notification channel id `zalo_template`. |
@@ -50,5 +51,5 @@ _TODO: link tool definitions; see spec §9._
 _TODO: fill concrete files._
 
 ## Known limitations
-- Multi-service Phase B/C not implemented.
+- Launch: one service per appointment (+ variant + add-ons). Multi-service Phase B/C not implemented.
 - Waitlist, recurring, group bookings, deposits not implemented.

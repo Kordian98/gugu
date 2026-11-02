@@ -20,10 +20,11 @@ GuGu ships Vietnamese (`vi`, default) and English (`en`). The app (react-i18next
 - MUST show appointment times in the salon's timezone.
 - MUST NOT put user-facing prose in API responses. Return `{ code, params, field }`.
 - MUST NOT split Vietnamese names into first and last name. Use `fullName` and the `givenName()` helper.
-- MUST add the PR label `i18n:vi-review` when any vi string is new or changed.
+- MUST add the PR label `i18n:vi-review` when any vi string is new or changed. The approver is the **vi reviewer (owner's wife)**, who also approves `copy:brand`.
 - MUST NOT bake text into images, video, glTF textures, posters or 3D scenes. Hero headlines and script accents are `marketing` keys rendered as live text (OG images may be generated per locale from keys at build time).
 - MUST only use display, serif and script fonts that pass the Vietnamese glyph gate (see "Check a font for Vietnamese").
-- MUST use the right register: marketing (playful) or CRM (calm). See `references/tone-guide.md`.
+- MUST use the right register: marketing (playful, "bạn") or CRM (calm, "anh/chị"). See `references/tone-guide.md`.
+- MUST format prices as `150.000đ` in vi via `formatVND` (decided, q27).
 
 ## Procedures
 
@@ -51,6 +52,7 @@ GuGu ships Vietnamese (`vi`, default) and English (`en`). The app (react-i18next
 Templates live in `templates/<event>/<channel>.<locale>.*`.
 - SMS needs `vi`, `vi-ascii` (generated with `stripDiacritics`, then reviewed for ambiguity) and `en`.
 - `zalo_template` (ZBS Template Message, formerly ZNS) only maps parameters, because Zalo approves the wording (topic 09).
+- SMS (`vi`, `vi-ascii`, `en`) is low priority: there is no SMS for now (roadmap X12).
 - Push keeps the title at 40 characters or fewer and the body at 120 or fewer.
 
 ### Add hero or marketing copy
@@ -58,7 +60,7 @@ Templates live in `templates/<event>/<channel>.<locale>.*`.
 2. Write vi natively in the marketing register, offering 2–3 options in the PR description. Don't translate the en line word for word.
 3. Render as live text. In 3D use runtime text (R3F `Text`). On native video fallbacks, overlay the text on the video.
 4. Check that vi wraps and fits at small mobile and wide desktop widths; vi can be 20–40% longer.
-5. Add the labels `i18n:vi-review` and `copy:brand`; the copy needs brand-copy approval (Q7).
+5. Add the labels `i18n:vi-review` and `copy:brand`; the copy needs approval from the vi reviewer (owner's wife).
 
 ### Check a font for Vietnamese
 Render `Ầ Ẫ Ặ Ở Ữ Ỳ ầ ẫ ặ ở ữ ỳ đ Đ — Thương mình nhiều hơn, đẹp rạng rỡ mỗi ngày` at 48px and 96px on web, iOS and Android. Fail the font on any of these: missing glyphs, fallback-font substitution, marks clipped by line-height, or marks colliding. Record the result in `docs/domains/localization.md` → "Font coverage".

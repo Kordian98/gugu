@@ -21,6 +21,8 @@ GuGu web runs Expo Router with `web.output: "server"` (SDK ≥ 58). Public pages
 - MUST keep URL path keywords locale-independent (`/c/`, `/salon/`, `/services/`); slugs are unaccented, lowercase, hyphenated, `đ→d`, ≤ 60 chars.
 - MUST create a `slug_redirects` row (301) when a slug changes.
 - MUST NOT index thin pages: category×location with < `SEO_MIN_SALONS` (default 3) published salons → `noindex`.
+- Titles on category×location pages include the legacy district name as a secondary label when an alias exists ("Nail Quận 1 · P. Bến Thành, TP.HCM").
+- robots.txt allows AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended) on public pages (owner decision q43).
 - All strings via localization (`public`, `salon`, `search` namespaces). Titles ≤ 60 chars, descriptions ≤ 155.
 
 ## Procedure: add a public route

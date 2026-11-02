@@ -4,8 +4,19 @@
 >
 > **Rev. 2 constraint (PO decision, open-questions #1):** GuGu has **no Vietnamese legal entity** for now. Business validation comes first; an entity may come later. GuGu must still be **fully integration-ready**, so that turning Zalo on later is a config/credentials change, not a rebuild. See §2a for the paths that work without an entity, and §8 for the re-planned phases.
 >
+> **Owner answers applied (tracker, 2026-11-02):**
+> - **q28:** build Zalo Login, but keep it hidden until the central GuGu OA is configured.
+> - **q40:** Zalo reminders are on by default. AI auto-replies are paid plans only, and still deferred by X10.
+> - **q41:** no Mini App.
+> - **q48 / X12:** there is no SMS. Once Zalo is live, Zalo messages are the preferred customer verification and reminder channel; email covers the gap until then.
+> - **q33:** GuGu pays messaging within the plan, with costs watched via metering and quotas.
+> - **q61:** VN trademark filing deferred.
+> - **Developer accounts:** the Polish company owns them for now, so the GuGu Zalo App is created under it, administered by a team member's personal Zalo account.
+>
 > **Cross-topic resolutions applied:**
 > - **X2:** the notification channel id is `zalo_template` (ZBS Template Message). "ZNS" appears only as a historical alias in docs and search terms, never in code identifiers.
+> - **X10:** no personal data to any LLM (see R5 and §6).
+> - **X12:** no SMS. The channel order for customers is push → `zalo_template` (when a sender profile exists) → email. The SMS provider stays a mock.
 > - **X6:** booking/acquisition sources use the single enum owned by topic 12. Zalo maps to `zalo_link`, `zalo_chat`, `zalo_oa`, `zalo_mini_app`, plus `qr_code` and `ai_agent`; see R1.3 and §6.
 
 Zalo is the main messaging app in Vietnam, and most salons already run their business through it. Many take bookings in **personal** Zalo chats and phone calls. Some have a **Zalo Official Account (OA)**. Customers expect confirmations and reminders on Zalo rather than by email. GuGu should plug into that habit instead of competing with it, but the core product MUST work without any Zalo integration.
@@ -43,13 +54,13 @@ Zalo is the main messaging app in Vietnam, and most salons already run their bus
 | G3 | No sender strategy: central GuGu OA or salon's own OA? | **Both, modelled as `ZaloSenderProfile`** (`central` \| `salon_oa` \| `partner_oa`), in phases. Rev. 2: with no VN entity, **salon-owned OAs come first** (Z2a/Z2b). The central GuGu OA (Z1) is switched on by config once an entity or partner exists. One GuGu Zalo App can serve many OAs. Paid sends need a ZBS Account linked to the sending OA. |
 | G4 | No messaging-window rules. | Consultation replies through the OpenAPI are only possible **≤7 days** after the user's last interaction, and are free only **≤48 h**. Outside 7 days, send a template message (if one fits) or fall back to OA Manager, which allows 365 days, or another channel. The engine MUST check the window before sending. |
 | G5 | Cost is not modelled. Template messages and out-of-window consultation messages cost money, and the prices change (the 2026 OA package model differs from 2025). | Meter every paid send per tenant (`ZaloMessageLog.costEstimate`). Prices live in config, never in code. Decide who pays (GuGu vs salon) per plan (topic 12). |
-| G6 | OTP via Zalo is not mentioned. | ZBS OTP templates can be a cheaper OTP channel than SMS. Use them as a delivery option behind the OTP provider interface (topic 05), with SMS fallback. Rev. 2: OTP is a *platform* message, so it needs the central/partner OA and stays **disabled until Z1**. Topic 05 uses SMS via an aggregator. The adapter and emulator exist from ZR. |
+| G6 | OTP via Zalo is not mentioned. | ZBS OTP templates can be a cheaper OTP channel than SMS. Use them as a delivery option behind the OTP provider interface (topic 05), with SMS fallback. Rev. 2: OTP is a *platform* message, so it needs the central/partner OA and stays **disabled until Z1**. Per X12 there is no SMS: until Z1, verification uses an email link (topic 05). The adapter and emulator exist from ZR. |
 | G7 | The CRM has no concept of "conversation". | Add conversation, thread and message entities (owned here; schema placeholders in topic 04). |
 | G8 | Single-frontend rule vs Zalo Mini App. A Mini App is a Zalo-hosted React web app built with zmp-sdk and zmp-ui, so it is not an Expo target. | Treat the Mini App as a **separate thin channel client** that reuses `packages/api-client`, `validation`, `localization` and `domain`. This needs an ADR, because it is a deliberate exception to "one frontend". Deferred to Phase Z4. |
 | G9 | No legal/consent model for Zalo messages. | Keep a consent record per customer per channel. Transactional templates rely on the booking relationship; promotional sends need explicit opt-in. Honour opt-out and Zalo's spam controls (Zalo throttles flows users find annoying). Personal-data handling follows topic 05 (PDPL / Decree 13). This is not a claim of legal compliance. |
 | G10 | Webhook reliability is not specified. | Endpoints are HTTPS on a verified domain and MUST reply 200 within **5 s**. Verify the signature (HMAC-SHA256 with the app secret). Enqueue to BullMQ and process asynchronously. Make processing idempotent by event id. |
 | G11 | Phone ↔ UID mapping. The Zalo UID is scoped per OA/app and is not the phone number. | Store a `ZaloIdentity` row per (OA or app, uid). Link it to a customer by verified phone only, never by guessing. |
-| G12 | Zalo Login does not reliably return a phone number (it needs a special permission). | Zalo Login is a convenience login. Booking still requires a verified phone (master prompt §10), via OTP or a Zalo phone grant once approved. |
+| G12 | Zalo Login does not reliably return a phone number (it needs a special permission). | Zalo Login is a convenience login. Booking does not require a verified phone (X11/X12); a Zalo phone grant, once approved, only sets `identity_verified=true`. |
 | G13 | Some OA APIs need a paid OA tier, and some user-info APIs need a Vietnamese IP. | Run the integration worker from a VN or SEA egress, or verify early. List the required OA tier in salon onboarding. |
 | G14 | Official access largely requires a Vietnam-registered business. | **Answered: no VN entity for now.** The central GuGu OA (Z1) and the Mini App (Z4) are blocked. The salon-owned OA path (Z2a) and the emulated integration-ready build (ZR) do not need a GuGu entity. See §2a. |
 | G15 | No plan for building and testing Zalo features without live Zalo access. | Add milestone **ZR "integration-ready"**: the adapter, an emulator in `provider-sink`, the full data model, feature flags and contract tests. Going live is then a config/credentials switch per path. |
@@ -110,7 +121,9 @@ Facts are tagged **[official]** (oa.zalo.me / developers.zalo.me / miniapp.zalop
 7. **Contract tests** run the same scenarios against `EmulatedZaloClient` (CI) and, when credentials exist, against a sandbox/test OA (manual job).
 
 ### R2 — Template messages via central (or partner) GuGu OA (Phase Z1 — **blocked: no VN entity**; code ready in ZR)
-1. Implements the `NotificationChannel` interface from topic 11 as the `zalo_template` provider. Topic 11's orchestrator picks the channel order; the default for VN customers is push → zalo_template → SMS → email.
+1. Implements the `NotificationChannel` interface from topic 11 as the `zalo_template` provider. Topic 11's orchestrator picks the channel order. Per X12 the default is push → `zalo_template` → email, with no SMS. **Reminders via Zalo are on by default (q40)** for transactional booking messages; the customer can opt out in notification preferences.
+1a. **Customer verification via Zalo (q48/X12):** once a sender profile is live, a verification template, such as "confirm your booking", can replace the email link. The central OA is preferred. If the salon has Z2b, a template from the salon's OA is an option, pending Zalo approval of that template type.
+1b. **Cost (q33):** GuGu pays within the plan. Every send is metered per salon through topic 12's UsageService, with a plan quota and a global spend kill switch.
 2. Template registry: `ZaloTemplate` (Zalo templateId, our event key, locale, params schema, approval status, tag). Params are validated with Zod before sending. Templates are authored in vi first.
 3. Events: booking_created, booking_confirmed, booking_rescheduled, booking_cancelled, reminder_24h, reminder_2h, review_request, otp.
 4. One message per transaction per template type (Zalo rule). The dedup key is `(bookingId, eventKey, channel)`.
@@ -127,15 +140,15 @@ Facts are tagged **[official]** (oa.zalo.me / developers.zalo.me / miniapp.zalop
 ### R4 — Unified inbox in CRM (Phase Z2)
 1. Inbox list: conversations sorted by last activity, with unread count, customer match (linked/unlinked), and a window indicator: "free reply ≤48h", "reply ≤7d", "closed: send template / open Zalo".
 2. Conversation view: messages, an attached customer card (upcoming bookings, notes, no-show history), and quick actions: send booking link, propose slots (from the availability API, topic 06), create booking (opens a prefilled booking sheet), and link to customer.
-3. Linking an unknown Zalo user to a customer: the receptionist confirms the match by phone. Automatic linking happens only when a phone is verified (e.g., booking via OA CTA with an OTP-verified phone).
+3. Linking an unknown Zalo user to a customer: the receptionist confirms the match by phone. Automatic linking happens only when the customer is verified (Zalo Login, confirm link, or a Zalo phone grant); never on an unverified phone alone.
 4. Permissions: owner, manager and receptionist can read and reply; staff can only see conversations assigned to them (topic 05 matrix). Every outbound message records the actor.
 5. Supported content: text and image. Stickers are shown as placeholders. Files are limited by size and type (topic 04 media).
 
 ### R4a — Booking-source trust (response to topic 06's refinement)
 | Source | Who creates it | Trust | Status at creation |
 |---|---|---|---|
-| `zalo_link` | customer self-service on GuGu, phone OTP-verified | verified | normal flow (per salon auto-confirm setting) |
-| `zalo_oa` | customer taps the OA "Đặt lịch" CTA → **GuGu booking flow with OTP-verified phone** | verified | normal flow. **Not a draft** (rejects 06's proposal for this source). |
+| `zalo_link` | customer self-service on GuGu (no OTP, X11) | `identity_verified=false` until confirmed | normal flow (per salon auto-confirm setting) |
+| `zalo_oa` | customer taps the OA "Đặt lịch" CTA → **GuGu booking flow (no OTP, X11)** | `identity_verified=false` until confirmed | normal flow. **Not a draft** (rejects 06's proposal for this source). |
 | `zalo_mini_app` | customer in the Mini App | verified **only if** phone is verified (OTP or approved phone grant); otherwise draft | conditional |
 | `zalo_chat` | **authenticated salon staff** entering a booking from a Zalo conversation | staff-confirmed; customer phone unverified | confirmed by the creating staff member (same as `staff_created`). No second confirmation is needed, but the customer's identity is marked unverified. |
 | `ai_agent` | the product agent | draft | **requires human confirmation**. Agrees with 06. On Zalo it is deferred anyway (R5). |
@@ -146,11 +159,11 @@ Facts are tagged **[official]** (oa.zalo.me / developers.zalo.me / miniapp.zalop
 2. The only Zalo data the product agent may see is **aggregate, non-personal** metrics (see §6).
 3. Design notes for when the policy changes (not to be built now): draft-first, an allowlisted auto-reply, no booking confirmation without an engine hold, inbound text treated as untrusted, and every AI-sent message labelled and audited. This is to be re-specified together with topic 08 and the legal review.
 
-### R6 — Zalo Login (Phase Z2/Z4)
-1. OAuth v4 social login with PKCE. On first login, the user still verifies a phone (OTP) before booking.
+### R6 — Zalo Login (built in ZR, **hidden** until the central GuGu OA is configured — q28)
+1. OAuth v4 social login with PKCE, built and tested against the emulator. The UI entry is visible only when flag `zalo.login` is on **and** an active `central` sender profile exists. Verification follows X12 (email link or Zalo message), not SMS OTP.
 2. Link it to an existing account via verified phone. Never merge accounts silently.
 
-### R7 — Zalo Mini App (Phase Z4, ADR required)
+### R7 — Zalo Mini App (**not planned** — q41 "no need atm"; kept for reference, ADR required if revived)
 1. A thin booking client inside Zalo: browse salon, pick service, staff, slot, book. It uses the same API and packages.
 2. Use a phone grant (when approved) to skip OTP, if the policy allows it. Confirm with the security owner (topic 05).
 3. One GuGu Mini App, not one per salon. Salon deep links go through Mini App params.
@@ -195,9 +208,9 @@ Facts are tagged **[official]** (oa.zalo.me / developers.zalo.me / miniapp.zalop
   - a two-salon isolation test.
 - **ZR:** Switching any path live requires **no code change**: only secrets, config and flags, documented in `docs/runbooks/zalo-go-live.md`. Verified by flipping `zalo.client` between `emulated` and a stubbed `http` with the same tests.
 - **ZR:** With all Zalo flags off (prod default), no Zalo UI beyond Z0 is visible and no Zalo channel appears in the fallback order.
-- **Z1:** A booking created in GuGu, for a customer whose phone has Zalo, triggers exactly one approved `booking_confirmed` template. Retrying the job sends nothing new (dedup verified by test). With Zalo disabled, the SMS or push fallback fires.
+- **Z1:** A booking created in GuGu, for a customer whose phone has Zalo, triggers exactly one approved `booking_confirmed` template. Retrying the job sends nothing new (dedup verified by test). With Zalo disabled, the push or email fallback fires (no SMS, X12).
 - **Z1:** Template params failing the Zod schema are rejected before any API call, and the failure is logged with the template key.
-- **Z1:** A Zalo OTP delivers the code; the OTP code is never logged; SMS fallback fires within the configured timeout.
+- **Z1:** A Zalo verification message delivers its code or link; the code is never logged; the email-link fallback fires within the configured timeout (X12).
 - **Z2:** An OA connect / disconnect / reauth cycle works. Revoked tokens put the connection into `needs_reauth` and the owner is notified.
 - **Z2:** The webhook endpoint replies within 5 s under load. A forged signature is rejected (403). Duplicate events are processed once.
 - **Z2:** An inbound message appears in the right salon's inbox only. A tenant-isolation test with two salons passes.
@@ -247,7 +260,7 @@ Re-planned for the "no VN entity" constraint. **Bold** marks what ships without 
 | 2 | **Z0.2** | no | Snippets, QR, share links with X6 attribution (`zalo_link`, `qr_code`) |
 | 3 | **Z0.3** | no | Personal-Zalo helpers (R1.4a): `zalo_chat` quick entry, confirm-via-Zalo, Today reminders list |
 | 4 | **ZR.1** | no | Data model + `ZaloClient` port + `EmulatedZaloClient` + provider-sink Zalo routes |
-| 5 | **ZR.2** | no | OA connect flow, token vault, refresh job, webhook ingest, window engine (all vs emulator) |
+| 5 | **ZR.2** | no | OA connect flow, token vault, refresh job, webhook ingest, window engine, Zalo Login (hidden) — all vs emulator |
 | 6 | **ZR.3** | no | CRM inbox UI + linking + quick actions (vs emulator); `zalo_template`/`zalo_cs` channels behind flags |
 | 7 | **ZR.4** | no | Go-live runbook, admin readiness screen, contract tests. **Milestone "integration-ready" = ZR.1–ZR.4 done.** |
 | 8 | **S-Z1 spike** | no | Team member creates the GuGu Zalo App with a personal Zalo account, verifies the domain, connects a friendly salon's verified OA, receives a real webhook, sends an in-window reply. Also checks Zalo Login app setup. Result recorded in an ADR. |
@@ -255,7 +268,7 @@ Re-planned for the "no VN entity" constraint. **Bold** marks what ships without 
 | 10 | **S-Z2 spike → Z2b** | no (salon pays) | Link GuGu App to a salon's ZBS Account; salon-branded templates billed to the salon |
 | 11 | Z3 (**deferred**) | no | AI on Zalo chat is blocked by the PO policy (no personal data to LLMs). Only aggregate agent tools ship (§6). |
 | 12 | Z1 | **yes** (or partner OA) | Central/partner OA + ZBS Account; GuGu-branded templates for every customer; Zalo OTP |
-| 13 | Z4.1–Z4.3 | **yes** (Mini App owner verification) | ADR Mini App → Mini App booking MVP; Zalo Login if the spike shows value |
+| 13 | — | — | Mini App: **not planned** (q41). Zalo Login is built in ZR.2 and switched on together with Z1 (q28). |
 
 ---
 
@@ -274,9 +287,10 @@ Re-planned for the "no VN entity" constraint. **Bold** marks what ships without 
 ## 10. Open questions for the product owner
 
 1. ~~Is there a VN legal entity?~~ **Answered 2026-11-02 (open-questions #1): no, validate first.** → Z1, Zalo OTP and Mini App are blocked; salon-OA path first.
-2. Who pays for template messages? *Partly answered by the constraint:* on the salon-OA path (Z2b) the salon's own ZBS Account pays. Who pays on a future central/partner OA path is still open (open-questions #33).
-2a. Central GuGu OA from day one (open-questions #28)? → **No** (blocked by #1). Zalo Login in MVP → only if spike S-Z1 confirms setup works without an entity and phone access is obtainable; default **no**.
-2b. Should GuGu file a **Vietnamese trademark** now, as cheap optionality for OA verification route 2? (T-BIZ)
+2. Who pays? **Answered (q33): GuGu, within the plan.** On Z2b, Zalo technically debits the *salon's* ZBS wallet, so GuGu needs a reimbursement or credit mechanism, or Z2b templates are limited. Raised in the tracker as **q70** (rec: send paid templates only from the central OA; salon OAs used only for the free inbox).
+2a. **Answered (q28):** no central OA from day one. Zalo Login is built but hidden until the central OA is configured.
+2b. ~~VN trademark now?~~ **Deferred (q61).**
+2e. **Answered:** q40 (reminders on by default; AI auto-replies paid-only, deferred by X10), q41 (no Mini App), q48 (no SMS; Zalo/email verification).
 2c. Is a **VN partner holding a central OA** (route f) acceptable before the entity exists, or should Z1 wait for the entity?
 2d. Can we recruit 1–3 pilot salons that already have a verified OA, for S-Z1/Z2a?
 3. Should reminders go through Zalo by default for every customer, or only after an explicit Zalo opt-in on first booking?

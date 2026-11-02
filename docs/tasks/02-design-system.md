@@ -1,4 +1,4 @@
-# 02 — Design system, brand, homepage 3D hero
+# 02 — Design system, brand, homepage hero (AI-produced living diorama)
 
 **Owner agent:** `.claude/agents/design-system.md` · **Reviewer:** `.claude/agents/design-reviewer.md`
 **Skills:** `.claude/skills/design-system/`, `.claude/skills/3d-hero/`
@@ -38,11 +38,11 @@ GuGu needs one design system that powers two very different moods inside a singl
 | G1 | "Gen Z, playful" and "avoid excessive decorative elements" conflict with the new Awwwards/3D hero requirement. | Two surface modes. Expressive mode allows bold type, 3D, scroll choreography **only on public/marketing routes**. Calm mode forbids decoration in operational UI. Enforced by component props (`mode`) and reviewer agent. |
 | G2 | No typeface decision; many trendy display/script fonts lack Vietnamese glyphs (stacked diacritics like ặ, ỗ, ừ break or clip). The ref-01 look needs a high-contrast serif and a handwritten script, and most popular choices (Bodoni Moda, Instrument Serif, DM Serif Display, Caveat, Shadows Into Light) ship **no Vietnamese subset** (checked via Google Fonts CSS API, 2026-11-02). | Three roles, all with Vietnamese subsets: display **Playfair Display** (alt: Noto Serif Display), UI **Be Vietnam Pro**, script **Playwrite VN** (alt: Dancing Script). Final pick after the glyph + line-height test (§4.2). |
 | G13 | Ref-01 bakes English text into 3D signage and uses English script slogans; Vietnamese is the default locale. | Only the brand wordmark is baked into 3D. Zone labels, slogans and script accents are live i18n text overlaid on the scene. |
-| G14 | "Alive" is not specified and could blow the performance budget (characters, particles, refraction). | Aliveness spec (§5.5): cheap idle loops (transform/vertex-baked, no skinning-heavy rigs), scroll-driven camera, hotspots, micro-interactions. All inside the §5.4 budgets with tiered downgrades. |
-| G3 | "Dark mode readiness" undefined. | Semantic tokens from day one (`bg.surface`, `fg.muted`…) — no raw hex in components. Dark theme values defined in MVP. |
+| G14 | "Alive" is not specified and could blow the performance budget (characters, particles, refraction). | Aliveness spec (§5.6): AI image-to-video idle loops, scroll-driven camera, hotspots, micro-interactions. All inside the §5.5 budgets with tiered downgrades. |
+| G3 | "Dark mode readiness" undefined. | Semantic tokens from day one; **dark mode ships for the marketplace and the CRM at launch** (PO q44). Hero needs dark-theme posters/loops or a theme-neutral framing (§5.7). |
 | G4 | No motion spec; Awwwards-level feel is mostly motion. | Motion tokens + choreography rules (§4.4), Reanimated on native, same tokens on web. |
-| G5 | 3D hero not in prompt; no platform strategy, no perf budget, Vietnamese mobile networks are a stated priority (§25). | Web: React Three Fiber, lazy-loaded after LCP, poster-first. Native: **pre-rendered video loop by default**, real-time 3D only behind a feature flag after device testing (§5). Hard budgets (§5.4). |
-| G6 | References for the hero not yet provided. | **Received** (ref-01, 2026-11-02). Intake process (§5.1) stays for future references; HERO-2 brief defined (§5.6). |
+| G5 | 3D hero not in prompt; no platform strategy, no perf budget, Vietnamese mobile networks are a stated priority (§25). No 3D-artist budget (PO q51). | **AI-produced 2.5D living diorama**: AI stills + image-to-video loops + layered parallax + DOM hotspots on web; video loop on native; R3F only if image-to-3D passes a quality gate (§5.2–5.7). Hard budgets (§5.5). |
+| G6 | References for the hero not yet provided. | **Received** (ref-01 + branding, 2026-11-02). Intake process (§5.1) stays for future references; HERO-2 brief defined (§5.7). |
 | G7 | NativeWind version: v5 (Tailwind v4) is still labelled pre-release in its docs; v4 is stable. | Tokens are authored in TS, not in Tailwind config, so we can generate either. Start on the latest stable NativeWind compatible with the chosen Expo SDK; topic 01 owns the final pin. |
 | G8 | R3F native story changed: v10 moves RN support into `@react-three/native` (previously `@react-three/fiber/native`), requires React 19 / RN ≥ 0.78; expo-gl on iOS rides on deprecated OpenGL ES. | Do not make native 3D an MVP dependency. Re-evaluate at topic 13 device-testing milestone (also consider WebGPU via `react-native-wgpu`). |
 | G9 | Component list lacks AI-agent, Zalo, data-viz and table primitives needed by topics 07/08/09. | Added (see Scope). |
@@ -59,6 +59,7 @@ GuGu needs one design system that powers two very different moods inside a singl
 - R2. Expressive mode follows ref-01 closely. Calm mode (CRM) inherits the palette and UI sans only: cream/pearl surfaces, plum ink, lilac as the single accent. No serif display headlines in data views, no script, no 3D, no gradients.
 - R3. Brand must read as local Vietnamese Gen Z lifestyle without clichés (no conical-hat/lotus stock imagery). Copy in script accents is Vietnamese-first.
 - R3a. Contrast comes from plum-black ink, never from saturated pastels. Pastels never carry text; text on pastel is ink.
+- R3b. **Logo (final, PO q50):** SVGs in `design/branding/`. A lilac butterfly-petal mark with a plum "eye" dot, plus a rounded "gugu" wordmark. Colors match tokens exactly: `#A98BEB` = `lilac.500`, `#2A1426` = `plum.950`; the on-dark wordmark uses `#F6B8CC` = `pink.300`. Usage rules and platform derivations (app icon, Android adaptive/themed icon, favicon set, splash, Zalo OA avatar): `design/branding/README.md`. Logo components in the design system (`Logo`, `LogoMark`) render the SVGs verbatim and pick the variant by theme.
 
 ### 3.2 Tokens
 - R4. Token tiers: **primitive** (raw scales) → **semantic** (`color.bg.canvas`, `color.fg.default`, `color.accent.solid`, `color.status.success.bg`…) → **component** (only where needed).
@@ -144,12 +145,12 @@ Vietnamese subset availability was checked against the Google Fonts CSS API (202
 
 | Role | Primary | Alternate | Rejected (no Vietnamese) |
 |---|---|---|---|
-| Display serif | **Playfair Display** (variable wght 400–900 + italic, `vietnamese` subset) | **Noto Serif Display** (variable wght + wdth: condensed cut closer to ref-01; `vietnamese`) · Fraunces (softer, fallback) | Bodoni Moda, Instrument Serif, DM Serif Display, Young Serif, Gloock |
+| Display serif | **Noto Serif Display** (variable wght 100–900 + wdth 62.5–100%, italic, `vietnamese`). Used at wght 800–900, wdth ≈ 75–87.5%: the condensed high-contrast cut matches ref-01's tight editorial headlines and feels current/gen-z rather than classic | Playfair Display (wght 400–900, `vietnamese`) · a paid face only if it ships full Vietnamese + web/app license (q44 allows paid) | Bodoni Moda, Instrument Serif, DM Serif Display, Young Serif, Gloock |
 | UI sans | **Be Vietnam Pro** (400/500/600/700) | n/a | n/a |
 | Script | **Playwrite VN** (designed for Vietnamese handwriting, variable 100–400, thin pen look like ref-01) | Dancing Script · Charm · Pangolin · Patrick Hand | Caveat, Shadows Into Light, Gochi Hand, Nothing You Could Do |
 
-- Final pick at DS-1 via the glyph test (`.claude/skills/design-system/references/vietnamese-typography.md`). The test must cover **stacked marks at display sizes with tight leading** (Ặ, Ỗ, Ữ in uppercase-start headlines like "Đặt lịch").
-- If a paid face is preferred later, it must ship full Vietnamese and a web+app embedding license.
+- **Decision (PO q53 delegated the pick):** Noto Serif Display. Confirmed by the DS-1 glyph test (`.claude/skills/design-system/references/vietnamese-typography.md`). The test must cover **stacked marks at display sizes with tight leading** (Ặ, Ỗ, Ữ in uppercase-start headlines like "Đặt lịch").
+- Paid fonts are allowed (PO q44). A paid display face may replace Noto Serif Display only if it ships full Vietnamese, has a web + app embedding license and wins a side-by-side specimen review.
 - Line-height tokens ≥1.4 for body; display starts at 1.0 for the ref-01 look and is raised per font until the test passes (tested, not assumed).
 
 ### 4.3 Data viz (for CRM dashboards and the AI agent)
@@ -161,7 +162,7 @@ Vietnamese subset availability was checked against the Google Fonts CSS API (202
 - Page entry: staggered fade+rise (≤ 8 items, 40 ms stagger).
 - Scroll on web: hero → content transition driven by scroll progress (CSS scroll-driven animations where supported, else IntersectionObserver); never scroll-jacking.
 - Shared-element feel between salon card → salon page via layout transitions where platform supports; graceful no-op otherwise.
-- Hero-specific aliveness lives in §5.5; the page-level micro-interactions below apply to all expressive screens:
+- Hero-specific aliveness lives in §5.6; the page-level micro-interactions below apply to all expressive screens:
   - **Heart / save:** tap → scale 1 → 1.25 → 1 spring (`bouncy`) + 6–8 tiny heart particles (CSS/Reanimated, not WebGL) + haptic (native). Undo state reverses without particles.
   - **Cards:** hover (web) lifts 4 px + shadow `soft` → `soft-lg`, photo zooms 1.03 inside the radius; press (native) scales 0.98.
   - **Category tiles:** selected tile fills lilac.300 with the arrow button sliding in; icon wiggles once (±6°) on select.
@@ -208,63 +209,92 @@ Vietnamese subset availability was checked against the Google Fonts CSS API (202
 
 Process for any further references:
 1. Product owner drops references into `design/hero-references/` with a note per reference: *what to take* (mood, camera, palette, objects, interaction).
-2. Design-system agent appends an analysis to `design/hero-references/README.md` and updates the hero brief (§5.6) in `docs/domains/design-system.md#hero`.
-3. Product owner approves → modeling (Blender, by a 3D artist or licensed assets, license recorded in `design/hero-assets/LICENSES.md`).
-4. Implementation per §5.2–5.5.
+2. Design-system agent appends an analysis to `design/hero-references/README.md` and updates the hero brief (§5.7) in `docs/domains/design-system.md#hero`.
+3. Product owner approves → AI production per §5.7 (outputs and licenses recorded in `design/hero-assets/`).
+4. Implementation per §5.3–5.6.
 
-### 5.2 Web
-- `@react-three/fiber` + `@react-three/drei` + `three`, loaded via dynamic `import()` **after** first paint / LCP, only on `lg+` or capable mobile devices (heuristic: `navigator.hardwareConcurrency`, `deviceMemory`, `saveData`, `connection.effectiveType`, WebGL2 availability).
-- Poster image (AVIF/WebP, same framing as frame 0 of the scene) is the LCP element; canvas fades in over it.
-- Pause rendering when off-screen (`frameloop="demand"` + IntersectionObserver) and when tab hidden.
-- Expo web static/SSR (topic 10): canvas is client-only; server renders poster + text.
+### 5.2 Production model: AI-generated, no 3D artist (PO answer q51)
+There is no 3D-artist budget, so the hero is produced with **AI tools** (roadmap X15). The primary deliverable is a **2.5D "living diorama"**: AI-rendered chibi isometric diorama stills, AI image-to-video loops that make it feel alive, and layered parallax plus DOM hotspots on the web. Real-time 3D (image-to-3D → R3F) is an **optional upgrade**, used only if it passes a quality gate (§5.7 step 9).
 
-### 5.3 Native (iOS/Android)
-- **Default (MVP): pre-rendered loop** exported from the same Blender scene → `expo-video` (H.264/HEVC MP4, muted, looped, ~6–8 s), poster frame first; static image when reduced motion, data saver, or low-end device.
-- **Optional (flagged, post-MVP):** real-time 3D via `@react-three/native` (R3F v10; requires React 19, RN ≥0.78, `expo-gl`) or WebGPU via `react-native-wgpu`. Enabled only after device-lab profiling on mid/low Android (topic 13).
+Tool options (verify current versions, quality and commercial-use terms at production time; record the tool + version for every output):
 
-### 5.4 Asset pipeline & budgets
-- Blender → glTF 2.0 → `gltf-transform` optimize: Draco or Meshopt geometry compression, KTX2 (Basis UASTC for normals, ETC1S for color) textures, texture max 1024² (2048² only for one hero atlas), merged materials, baked lighting into textures (no realtime shadows).
-- Budgets (web, mobile-class device):
-  - Hero JS (three + r3f + drei subset) lazy chunk ≤ 250 KB gzip; zero 3D JS in the initial bundle.
-  - Model + textures ≤ 1.5 MB total transferred; ≤ 100k triangles; ≤ 30 draw calls.
-  - Poster ≤ 120 KB; native video ≤ 1.5 MB (720p mobile, 1080p tablet).
-  - LCP ≤ 2.5 s on throttled "Fast 3G/4G slow" Moto G-class profile; CLS 0; no main-thread long task > 200 ms caused by hero init.
-  - Sustained 60 fps desktop, ≥ 30 fps mid-range mobile; otherwise auto-downgrade to poster.
-- CDN: assets served from object storage behind Cloudflare with long-cache immutable hashes (topic 13).
-- The aliveness features (§5.5) are **inside** these budgets. Characters and idle loops count toward the triangle, draw-call and model-size limits.
+| Stage | Options | Use |
+|---|---|---|
+| Still generation | Midjourney (style/character reference), Flux (Black Forest Labs) with a custom LoRA, Google Gemini image models, OpenAI image generation, Ideogram | Diorama master render, zone close-ups, character sheet, floating props |
+| Consistency | Style reference = ref-01 + approved master; character reference sheet; Flux LoRA trained on approved outputs; fixed seeds | Keep characters, palette and camera identical across all outputs |
+| Edit / inpaint / outpaint | Photoshop Generative Fill, Flux Fill, Krita AI / ComfyUI | Remove text artifacts, fix hands, mobile crop outpainting, layer separation |
+| Segmentation / depth | SAM 2 (masks), Depth Anything (depth map) | Split into parallax layers, zone glow masks |
+| Upscale | Topaz, Magnific, Real-ESRGAN | 4K master for crops |
+| Image → video | Runway, Kling, Google Veo, Luma, Pika (first/last-frame or loop modes) | Idle-loop clips per zone and a full-frame loop |
+| Compositing | DaVinci Resolve (free), After Effects, ffmpeg | Masked regional animation, seamless loop crossfade, logo re-composite, encoding |
+| Image → 3D (optional) | Meshy, Tripo, Hyper3D Rodin, Hunyuan3D, TRELLIS | Floating props first (low risk), whole diorama only if quality allows |
 
-### 5.5 Aliveness spec ("the site must feel ALIVE")
-Tiered so every device gets some life, and only capable ones get real-time 3D.
+Licensing: only tools whose terms allow commercial use of outputs; outputs logged in `design/hero-assets/LICENSES.md`. Characters must not resemble real people or existing IP. The official logo SVG is **composited in post**, never generated.
 
-| Layer | Behavior | Tech (web) | Cost control |
-|---|---|---|---|
-| **Idle loops in diorama** | Nail tech's hand brushes polish; stylist's dryer bobs; facial-mask client breathes; steam curls from tea cup / spa bowl; candle flicker; neon wordmark flicker every ~8 s; plants sway; ceiling lights pulse softly | Rigid-part transform tweens + 2–4 baked clips (glTF animations, ≤ 2 s loops), steam = 1 animated sprite/alpha-card, flicker = emissive intensity uniform | No physics, no particle systems > 50 sprites, max 3 skinned characters with ≤ 20 bones (prefer rigid parts), all clips share one `AnimationMixer` |
-| **Floating glossy objects** | Polish bottle, perfume, heart drift ±6–10 px and rotate ±4° on 4–6 s sine loops; some sit outside the canvas | Inside canvas: shader-light "jelly" material (MeshPhysicalMaterial with transmission **only on desktop tier**; mobile tier uses matcap + fresnel fake). Outside canvas: pre-rendered WebP/AVIF sprites with CSS float | Transmission is expensive; max 2 transmissive meshes, desktop only |
-| **Scroll-driven camera** | First 100–150% of viewport scroll: camera dollies from wide iso view into the diorama and slightly orbits (≤ 15°), plinth staircase leads into the category section, canvas fades/pins out | Scroll progress → camera spline (drei `ScrollControls` or own IntersectionObserver + lerp); CSS scroll-driven animations for DOM layers | Never scroll-jacks; native scroll stays; disabled on reduced motion |
-| **Pointer / gyro parallax** | Diorama tilts ≤ 3° toward cursor; floating objects counter-move | Pointer → damped rotation; gyro on mobile only after a user gesture (permission on iOS) | Damped lerp, no per-frame React state |
-| **Zone hotspots** | Nails, Hair, Skin care, Spa/massage, Reception: hover/tap → zone glows (emissive outline), camera eases toward it, localized label pill + "Explore nails →" link appears | Raycast on low-poly invisible hit meshes; labels are **DOM** elements (real `<a>` to category routes, i18n text) positioned via projected coordinates; also listed as a visible link row for keyboard/screen readers | Hit meshes ≤ 5, no per-hover re-render of the scene graph |
-| **Page micro-interactions** | Hearts, cards, tiles, CTAs, gradient drift, script draw-on (§4.4) | DOM/CSS/Reanimated | Not WebGL |
+### 5.3 Web: 2.5D living diorama (default)
+Layer stack inside the hero frame (bottom → top):
+1. **Poster** (AVIF/WebP, LCP element): the master still for the current breakpoint (`desktop` 16:10, `mobile` 4:3 tight crop).
+2. **Loop video**: a full-frame seamless loop of the same still (6–8 s, muted, `playsinline`, starts after LCP/idle, crossfades over the poster at an identical frame). WebM (VP9/AV1) + MP4 (H.264) sources.
+3. **Zone glow masks**: one pre-rendered soft-glow PNG/WebP per zone (Nails, Hair, Skin care, Spa, Reception), blended (`screen`) on hover/tap/focus.
+4. **Foreground floating props**: transparent sprites (polish bottle, perfume, heart, hair dryer, heart drop) outside/overlapping the frame, CSS/Reanimated float + pointer parallax.
+5. **DOM hotspots**: positioned by % coordinates over the frame; localized label pill + real `<a>` to the category route; also rendered as a keyboard-reachable link row.
+6. **Live text overlays**: script accents and any zone names (i18n; nothing baked except the wordmark).
+
+Motion: pointer/gyro parallax translates layers 2–5 by depth (≤ 12 px, damped); scroll drives a fake camera dolly (scale 1 → 1.15 + translate toward the reception/staircase, CSS scroll-driven animation or IntersectionObserver + rAF), then the hero unpins into the category row. No three.js in this path; hero JS ≤ 15 KB gzip.
+
+Expo web static/SSR (topic 10): server renders poster + text + hotspot links; video/parallax are client-only.
+
+### 5.4 Native (iOS/Android)
+- `expo-video` loop of the **mobile crop** video, poster first; floating prop sprites via Reanimated; hotspots become category chips below the frame (no tap-on-video).
+- Static poster on reduced motion, data saver or low-end device.
+- Real-time native 3D stays out of MVP (see G8).
+
+### 5.5 Budgets (unchanged targets, re-expressed for 2.5D)
+| Item | Budget |
+|---|---|
+| Hero JS (2.5D path) | ≤ 15 KB gzip; zero three.js in initial bundle |
+| Poster | ≤ 120 KB per breakpoint |
+| Loop video (web + native) | ≤ 1.5 MB per breakpoint (720p mobile crop, 1080p desktop/tablet) |
+| Zone masks total | ≤ 100 KB |
+| Floating sprites total | ≤ 300 KB (≤ 1024² each, WebP/AVIF) |
+| Optional R3F path (only if §5.7 step 9 passes) | lazy chunk ≤ 250 KB gzip; model + textures ≤ 1.5 MB; ≤ 100k tris; ≤ 30 draw calls |
+| Homepage LCP (throttled mid-range mobile) | ≤ 2.5 s, CLS 0, no hero long task > 200 ms |
+| Frame rate | 60 fps desktop, ≥ 30 fps mid mobile, else drop a tier |
+
+CDN: object storage behind Cloudflare, content-hashed immutable URLs (topic 13).
+
+### 5.6 Aliveness spec ("the site must feel ALIVE")
+| Layer | Behavior | How (AI pipeline) |
+|---|---|---|
+| Idle life in the diorama | Nail tech brushes polish, stylist's dryer bobs, mask client breathes, steam from tea/spa bowl, candle + neon flicker, plants sway, lights pulse | Image-to-video per zone crop with low motion strength and first = last frame; composited back into the master with masks; one seamless full-frame loop |
+| Floating glossy objects | Bottles/heart drift ±6–10 px, rotate ±4°, 4–6 s sine | Transparent AI renders + CSS/Reanimated |
+| Scroll camera | Dolly into the diorama over the first 100–150% viewport scroll | CSS transform on the layer stack |
+| Pointer / gyro parallax | Depth-based layer offset ≤ 12 px | Depth map → 3–4 layer groups |
+| Zone hotspots | Hover/tap/focus → zone glow + label pill + link | Glow masks from SAM 2 segmentation |
+| Page micro-interactions | Hearts, cards, tiles, CTA arrows, gradient drift, script draw-on (§4.4) | DOM/CSS/Reanimated |
 
 **Device tiers (web):**
-- **T0 Static:** reduced motion, `saveData`, 2G/slow-3G, no WebGL2 → poster image + CSS micro-interactions limited to state changes (no loops).
-- **T1 Lite:** mobile / low cores / ≤ 4 GB memory → R3F scene with matcap materials, idle loops at reduced rate, no transmission, DPR capped at 1.5, scroll camera on, gyro opt-in.
-- **T2 Full:** desktop/capable → transmission jelly objects (max 2), DPR ≤ 2, full idle loops, pointer parallax.
-- Runtime FPS monitor: sustained < 30 fps for 2 s → drop one tier (T2→T1→T0); never upgrade mid-session.
+- **T0 Static**: reduced motion, `saveData`, 2G/slow-3G → poster + hotspot links + state-change micro-interactions only.
+- **T1 Lite**: mobile / low-end → poster → loop video, scroll dolly, floating props, tap hotspots; parallax only after gyro opt-in.
+- **T2 Full**: desktop → all of T1 + pointer parallax + hover glow (+ optional R3F scene if approved).
+- FPS monitor: sustained < 30 fps for 2 s drops one tier; never upgrades mid-session.
 
-**Native (iOS/Android):** rendered video loop of the **same** diorama (camera slowly orbiting, idle loops visible, 6–8 s seamless), poster first. Hotspots become a row of category chips below the video (no tap-on-video). Floating objects and micro-interactions via Reanimated. Reduced motion / data saver → static poster.
+### 5.7 HERO-2 brief: AI production pipeline
+Input: ref-01, `design/hero-references/README.md`, logo SVGs in `design/branding/`. Output in `design/hero-assets/`: masters, layers, masks, sprites, videos, `PROMPTS.md`, `MANIFEST.md`, `LICENSES.md`.
 
-### 5.6 HERO-2 brief (scene production)
-Input: ref-01 + `design/hero-references/README.md`. Output: Blender source, optimized `.glb`, posters, native videos, manifest.
-1. **Scene:** isometric salon diorama on a curved lilac glass plinth with a staircase spilling down-front. Zones as in ref-01: Nails (left front), Hair (back center, arched gold mirrors), Skin care (back right, shelving + facial bed), Spa/massage (right, treatment bed + candles), Reception/lounge (front right, glossy desk + curved pink sofa). Brand wall with the **gugu wordmark only** (no other baked text; neon zone signs are blank shapes or icons).
-2. **Characters:** 5–6 stylized young Vietnamese characters (stylists + clients), clay/toy shading, not photoreal, no resemblance to real people or existing IP. Rigid-part rigs preferred; ≤ 3 skinned.
-3. **Materials:** lilac/pink/cream/gold from the token table (§3.2 R8a), baked lighting + AO; one "jelly" material in two variants (physical transmission for T2, matcap+fresnel for T1).
-4. **Floating props (separate objects):** nail-polish bottle, perfume bottle, heart, hair dryer, heart drop. Each exported both in-scene and as 1024² transparent renders for DOM sprites.
-5. **Animations:** idle clips per §5.5 as named glTF actions (`nails_idle`, `hair_idle`, `skin_idle`, `spa_idle`, `steam`, `flicker`, `plants`), all seamless, ≤ 2 s or loopable multiples of 6 s.
-6. **Cameras:** `cam_desktop_wide`, `cam_mobile_tight` (4:3, 2–3 zones), `cam_scroll_path` (spline), `cam_zone_<name>` targets for hotspots.
-7. **Hit meshes:** `hit_nails`, `hit_hair`, `hit_skin`, `hit_spa`, `hit_reception` (invisible, low-poly).
-8. **Exports:** `.glb` per tier (T1 lite / T2 full) via the 3d-hero pipeline; posters from `cam_desktop_wide` (16:10) and `cam_mobile_tight` (4:3) frame 0; native loops 720p phone / 1080p tablet, H.264 + HEVC.
-9. **Budgets:** §5.4, measured and recorded in `design/hero-assets/MANIFEST.md`.
-10. **Review gates:** clay-render storyboard (no textures) → PO approval → textured stills → PO approval → animation playblast → PO approval → optimization + budget check.
+1. **Style bible** (`design/hero-assets/STYLE.md`): palette hexes (§3.2 R8a), materials ("glossy jelly / translucent glass, soft clay characters"), lighting ("warm interior glow, pink/lilac bounce, gold accents"), camera ("isometric 3/4 top-down, ~30°, orthographic look, diorama on a curved lilac glass plinth with stairs spilling to the front"), negative list ("no text, no letters, no logos, no signage words, no watermark, no realistic faces").
+2. **Character sheet first**: 5–6 chibi young Vietnamese characters (2 nail techs/clients, stylist + client, skincare client in mask, spa therapist), front/3-4/side turnarounds, consistent outfits in token colors. PO approval. This sheet is the character reference for every later generation.
+3. **Master diorama**: generate at max resolution with style ref (ref-01) + character ref; zones laid out as in ref-01 (Nails left-front, Hair back-center with arched gold mirrors, Skin care back-right, Spa right, Reception front-right with curved pink sofa, brand wall). Pick the best of ≥ 20 variations; upscale to ≥ 4K.
+4. **Clean-up**: inpaint away any pseudo-text and fix hands/faces; colour-grade to the token palette (LUT); **composite the official wordmark** (`gugu-logo.svg` wordmark/mark) onto the brand wall and reception desk in perspective.
+5. **Crops**: desktop 16:10 and mobile 4:3 tight (2–3 zones); outpaint where the crop needs more canvas.
+6. **Layers & masks**: SAM 2 masks per zone + foreground props; depth map → 3–4 parallax groups; inpaint the background behind lifted layers.
+7. **Living loops**: per-zone image-to-video (first frame = last frame, low motion, 4–8 s), reject clips with morphing faces, flicker or drift; composite into the master with feathered masks; crossfade the loop seam; re-apply the logo layer last so it never warps. Export per breakpoint (WebM + MP4 web, H.264/HEVC native).
+8. **Props**: polish bottle, perfume, heart, hair dryer, heart drop as transparent 1024² renders, same style ref.
+9. **Optional 3D gate**: try image-to-3D on the props, then on the diorama. Adopt R3F only if (a) it matches the master at hero size side by side, (b) it fits the §5.5 R3F budgets after `gltf-transform` (Meshopt/Draco, KTX2), (c) the PO approves. Otherwise ship 2.5D.
+10. **Reproducibility**: every kept output logged in `PROMPTS.md` (tool, model/version, prompt, negative prompt, seed, reference images, settings, output file, date); sizes in `MANIFEST.md`.
+11. **Review gates**: character sheet → master still → crops + layers → loop video → budgets. PO approves each in the tracker.
+
+Prompt templates live in `.claude/skills/3d-hero/references/ai-prompts.md`.
 
 ---
 
@@ -275,8 +305,10 @@ Input: ref-01 + `design/hero-references/README.md`. Output: Blender source, opti
 - AC4. Vietnamese test string renders without clipping in every font/weight/size token on all three platforms (screenshot test).
 - AC5. All text/token pairs used by components meet WCAG AA (automated contrast check in CI over semantic tokens).
 - AC6. Reduced-motion on → no autoplay hero motion, no bouncy springs, verified on web and native.
-- AC7. Hero: web LCP element is the poster; Lighthouse mobile perf ≥ 85 on homepage with hero; hero chunk not in initial bundle; budget checks in CI fail the build on regressions.
+- AC7. Hero: web LCP element is the poster; Lighthouse mobile perf ≥ 85 on homepage with hero; no three.js in the default 2.5D path; budget checks (§5.5) in CI fail the build on regressions; all AI outputs logged in `PROMPTS.md` and `LICENSES.md`.
 - AC8. Native hero shows video loop with poster, falls back to static image on low-end/reduced-motion; no `expo-gl` dependency in MVP build.
+- AC11. Logo usage follows `design/branding/README.md` (clear space, min sizes, on-dark variant); app icon, adaptive icon, favicon set and splash are generated from the delivered SVGs.
+- AC12. Every expressive screen and the hero work in dark mode at launch.
 - AC9. Calm mode: CRM screens use calm components only (reviewer agent check), body text ≥14 px desktop / 16 px mobile, no decorative motion.
 - AC10. Agent `ChartSpec` renders identically from a fixture on web and native.
 
@@ -297,10 +329,10 @@ Input: ref-01 + `design/hero-references/README.md`. Output: Blender source, opti
 5. **DS-5** Scheduling: DatePicker, TimeSlotPicker, Calendar (native + web variants, visual spec for topic 07).
 6. **DS-6** Calm-mode data: DataTable (web), StatCard, charts + ChartSpec, AgentMessage.
 7. **DS-7** Catalog + visual regression + contrast CI.
-8. **HERO-1** ✅ References received (ref-01) and analyzed. Remaining: PO answers asset requests (`design/hero-references/README.md#asset-requests-for-the-product-owner`), mainly logo SVG, motion refs and character direction.
-9. **HERO-2** Scene production per the brief in §5.6 (Blender scene, characters, idle clips, cameras, hit meshes, tiered `.glb`, posters, native videos).
-10. **HERO-3** Web R3F hero with device tiers, scroll camera, hotspots, budgets in CI; native video hero; page micro-interactions (§4.4).
-11. **HERO-4** (post-MVP, flagged) native real-time 3D evaluation.
+8. **HERO-1** ✅ References (ref-01) and branding (logo + icon SVGs) received and analyzed; PO decisions q50–q53 applied. Remaining asset requests are P1/P2 (motion refs, portraits, category imagery).
+9. **HERO-2** AI production pipeline per §5.7: style bible → chibi character sheet → master diorama → clean-up + logo composite → crops → layers/masks → living loops → props → optional 3D gate. PO gates in the tracker.
+10. **HERO-3** Web 2.5D living diorama (poster → loop video, parallax, scroll dolly, hotspots, tiers, dark-mode variant, budgets in CI); native video hero; page micro-interactions (§4.4).
+11. **HERO-4** (optional) R3F upgrade if the §5.7 step 9 gate passes; native real-time 3D stays post-MVP.
 
 ## 9. AI-first deliverables
 - `.claude/agents/design-system.md` — builds tokens/components/hero.
@@ -318,11 +350,11 @@ The design system does not expose agent tools; it **renders agent output**:
 - Untrusted text (customer notes, reviews, Zalo messages) quoted in agent answers renders as plain text, never as rich/markdown links.
 
 ## 11. Open questions for the product owner
-1. Is the "gugu" wordmark in ref-01 final? Please send the vector logo (see asset requests).
-2. Hotspots on the diorama zones linking to category pages are assumed (§5.5). Confirm?
-3. Budget for a 3D artist vs. in-house/AI-assisted modeling? The diorama with 5–6 animated characters is the largest single design cost.
-3a. Characters: stylized chibi (as ref-01) or more adult proportions?
-3b. Display serif: Playfair Display (classic) vs Noto Serif Display condensed (closer to ref-01). Pick after the DS-1 specimen sheet?
-4. Is dark mode required for the public marketplace at launch, or only for CRM?
-5. Should the native app show the hero at all (video loop) or a simpler native home focused on search?
-6. Brand display typeface: open to a paid/custom font if it handles Vietnamese well?
+Answered (tracker): q50 wordmark final (SVGs in `design/branding/`) · q51 no 3D-artist budget → AI pipeline · q52 chibi characters · q53 display serif delegated → Noto Serif Display · q44 dark mode in marketplace at launch, paid font allowed.
+
+Defaults taken (from q07 zones + recommendation): zone hotspots link to category pages; native apps show the video-loop hero.
+
+Still open (raised in the tracker as q76–q78):
+1. q76: Approve an on-dark icon variant (plum "eye" dot recolored to pink `#F6B8CC`), since the plum dot disappears on dark backgrounds (`design/branding/README.md`).
+2. q77: Hero in dark mode: a separate night-version diorama (≈ 2× AI production and bytes) or one light diorama framed as a glowing card on dark pages?
+3. q78: AI tool subscriptions for hero production (image + video generation, about one month of paid plans): approve the budget, and who holds the accounts?

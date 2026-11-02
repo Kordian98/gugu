@@ -30,7 +30,7 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 
 ## Procedure: add a boolean-gated feature
 1. Add the key to `packages/domain/entitlements/keys.ts` with `valueType`, `default`, and vi/en description keys.
-2. Add a migration/seed setting the value for each plan (`PlanEntitlement`). Free plan explicitly `false`.
+2. Add a migration/seed setting the value for each plan (`PlanEntitlement`). Every plan (`basic`, `pro`, `ultra`) gets an explicit value; there is no free plan.
 3. Protect the API route:
    ```ts
    @RequiresEntitlement('zalo.inbox')
@@ -66,6 +66,7 @@ Use `EntitlementOverride` via the admin UI or API with `reason` and an optional 
 | `ai.tokens.input` / `ai.tokens.output` | `ai.agent.monthly_tokens` | token | commit actual usage from the API response |
 | `zalo_template.messages` | `zalo_template.monthly_messages` | message | ZBS Template Message (formerly ZNS), channel `zalo_template`. Never name keys `zns.*` |
 | `sms.messages` | `notifications.sms.monthly_messages` | message (segments counted) | international provider |
+| `ai.cost` | `ai.monthly_cost_cap_vnd` | VND | **hard cap**: reserve the estimated cost before every LLM call, commit the actual cost from token usage × model price; deny at the cap |
 | `sms.cost` | `notifications.sms.monthly_cost_cap_vnd` | VND (converted from the provider currency at the stored FX rate) | **metered per salon on every send**, even when no cap applies |
 
 Each usage event stores `unitCost`, `costCurrency` and `fxRateToVnd` for margin reporting in admin.
@@ -74,7 +75,35 @@ Each usage event stores `unitCost`, `costCurrency` and `fxRateToVnd` for margin 
 Plan rules and commission eligibility use the `BookingSource` → `gugu_acquired | salon_acquired` mapping owned by topic 12 (`docs/tasks/12-monetization-admin.md` §3.1a, code in `packages/domain/attribution`). `gugu_acquired`: `marketplace`, `promoted_listing`, `gugu_campaign`, `zalo_mini_app` (GuGu discovery). Everything else (`salon_profile`, `direct_link`, `qr_code`, `social_media`, `zalo_oa`, `zalo_link`, `zalo_chat`, `phone`, `walk_in`, `staff_created`, `repeat_customer`, `ai_agent`) is `salon_acquired`. Import the enum; never redefine it.
 
 ## Billing context
-No payment processor and no Vietnamese entity in the MVP. Subscriptions are invoiced manually by GuGu's foreign entity, and admin activates the plan. Gating code MUST NOT assume a payment webhook exists.
+No payment processor in the MVP. Monthly/yearly subscriptions are invoiced manually by the owner's company (Polish or Vietnamese entity, TBD), and admin activates the plan. Gating code MUST NOT assume a payment webhook exists. Commission is dormant; the `BookingSource` mapping is captured now for later use.
+
+## Plan placement (owner decisions)
+Plans: **Basic, Pro, Ultra**, billed monthly or yearly. **There is no free plan** (X17).
+
+| Entitlement key | Basic | Pro | Ultra |
+|---|---|---|---|
+| `booking.marketplace_listing` | yes | yes | yes |
+| `staff.max_seats` | 3 | 10 | unlimited |
+| `salon.max_locations` | 1 | 1 | 5 (+ combined reporting for chains) |
+| `crm.customer_tags`, `crm.internal_notes` | yes | yes | yes |
+| `analytics.advanced` | no | yes | yes |
+| `ai.onboarding_import` (price-list screenshots → services) | **yes** (decided) | **yes** (decided) | **yes** (decided) |
+| `ai.onboarding_import.monthly_runs` | 3 | 10 | 30 |
+| `ai.agent.enabled` (AI assistant) | **no** (decided) | **yes** (decided) | **yes** (decided) |
+| `ai.monthly_review` (Opus business review) | **no** (decided) | **yes** (decided) | **yes** (decided) |
+| `ai.agent.write_actions` (phase B) | no | no | yes |
+| `ai.monthly_cost_cap_vnd` (hard) | small | medium | large (values: q73) |
+| `zalo.oa_connect`, `zalo.inbox` | yes | yes | yes |
+| `zalo.mini_app` | no | no | no (not planned, q41) |
+| `zalo_template.monthly_messages` / `notifications.sms.monthly_messages` (GuGu-paid, fair use) | low | medium | high (values: q73) |
+| `promotion.promoted_listing` | add-on | add-on | 1 week/month included |
+| `branding.custom_subdomain` (future) | no | no | yes |
+
+Rows marked **(decided)** come from the owner (X13, X17). Every other cell is the topic 12 recommendation and is **provisional until q75** (Ultra contents, trial).
+
+New salons: provisional 14-day trial with Pro entitlements, then `expired` (read-only workspace, online bookings paused, no data deleted) until a paid plan is active. See spec G19 / q75.
+
+Prices are TBD. Never hardcode these in code; seed them as `PlanEntitlement` rows.
 
 ## Checklist before PR
 - [ ] Key registered, typed, defaulted, described in vi/en

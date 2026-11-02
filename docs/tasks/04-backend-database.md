@@ -37,7 +37,8 @@ This spec covers the NestJS modular monolith (`apps/api`), the PostgreSQL + Pris
 | G5 | No time model beyond "store UTC". Schedules are wall-clock recurring rules, not instants. | Instants: `timestamptz` (UTC). Recurring rules: `time` + `weekday` + salon `timezone` (IANA). Dates: `date`. Conversion only in `packages/domain` time utilities (owned with 06). |
 | G6 | Tenant isolation is described only at app level; IDs could still cross-link tenants (e.g. booking of salon A referencing staff of salon B). | Every tenant-owned table has `salon_id NOT NULL`; child→parent references use **composite FKs `(salon_id, x_id) → (salon_id, id)`** so cross-tenant references are impossible at DB level. RLS added as defense in depth (policy content in 05). |
 | G7 | Localized content storage unspecified (service descriptions, category names, templates). | `LocalizedText` = JSONB `{ "vi": string, "en"?: string }`, Zod-validated, `vi` required. Generated `tsvector` columns for search (config in 10). Revisit translation tables only if >3 locales. Coordinate with 03. |
-| G19 | Hosting target was undecided. | **AWS Singapore (`ap-southeast-1`)**: RDS for PostgreSQL 18 + S3 (final infra owned by 13). Locally S3 is emulated by **MinIO**. All required extensions are on the RDS allow-list (§3.8). |
+| G19 | Hosting target was undecided. | **AWS Singapore (`ap-southeast-1`)**: RDS for PostgreSQL 18 + S3 (final infra owned by 13). Locally S3 is emulated by **MinIO**. All required extensions are on the RDS allow-list (§3.8). **For now: localhost only (X16)** — Docker Compose (Postgres 18 + PostGIS, Redis, MinIO); AWS provisioning is a later milestone. |
+| G20 | Owner answers (tracker q17, q19, q20, q29, q36/X14, q39). | Organisation → salons model with combined reporting (§3.2); clients without accounts and anonymous walk-ins; service **add-ons** instead of multi-service bookings; no image moderation (report flag only); in-house analytics (events + rollup tables in Postgres); 30-day account-deletion grace. |
 | G8 | "Notify the salon" after booking + BullMQ, but nothing guarantees the job is enqueued if the transaction commits (or not enqueued if it rolls back). | **Transactional outbox**: domain events written to `outbox_event` in the same transaction; a relay publishes to BullMQ; consumers are idempotent via `event_id`. |
 | G9 | No idempotency for mutating requests (mobile networks in VN retry; double-tap "Confirm booking"). | `Idempotency-Key` header on POST for bookings, reviews, uploads; `idempotency_key` table scoped by actor, 24 h TTL, stores response hash. |
 | G10 | Soft deletion "only where appropriate" — undefined. | Explicit per-entity policy (§3.6). Bookings, status history, attribution, ledger, audit: **never deleted, FK `RESTRICT`**. Account deletion = anonymization, not row deletion. |
@@ -68,13 +69,16 @@ This spec covers the NestJS modular monolith (`apps/api`), the PostgreSQL + Pris
 Grouped by owning module. **PK** omitted. `→` = FK. `T` = tenant-scoped (has `salon_id`).
 
 **Identity & users** (module `users`, auth details 05)
-- `User` — phone_e164 (unique, nullable after anonymization), email (unique nullable), status (active/suspended/deleted), preferred_locale, platform_role (null/support_admin/super_admin), last_login_at, deleted_at.
+- `User` — phone_e164 (unique, nullable after anonymization), email (unique nullable), status (active/suspended/pending_deletion/deleted), preferred_locale, platform_role (null/support_admin/super_admin), last_login_at, deletion_requested_at, deletion_scheduled_for (= requested + 30 days), deleted_at.
 - `UserProfile` — user_id (unique →User), display_name, avatar_media_id →MediaAsset, birth_year (optional), preferred_location_id →Location.
 - `Customer` — user_id (unique →User), marketing_consent_at, notification_prefs (JSONB, schema owned by 11). Exists so customer-specific data is separated from staff identity.
 
-**Salons** (module `salons`)
-- `Salon` — slug (unique, citext), canonical_id (= id; slug changes keep redirect rows in `salon_slug_history`), name, status (draft/pending_review/active/suspended/closed), verified_at, timezone (default `Asia/Ho_Chi_Minh`), default_locale, currency, owner_user_id →User, deleted_at.
-- `SalonLocation` (T) — address_line, ward_id →Location, province_id →Location (denormalized), `geo geography(Point,4326)` (Unsupported), map_place_id, is_primary. One primary per salon (partial unique index).
+**Organisations & salons** (module `salons`) — owner answer q19: chains with combined reporting at launch.
+- `Organization` — name, slug, owner_user_id →User, status, default_locale, currency. Every salon belongs to exactly one organisation (a single-location business gets an implicit one-salon organisation created at onboarding). Billing/subscription and combined reporting attach here.
+- `OrganizationMember` — organization_id, user_id, role (org_owner/org_manager/org_viewer; matrix in 05). Grants access to all salons of the organisation; salon-level `SalonMember` grants access to one salon.
+- **One `Salon` = one physical, bookable location** and stays the tenant/row scope (`salon_id`). Organisation-level read models aggregate across `salon_id IN (salons of org the actor may see)`; there is no cross-organisation query path.
+- `Salon` — organization_id →Organization (NOT NULL, denormalized onto `salon_daily_metrics` and analytics rollups), slug (unique, citext), canonical_id (= id; slug changes keep redirect rows in `salon_slug_history`), name, status (draft/pending_review/active/suspended/closed), verified_at, timezone (default `Asia/Ho_Chi_Minh`), default_locale, currency, owner_user_id →User, deleted_at.
+- `SalonLocation` (T, 1:1 with Salon) — address_line, ward_id →Location, province_id →Location (denormalized), `geo geography(Point,4326)` (Unsupported), map_place_id, is_primary. One primary per salon (partial unique index).
 - `SalonSettings` (T, 1:1) — booking_window_days, min_lead_time_minutes, cancellation_cutoff_minutes, auto_confirm (bool), slot_granularity_minutes, reminder_offsets (int[]), cancellation_policy (LocalizedText), booking_policy (LocalizedText), amenities (→ `salon_amenity` join).
 - `SalonOpeningHours` (T) — weekday, opens_at time, closes_at time (multiple rows per day allowed for split shifts).
 - `SalonHoliday` (T) — date or date range, closed bool, special opens/closes, reason.
@@ -91,20 +95,22 @@ Grouped by owning module. **PK** omitted. `→` = FK. `T` = tenant-scoped (has `
 - `ServiceCategory` (global) — parent_id self-FK, slug unique, name LocalizedText, icon, sort_order, is_active. Admin-managed (master §7).
 - `Service` (T) — category_id →ServiceCategory, name LocalizedText, description LocalizedText, price_amount_minor, price_max_amount_minor (range), currency, duration_minutes, buffer_before_minutes, buffer_after_minutes, is_active, sort_order, booking_restrictions JSONB (schema in 06), requires_resource_type nullable, deleted_at.
 - `ServiceVariant` (T) — service_id, name LocalizedText, price/duration overrides, sort_order, is_active, deleted_at.
+- `ServiceAddOn` (T) — service_id, name LocalizedText, extra_duration_minutes, extra_price_amount_minor, currency, max_quantity (default 1), sort_order, is_active, deleted_at. Owner answer q17: combos and extras are modelled as add-ons on a single service (or as their own "combo" service), not as multi-service bookings.
 - `Resource` (T) — type (room/chair/bed/device), name, capacity int default 1, is_active.
 - `ResourceUnit` (T) — resource_id, label, is_active. A resource of capacity N has N unit rows (X4 / topic 06); capacity is never enforced by counting.
 - `ServiceResourceRequirement` (T) — service_id, resource_type, quantity.
 
 **Bookings** (module `bookings`; engine rules 06)
-- `Booking` (T) — reference_code (short human code, unique per salon), customer_id →Customer nullable (walk-in/manual), customer_salon_profile_id →CustomerSalonProfile, status enum, `starts_at`, `ends_at`, source enum (marketplace/salon_profile/direct_link/qr_code/social_media/repeat_customer/staff_created/zalo), created_by_user_id, customer_note, cancellation_reason, total_estimated_amount_minor, currency, payment_method (`pay_at_salon` only in MVP), idempotency_key, version int (optimistic lock).
-- `BookingService` (T) — booking_id, sequence, service_id, variant_id, staff_id, `starts_at`, `ends_at`, **snapshot fields** (§3.5). Time claims (incl. buffers) are written to `booking_occupancy`.
+- `Booking` (T) — reference_code (short human code, unique per salon), customer_id →Customer nullable, customer_salon_profile_id →CustomerSalonProfile **nullable only for anonymous walk-ins** (`CHECK (customer_salon_profile_id IS NOT NULL OR source = 'walk_in')`), status enum, `starts_at`, `ends_at`, source enum (marketplace/salon_profile/direct_link/qr_code/social_media/repeat_customer/staff_created/zalo), created_by_user_id, customer_note, cancellation_reason, total_estimated_amount_minor, currency, payment_method (`pay_at_salon` only in MVP), idempotency_key, version int (optimistic lock).
+- `BookingService` (T) — booking_id, sequence (**MVP: exactly one row per booking**, `CHECK (sequence = 1)` until multi-service is enabled), service_id, variant_id, staff_id, `starts_at`, `ends_at`, **snapshot fields** (§3.5). Time claims (incl. buffers) are written to `booking_occupancy`.
+- `BookingServiceAddOn` (T) — booking_service_id, add_on_id, quantity, **snapshot**: name, extra_duration_minutes, extra_price_amount_minor, currency. Booking duration = variant/service duration + Σ add-on durations (computed in `packages/domain/booking`).
 - `BookingHold` (T) — expires_at, session_key, idempotency_key. Owned by 06; its time claims live in `booking_occupancy`.
 - `BookingOccupancy` (T, **engine-owned by 06**, schema hosted here) — booking_id?, hold_id?, kind (booking/hold), staff_id?, resource_unit_id?, `range tstzrange` (incl. buffers), active bool, expires_at?. Exactly one of staff_id / resource_unit_id per row. This is the only table carrying overlap exclusion constraints (§3.7).
 - `BookingStatusHistory` (T, append-only) — booking_id, from_status, to_status, actor_type (customer/salon_member/system/admin/agent), actor_id, reason, created_at.
 - ~~`ResourceBooking`~~ — replaced by `booking_occupancy` rows with `resource_unit_id` (X4). Master §19 entity name kept as an alias in docs only.
 
 **CRM** (module `customers`)
-- `CustomerSalonProfile` (T) — customer_id nullable (offline-only clients have no GuGu account), display_name, phone_e164, zalo_user_link_id nullable (09), tags text[], first_visit_at, last_visit_at, visit_count, no_show_count, preferred_staff_id, source_first. `UNIQUE (salon_id, customer_id)`, `UNIQUE (salon_id, phone_e164)`.
+- `CustomerSalonProfile` (T) — customer_id nullable (owner answer q20: salons may add clients without a GuGu account), display_name, phone_e164 nullable, zalo_user_link_id nullable (09), tags text[], first_visit_at, last_visit_at, visit_count, no_show_count, preferred_staff_id, source_first. `UNIQUE (salon_id, customer_id)`, `UNIQUE (salon_id, phone_e164)` (NULLs allowed, distinct). Anonymous walk-ins get no profile at all (booking with `source = walk_in`, profile NULL); a receptionist can attach a profile later. Profiles are per salon; organisation-level client views merge by `customer_id`/phone at query time, never by copying rows.
 - `CustomerNote` (T) — customer_salon_profile_id, author_member_id, body, visibility = `internal` (constant; there is no customer-visible variant — enforced by never mapping it into customer read models).
 
 **Reviews** (module `reviews`)
@@ -122,7 +128,8 @@ Grouped by owning module. **PK** omitted. `→` = FK. `T` = tenant-scoped (has `
 - `NotificationDelivery` — notification_id or event_id, channel, provider, status, attempts, provider_message_id, error_code, `UNIQUE (dedup_key, channel)`.
 
 **Media** (module `media`, §5)
-- `MediaAsset` — owner_type (user/salon), owner_user_id, salon_id nullable, purpose enum (salon_logo/salon_cover/salon_gallery/service_photo/staff_photo/review_photo/avatar), storage_key, mime, bytes, width, height, blurhash, status (pending/processing/ready/rejected/deleted), moderation_status, variants JSONB, sha256, deleted_at.
+- `MediaAsset` — owner_type (user/salon), owner_user_id, salon_id nullable, purpose enum (salon_logo/salon_cover/salon_gallery/service_photo/staff_photo/review_photo/avatar), storage_key, mime, bytes, width, height, blurhash, status (pending/processing/ready/rejected/removed/deleted), report_count, variants JSONB, sha256, deleted_at. **No pre-moderation** (owner answer q29): uploads go live when processed.
+- `MediaReport` — media_id, reporter_user_id, reason, status (open/dismissed/actioned), created_at. Admin (18) can set the asset to `removed`.
 
 **Geography** (module `locations`, data 10)
 - `Location` — parent_id, level (country/province/legacy_district/ward), code (official GSO code), name LocalizedText, slug, `centroid geography(Point)`, `boundary geography(MultiPolygon)` optional, valid_from, valid_to.
@@ -141,7 +148,7 @@ Grouped by owning module. **PK** omitted. `→` = FK. `T` = tenant-scoped (has `
 - `OutboxEvent` — id, aggregate_type, aggregate_id, salon_id, type (`booking.created`…), payload JSONB, occurred_at, published_at nullable. Partial index on unpublished.
 - `IdempotencyKey` — key, actor_id, route, request_hash, response_status, response_body JSONB, expires_at. `UNIQUE (actor_id, route, key)`.
 - `SalonSlugHistory` — salon_id, slug unique, replaced_at (for 301s).
-- `SalonDailyMetrics` (T) — salon_id, date, bookings_created, bookings_completed, cancellations_customer, cancellations_salon, no_shows, new_customers, returning_customers, estimated_revenue_minor, reported_revenue_minor, booked_minutes, available_minutes. `UNIQUE (salon_id, date)`. Read model for 07 dashboards and 08 agent.
+- `SalonDailyMetrics` (T) — salon_id, organization_id, date, bookings_created, bookings_completed, cancellations_customer, cancellations_salon, no_shows, new_customers, returning_customers, estimated_revenue_minor, reported_revenue_minor, booked_minutes, available_minutes. `UNIQUE (salon_id, date)`. Read model for 07 dashboards and 08 agent.
 
 ### 3.4 Placeholder entities for other topics (shape reserved; owning topic finalizes)
 | Entity | Owner | Purpose |
@@ -151,7 +158,7 @@ Grouped by owning module. **PK** omitted. `→` = FK. `T` = tenant-scoped (has `
 | `AgentConversation` (T: salon_id, member_id, channel in_app/zalo, title, locale), `AgentMessage` (role, content JSONB, tokens_in/out, model), `AgentToolCall` (T: conversation_id, tool_name, input JSONB, output_summary JSONB, status, permission_checked, latency_ms, confirmed_by for writes), `AgentUsage` (T: period, tokens, cost_minor) | 08 | AI agent conversations + mandatory tool-call audit |
 | `ZaloOaConnection` (T: oa_id, encrypted access/refresh tokens, scopes, status, connected_by), `ZaloUserLink` (zalo_user_id per OA ↔ CustomerSalonProfile / User), `ZaloThread` (T), `ZaloMessage` (T: direction, type, body, interaction_window_expires_at), `ZaloTemplateMessageLog` (template_id, phone_hash, booking_id, status, cost_minor, provider_msg_id) | 09 | Zalo OA inbox, ZBS Template Message (formerly ZNS) delivery log |
 | `Plan` (code, limits JSONB), `Entitlement` (T: feature key e.g. `ai_agent`, `zalo_inbox`, limit, source), `UsageCounter` (T: feature, period, used), `PromotedListing` (T) , `FeatureFlag` | 12 | Subscriptions, gating (AI agent, Zalo), feature flags |
-| `AnalyticsEvent` (only if not sent to an external pipeline) | 12 | Product analytics |
+| **In-house analytics (X14)**: `AnalyticsEvent` (append-only, partitioned by month: event_name, occurred_at, received_at, actor_kind, pseudonymous `subject_id` (HMAC, never phone/email), session_id, salon_id?, organization_id?, platform, app_version, locale, props JSONB validated against the event catalogue, consent_basis) + rollup tables `analytics_daily_rollup` (date, event_name, dimensions hash, count, uniques via HLL-free exact distinct per day), `funnel_daily_rollup`, `organization_daily_metrics` (sum of `salon_daily_metrics`). Raw events retained 13 months, rollups indefinitely. | 12 (schema hosted here) | Product analytics without third parties |
 
 Rule: placeholder tables are **not** created until the owning topic's milestone; this list exists so composite keys, tenant scoping, and audit patterns are designed in from day one.
 
@@ -163,10 +170,11 @@ Rule: placeholder tables are **not** created until the owning topic's milestone;
 |---|---|
 | Booking, BookingService, BookingStatusHistory, BookingAttribution, CommissionLedger, AuditLog, OutboxEvent, ReviewReport | Never deleted. FK `RESTRICT`. Retention/archival via partitioning (13). |
 | Salon, Service, ServiceVariant, StaffProfile, Resource | Soft delete (`deleted_at`); hidden from public/read models; still referenced by history. |
-| User | Account deletion → anonymize PII (phone/email nulled, name → "Deleted user"), keep row for FK integrity; `CustomerSalonProfile` PII anonymized per salon unless legal retention applies (05). |
+| User | Deletion request → `pending_deletion` for a **30-day grace period** (owner answer q39; logging in cancels it), then a job anonymizes PII (phone/email nulled, name → "Deleted user") and keeps the row for FK integrity; `CustomerSalonProfile` linked to the user is unlinked/anonymized per salon unless legal retention applies (05). |
 | Review | Moderation status, not deletion; author deletion → anonymized author. |
-| MediaAsset | Soft delete, then object removal job after 30 days; review/avatars of deleted users removed. |
+| MediaAsset | Soft delete, then object removal job after 30 days; review/avatars of deleted users removed at the end of the grace period. Reported assets are not deleted automatically. |
 | Favorite, Notification, IdempotencyKey, BookingHold, OtpChallenge | Hard delete / TTL sweep. |
+| AnalyticsEvent | Drop monthly partitions older than 13 months; subject ids of deleted users become unlinkable when their HMAC salt entry is removed. |
 
 Prisma must not use a global soft-delete extension that silently filters; read models filter `deleted_at IS NULL` explicitly so history queries remain possible.
 
@@ -181,10 +189,10 @@ Prisma must not use a global soft-delete extension that silently filters; read m
 - Partial unique indexes (one primary location; one active subscription per salon; unpublished outbox).
 - `CHECK` constraints (ratings, money ≥ 0, `ends_at > starts_at`, favorite target).
 - RLS policies (content from 05) using `current_setting('app.salon_id', true)`.
-- Monthly partitioning for `audit_log` and, later, `booking_status_history`.
+- Monthly partitioning for `audit_log`, `analytics_event` and, later, `booking_status_history`.
 
 ### 3.8 RDS compatibility (verified 2026-11-02)
-Target: **Amazon RDS for PostgreSQL 18** (latest listed minor 18.6) in `ap-southeast-1`. On the RDS allow-list for 18.x: PostGIS 3.6.x, btree_gist 1.8, pg_trgm 1.6, unaccent 1.1, citext 1.8, pgcrypto 1.4. UUID v7: native `uuidv7()` in PG 18 core; no `pg_uuidv7` extension on RDS (not needed — Prisma generates v7 client-side). Fallback if we must stay on PG 17: same extensions available (PostGIS 3.5.x, btree_gist 1.7), but generate v7 only in the app. Local/CI image: `postgis/postgis:18-3.6` to match. Extensions are created by the migration role (`rds_superuser` member); 13 provisions that role. Re-check `SHOW rds.extensions;` on the real instance before go-live.
+Target: **Amazon RDS for PostgreSQL 18** (latest listed minor 18.6) in `ap-southeast-1`. On the RDS allow-list for 18.x: PostGIS 3.6.x, btree_gist 1.8, pg_trgm 1.6, unaccent 1.1, citext 1.8, pgcrypto 1.4. UUID v7: native `uuidv7()` in PG 18 core; no `pg_uuidv7` extension on RDS (not needed — Prisma generates v7 client-side). Fallback if we must stay on PG 17: same extensions available (PostGIS 3.5.x, btree_gist 1.7), but generate v7 only in the app. Local/CI image: `postgis/postgis:18-3.6` to match. Extensions are created by the migration role (`rds_superuser` member); 13 provisions that role. Re-check `SHOW rds.extensions;` on the real instance before go-live. **Current phase is localhost only (X16)**: no AWS account yet; this section is the target for the later deployment milestone.
 
 Each raw object is listed in `docs/domains/backend-database.md#raw-sql-objects` with the migration that creates it, and covered by an integration test.
 
@@ -230,10 +238,11 @@ Every module that holds business data exposes named read models, e.g.:
 - `metrics.salonDaily` / `metrics.salonPeriodSummary` (from `salon_daily_metrics`; fields labelled `estimated` vs `reported` revenue per master §13)
 - `customers.list`, `customers.profile` (internal notes included only for permitted salon roles)
 - `services.list`, `staff.list`, `staff.utilization`, `reviews.list`, `reviews.summary`
+- `organization.periodSummary`, `organization.salonComparison` (combined reporting across an organisation's salons, scope `organization`)
 
 **Layering (X7):** (1) this read-model registry — backend queries with permission, tenant scope and untrusted-field flags — is the base layer; (2) topic 07's metric catalogue (`packages/domain/metrics`) is defined on top of read models and never queries tables directly; (3) topic 08 generates product-agent tools from both. The registry interface is frozen in roadmap Step 3 (`A0`) even though the agent ships in Step 8.
 
-Each read model has: Zod input + output schema, required permission, tenant scope, max page size, and a stable description string (used both for OpenAPI `summary` and as the agent tool description). It is implemented once as a query service method; the HTTP controller and the agent tool adapter (08) are both thin wrappers. A registry file per module (`<domain>.read-models.ts`) exports this metadata so 08 can generate tool definitions automatically.
+Each read model has: Zod input + output schema, required permission, tenant scope (`salon` or `organization`), max page size, and a stable description string (used both for OpenAPI `summary` and as the agent tool description). It is implemented once as a query service method; the HTTP controller and the agent tool adapter (08) are both thin wrappers. A registry file per module (`<domain>.read-models.ts`) exports this metadata so 08 can generate tool definitions automatically.
 
 ### 4.5 Cross-cutting
 - Errors: RFC 9457 `application/problem+json` with `code`, `title` (English, for logs), `params`; client maps `code` → translation key (03).
@@ -245,7 +254,7 @@ Each read model has: Zod input + output schema, required permission, tenant scop
 - Health: `/health/live`, `/health/ready` (DB, Redis, S3).
 
 ### 4.6 Jobs
-- BullMQ queues: `outbox-relay` (or a polling worker), `notifications`, `media-processing`, `metrics-aggregation`, `holds-sweeper`, `maintenance`. Workers run in a separate process from the HTTP server (same codebase, different entrypoint).
+- BullMQ queues: `outbox-relay` (or a polling worker), `notifications`, `media-processing`, `metrics-aggregation`, `analytics-rollup`, `account-deletion` (executes anonymization when the 30-day grace ends), `holds-sweeper`, `maintenance`. Workers run in a separate process from the HTTP server (same codebase, different entrypoint).
 - Every job is idempotent, keyed by `event_id` or deterministic job id; retries with backoff; dead-letter queue surfaced in admin (18).
 
 ---
@@ -254,7 +263,7 @@ Each read model has: Zod input + output schema, required permission, tenant scop
 1. `POST /api/v1/media/upload-intents` {purpose, mime, bytes, salonId?} → checks permission for purpose/owner, allowed MIME (jpeg/png/webp/heic) and size limits per purpose, creates `MediaAsset(pending)`, returns presigned PUT URL (5 min) with content-type/length conditions.
 2. Client uploads directly to S3 (`ap-southeast-1`; MinIO locally with the same SDK code path, path-style addressing toggled by config).
 3. `POST /media/:id/finalize` → verifies object exists, sniffs magic bytes, computes sha256, enqueues processing.
-4. Worker (sharp): decode, reject if dimensions/frames abnormal, strip EXIF/GPS, auto-rotate, generate variants (e.g. 64/256/768/1600 px) as WebP + AVIF, blurhash; status `ready`. Optional moderation hook (admin queue; automated classifier later).
+4. Worker (sharp): decode, reject if dimensions/frames abnormal, strip EXIF/GPS, auto-rotate, generate variants (e.g. 64/256/768/1600 px) as WebP + AVIF, blurhash; status `ready` (goes live immediately; no moderation queue). Anyone signed in can report an asset (`MediaReport`); admins act on reports.
 5. Attach endpoints (e.g. set salon logo) accept only `ready` assets owned by the same user/salon.
 6. Public delivery through Cloudflare CDN with immutable versioned keys; private media (none in MVP) via signed GET.
 7. Sweeper deletes `pending` > 24 h and soft-deleted > 30 days.
@@ -275,6 +284,11 @@ Each read model has: Zod input + output schema, required permission, tenant scop
 11. Media: uploading a non-image disguised as `.jpg` is rejected at finalize; EXIF GPS is absent from all variants; a user cannot attach another salon's asset.
 12. Problem+json errors never contain stack traces or SQL in production mode.
 13. Logs redact phone, email, OTP and notes (test on logger serializer).
+14. An org_manager sees combined metrics for all salons of their organisation and gets 404 for a salon of another organisation (test).
+15. A booking with `source = walk_in` and no client profile is accepted; any other source without a profile is rejected by the DB (test).
+16. Add-on durations extend the occupancy range; changing an add-on later doesn't change past bookings (snapshot test).
+17. A user who requests deletion and logs in within 30 days keeps the account; after 30 days the job anonymizes PII and bookings remain intact (test with fake clock).
+18. Analytics events with props outside the catalogue schema or containing raw phone/email are rejected; daily rollups match raw counts (test).
 
 ---
 
@@ -295,13 +309,14 @@ Provides to: 06, 07, 08, 10, 11, 12 (schema, read-model registry, outbox, media)
 ## 8. Sub-milestones
 - **S0 Spike (1–2 d):** Prisma 7 + adapter-pg + `Unsupported` geography + TypedSQL + exclusion constraint + `migrate diff` drift check; choose Zod↔OpenAPI library. Output: ADR `0001-prisma-raw-sql-boundary`, ADR `0002-contracts-zod-openapi`.
 - **S1 Skeleton:** NestJS app, config, logger, problem+json, RequestContext, health, Swagger, Prisma module, Redis, BullMQ worker entrypoint.
-- **S2 Identity & tenancy tables:** User, UserProfile, Customer, Salon, SalonMember, SalonSettings, Location (+ placeholders from 05 as they are specified).
-- **S3 Catalog & staff:** categories, services, variants, staff, schedules, breaks, time off, resources.
+- **S2 Identity & tenancy tables:** User, UserProfile, Customer, Organization, OrganizationMember, Salon, SalonMember, SalonSettings, Location (+ placeholders from 05 as they are specified).
+- **S3 Catalog & staff:** categories, services, variants, add-ons, staff, schedules, breaks, time off, resources.
 - **S4 Bookings schema:** booking, booking_service with snapshots, holds, booking_occupancy, resource units, history, raw-SQL constraints + concurrency tests (with 06).
 - **S5 Outbox + idempotency + metrics table** and aggregation job.
 - **S6 Media service** end to end with MinIO locally.
 - **S7 Read-model registry** + OpenAPI generation + api-client generation in CI.
-- **S8 Reviews, favorites, CRM profile/notes, attribution, audit log partitioning.**
+- **S8 Reviews, favorites, CRM profile/notes (incl. no-account clients), attribution, audit log partitioning, account-deletion job.**
+- **S9 In-house analytics storage (with 12):** `analytics_event` partitions, ingestion endpoint, rollup jobs, organisation metrics.
 
 ---
 
@@ -319,13 +334,13 @@ This topic provides the **mechanism**, not the tools themselves: the read-model 
 - Read-only tools first; any future write tool maps to an existing command with idempotency key and requires human confirmation (08).
 - Read models never expose: OTP data, tokens, internal attribution metadata, other tenants' data. Internal notes and customer phone numbers only for roles that can see them in the CRM.
 - Aggregates come from `salon_daily_metrics`, with explicit `revenue_kind: estimated | reported | offline_sale` so the agent cannot present booking values as verified payments.
-- Customer-authored text (notes, reviews, Zalo messages) is returned in clearly delimited fields marked `untrusted: true` in the schema metadata.
+- **No personal data reaches any LLM (X10).** Read-model fields carry a `pii` flag; agent tools (08) may only use non-PII fields, aggregates and pseudonymous entity tokens re-hydrated server-side. Customer-authored text (notes, reviews, Zalo messages) is additionally marked `untrusted: true` and is never agent-exposed.
 - Every agent tool invocation is persisted in `AgentToolCall` (owned by 08) and summarized in `AuditLog`.
 
 ## 11. Open questions for the product owner
 1. ~~Hosting region~~ — resolved: AWS Singapore (RDS + S3). Remaining legal question: whether any data categories must be stored in Vietnam under the Personal Data Protection Law 91/2025/QH15 + Decree 356/2025/ND-CP and Decree 53/2022 (data localisation). Legal review required; this spec claims no compliance.
 2. ~~Object storage~~ — resolved: S3 (MinIO locally). Cloudflare stays as CDN in front of S3.
-3. Retention period for bookings/audit data after salon closure or account deletion (legal input needed).
-4. Should offline-only salon clients (no GuGu account, added from CRM or Zalo) be allowed in MVP? (Model supports it; affects privacy notices.)
-5. Is multi-location per salon (chains) needed in MVP, or one physical location per salon tenant with chains later as an "organization" layer?
-6. Image moderation: manual admin queue only at launch, or an automated classifier from day one?
+3. Retention for bookings/audit data after salon closure, and whether a salon's notes about a customer survive that customer's deletion (q39 answered only the 30-day grace; legal input still needed).
+4. ~~No-account clients~~ — resolved (q20): yes, incl. anonymous walk-ins.
+5. ~~Chains~~ — resolved (q19): organisation → salons with combined reporting at launch.
+6. ~~Image moderation~~ — resolved (q29): none; report flag only.

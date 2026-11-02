@@ -32,7 +32,8 @@ Locale files in other packages are edited only through the skill procedures.
 - Never invent legal, policy or pricing wording. Flag it for the product owner instead.
 - No text baked into images, video, glTF textures, posters or 3D scenes. Hero headlines and script accents are `marketing` keys rendered live.
 - Display, serif and script fonts must pass the Vietnamese glyph gate in the skill before they are used for vi.
-- Use the marketing register (playful, gen-z) only on marketing surfaces, and the calm CRM register everywhere operational.
+- Use the marketing register (playful, gen-z, "bạn") only on marketing surfaces, and the calm CRM register ("anh/chị") everywhere operational.
+- In vi, prices are `150.000đ` (decided, q27).
 
 ## When reviewing a PR, report
 
@@ -41,7 +42,7 @@ Locale files in other packages are edited only through the skill procedures.
 3. Vietnamese quality issues: unnatural phrasing, glossary violations, wrong register, diacritic errors. Give a suggested rewrite for each.
 4. Direct `Intl` usage, or wrong timezone handling.
 5. Text baked into assets (images, video, 3D textures), fonts without verified Vietnamese coverage, or register mixing (marketing tone in CRM, or the reverse).
-6. Whether the PR needs the `i18n:vi-review` label (true for any new or changed vi string), plus `copy:brand` for hero and campaign copy.
+6. Whether the PR needs the `i18n:vi-review` label (true for any new or changed vi string), plus `copy:brand` for hero and campaign copy. The vi reviewer (owner's wife) approves both.
 
 ## Definition of done
 

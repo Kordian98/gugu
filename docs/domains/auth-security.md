@@ -5,9 +5,9 @@ Durable reference for identity, sessions, authorization, tenant isolation, audit
 > Status: skeleton — sections marked _TBD_ are filled as code lands.
 
 ## Summary
-- Sign-in: Apple, Google, email magic link; optional phone OTP via channel ladder (registered "GuGu" sender ID on global CPaaS → secondary CPaaS → voice → `zalo_template` when feasible → email); optional Zalo linking.
-- Booking needs no OTP (X11): guests book with name + phone, flagged `identity_verified=false`; anti-abuse layer + salon confirmation policy + optional confirm link. OTP only for phone sign-in, recovery, phone change, claiming guest bookings, sensitive changes, salon-member device logins.
-- Hosting: AWS ap-southeast-1 (Singapore); no Vietnamese legal entity yet — cross-border transfer pending legal review.
+- Sign-in: email magic link, Apple, Google. Zalo Login built but hidden until the central OA exists. No SMS / SMS OTP for now (X12); `sms` channel is a mock.
+- Booking needs no OTP (X11): guests book with name + phone, flagged `identity_verified=false`; anti-abuse layer + salon confirmation policy + optional confirm link (email now, Zalo later).
+- Environments: localhost only for now (X16); target hosting AWS ap-southeast-1 later. Accounts held by the owner's Polish company. Legal review postponed (q04), required before public launch.
 - Sessions: web = httpOnly `__Host-` cookie + CSRF; native = 15-min access JWT + rotating refresh token in SecureStore.
 - Authorization: Principal + SalonContext + permission strings; default deny; tenant-scoped repositories; RLS as defense in depth.
 - Non-human principals: AI agent on behalf of a member, Zalo integration, system jobs.
@@ -17,10 +17,10 @@ Durable reference for identity, sessions, authorization, tenant isolation, audit
 See `.claude/skills/tenant-authorization/SKILL.md#invariants` (canonical list).
 
 ## Model
-_TBD: User, Session, OtpChallenge, SalonMember, MembershipPermissionOverride, Consent, AuditLog, IntegrationCredential — link to `docs/database.md`._
+_TBD: User, Session, VerificationChallenge, SalonMember, MembershipPermissionOverride, Consent, AuditLog, IntegrationCredential — link to `docs/database.md`._
 
 ## Flows
-- OTP login — _TBD sequence diagram_
+- Magic-link sign-in & confirm-link verification — _TBD sequence diagram_
 - Refresh rotation & reuse detection — _TBD_
 - Staff invitation — _TBD_
 - Agent tool call authorization — _TBD_
@@ -42,4 +42,4 @@ _TBD: enumerated list with payload shape (spec R29)._
 _TBD_
 
 ## ADRs
-- _TBD_ session model · RLS strategy · OTP channels & providers (no VN entity)
+- _TBD_ session model · RLS strategy · verification channels (email/Zalo now, SMS later)

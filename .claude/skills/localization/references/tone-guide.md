@@ -5,12 +5,12 @@ GuGu sounds friendly, young, clear and confident. It is playful in marketing and
 
 ## Vietnamese
 - **Customers.** Address customers as "bạn" throughout the customer app. Don't use "quý khách": it is too formal for the brand.
-- **Salon staff.** Address staff in the CRM as "bạn" too. Open question Q5 asks whether to use "anh/chị" instead.
+- **Salon staff.** The salon CRM addresses users as **"anh/chị"** (owner decision, q27). Use it where a pronoun is needed, and prefer implied-subject phrasing so strings stay short: "Chưa có lịch hẹn hôm nay", or "Anh/chị muốn hủy lịch này?".
 - **Brevity.** Prefer short, natural phrases that a 22-year-old would actually say. For example, write "Đặt lịch thành công!", not "Việc đặt lịch của bạn đã được hoàn tất thành công".
 - **Buttons.** Use verb-first button labels: "Đặt lịch", "Hủy lịch", "Xem thêm".
 - **English loanwords.** Allow them only when they are the everyday term: "spa", "nail", "check-in", "voucher". Otherwise use Vietnamese.
 - **Diacritics.** Diacritics are mandatory everywhere except generated `vi-ascii` SMS.
-- **Tone-mark placement.** Use one tone-mark convention everywhere. Current choice: **"hòa", "thủy", "khỏe"** (the style most common in apps), not "hoà", "thuỷ", "khoẻ". The native reviewer confirms this.
+- **Tone-mark placement.** Use one tone-mark convention everywhere. Current choice: **"hòa", "thủy", "khỏe"** (the style most common in apps), not "hoà", "thuỷ", "khoẻ". The vi reviewer (owner's wife) confirms this.
 - **Errors.** Errors say what happened and what to do, without blame. For example: "Số điện thoại chưa đúng. Bạn kiểm tra lại nhé."
 - **Particles and emoji.** Use the softening particles "nhé" and "nha" sparingly and only in customer-facing friendly copy, never in policies or errors about money or cancellations. Emoji are allowed in marketing and push notifications, never in errors or legal text.
 
@@ -22,7 +22,7 @@ GuGu speaks in two registers. Pick one per screen and never mix them in one stri
 |---|---|---|
 | Goal | Make people feel something and tap | Make the next action obvious |
 | Voice | Playful, warm, self-care, a little cheeky | Calm, short, factual, reassuring |
-| Address | "bạn", or implied (no pronoun) | "bạn" (pending Q5), mostly implied |
+| Address | "bạn", or implied (no pronoun) | "anh/chị" (q27), mostly implied |
 | Particles | "nha", "nè", "thôi", "đi" are allowed | None, except a soft "nhé" in empty states |
 | Loanwords | gen-z mix allowed: "glow up", "self-love", "chill", "vibe" (max one per line) | Only standard ones: "check-in", "no-show" in tooltips |
 | Emoji | OK in push and social, never in hero type | Never |
@@ -36,7 +36,7 @@ GuGu speaks in two registers. Pick one per screen and never mix them in one stri
 - Avoid textbook and translationese constructions such as "Hãy…" chains, "được + verb" passives, and "của bạn" everywhere.
 - Avoid ad clichés from the 2000s: "uy tín – chất lượng – giá rẻ", "hàng đầu", "số 1".
 
-Hero accent drafts (⚠ native gen-z copywriter must approve, Q7):
+Hero accent drafts (⚠ the vi reviewer (owner's wife) must approve, q49):
 
 | en accent (reference) | vi options |
 |---|---|
@@ -56,7 +56,7 @@ Use sentence case, contractions are OK, and keep it plain and warm. Example: "Yo
 ## Formatting conventions
 | Thing | vi | en |
 |---|---|---|
-| Price | `150.000đ` | `₫150,000` |
+| Price | `150.000đ` (decided, q27) | `₫150,000` |
 | Price range | `150.000–250.000đ` | `₫150,000–250,000` |
 | Time | `09:00` (24h) | `9:00 AM` |
 | Date (short) | `T2, 03/11` | `Mon, Nov 3` |

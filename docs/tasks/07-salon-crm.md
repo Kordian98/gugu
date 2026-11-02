@@ -2,6 +2,8 @@
 
 > The salon side of GuGu: the "today" view, calendar, booking operations, customer CRM, service/staff/profile management, onboarding and dashboards. It has to be extremely simple to read and operate, built around how Vietnamese salons actually work (Zalo, phone calls, walk-ins), and expose clean read models that both dashboards and the AI business agent (08) use.
 >
+> **Product priority (roadmap X13, owner q18):** GuGu is primarily a SaaS for salons and the marketplace is an addition. This CRM and its onboarding are the **core product**: when CRM work conflicts with marketplace work, CRM quality wins.
+>
 > Source: master prompt §13 (plus touchpoints in §11, §14, §17) and the product owner's requirements (intuitive CRM, AI-agent-ready, Zalo-native).
 > Owner subagent: `.claude/agents/salon-crm.md` · Skill: `.claude/skills/salon-crm/SKILL.md` · Domain doc: `docs/domains/salon-crm.md`
 
@@ -39,9 +41,13 @@
 | G3 | "Customer CRM" has no dedupe or identity rules. Phone is the de-facto ID in VN, and customers change numbers or share family phones. | `CustomerSalonProfile` is keyed on salon + normalized E.164 phone (nullable for anonymous walk-ins). There is a merge-profiles action (owner/manager), audited. A GuGu account links to the profile when the phone is verified. |
 | G4 | The dashboard KPI list is long. The prompt asks for it to be "simple to read", but a dense KPI dashboard is the opposite of that. | The home is **Today**, not analytics: a timeline of the day plus at most 3 status chips. Analytics lives in a separate "Insights" tab with at most 4 headline numbers, each expandable. Every metric has one canonical definition (§4.6). |
 | G5 | Revenue labelling is mentioned but not modelled. | Each money figure carries `revenueKind: RevenueKind` (`estimated_from_bookings` | `recorded_offline_sale` | `reported_by_salon`), defined once in `packages/domain/metrics` and owned by 07 (roadmap X5). The UI shows a mandatory badge and tooltip. The figures never sum across provenance without a label. The words "payment" and "doanh thu đã thanh toán" are never used. |
-| G6 | No **multi-location** model. A chain with two branches is common. | MVP: 1 Salon = 1 location = 1 tenant. An owner may own several salons and switch between them (workspace switcher). An org-level rollup is deferred, but the data model (05/04) must allow an `Organization` parent later. |
-| G7 | Staff "performance" is undefined and could feel punitive. | Show utilization, completed appointments, rebooking rate and average rating. Staff see only their own numbers, and owner/manager see everyone's. Owners can hide ratings from staff. |
+| G6 | No **multi-location** model. A chain with two branches is common. | **At launch (owner q19):** `Organization` → many `Salon` (one location each; the salon stays the tenant). The workspace switcher shows each location plus **"Tất cả chi nhánh / All locations"**. Combined reporting: every metric supports `scope: salon \| organization`, and the organization scope sums or recomputes across the salons the member holds `insights.view_all` on. Operational screens (Today, Calendar, Clients) stay per location; there is no cross-location booking in MVP. Client profiles stay per salon, and cross-location client merge is out of scope. Org owners are owners of every salon in the org; managers can be scoped to one or more salons. Schema and permission work goes to 04/05. |
+| G7 | Staff "performance" is undefined and could feel punitive. | Show utilization, completed appointments, rebooking rate and average rating. Staff see only their own numbers, **always including their own ratings** (owner q23), and owner/manager see everyone's. |
 | G8 | No offline or flaky-network behaviour for the calendar, although receptionists run it on cheap Android phones and tablets. | Read caching (TanStack Query persisted) with a visible "offline / last updated" banner. Writes require a connection in MVP: show a clear retry and never queue silently. Offline write queue is out of scope for MVP. |
+| G14 | Combos and add-ons (owner q17, q21). | One service per appointment at launch. Combos are entered as a normal service ("Combo gel + chăm sóc da tay") or as **add-on options** on a service (each with its own price delta and extra duration, snapshotted on the booking). No prepaid packages (combo 10 buổi) and no staff commission tracking. GuGu's own revenue is monthly/yearly SaaS subscriptions (12). |
+| G15 | Devices (owner q23). | Both setups work without configuration: one shared reception tablet (fast "who is using this?" member switch with an optional 4-digit PIN, auto-lock after idle) or each person on their own phone. No device registration is required. |
+| G16 | Contact visibility (owner q24). | Staff see client phone numbers by default: `client.view_contact` is in the staff default role, and the owner can revoke it per salon. |
+| G17 | Clients without accounts (owner q20, X11). | Salons add clients with no GuGu account, and fully anonymous walk-ins are allowed and can be linked later. Customer self-service bookings arrive without OTP, flagged `identity_verified=false`. The CRM shows a subtle "unverified" marker, never a warning. A salon setting "Confirm bookings from new or unverified clients" is **off by default**, and GuGu suggests turning it on after repeated no-shows (q66). No-show history is visible only for the salon's own history with that client (q68). |
 | G9a | Product owner rule (2026-11): **no personal data may be sent to any LLM** for now. | Every AI feature that needs personal data is **deferred**: paste-from-Zalo → booking draft, chat-to-booking, client search/profile/notes via the agent, agent-drafted bookings for named clients. The agent sees only aggregates and pseudonymous tokens (`staff_3`, `customer_17`), re-hydrated server-side after the model call by 08's PII firewall. Free text (notes, reviews, messages) is never sent. |
 | G9 | No AI-agent readiness, although that is a product requirement. | All dashboard numbers come from documented read-model endpoints with Zod schemas, which are also registered as agent tools (§8). Dashboards hold no business logic of their own. |
 | G10 | "Promote their business" in the vision has no screen. | Placeholder "Grow" tab with a shareable booking link and QR code (attribution source `qr_code` / `direct_link`). Promoted listings come later (12). |
@@ -67,7 +73,7 @@ Primary navigation is role-aware. It is a bottom tab bar on mobile and a left ra
 
 - Global **"+" quick action** (FAB on mobile, `N` key on desktop): New booking · Walk-in · Block time · New client.
 - Global **search** (`/` or `Cmd+K`): clients by phone or name (diacritic-insensitive), bookings by code, services.
-- **AI assistant** (08) is a persistent button that opens a side panel on desktop and a bottom sheet on mobile, gated by subscription.
+- **AI assistant** (08) is a persistent button that opens a side panel on desktop and a bottom sheet on mobile, available in the **Pro** plan only (q31). Other plans show it as an upsell. AI setup in onboarding is in every plan.
 
 ### 3.2 "Today" home (default screen)
 1. Header: date, salon open/closed state, and the staff on shift as an avatar row.
@@ -107,27 +113,44 @@ Acceptance: a receptionist can find the next customer and check them in with **a
 - Tags are salon-defined plus system tags (`VIP`, `new`, `at_risk` = no visit in 2× their average interval). System tags are computed, not editable.
 
 ### 3.6 Management
-- **Services:** a list grouped by category with drag reorder. The editor covers name (vi + en, vi required), category, duration, buffer, price or price range, variants (each with its own price and duration), assigned staff, per-staff price override, active toggle, and booking restrictions (min notice, max advance, online-bookable toggle). Changes never touch existing bookings, because bookings keep snapshots (04/06).
-- **Team:** invite by phone (SMS/Zalo link) or email. Profile, role (owner/manager/receptionist/staff), weekly schedule grid with breaks, time off, assigned services and an individual calendar link. The permission UI shows plain-language toggles mapped onto the 05 matrix.
+- **Services:** a list grouped by category with drag reorder. The editor covers name (vi + en, vi required), category, duration, buffer, price or price range, variants (each with its own price and duration), **add-on options** (price delta + extra duration; this is how combos are modelled), assigned staff, per-staff price override, active toggle, and booking restrictions (min notice, max advance, online-bookable toggle). Changes never touch existing bookings, because bookings keep snapshots (04/06).
+- **Team:** invite by a share link (copy / Zalo / QR) or an email link. There is no SMS (roadmap X12). Profile, role (owner/manager/receptionist/staff), weekly schedule grid with breaks, time off, assigned services and an individual calendar link. The permission UI shows plain-language toggles mapped onto the 05 matrix.
 - **Salon profile:** everything listed in §13 of the master prompt, plus a live preview of the public page (10).
 - **Hours and holidays:** a weekly template plus exceptions and a VN public holiday suggestion list (Tết etc.) that is opt-in per year and stored in the DB.
 - **Policies:** booking policy, cancellation window (hours), and a no-show policy text shown to customers.
 
 ### 3.7 Onboarding wizard (target: first bookable state in under 10 minutes)
-1. Business basics: name, category, phone, address with a map pin.
-2. Hours: template presets ("9:00–21:00 every day" is common).
-3. Services: **Import** (photo or PDF of the price board, or pasted price-board text → AI extraction (08); the client strips phone numbers and names before upload and the server PII-scans and rejects input that contains them → editable table with confidence highlighting) **or** pick from category templates **or** add manually.
-4. Team: "Just me" or add staff (name plus services).
+
+**"Effortless AI setup" / "Thiết lập bằng AI trong vài phút"** is the headline path and a marketing feature (roadmap X13, owner q42). It is available in **every plan**, including free.
+
+**Path A (default, first card): AI setup from screenshots**
+1. "Chụp hoặc tải lên bảng giá của anh/chị": upload 1–10 photos or screenshots of the current price board, menu, Facebook/Zalo price post, Excel sheet or old booking app, or paste the price text.
+2. PII guard (X10): text found on the device and on the server is scanned. Phone numbers, emails and person names are stripped, and an image area that looks like a chat with a person's name or avatar is rejected with a friendly "please crop to just the price list" hint. Nothing personal reaches the LLM.
+3. AI (08) extracts categories, services, variants (e.g. short/medium/long), add-on options, prices (VND, including ranges like "150–250k"), and durations when present. It suggests durations from category defaults when they are missing, marked "estimated".
+4. Review table: grouped by category, with low-confidence cells highlighted and inline edit, merge, split and delete. Bulk actions: "set duration for all in category" and "assign all to me". A side-by-side source image is shown on desktop.
+5. Confirm → services are created. Nothing is published without this confirm, and the import is audited (who, which source media, model version).
+6. The AI also proposes opening hours if the image shows them, as a suggestion to confirm on the hours step.
+
+**Path B:** pick from category templates. **Path C:** add manually.
+
+Wizard steps:
+1. Business basics: name, category, phone, address with a map pin, and "one location or several?" (creates the Organization when there are several; G6).
+2. Services (Path A/B/C above). This comes **before** hours so the "aha" moment happens in the first minutes.
+3. Hours: template presets ("9:00–21:00 every day" is common), prefilled from AI if detected.
+4. Team: "Just me" or add staff (name plus services) and invite them by link.
 5. Photos: logo, cover, gallery (optional, can skip).
 6. Go live: show the share link and QR code, plus an optional Zalo OA connect step (09).
 
-Progress is saved after each step. A checklist card on Today shows the remaining setup until it is complete. AI import is never auto-published; a human always confirms.
+Progress is saved after each step. A checklist card on Today shows the remaining setup until it is complete. For chains, an additional location can **copy services, hours and team** from an existing one.
+
+Metrics for the marketing claim (tracked through 12 analytics): the median time from sign-up to first bookable state, and the share of salons that used AI setup. Target: median under 10 minutes and under 3 minutes of hands-on time for Path A.
 
 ### 3.8 Insights (analytics)
 - Four headline cards: appointments, new vs returning customers, no-show rate, estimated revenue (badge). Period picker: today / 7 d / 30 d / custom. Each card shows a comparison with the previous period.
 - Drill-downs: popular services, staff utilization, cancellation reasons, booking sources (attribution, no commission data shown here unless 12 enables it).
 - Every number links to its metric definition (an "i" icon) that uses the same text as the metric registry (§4.6).
 - Staff see only personal insights.
+- Chains: the period picker sits next to a location picker ("All locations" or one location). Organization-scope cards show a per-location breakdown on tap.
 
 ### 3.9 Empty, loading and error states
 Every list and panel ships all three states, with a localized copy key per screen.
@@ -245,10 +268,12 @@ All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_C
 7. **Internal notes:** none of the customer-facing endpoints serialize `CustomerNote` (contract test scanning DTOs plus an E2E).
 8. **Revenue labels:** every money value in the UI has a revenue-kind badge, and a lint/test fails if a money component renders without `revenueKind`.
 9. **Metric registry:** every dashboard number comes from a registry key, and the same key is callable through the agent tool layer with identical results (snapshot test).
-10. **Onboarding:** a fresh salon reaches "bookable" (at least 1 service, hours, 1 staff) in a timed usability test under 10 minutes. AI import produces an editable draft and never publishes without confirmation.
+10. **Onboarding:** AI setup from screenshots works in every plan, a PII canary test (a screenshot containing a phone number and name) shows nothing personal reaching the LLM, and a fresh salon reaches "bookable" (at least 1 service, hours, 1 staff) in a timed usability test under 10 minutes. AI import produces an editable draft and never publishes without confirmation.
 11. **States:** every screen has empty, loading and error states (checklist plus Storybook/visual stories).
 12. **i18n:** zero hardcoded strings in `features/salon-crm` (lint rule from 03), and both locales verified on Today, Calendar, Client profile and Insights.
-13. **Permissions:** staff role sees only their own calendar and insights, and the receptionist cannot see revenue unless granted (integration tests).
+13. **Chains:** an owner of a 2-location org sees combined Insights equal to the sum or recomputation of each location, and a manager scoped to one location cannot see the other (integration test).
+14. **Shared tablet:** member switch takes 2 taps (plus PIN if enabled), and it auto-locks after the configured idle time.
+15. **Permissions:** staff role sees only their own calendar and insights, and the receptionist cannot see revenue unless granted. Staff see client phones by default and lose them when the owner revokes `client.view_contact` (integration tests).
 
 ---
 
@@ -278,11 +303,11 @@ All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_C
 3. **M7.3 Calendar:** desktop staff grid with drag/resize and keyboard; mobile staff day view and agenda; block time.
 4. **M7.4 Services and team management:** services and variants editor, team invite, schedules, time off, permissions UI.
 5. **M7.5 Salon profile, hours, holidays and policies,** with a public preview.
-6. **M7.6 Onboarding wizard** (manual and template paths), with the setup checklist on Today.
+6. **M7.6 Onboarding wizard:** **AI setup from screenshots (Path A, every plan)** plus template and manual paths, the setup checklist on Today, and "copy from location" for chains. This is core-product priority, so pull the AI extraction part of 08 forward into this milestone instead of waiting for M7.9.
 7. **M7.7 CRM:** directory, profile, notes, tags, merge, consent flags.
 8. **M7.8 Metric registry and Insights,** plus OfflineSale and the reported revenue form.
-9. **M7.9 AI hooks:** price-list import (no personal data), assistant panel entry over aggregate and tokenised tools (with 08). Paste-from-Zalo parse is deferred until the PII rule changes.
-10. **M7.10 Zalo surfaces:** inbox, link state, chat-to-booking (with 09).
+9. **M7.9 AI hooks:** assistant panel entry (Pro plan only, owner q31, with a hard monthly cost cap, q32) over aggregate and tokenised tools (with 08). Paste-from-Zalo parse is deferred until the PII rule changes.
+10. **M7.10 Zalo surfaces:** inbox, link state, create booking from chat (client prefill only, no AI parsing per X10) (with 09).
 
 M7.1–M7.5 map to Phase 2 of the master plan. M7.7–M7.8 belong late in Phase 2 or Phase 3. M7.9–M7.10 come after 08 and 09 foundations.
 
@@ -322,12 +347,22 @@ Per X7, 08 generates these from the 04 read-model registry and the 07 metric cat
 
 ## 10. Open questions for the product owner
 
-1. **Multi-branch chains:** is per-branch tenant plus owner switcher OK for MVP, or do you need consolidated chain reporting at launch?
-2. **Offline sale entry:** should "amount received" be prompted at every completion (better data, more friction) or be optional (default proposal: optional, with a daily-close reminder)?
-3. **Packages / prepaid courses** (combo 10 buổi): very common in VN spas. Are they in MVP scope? They are not in the master prompt; the proposal is to defer, but reserve the model.
-4. **Tips and commission for staff** (hoa hồng nhân viên): salons often track it in notebooks. In scope, or later?
-5. **Staff visibility of their own ratings and earnings:** should the owner be able to toggle it (proposed), or is it always visible?
-6. **Walk-in without a phone number:** allow fully anonymous walk-ins (proposed: yes, linkable later)?
-7. **Devices:** are we targeting shared reception tablets (needs fast staff switching / PIN lock) at launch?
-8. **AI features in the free tier:** is the price-list import in onboarding free (an acquisition hook) while the assistant chat is subscription-only? Proposed: yes.
-9. **PII rule exit criteria:** what would allow personal data to reach an LLM later (legal review, DPA with the provider, explicit salon/customer consent)? Until then, the deferred items in §8 stay off.
+Resolved by the product owner (tracker answers; kept here for traceability):
+
+| q | Decision | Where applied |
+|---|---|---|
+| q18 / X13 | SaaS-first; CRM and onboarding are the core product | header, priority |
+| q19 | Multi-location chains with combined reporting at launch | G6, §3.8, AC 13 |
+| q20 | Clients without accounts and anonymous walk-ins allowed | G1, G17 |
+| q21 | No prepaid packages, no staff commission; SaaS subscriptions only | G14 |
+| q17 | One service per appointment; combos as services or add-on options | G14, §3.6 |
+| q22 | Amount received is optional | §3.4, §4.5 |
+| q23 | Staff see their own ratings; one or many devices both supported | G7, G15, AC 14 |
+| q24 | Staff see client phones by default | G16 |
+| q27 | CRM tone uses "anh/chị" | skill UX rule 6 |
+| q42 | AI setup from screenshots in every plan, marketed as effortless | §3.7, M7.6 |
+| q31 / q32 | Assistant in Pro only, with a hard cost cap | §3.1, M7.9 |
+| q65 | Personal data to an LLM only after legal review and explicit consent | G9a |
+| q66 / q68 | Confirm-new-clients setting off by default; no-show history per salon only | G17 |
+
+Still open: none for 07 at this time.

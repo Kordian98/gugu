@@ -38,9 +38,14 @@ Domain read models, metrics and `agent-tools.ts` belong to their domain owners. 
 - Registries are layered (X7): 04 read models → 07 `MetricCatalog` → 08 generated tools (`agentExposed`). Hand-write only helpers and write proposals.
 - Money answers name the `RevenueKind` (`estimated_from_bookings` | `recorded_offline_sale` | `reported_by_salon`) and never sum kinds unlabelled.
 - Provider is the Anthropic API via `LlmClientFactory` (`LLM_PROVIDER=anthropic`); other adapters are optional and unbuilt.
-- **Routing**: default `claude-haiku-5-5` (effort low). Escalate to `claude-sonnet-5-5` (effort medium) for comparisons, multi-tool questions, write proposals, photo import. `claude-opus-5-5` only for the entitled deep-review report and offline eval judging. Routing is config-driven and justified by evals.
+- **Routing**: default `claude-haiku-5-5` (effort low). Escalate to `claude-sonnet-5-5` (effort medium) for comparisons, multi-tool questions, write proposals, photo import. `claude-opus-5-5` only for the Pro monthly business review and offline eval judging. Routing is config-driven and justified by evals.
 - Set `effort` and a tight `max_tokens` explicitly. The harness is append-only. The prompt prefix stays stable; volatile context goes in a trailing mid-conversation system message.
-- Respect entitlements and quotas before any model request.
+- Entitlements (12): `assistant.enabled` + `assistant.deep` (monthly Opus review) on Pro only; `ai_import` on every plan.
+- **Hard monthly cost cap per salon**: reserve the worst-case cost before every request, refuse if it exceeds the remaining budget, settle from `usage`. At 80% force the `fast` route; at 100% stop. Import has its own `ai_import` budget. A platform daily kill switch is always on.
+- **AI onboarding import** (every plan): images pass the no-PII gate (face blur, OCR redaction of phones/emails/handles/name patterns, user "What Gu sees" preview) before one structured Sonnet call. Originals are never stored.
+- Typed names outside the directory are an accepted risk (q62); always show the mask preview. Don't add a strict blocking mode.
+- The platform Admin Copilot (12) reuses this runtime and firewall. Salons are `salon_N` tokens there; review its tools.
+- Personal data may reach an LLM only after a recorded legal review **and** explicit consent, per feature (q65). Until then the rule is absolute.
 - All user-visible strings via localization (vi default, en). Never claim legal compliance.
 
 ## MUST NOT

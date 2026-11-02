@@ -77,6 +77,35 @@ select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1
 .log li:first-child{border-top:0}
 .log time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:24px;color:var(--muted)}
+.mapcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:12px;min-width:0}
+.scroll{overflow-x:auto;min-width:0;padding-bottom:6px}
+.metro{display:flex;align-items:flex-start;min-width:max-content;padding:18px 4px 4px;position:relative}
+.stop{display:grid;justify-items:center;gap:8px;width:92px;position:relative;background:none;border:0;cursor:pointer;color:var(--ink);font:inherit;padding:0}
+.stop::before{content:"";position:absolute;top:27px;left:-46px;width:92px;height:4px;background:var(--line);z-index:0}
+.stop:first-child::before{display:none}
+.stop.past::before{background:linear-gradient(90deg,#A98BEB,#EE8FB0)}
+.stop svg{position:relative;z-index:1;display:block}
+.stop .n{font:700 15px var(--display)}
+.stop .lbl{font-size:12px;line-height:1.25;text-align:center;color:var(--muted);max-width:88px}
+.stop.cur .lbl{color:var(--ink);font-weight:600}
+.stop:focus-visible{outline:2px solid var(--lilac);outline-offset:4px;border-radius:12px}
+.tracks{display:grid;gap:8px}
+.track{display:grid;grid-template-columns:minmax(120px,180px) 1fr auto;gap:12px;align-items:center;font-size:13px}
+.track .tb{height:10px;border-radius:99px;background:var(--lilac-soft);overflow:hidden}
+.track .tb i{display:block;height:100%;background:linear-gradient(90deg,#A98BEB,#EE8FB0)}
+.mx{border-collapse:separate;border-spacing:4px;font-size:12px}
+.mx th{font-weight:600;color:var(--muted);text-align:left;white-space:nowrap;padding:0 6px 0 0}
+.mx thead th{text-align:center;padding:0 0 4px;min-width:34px}
+.mx td{width:34px;height:30px;border-radius:8px;background:var(--bg);text-align:center;vertical-align:middle}
+.mx td .dots{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;padding:3px}
+.mx td .dots i,.legend .sw{width:9px;height:9px;border-radius:3px;display:inline-block}
+.dots i.s-todo,.sw.s-todo{background:var(--lilac-soft);outline:1px solid var(--lilac)}
+.dots i.s-doing,.sw.s-doing{background:#EE8FB0}
+.dots i.s-blocked,.sw.s-blocked{background:var(--warn)}
+.dots i.s-done,.sw.s-done{background:var(--ok)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+@media (max-width:560px){.track{grid-template-columns:1fr auto}.track .tb{grid-column:1/-1;grid-row:2}}
 @media (max-width:560px){.log li{grid-template-columns:1fr;gap:2px}.task{grid-template-columns:auto 1fr}.task select{grid-column:2}}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .4s ease}}
 </style>
@@ -98,10 +127,26 @@ select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1
   </section>
 
   <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-map" aria-selected="false" data-view="map">Map</button>
     <button class="tab" role="tab" id="tab-steps" aria-selected="true" data-view="steps">Steps</button>
     <button class="tab" role="tab" id="tab-questions" aria-selected="false" data-view="questions">Questions</button>
     <button class="tab" role="tab" id="tab-activity" aria-selected="false" data-view="activity">Activity</button>
   </nav>
+
+  <section id="view-map" class="wrap" style="gap:18px" hidden>
+    <div class="mapcard">
+      <div class="eyebrow">Route to launch</div>
+      <p class="note" style="margin:4px 0 0">Each stop is a roadmap step; the ring fills as its milestones are done. Tap a stop to open it in Steps.</p>
+      <div class="scroll"><div id="metro" class="metro"></div></div>
+      <div id="tracks" class="tracks"></div>
+    </div>
+    <div class="mapcard">
+      <div class="eyebrow">Who works where</div>
+      <p class="note" style="margin:4px 0 0">Topics down the side, steps across the top. Each cell shows that topic's milestones in that step, coloured by status.</p>
+      <div class="scroll"><div id="matrix"></div></div>
+      <div class="legend"><span><i class="sw s-todo"></i>To do</span><span><i class="sw s-doing"></i>In progress</span><span><i class="sw s-blocked"></i>Blocked</span><span><i class="sw s-done"></i>Done</span></div>
+    </div>
+  </section>
 
   <section id="view-steps" class="wrap" style="gap:14px">
     <div class="filters">
@@ -197,15 +242,41 @@ function renderLog(){
   box.innerHTML=items.length?items.map(l=>`<li><time>${fmt(l.at)}</time><span><b>${esc(l.actor||"someone")}</b> ${esc(l.text)} ${l.ref?`<span class="code">${esc(l.ref)}</span>`:""}</span></li>`).join(""):`<li><span></span><span class="note">No activity yet.</span></li>`;
 }
 
+function ring(pct,status){
+  const r=22,c=2*Math.PI*r,col=status==="done"?"var(--ok)":status==="blocked"?"var(--warn)":"url(#gg)";
+  return `<svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true"><defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#A98BEB"/><stop offset="1" stop-color="#EE8FB0"/></linearGradient></defs><circle cx="29" cy="29" r="27" fill="var(--surface)"/><circle cx="29" cy="29" r="${r}" fill="none" stroke="var(--lilac-soft)" stroke-width="6"/><circle cx="29" cy="29" r="${r}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(c*pct).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 29 29)"/></svg>`;
+}
+
+function renderMap(){
+  const steps=[...S.steps].sort((a,b)=>(a.order??99)-(b.order??99));
+  const main=steps.filter(s=>s.kind==="step"), side=steps.filter(s=>s.kind!=="step");
+  const info=st=>{const all=S.tasks.filter(t=>t.step===st.id),d=all.filter(t=>t.status==="done").length;return{all,d,pct:all.length?d/all.length:0,status:stepStatus(all)}};
+  const curIdx=main.findIndex(s=>info(s).status!=="done");
+  $("#metro").innerHTML=main.length?main.map((s,i)=>{const f=info(s);return `<button class="stop ${i<=curIdx&&i>0?"past":""} ${i===curIdx?"cur":""}" data-goto="${esc(s.id)}" aria-label="Step ${esc(s.order)}: ${esc(s.title)}, ${f.d} of ${f.all.length} done">${ring(f.pct,f.status)}<span class="n" style="position:absolute;top:18px">${esc(s.order)}</span><span class="lbl">${esc(s.title)}</span></button>`}).join(""):`<span class="note">Steps appear here once the tracker's data loads.</span>`;
+  $("#tracks").innerHTML=side.map(s=>{const f=info(s);return `<div class="track"><b>${esc(s.title)}</b><div class="tb"><i style="width:${Math.round(f.pct*100)}%"></i></div><span class="note">${f.d}/${f.all.length}</span></div>`}).join("");
+  const topics=[...new Set(S.tasks.map(t=>t.topic))].sort();
+  if(!topics.length){$("#matrix").innerHTML="";return}
+  let h=`<table class="mx"><thead><tr><th></th>${steps.map(s=>`<th title="${esc(s.title)}">${esc(s.kind==="step"?s.order:s.kind==="track"?(s.id==="t-biz"?"Biz":"3D"):"Later")}</th>`).join("")}</tr></thead><tbody>`;
+  for(const tp of topics){
+    h+=`<tr><th>${esc(TOPICS[tp]||tp)}</th>`;
+    for(const s of steps){
+      const ts=S.tasks.filter(t=>t.topic===tp&&t.step===s.id);
+      h+=`<td>${ts.length?`<div class="dots">${ts.map(t=>`<i class="s-${STATUS[t.status]?t.status:"todo"}" title="${esc(t.id)} · ${esc(t.title)} · ${esc(STATUS[t.status]||"")}"></i>`).join("")}</div>`:""}</td>`;
+    }
+    h+="</tr>";
+  }
+  $("#matrix").innerHTML=h+"</tbody></table>";
+}
+
 function renderAll(){
   const sel=$("#f-topic"), cur=sel.value, used=[...new Set(S.tasks.map(t=>t.topic))].sort();
   sel.innerHTML=`<option value="">All topics</option>`+used.map(t=>`<option value="${esc(t)}">${esc(TOPICS[t]||t)}</option>`).join("");sel.value=cur;
-  renderSummary();renderSteps();renderQuestions();renderLog();
+  renderSummary();renderMap();renderSteps();renderQuestions();renderLog();
 }
 
 function show(v){
   view=v;for(const b of document.querySelectorAll(".tab"))b.setAttribute("aria-selected",String(b.dataset.view===v));
-  for(const k of ["steps","questions","activity"])$("#view-"+k).hidden=k!==v;
+  for(const k of ["map","steps","questions","activity"])$("#view-"+k).hidden=k!==v;
   try{localStorage.setItem("gugu-roadmap-tab",v)}catch{}
 }
 
@@ -232,6 +303,7 @@ async function answerQ(id,defer){
 
 document.addEventListener("click",e=>{
   const tab=e.target.closest(".tab");if(tab)return show(tab.dataset.view);
+  const stop=e.target.closest("[data-goto]");if(stop){$("#f-topic").value="";$("#f-status").value="";renderSteps();show("steps");const st=S.steps.find(s=>s.id===stop.dataset.goto);const el=[...document.querySelectorAll("#steps h2")].find(h=>h.textContent===st?.title);el?.scrollIntoView({behavior:"smooth",block:"start"});return}
   const b=e.target.closest("[data-act]");if(!b||b.tagName==="SELECT")return;
   const id=b.dataset.id;
   if(b.dataset.act==="toggle"){const t=S.tasks.find(x=>x.id===id);setTask(id,t?.status==="done"?"todo":"done")}
@@ -244,7 +316,8 @@ document.addEventListener("change",e=>{
   if(e.target.id==="f-q")renderQuestions();
 });
 
-try{const v=localStorage.getItem("gugu-roadmap-tab");if(v&&["steps","questions","activity"].includes(v))show(v)}catch{}
+show("map");
+try{const v=localStorage.getItem("gugu-roadmap-tab");if(v&&["map","steps","questions","activity"].includes(v))show(v)}catch{}
 
 (async()=>{
   db=await window.claude?.use?.("db").catch(()=>null)??null;

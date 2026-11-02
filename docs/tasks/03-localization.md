@@ -31,13 +31,13 @@ Covers every user-facing string, format, and template in GuGu: the universal Exp
 | G3 | Translating the URL prefix (`/vi/…`) versus storing the preference is ambiguous across platforms. | Resolution order: **URL segment (web)** → **signed-in user's `preferredLocale` (server)** → **persisted local choice** (localStorage on web, AsyncStorage on native; this value is not sensitive) → **device or `Accept-Language` locale if it is vi or en** → **`vi`**. On native, the `[locale]` segment exists in routes but is driven by the stored preference. Deep links that carry `/en/` switch the locale for that session only. |
 | G4 | Database content (salon descriptions, service names) is called "localized", but the model is undefined. | Platform taxonomy (categories, amenities, cancellation-policy presets) uses `LocalizedText` JSONB `{ vi: string; en?: string }`, with `vi` required. Salon-authored text stores `sourceLocale` plus optional translations in the same shape. The UI falls back from the requested locale to the source locale and shows a "translated" badge where relevant. Translations are never auto-published without the salon's approval (see the AI draft in §6). |
 | G5 | The prompt says "localized validation messages", but validation runs in shared Zod schemas on both the client and the server. | Schemas emit **stable error codes with params**, never prose (e.g. `phone.invalid`, `string.too_short {min}`). A shared `zodErrorMap(locale)` maps codes to `errors` namespace keys. The API returns `{ code, params, field }` and the client renders the text. The server renders prose only for outbound channels (email, SMS, `zalo_template`, push). |
-| G6 | SMS cost: Vietnamese diacritics force UCS-2 encoding (70 characters per segment instead of 160), and many brandname SMS routes expect unaccented text. | Each SMS template has `vi` plus a generated `vi-ascii` variant made with a deterministic diacritic stripper; `đ` becomes `d`. Which one is sent is a per-template config chosen by 11 and 09. OTP SMS defaults to `vi-ascii`. Open question Q3. |
-| G7 | VND formatting is unspecified. `Intl` gives `150.000 ₫` in vi-VN, but local apps often show `150.000đ`. | `formatVND(amount, locale, { style })` has the styles `intl` and `local` (`150.000đ`); `local` is the default for vi. VND has no minor units: amounts are stored as integer đồng (bigint), and decimals are never shown. Price ranges render as `150.000–250.000đ`. "From" prices use the key `price.from`. |
+| G6 | SMS cost: Vietnamese diacritics force UCS-2 encoding (70 characters per segment instead of 160), and many brandname SMS routes expect unaccented text. | Each SMS template has `vi` plus a generated `vi-ascii` variant made with a deterministic diacritic stripper; `đ` becomes `d`. Which one is sent is a per-template config chosen by 11 and 09. OTP SMS defaults to `vi-ascii`. Open question Q3.  **Deprioritised:** no SMS for now (roadmap X12, owner q48/q11). `vi-ascii` and `stripDiacritics` stay specified but are built only when an SMS provider is plugged in. |
+| G7 | VND formatting is unspecified. `Intl` gives `150.000 ₫` in vi-VN, but local apps show `150.000đ`. | **Decided (owner q27 delegated the choice): `150.000đ`** in vi, because it is what Vietnamese users see on Shopee, Grab, menus and salon price boards, and `₫` reads as formal or banking style. en uses `₫150,000`. `formatVND(amount, locale, { style })` keeps an `intl` style for structured data (JSON-LD uses the ISO code `VND`). VND has no minor units: amounts are stored as integer đồng (bigint), and decimals are never shown. Price ranges render as `150.000–250.000đ`. "From" prices use the key `price.from`. |
 | G8 | Date and time conventions are missing. | vi uses the 24-hour clock, weekday names "Thứ Hai…Chủ Nhật", and patterns like `T2, 03/11`. en uses `Mon, Nov 3` with a 12-hour clock. Weeks start on Monday in both locales. Times always display in the **salon's timezone** (`Asia/Ho_Chi_Minh` initially), never the device's. When the device timezone differs, a timezone hint is shown. |
 | G9 | Vietnamese naming and addressing are not addressed. | Store `fullName` (a single field in natural order, family name first) plus an optional `displayName`. Never split names into first and last. Greetings use the last syllable (the given name) via a helper and fall back to `fullName`. Addresses use the post-2025 two-level model (street → ward/commune → province). Formatting comes from data in topic 10, and the order is locale-aware. |
 | G10 | Phone numbers are not addressed. | Store E.164 (`+84…`). Display `0901 234 567` in vi and `+84 90 123 4567` in en. Input accepts both `0…` and `+84…`. Parsing is shared with 05 via libphonenumber-js (the `min` metadata). |
 | G11 | There is no mechanism to prevent hardcoded strings. | Use an ESLint rule (`eslint-plugin-i18next` `no-literal-string`, configured for RN `<Text>`, `accessibilityLabel`, `placeholder`, `title`) in the app and in design-system packages. CI fails on violations. Allowed exceptions are brand names and test files. |
-| G12 | "Professional Vietnamese" has no process, which is risky with AI-generated translations. | Keep a glossary and tone guide (skill references). Every new vi string carries review status. A PR that adds or changes vi strings gets the `i18n:vi-review` label and needs a native-speaker approval before release, not before merge to `main`. |
+| G12 | "Professional Vietnamese" has no process, which is risky with AI-generated translations. | Keep a glossary and tone guide (skill references). Every new vi string carries review status. A PR that adds or changes vi strings gets the `i18n:vi-review` label and needs approval from the **vi reviewer (owner's wife)** before release, not before merge to `main`. The same person approves hero and campaign copy (`copy:brand`) (owner q12, q49). |
 | G13 | Sorting is not addressed. | Client-side sorting uses `Intl.Collator('vi')`. Postgres uses an ICU collation (`vi-VN-x-icu`) for name ordering where needed. Coordinate with 04. |
 | G14 | SEO localization is underspecified. | Each public route outputs `<html lang>`, localized title and description, `canonical`, and `hreflang` vi, en and `x-default` (→ vi). Open Graph uses `og:locale` `vi_VN` / `en_US`. Slugs are locale-independent (one canonical salon slug) to avoid duplicate-content splits. Owned jointly with 10. |
 | G15 | The language behaviour of the product AI agent is undefined. | See §6. |
@@ -138,7 +138,7 @@ Covers every user-facing string, format, and template in GuGu: the universal Exp
    - a key exists in only one locale;
    - placeholders differ between locales;
    - a JSX literal string is added under `apps/app` or `packages/design-system`.
-5. `formatVND(150000, 'vi')` returns `150.000đ`, and `formatVND(150000, 'en', { style: 'intl' })` returns `₫150,000`. Snapshot tests pass identically on Node, iOS Hermes and Android Hermes.
+5. `formatVND(150000, 'vi')` returns `150.000đ` (the recorded decision), and `formatVND(150000, 'en', { style: 'intl' })` returns `₫150,000`. Snapshot tests pass identically on Node, iOS Hermes and Android Hermes.
 6. A booking at 09:00 Asia/Ho_Chi_Minh displays as 09:00 on a device set to Europe/Warsaw, with the timezone hint shown.
 7. A Zod validation failure on the API returns `{code, params, field}`, and the client renders it in the active locale.
 8. A sample of 30 vi strings, each tagged with its source string, passes native-speaker review: the vi strings follow the glossary and contain no literal translationese.
@@ -195,16 +195,16 @@ Covers every user-facing string, format, and template in GuGu: the universal Exp
 | M3 | Quality gates | Parity, placeholder and literal-string lint in CI, pseudo-locale. |
 | M4 | Shared validation | Zod error map, API error-code contract, backend i18n module. |
 | M5 | Localized content | `LocalizedText` type, helper, migration guidance for 04. |
-| M6 | Notification templates | Templates for the first events (booking created, confirmed, cancelled, reminder) across 4 channels, including `vi-ascii`. |
+| M6 | Notification templates | Templates for the first events (booking created, confirmed, cancelled, reminder) for push, email and `zalo_template`. SMS (`vi`, `vi-ascii`, `en`) is deferred until an SMS provider exists (X12). |
 | M7 | SEO metadata | Metadata helpers with 10. |
 | M8 | Agent language behaviour | Language behaviour, plus paired eval questions with 08. |
 
 ## 10. Open questions for the product owner
 
-- **Q1** Price style: `150.000đ` (local habit) or `150.000 ₫` (standard)? Proposed default: `150.000đ`.
-- **Q2** Who does the native Vietnamese review, which is needed before each release? Is there an in-house person or an agency?
-- **Q3** Should SMS (OTP and reminders) be sent unaccented to save cost, or with diacritics for quality?
+- **Q1** ~~Price style~~ Answered (q27): `150.000đ` (see G7).
+- **Q2** ~~Native reviewer~~ Answered (q12): the vi reviewer (owner's wife).
+- **Q3** ~~SMS diacritics~~ Moot for now: no SMS (X12). Revisit when SMS is enabled.
 - **Q4** Should salons be able to publish English descriptions drafted by the AI agent? This needs an English toggle per salon.
-- **Q5** Formality: should the app address users as "bạn" throughout? This is the gen-z default. Should business-facing CRM copy use "bạn" or "anh/chị"?
+- **Q5** ~~Formality~~ Answered (q27): customer and marketing copy uses "bạn"; the salon CRM uses "anh/chị".
 - **Q6** Should we adopt a TMS (Tolgee or Crowdin) before launch, or keep JSON in the repo?
-- **Q7** Who approves vi hero and campaign copy? It is brand voice, so it needs a native gen-z copywriter rather than just a translator.
+- **Q7** ~~Copy approver~~ Answered (q49): the vi reviewer (owner's wife).

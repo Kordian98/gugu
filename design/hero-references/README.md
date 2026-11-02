@@ -8,7 +8,7 @@ Owner brief (2026-11-02): **mobile friendly, the site must feel ALIVE, gen-z, ma
 
 ## ref-01 — `ref-01-homepage-lilac-diorama.png`
 
-A desktop homepage mock: a cream/lilac editorial page with a glossy isometric 3D salon diorama filling the top-right of the hero, a search card overlapping the diorama, category tiles, a "spots everyone is saving" salon carousel and an editorial "glow-up" strip. This reference **is the art direction** (it replaces the three earlier routes). Working name: **Lilac Glow**.
+A desktop homepage mock: a cream/lilac editorial page with a glossy isometric 3D salon diorama filling the top-right of the hero, a search card overlapping the diorama, category tiles, a "spots everyone is saving" salon carousel and an editorial "glow-up" strip. Logo: the delivered SVGs in `design/branding/` supersede the lettering in this mock. The hero is produced with AI tools (no 3D artist, q51); see spec §5.2–5.7. This reference **is the art direction** (it replaces the three earlier routes). Working name: **Lilac Glow**.
 
 ### Palette (approximate, sampled by eye from the image; finalize in DS-2 with a contrast check)
 
@@ -36,7 +36,7 @@ Notes: the page is low-saturation pastel. Contrast comes from the **plum-black i
 
 ### Typography
 
-- **Display: editorial high-contrast serif**, very bold, tight tracking (≈ −3%), tight leading (≈ 0.95–1.0), huge sizes. Headlines mix ink with one gradient word. Candidates that ship Vietnamese (checked against the Google Fonts CSS API on 2026-11-02): **Playfair Display** (variable 400–900 + italic, vietnamese subset), **Noto Serif Display** (variable weight + width axes → condensed look closer to the ref, vietnamese subset). Not eligible: Bodoni Moda, Instrument Serif, DM Serif Display, Young Serif, Gloock (no Vietnamese subset).
+- **Display: editorial high-contrast serif**, very bold, tight tracking (≈ −3%), tight leading (≈ 0.95–1.0), huge sizes. Headlines mix ink with one gradient word. **Decision: Noto Serif Display** at wght 800–900, condensed width (PO delegated the pick, q53). Candidates that ship Vietnamese (checked against the Google Fonts CSS API on 2026-11-02): **Playfair Display** (variable 400–900 + italic, vietnamese subset), **Noto Serif Display** (variable weight + width axes → condensed look closer to the ref, vietnamese subset). Not eligible: Bodoni Moda, Instrument Serif, DM Serif Display, Young Serif, Gloock (no Vietnamese subset).
 - **UI sans:** clean geometric-humanist sans for nav, body, buttons, card text → **Be Vietnam Pro**.
 - **Eyebrows:** small caps-like uppercase sans with wide tracking (≈ +18%), lilac or plum-400 ("BEAUTY FOR A BRIGHTER YOU").
 - **Handwritten script accents:** thin, casual pen hand in rose/lilac, rotated −6° to −12°, with a hand-drawn heart/crown doodle ("More Self Love Please ♡"). Candidate: **Playwrite VN** (designed for Vietnamese handwriting, variable 100–400). Backups with a Vietnamese subset: Dancing Script, Charm, Pangolin, Patrick Hand. Not eligible: Caveat, Shadows Into Light, Gochi Hand, Nothing You Could Do (no Vietnamese).
@@ -90,11 +90,11 @@ Ordered by priority. Send files to `design/assets-inbox/<category>/`. For anythi
 
 | # | Asset | Purpose | Format | Min resolution / aspect | Qty | Notes |
 |---|---|---|---|---|---|---|
-| 1 | **Logo / wordmark "gugu"** | brand everywhere, 3D neon sign, app icon | SVG (outlined) + source (AI/Figma) | vector | 1 set: full color, ink, white, monochrome | Confirm the ref-01 wordmark is final or a placeholder; clear-space and minimum-size rules if any |
-| 2 | **App icon / symbol mark** | iOS/Android icon, favicon, Zalo OA avatar | SVG + 1024×1024 PNG | 1:1 | 1–2 options | Must read at 29 px |
+| 1 | ✅ **RECEIVED 2026-11-02** (`design/branding/`, rules in `design/branding/README.md`): **Logo / wordmark "gugu"** | brand everywhere, 3D neon sign, app icon | SVG (outlined) + source (AI/Figma) | vector | 1 set: full color, ink, white, monochrome | Confirm the ref-01 wordmark is final or a placeholder; clear-space and minimum-size rules if any |
+| 2 | ✅ **RECEIVED 2026-11-02** (`design/branding/gugu-icon*.svg`): **App icon / symbol mark** | iOS/Android icon, favicon, Zalo OA avatar | SVG + 1024×1024 PNG | 1:1 | 1–2 options | Must read at 29 px |
 | 3 | **Final approval of ref-01 palette** | tokens | n/a | n/a | n/a | Any brand colors from existing materials (hex) |
 | 4 | **Motion references** | define "alive" | links / MP4 screen recordings | n/a | 5–10 | Sites, apps, TikToks, 3D loops you like; note what you like in each (speed, bounce, camera, cursor effects) |
-| 5 | **Diorama character direction** | 3D characters | images / sketches | n/a | 3–6 | Style refs (chibi vs. stylized adult), diversity, outfits (áo dài details? uniforms?) |
+| 5 | ✅ **ANSWERED (q52): chibi.** Optional extra refs welcome: **Diorama character direction** | 3D characters | images / sketches | n/a | 3–6 | Style refs (chibi vs. stylized adult), diversity, outfits (áo dài details? uniforms?) |
 
 ### P1: needed for homepage & marketplace build
 

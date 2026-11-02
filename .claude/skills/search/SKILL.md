@@ -27,7 +27,7 @@ Search is served by the NestJS `search` module from a denormalised PostgreSQL re
 - API pagination is cursor/keyset; SSR listing pages may use `?page=n`.
 
 ## Procedure: add a filter
-1. Add the field to the Zod query schema in `packages/validation` (shared by API + app); update the OpenAPI doc.
+1. Add the field to the Zod query schema in `packages/contracts/src/search` (shared by API + app); update the OpenAPI doc.
 2. If needed, add a column to `salon_search` (propose to topic 04's schema owner) and populate it in the projector for every relevant domain event; add backfill to the nightly rebuild.
 3. Add an index if the filter is selective; verify with `EXPLAIN (ANALYZE, BUFFERS)` on the 10k-salon synthetic dataset.
 4. Wire URL ⇄ state mapping in `features/search` (parse, serialize, default omission).

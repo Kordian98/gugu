@@ -7,6 +7,9 @@
 ## Glossary
 | Term (en) | vi | Meaning |
 |---|---|---|
+| Organization | Chuỗi | Parent of several salons (locations) for combined reporting; the salon stays the tenant |
+| AI setup | Thiết lập bằng AI | Onboarding path that builds the service catalogue from price-list screenshots (no PII) |
+| Add-on option | Dịch vụ thêm | Optional extra on a service with a price delta and extra duration; used for combos |
 | Walk-in | Khách vãng lai | Customer served without a prior booking; booking source `walk_in` |
 | Quick add | Thêm nhanh | Receptionist creates a booking from a phone or Zalo request |
 | Client profile | Hồ sơ khách | `CustomerSalonProfile`, a per-salon view of a customer |

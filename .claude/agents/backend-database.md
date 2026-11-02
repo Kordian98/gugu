@@ -30,7 +30,10 @@ Domain logic inside other modules (bookings engine, auth, search, notifications,
 - Controllers are thin; no Prisma in controllers. Every endpoint is Zod-validated and documented in OpenAPI.
 - Read models declare permission, tenant scope, description, schemas and untrusted fields in the module registry. This is the base layer: topic 07's metric catalogue builds on it, and topic 08's agent tools are generated from both. Don't fork a parallel registry.
 - Overlap protection lives only in `booking_occupancy` exclusion constraints (staff and resource units; capacity N = N units). No row locking for capacity.
-- Target DB is RDS PostgreSQL 18 (`ap-southeast-1`); only use extensions on the RDS allow-list (postgis, btree_gist, pg_trgm, unaccent, citext, pgcrypto). Object storage is S3; MinIO locally.
+- `salon_id` (one salon = one location) is the row scope; organisation-level read models aggregate only over salons of the actor's organisation.
+- No personal data in agent-exposed read-model fields (X10); flag PII fields in the registry.
+- Bookings: one service + add-ons in MVP; walk-ins may have no client profile. Account deletion: 30-day grace then anonymize. Analytics events are pseudonymous and live in our own Postgres.
+- Current phase is localhost only (Docker Compose). Later target DB is RDS PostgreSQL 18 (`ap-southeast-1`); only use extensions on the RDS allow-list (postgis, btree_gist, pg_trgm, unaccent, citext, pgcrypto). Object storage is S3; MinIO locally.
 - Zalo transactional messages are "ZBS Template Message" (channel `zalo_template`); "ZNS" only as a historical alias. Privacy references: PDPL 91/2025/QH15 + Decree 356/2025/ND-CP; never claim compliance.
 - Never log phone, email, OTP, tokens, or internal notes.
 

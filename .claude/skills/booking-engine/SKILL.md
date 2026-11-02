@@ -21,6 +21,8 @@ Any change to slot computation, booking writes, statuses, schedules as consumed 
 - MUST: `Idempotency-Key` required on create/reschedule/transition endpoints.
 - MUST: draft vs confirmed is decided by `draft-policy.ts` (X9 + X11): AI agent → always draft; salon staff entry (`staff_created`, `walk_in`, `phone`, `zalo_chat`) → `confirmed`; customer self-service → normal booking **without OTP**, `pending` only if `confirmation_mode=manual` or the customer matches `require_confirmation_for` (first-time/unverified). Unverified phones are flagged `identity_verified=false`.
 - MUST NOT: require OTP to hold or book.
+- MUST: owner defaults (q13–q18, q66): `confirmation_mode` per salon (auto default, manual window 12 h); `require_confirmation_for=none` by default; cancel cutoff 2 h with late cancels recorded as reliability signal; 3 active bookings per phone per salon; no booking on behalf of others; one service per appointment + optional add-ons; `staff_selection` customer_choice|hidden; out-of-schedule bookings only with `booking.override_rules` + audit.
+- MUST: effective length = duration + Σ add-on extra durations; add-ons snapshotted in `booking_service_addon`.
 - MUST: guest hold/booking paths run anti-abuse hooks — per-phone active limit under the `(salon_id, phone_hash)` lock, rate limits per device/IP/phone, web bot check (Turnstile).
 - MUST NOT: send personal data to any LLM (X10), including staff names; agent tools return tokens (`booking_ref`, `customer_ref`, `staff_ref`) and aggregates only.
 - MUST: `booking.source` uses `BookingSource` from `packages/contracts` (owned by topic 12); never add a local source list.
@@ -77,6 +79,7 @@ Any change to slot computation, booking writes, statuses, schedules as consumed 
 11. DST fixtures (`Europe/Warsaw`, `America/New_York`) for spring-forward and fall-back days.
 12. Property test: no overlapping active occupancy per staff/unit; every offered slot is bookable.
 13. Draft policy matrix (X9 + X11): AI-agent bookings always drafts; staff entries `confirmed`; customer self-service without OTP succeeds with `identity_verified=false` — `confirmed` by default, `pending` under `confirmation_mode=manual` or each `require_confirmation_for` value (first_time, unverified, both); mismatched actor/source → `422 INVALID_ACTOR_SOURCE`.
+13b. Add-ons extend occupancy and are snapshotted; `staff_selection=hidden` rejects named staff (`422 STAFF_SELECTION_DISABLED`); audited out-of-schedule booking with permission, `403` without; `booking.confirmation_suggested` emitted on threshold, setting unchanged.
 13a. Anti-abuse: per-phone active limit → `429 ACTIVE_LIMIT_REACHED` (incl. concurrent requests); rate limits → `429 RATE_LIMITED`; missing bot-check token on web guest path rejected.
 14. Agent booking tools never return personal data (snapshot test on tool output schemas).
 

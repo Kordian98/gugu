@@ -16,7 +16,7 @@ Writing tests, diagnosing a red gate, reviewing a branch before merge, adding an
 - MUST freeze time (injected `Clock` / fake timers) and use seed IDs; never depend on "now" or ordering.
 - Times: assert in UTC; render checks in `Asia/Ho_Chi_Minh`; include one DST timezone (e.g. `Europe/Warsaw`) in availability tests.
 - MUST run user-facing journeys in `vi` and `en`.
-- MUST NOT hit real SMS / `zalo_template` (ZBS Template Message, formerly ZNS) / Zalo OA / email / push; assert via provider-sink (`GET :4010/messages`) and Mailpit API.
+- MUST NOT hit real providers; assert via provider-sink (`GET :4010/messages`: push, `zalo_template` = ZBS Template Message (formerly ZNS), `zalo_oa`, SMS mock) and Mailpit API (email). There is no real SMS provider.
 - MUST NOT leave flaky tests in `verify`/`gate` — tag `@quarantine` + note in `docs/runbooks/quarantine.md`.
 - Every tenant-scoped endpoint MUST carry the tenant-scope annotation so the isolation matrix picks it up.
 - MUST NOT bypass hooks (`--no-verify`) or commit on `main`.
@@ -28,7 +28,7 @@ Writing tests, diagnosing a red gate, reviewing a branch before merge, adding an
 | `pnpm verify` (T0) | format, lint, typecheck, unit, i18n parity, OpenAPI drift, Prisma drift, gitleaks | < 5 min |
 | `pnpm gate` (T0+T1) | verify + API integration (Compose Postgres/Valkey), concurrency harness, tenant matrix, Playwright smoke (chromium, vi+en), migrations from empty + last release tag, LLM evals if agent paths changed | < 15 min |
 | `pnpm gate:native` (T2) | Maestro flows on local simulator/emulator (later: EAS Workflows) | — |
-| `pnpm gate:nightly` (T3) | full Playwright (chromium/webkit/mobile viewports), full evals, audits, quarantined tests, k6 vs staging | — |
+| `pnpm gate:nightly` (T3, run manually for now) | full Playwright (chromium/webkit/mobile viewports), full evals, audits, quarantined tests, k6 against the local stack (staging later) | — |
 
 Output: JUnit in `reports/`, `reports/gate-summary.md` (failing test, file:line, first error line), last line `STATUS: ok|fail <reason>`.
 
@@ -68,8 +68,9 @@ Output: JUnit in `reports/`, `reports/gate-summary.md` (failing test, file:line,
 4. A new commit on the branch invalidates all verdicts — reviewers re-run on the new SHA.
 
 ### Procedure: merge
-1. `pnpm merge-to-main <branch>` — it rebases on `main`, runs `pnpm gate`, checks every required verdict is `approve` for the current HEAD SHA, merges `--no-ff` with `GUGU_MERGE_GATE=1`, writes a repo bundle backup, removes the worktree.
-2. If it prints `STATUS: fail`, `main` is unchanged — fix and repeat. Rebasing changes the SHA, so the script re-requests verdicts if the rebase was non-trivial.
+1. `pnpm merge-to-main <branch>` — it rebases on `main`, runs `pnpm gate`, checks every required verdict is `approve` for the current HEAD SHA, merges `--no-ff` with `GUGU_MERGE_GATE=1`, removes the worktree.
+2. Orchestrator then marks the tracker task `done` (`roadmap-tracker` skill).
+3. If it prints `STATUS: fail`, `main` is unchanged — fix and repeat. Rebasing changes the SHA, so the script re-requests verdicts if the rebase was non-trivial.
 
 ## Procedure: add an API endpoint test
 1. Annotate the controller with the tenant scope (topic 05) — cross-tenant cases are generated.

@@ -47,5 +47,11 @@ TODO: routes, features, API module, projector, SEO API routes, JSON-LD builders.
 ## Product AI-agent tools
 `marketplace.search_salons`, `marketplace.get_salon_profile`, `marketplace.list_services`, `marketplace.suggest`, `marketplace.resolve_location`, `marketplace.get_availability_summary` — all read-only, public data. Schemas: TODO (`packages/agent-tools`).
 
+## Maps & geocoding
+OSM only (owner q26): MapLibre (web + native), self-hosted Protomaps PMTiles (OpenFreeMap in dev), Photon (autocomplete) + Nominatim (reverse) self-hosted behind `GeocoderPort`. Owner-confirmed pin is the source of truth; province/commune always from our Location tables. Attribution "© OpenStreetMap contributors" required.
+
+## Owner decisions
+Nationwide index, HCMC first; legacy district names in titles; AI crawlers allowed; aggregateRating + promoted listings at launch; dark mode on public pages; instant booking by default; saved-spots = favourites + bookings (30 d) with labelled editor's picks. Full table: spec §10.
+
 ## ADRs
 TODO: expo-server-output, postgres-search-vietnamese, two-tier-location-model, map-provider.

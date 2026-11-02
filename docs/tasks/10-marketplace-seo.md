@@ -51,7 +51,7 @@
 | G15 | Reviews structured data — Google restricts self-serving review snippets for LocalBusiness. | Emit `aggregateRating` only from GuGu-collected verified reviews (booking-linked, so not self-serving by the business); never emit when count < 3. Keep it behind a flag so it can be turned off. |
 | G16 | No GEO/AI discoverability. | `llms.txt` + `llms-full.txt` (top cities/categories/how booking works), clean semantic HTML, complete JSON-LD (`BeautySalon`/`HairSalon`/`NailSalon`/`DaySpa`, `OfferCatalog`), stable facts block (address, hours, price range, "pay at salon"). Robots policy for AI crawlers is a product-owner decision (open question). |
 | G17 | Web performance targets missing. | Budgets in §3.7 (LCP, INP, CLS, JS size) on a mid-range Android over 4G. |
-| G18 | Map browsing: no provider chosen; Google Maps cost; RN-web support. | Map is a progressive enhancement: list-first. Web: MapLibre GL + vector tiles (self-hosted/OpenFreeMap or MapTiler); native: `react-native-maps` (or MapLibre RN) via `.web.tsx`/`.native.tsx` split. Geocoding provider behind a port (candidates: Google, VietMap, Goong — Vietnam-specific address quality). Decision needed. |
+| G18 | Map browsing: no provider chosen; Google Maps cost; RN-web support. | **OSM only (q26)**: MapLibre on web + native, self-hosted Protomaps tiles, Photon/Nominatim geocoding behind `GeocoderPort`; owner-confirmed map pin is the source of truth because Vietnamese OSM address coverage is weak. See §4.4. |
 | G19 | Promotions/editorial/trending have no data source. | Editorial: simple CMS-in-admin (12) with localized articles, or markdown in repo for MVP. Promotions: salon-created offers (07) shown only if active. Trending: derived from search/booking events (12), cold-start = curated. |
 
 ---
@@ -124,7 +124,8 @@ Decorative handwritten doodles ("More self love please", "Good beauty brighter y
 8. Glow-up carousel, then neighborhoods, trending services, personalised blocks, footer.
 9. After the hero scrolls out, a sticky compact **search pill** (location · service) appears at the top on mobile web; native apps use the bottom tab bar (Explore, Search, Bookings, Favorites, Profile) instead.
 - "Alive" behaviour (motion spec from 02): tile press scale, heart pop + haptic on native, carousel momentum, subtle diorama idle loop; all reduced or off under `prefers-reduced-motion`.
-- 3D gating: mount only after hydration + idle, on desktop/tablet and capable mobile (deviceMemory ≥ 4, no `saveData`, not reduced-motion, WebGL2 available). Otherwise keep the poster or a short muted loop video from 02. On mobile the **H1 text is the LCP element**, not the diorama.
+- Hero media (X15): AI-produced layered renders + image-to-video loops with pointer/scroll parallax. That is the default "alive" layer. Real-time R3F is an optional enhancement under the same gating.
+- 3D/interactive-layer gating: mount only after hydration + idle, on desktop/tablet and capable mobile (deviceMemory ≥ 4, no `saveData`, not reduced-motion, WebGL2 available). Otherwise keep the poster or a short muted loop video from 02. On mobile the **H1 text is the LCP element**, not the diorama.
 - Native app home reuses the same blocks (minus header/footer), with poster/video in place of the web 3D scene per 02.
 
 **Search card → URL mapping**
@@ -176,7 +177,7 @@ Booking is as quick as the best Polish booking apps: **no OTP, guest booking all
 | 3 | **Slot** | 1 | Date strip (next 14 days, first available day preselected) + time chips grouped Morning/Afternoon/Evening, from the availability API (06). Tapping a slot creates a **short hold** (06, TTL ~5 min, countdown shown in the last minute). |
 | 4 | **Name + phone** | 0–1 | Prefilled and collapsed when signed in or remembered on the device. Otherwise: name + VN phone (+84 mask, `tel`/`name` autocomplete). Optional one-tap **Continue with Apple / Google** fills name and email; it never blocks. Optional note field, collapsed. |
 | 5 | **Review & confirm** | 1 | Summary: service, staff, date/time in salon TZ, from-price, "Pay at the salon", cancellation policy line, consent text for transactional messages. Button: **Confirm booking**. |
-| 6 | **Confirmation** | — | Success screen: add to calendar, directions, share, "Manage booking" link. Then the **account offer**: "Save your details for next time" → passwordless sign-up (Apple/Google, or phone verification at that point). Dismissible and never required. |
+| 6 | **Confirmation** | — | Success screen: add to calendar, directions, share, "Manage booking" link. Then the **account offer**: "Save your details for next time" → passwordless sign-up (Apple/Google, or an email magic link (no SMS, X12)). Dismissible and never required. |
 Signed-in or remembered happy path: Book (1) → Any (skipped or 1) → slot (1) → Confirm (1) = **3–4 taps**.
 
 **Rules**
@@ -208,6 +209,7 @@ The reference shows "District 1, HCMC" — that is pre-reform wording and must n
 - Prices on cards: `formatVND` from 03 (vi "Từ 300.000 ₫", en "From ₫300,000" — final format owned by 03); rating shows average with one decimal + review count; no rating shown under 3 reviews ("New on GuGu" badge instead).
 
 ### 3.7 Web quality & performance
+- Light and dark themes on all public pages (q44), using tokens only. The theme is resolved before first paint from the saved choice or `prefers-color-scheme`, with no flash. OG images stay light.
 - Core Web Vitals on Moto G-class device / 4G: **LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1** at p75.
 - Public route initial JS ≤ 250 KB gzip (excluding lazily loaded 3D bundle); images via CDN with AVIF/WebP, `srcset`, explicit dimensions.
 - Cache: public HTML `s-maxage=300, stale-while-revalidate=86400` at Cloudflare, purged on salon publish/update via tag/URL purge.
@@ -253,8 +255,23 @@ The reference shows "District 1, HCMC" — that is pre-reform wording and must n
 ### 4.3 Location data
 - Seed migration from official 2025 two-tier dataset + alias table for old districts/provinces; geocoding via provider port; boundary polygons optional (for "salons in phường X" accuracy fall back to commune_id assignment).
 
-### 4.4 Map
-- List-first; map toggle. `Map.web.tsx` (MapLibre GL JS, lazy chunk) / `Map.native.tsx` (react-native-maps or MapLibre RN). Shared clustering + viewport logic in `features/search`.
+### 4.4 Map and geocoding (OSM only — decision q26)
+- List-first; map toggle. Renderer: **MapLibre** everywhere: `Map.web.tsx` (MapLibre GL JS, lazy chunk) and `Map.native.tsx` (`@maplibre/maplibre-react-native`). No Google Maps SDK; `react-native-maps` is not used because it defaults to Google/Apple tiles. Shared clustering and viewport logic live in `features/search`.
+- **Tiles**:
+  - Development/local: OpenFreeMap vector tiles (free, no key) or a local Protomaps PMTiles extract of Vietnam.
+  - Production: self-hosted **Protomaps PMTiles** (Vietnam extract, regenerated monthly) served from object storage through the CDN. A vi/en label style is built from the design tokens, with light and dark variants.
+  - Attribution "© OpenStreetMap contributors" is always visible (ODbL).
+- **Geocoding** goes through the `GeocoderPort` in the API, never called directly from the client:
+  - Forward/autocomplete: **Photon**, self-hosted with a Vietnam extract. It is used for the salon address form and for customer "search an address".
+  - Reverse geocoding: **Nominatim**, self-hosted. The public nominatim.org instance is allowed in local development only (usage policy: 1 req/s, no autocomplete, no bulk).
+  - Results are cached in Postgres/Redis.
+- **Vietnamese address-quality limits** and mitigations:
+  - OSM house-number coverage in Vietnam is sparse.
+  - Alley addresses ("hẻm 123/45/6", "ngõ 12 ngách 3") rarely resolve.
+  - OSM admin boundaries may lag the 2025 reform.
+  - Diacritic-less input matches poorly.
+  - Mitigations: (1) the salon owner **confirms or drags the map pin** during onboarding (07); the pin is the source of truth (`geocode_source = owner_pin`), and the geocoder only suggests. (2) Province/commune always come from **our own Location tables** (point-in-polygon on our boundaries, or the owner's pick), never from OSM admin tags. (3) Customer location search hits our Location + alias tables first; the geocoder is only a fallback for street addresses. (4) Queries are normalised with `normalizeVi()` before reaching Photon. (5) `geocode_confidence` is stored, and salons with low confidence get an admin review flag (12).
+- Directions: "Open in maps" deep links to the user's installed app (Apple Maps / Google Maps app / OSM-based apps). This is a link-out only, with no API usage.
 
 ---
 
@@ -286,6 +303,7 @@ The reference shows "District 1, HCMC" — that is pre-reform wording and must n
 - **01** SDK 58 + server output decision, monorepo, api-client. **02** hero visuals, tokens, card components, poster asset contract. **03** locale routing helpers, slug/date/VND formatting, translation namespaces (`public`, `search`, `salon`). **04** schema: Location (two-tier + aliases + versioning), salon_search read model, slug_redirects, PostGIS/pg_trgm/unaccent extensions. **06** availability summary projection + exact slot API. **07** salon publishing, profile data, promotions. **11** reviews (approved only) + favorites. **12** taxonomy/location admin, promoted listings, attribution of shares/QR, analytics events (`search_performed`, `salon_viewed`, `service_viewed`). **13** hosting of SSR server, Cloudflare caching/purge, universal links files matching §3.2, Playwright/Lighthouse CI. **08** read-only tools (§9).
 
 ## 7. Suggested sub-milestones
+Priority per X13: steps 1–5 + booking flow (§3.6.2) + step 7 basics form the lean marketplace slice; steps 6 (full homepage polish), 8 (map) and editorial/trending follow after the salon SaaS core.
 1. **S1 spike**: SSR on SDK 58 with NativeWind + i18n + loaders + generateMetadata; decide server vs fallback (ADR).
 2. Location seed (two-tier + aliases) + slug utilities + URL scheme constants in `packages/domain`.
 3. `salon_search` read model + projector + Postgres search + autosuggest + tests (AC 4–6).
@@ -315,18 +333,22 @@ Read-only, public data; used by the future customer AI concierge and (limited) b
 | `marketplace.suggest` | prefix, locale | suggestions | public | public | R |
 | `marketplace.resolve_location` | free text ("quận 1", "Thảo Điền") | province/commune ids + confidence | public | public | R |
 | `marketplace.get_availability_summary` | salon id, date range | per-day has-slots (summary, not exact) | public | single salon | R |
-Booking actions are not exposed here; concierge hands off to the booking flow (06/11), which requires verified phone and explicit user confirmation. Review text and salon descriptions are untrusted content for the agent.
+Booking actions are not exposed here; concierge hands off to the booking flow (06/11), which needs no OTP (X11) but always requires explicit user confirmation. Review text and salon descriptions are untrusted content for the agent.
 
-## 10. Open questions for the product owner
-1. Launch cities: Hồ Chí Minh + Hà Nội only, or nationwide index from day 1? (affects seed + sitemap scope)
-2. Geocoding/maps provider: Google (quality, cost) vs VietMap/Goong (local) vs MapLibre + OSM? Budget?
-3. AI crawler policy: allow GPTBot/ClaudeBot/PerplexityBot/Google-Extended for GEO visibility, or block? (Recommendation: allow on public pages.)
-4. Show `aggregateRating` in structured data from launch? (Recommendation: yes, flag-guarded, min 3 reviews.)
-5. Should category×location pages target legacy district names in titles ("Nail Quận 1") for search demand, alongside new phường names? (Recommendation: yes, as secondary label.)
-6. Editorial content: in-admin CMS (12) or repo markdown for MVP?
-7. Promoted listings in search results at launch, or only later? (Affects ranking + "Sponsored" label.)
-8. ~~Hosting choice~~ — resolved: AWS ap-southeast-1 + Cloudflare/CloudFront (CDN choice pending in 13; affects home cache key by city and purge strategy).
-9. Social proof: what threshold for showing the community count (e.g. ≥ 1,000 customers), and is the quote a real consented review or a brand line?
-10. "Spots everyone is saving" ranking: favourites only, or favourites + bookings? And during cold start, may curated salons fill the block (labelled as editor's picks)?
-11. Legacy district chip ("Q.1 cũ"): keep by default for how long?
-12. Default for the salon setting "confirm bookings from first-time/unverified customers": off (instant confirmation) or on? (Recommendation: off, so booking stays instant.) Raised in the tracker.
+## 10. Product-owner decisions (from the GuGu Roadmap tracker, 2026-11-02)
+| Q | Decision | Applied in |
+|---|---|---|
+| q25 | **Nationwide** index (all 34 provinces) from day 1; **HCMC is the primary launch market**: default city, curated homepage blocks, editorial and SEO focus. | §3.3 defaults, §3.5 seed, sitemaps |
+| q26 | **OpenStreetMap-based maps and geocoding, no Google.** | §4.4 |
+| q30 | Legacy district names **are used in page titles** as a secondary label ("Nail Quận 1 · P. Bến Thành, TP.HCM"). Editorial content lives **both in admin (12) and in repo markdown**; the loader merges them, admin wins on slug collision. | §3.8, B4 |
+| q43 | **Allow AI crawlers** (GPTBot, ClaudeBot, PerplexityBot, Google-Extended…) on public pages; **`aggregateRating` from launch** (≥ 3 verified reviews, flag kept as kill switch); **promoted listings at launch**, capped boost and always labelled "Sponsored / Được tài trợ". | §3.8 robots, G15, §3.4 |
+| q54 | Social proof as proposed: real stats above the threshold, consented review or brand line; hidden otherwise. | B2 |
+| q55 | Former-district chip shown for **24 months** after launch, then reviewed. | §3.6.1 |
+| q66 | **Instant booking by default**; salons can switch on "confirm first-time/unverified customers". | §3.6.2 |
+| q67 | "Spots everyone is saving" = **favourites + bookings over 30 days**; cold start filled with **labelled editor's picks**. | B3 |
+| q44 | **Dark mode in the marketplace** too: public pages support light and dark via design tokens (02). SSR uses `prefers-color-scheme` + saved choice; the 3D/AI hero ships a dark-mode poster/loop variant. | §3.7 |
+| X13 | Marketplace is **secondary to the salon SaaS**: build the lean slice first (salon page + booking flow + search + SEO basics), polish (map, editorial, trending) later. | §7 |
+| X15 | Hero is **produced with AI tools** (layered renders, image-to-video loops, parallax); real-time R3F is optional. | §3.3 gating |
+| X16 | Localhost only for now; AWS hosting (§4.1) is a later milestone. | §4.1 |
+
+No open questions remain for this topic; new ones go to the tracker.

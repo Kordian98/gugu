@@ -13,6 +13,11 @@ Durable reference for the GuGu API's structure and data model. Read this to find
 - Owner agent: `.claude/agents/backend-database.md`. Skills: `backend-module`, `prisma-migration`.
 
 ## Invariants
+- Tenant row scope is `salon_id` (one salon = one location); organisations group salons for combined reporting and billing.
+- Bookings have one service (+ add-ons) in MVP; anonymous walk-ins may have no client profile.
+- Account deletion: 30-day grace, then anonymization job.
+- Analytics is in-house: `analytics_event` + rollup tables; no third-party analytics.
+- Environment: localhost only for now (Docker Compose); AWS is a later milestone.
 - Tenant tables: `salon_id NOT NULL`, `UNIQUE (salon_id, id)`, composite FKs.
 - Historical rows never deleted (`RESTRICT`); bookings render from snapshots.
 - Money `BIGINT` minor + `currency`; instants `timestamptz` UTC; schedules wall-clock + salon timezone.

@@ -36,10 +36,20 @@ Subagent `ai-agent` (`.claude/agents/ai-agent.md`). Procedure: skill `agent-tool
 - Routes (planned defaults, tuned by evals):
   - `assistant.fast` = `claude-haiku-5-5`, effort low (default)
   - `assistant.standard` = `claude-sonnet-5-5`, effort medium (escalation)
-  - `assistant.deep` = `claude-opus-5-5`, effort medium (entitled monthly review, offline judging)
+  - `assistant.deep` = `claude-opus-5-5`, effort medium (Pro monthly review, offline judging)
 - _TBD at A0 (ADR)._ Pre-router rules, escalation thresholds, caching layout, compaction.
 
-## Out of scope (needs personal data)
+## Plans and cost
+- Pro: chat assistant (`assistant.enabled`) + monthly Opus review (`assistant.deep`). Every plan: AI onboarding import (`ai_import`).
+- Hard monthly cost cap per salon (reserve → refuse → settle); 80% forces `fast`; separate import budget; platform daily kill switch. Values: q73.
+
+## AI onboarding import
+Screenshots/photos of a price list → face blur + OCR redaction + user preview → one structured Sonnet call → user reviews suggested services. _TBD (milestone IMP, Step 5)._
+
+## Admin Copilot
+Owned by 12; reuses runtime, routing and firewall; salons as `salon_N` tokens. _TBD._
+
+## Out of scope (needs personal data; only after legal review + explicit consent)
 Review summaries, paste-from-Zalo parsing, Zalo chat agent / Zalo surface, reading notes or tags, personalised free-text messages, creating customers, images with people.
 
 ## Tool catalogue
@@ -57,7 +67,7 @@ _TBD._ `AssistantConversation`, `AssistantMessage`, `AssistantEntityToken`, `Ass
 - MCP server (tokenized output): _TBD (phase D)_
 
 ## Quotas and cost
-_TBD._ Entitlement keys (`assistant.enabled`, `assistant.deep`), budgets, usage job, routing share.
+_TBD._ Cost-cap ledger, usage job, routing share.
 
 ## Evals
 _TBD._ How to run, thresholds (PII suite 100%), how to add canary cases.
@@ -65,4 +75,5 @@ _TBD._ How to run, thresholds (PII suite 100%), how to add canary cases.
 ## Changelog
 - 2026-11-02: skeleton created.
 - 2026-11-02: roadmap X1/X5/X7 applied.
+- 2026-11-02: owner answers q31/q32/q42/q62–q65 applied (Pro plan, hard cap, import on all plans, Admin Copilot).
 - 2026-11-02: PO revision: PII firewall, Anthropic API default (Bedrock plan dropped), Haiku-first routing, `packages/contracts` (X3).

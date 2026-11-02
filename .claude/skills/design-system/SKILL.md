@@ -9,7 +9,9 @@ One token source powers a bold **expressive** mode (public marketplace, customer
 
 ## Art direction: Lilac Glow
 Source: `design/hero-references/README.md` (ref-01). A cream canvas, pastel lilac/pink/peach, **plum-black ink** for all text and primary buttons, editorial serif headlines with one gradient word (`gradient.glow`), handwritten script accents, glossy jelly/glass 3D, soft wide radii (24–28) and pill buttons.
-- Fonts: display **Playfair Display** (alt Noto Serif Display), UI **Be Vietnam Pro**, script **Playwrite VN** (alt Dancing Script). All have Vietnamese subsets. Never swap in a font without the glyph test.
+- Fonts: display **Noto Serif Display** (wght 800–900, wdth ≈ 75–87.5%; alt Playfair Display), UI **Be Vietnam Pro**, script **Playwrite VN** (alt Dancing Script). All have Vietnamese subsets. Never swap in a font without the glyph test; paid fonts allowed only with full Vietnamese + web/app license.
+- Logo: `design/branding/` SVGs via `Logo`/`LogoMark`; rules in `design/branding/README.md`.
+- Dark mode ships at launch for marketplace and CRM: every component and screen is verified in both themes.
 - Expressive = full Lilac Glow. Calm = palette + UI sans only: no serif display in data views, no script, no gradient, no 3D.
 - Pastels never carry text; text on pastel is ink.
 

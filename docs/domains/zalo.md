@@ -15,7 +15,8 @@ Constraint (2026-11-02): GuGu has no Vietnamese legal entity. See `docs/tasks/09
 | Z2b | Salon-branded templates billed to salon's ZBS Account | no | not started (spike S-Z2) |
 | Z3 | AI agent drafts / auto-reply on Zalo chat | no | **deferred**: PO policy, no personal data to LLMs |
 | Z1 | Central/partner GuGu OA templates + Zalo OTP | **yes** or partner | blocked |
-| Z4 | Zalo Mini App (+ Zalo Login) | **yes** | blocked (ADR pending) |
+| — | Zalo Login | no (built), shown only with central OA | built in ZR, hidden (q28) |
+| Z4 | Zalo Mini App | **yes** | not planned (q41) |
 
 ## Invariants
 - Zalo is optional; every send has a non-Zalo fallback.

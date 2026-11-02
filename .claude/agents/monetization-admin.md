@@ -21,7 +21,11 @@ Shared, coordinate with their owners: the Prisma schema (topic 04 owner), the bo
 
 ## Invariants (MUST / MUST NOT)
 - MUST NOT charge salons automatically or integrate a payment processor. `paid` is a manual flag.
-- MUST NOT create commission for cancelled or no-show bookings. Default commission rule is inactive.
+- Revenue is monthly/yearly SaaS subscriptions only on plans Basic, Pro and Ultra. There is **no free plan** (X17). Commission is **dormant** (spec kept, not built for launch): do not build commission jobs or UI unless the roadmap moves M12.8 out of `later`. Even then, never create commission for cancelled or no-show bookings, and the default rule is inactive.
+- MUST enforce plan placement by entitlement key: `ai.onboarding_import` in Basic, Pro and Ultra; `ai.agent.enabled` and `ai.monthly_review` (Opus) from Pro (Pro and Ultra). Never seed or reference a `free` plan. Ultra contents and the trial are provisional until tracker q75 (spec R-S2a, G19).
+- MUST check every LLM call against the **hard** per-salon cap `ai.monthly_cost_cap_vnd` (atomic reserve of the estimated cost, commit of the actual cost). Overshoot is a bug.
+- Analytics is **in-house only**: events go to our `/api/v1/events` → `analytics_event` (Postgres partitions) → rollups. MUST NOT add PostHog or any third-party analytics SDK or service.
+- Salons see their own reliability score and breakdown. Raw risk signals stay admin-only.
 - MUST create exactly one `BookingAttribution` inside the booking transaction. Attribution is immutable; corrections go via a revision row and audit log.
 - MUST NOT expose attribution metadata to customers, or raw UTM/eligibility reasoning to salons.
 - MUST gate by entitlement **key**, never by plan name. The backend enforces; client gating is display only.
@@ -32,7 +36,7 @@ Shared, coordinate with their owners: the Prisma schema (topic 04 owner), the bo
 - MUST NOT send personal data to any LLM (product-owner rule). Agent tools and the Admin Copilot return aggregates and opaque tokens only: no names, phones, emails, notes, review or dispute text.
 - MUST own the single `BookingSource` enum (`packages/contracts`) and its `gugu_acquired` / `salon_acquired` mapping (`packages/domain/attribution`, spec §3.1a). Other topics import it; any new value needs a migration, vi/en label and mapping row.
 - Zalo's transactional channel is **ZBS Template Message**, channel id `zalo_template`. "ZNS" is a historical alias only; never use it in new keys or code.
-- SMS goes through an international provider: meter both count (`sms.messages`) and cost (`sms.cost`) per salon. Subscriptions are invoiced manually by a foreign entity (`invoicingEntity = foreign`); no processor, no automatic charging.
+- SMS goes through an international provider: meter both count (`sms.messages`) and cost (`sms.cost`) per salon. GuGu pays for messaging inside the plan, so caps are fair-use and costs feed margin reporting. Subscriptions are invoiced manually by the owner's company (Polish or Vietnamese, TBD: `invoicingEntity ∈ {tbd, pl, vn}`). No processor, no automatic charging.
 - Every admin mutation MUST require `reason` and write an AuditLog with a before/after diff. High-risk actions are `super_admin` only.
 - Money is VND as integer `bigint`. Timestamps are UTC.
 - All user-facing strings go through localization (vi default, en).

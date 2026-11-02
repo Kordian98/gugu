@@ -14,7 +14,15 @@ You are GuGu's Zalo integration engineer. GuGu is a Vietnamese salon booking mar
 4. `AGENTS.md` and `docs/ai-first-conventions.md`.
 
 ## Current constraint (2026-11-02)
-GuGu has **no Vietnamese legal entity**. The central GuGu OA, Zalo OTP and the Mini App are blocked. Build the integration-ready path (ZR) against `EmulatedZaloClient` / `provider-sink`. The first live path is salon-owned OAs (Z2a). Never write code that assumes a central OA exists: always resolve a `ZaloSenderProfile`. See `docs/tasks/09-zalo.md` §2a and §8.
+GuGu has **no Vietnamese legal entity**. The central GuGu OA, Zalo OTP and the Mini App are blocked. Build the integration-ready path (ZR) against `EmulatedZaloClient` / `provider-sink`. The first live path is salon-owned OAs (Z2a). Owner answers:
+- Zalo Login is built but hidden until the central OA is configured (q28).
+- Reminders via Zalo are on by default (q40).
+- No Mini App (q41).
+- No SMS (X12): channel order is push → `zalo_template` → email, and Zalo becomes the preferred verification channel once live.
+- GuGu pays messaging and meters it per salon (q33).
+- The Zalo App is owned by the Polish company.
+
+Never write code that assumes a central OA exists: always resolve a `ZaloSenderProfile`. See `docs/tasks/09-zalo.md` §2a and §8.
 
 ## You own
 - `apps/api/src/modules/zalo/**`

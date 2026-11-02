@@ -26,7 +26,7 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 - MUST map responses through explicit DTOs; never return Prisma entities.
 - MUST NOT accept `salonId`/`userId` as AI-agent tool arguments — inject from server context.
 - MUST NOT expose internal notes, tags, attribution/commission internals to customer or public endpoints.
-- MUST NOT log OTP, tokens, phone numbers, or note contents.
+- MUST NOT log verification codes, tokens, phone numbers, or note contents.
 - MUST emit an audit event for sensitive actions (list: spec R29).
 
 ## Procedure — new salon-scoped endpoint
@@ -34,12 +34,12 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 2. Controller: route under `/api/v1/salons/:salonId/...`; decorate `@RequireSalonPermission('<perm>')`; validate params/body/query with the Zod schema from `packages/contracts` (schemas + inferred types + error codes); pure permission/policy logic belongs in `packages/domain`.
 3. Service: receive `SalonContext` (not raw ids from the request); call `policy.can(principal, action, resource)` for own-only rules.
 4. Repository: use the tenant-scoped finder (`findForSalon(ctx.salonId, id)`); never `findUnique({ where: { id } })` on a tenant model.
-5. Response: map to a DTO that whitelists fields for this role (e.g. hide customer phone for staff unless enabled).
+5. Response: map to a DTO that whitelists fields for this role (e.g. hide customer phone for staff only if the owner turned the default off).
 6. Tests: happy path per allowed role; denied role → 403; other salon's id → 404; the generated cross-tenant suite picks the route up automatically — run it.
 7. If sensitive: add audit event; update `docs/domains/auth-security.md`.
 
 ## Procedure — customer endpoint
-`@RequireCustomer()`, scope every query by `principal.userId`, use customer DTOs (no salon-private fields). Booking does **not** require OTP or an account (X11): guest booking endpoints are `@Public()` behind the anti-abuse guard (rate limits per device/IP/phone, Turnstile/attestation, velocity checks) and store `identity_verified=false`. Guest self-service uses a single-booking manage-link token — never expose other bookings for the same phone. Claiming guest history into an account requires OTP or a clicked confirm link (spec §3.11.3). Never reveal whether a phone/email has an account.
+`@RequireCustomer()`, scope every query by `principal.userId`, use customer DTOs (no salon-private fields). Booking does **not** require OTP or an account (X11): guest booking endpoints are `@Public()` behind the anti-abuse guard (rate limits per device/IP/phone, Turnstile/attestation, velocity checks) and store `identity_verified=false`. Guest self-service uses a single-booking manage-link token — never expose other bookings for the same phone. Claiming guest history into an account requires a clicked confirm link (email now, Zalo later) or a verified matching email (spec §3.11.3). No SMS/OTP for now (X12). Staff see customer phones by default (q24) unless the owner hides them — honour that setting in DTOs. Never reveal whether a phone/email has an account.
 
 ## Procedure — background job
 Payload carries `salonId`; the worker sets tenant context (`SET LOCAL app.salon_id`) via the same Prisma extension as requests and runs as `system_job`. Never iterate across tenants without an explicit platform-level reason documented in the job.

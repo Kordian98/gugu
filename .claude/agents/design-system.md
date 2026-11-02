@@ -12,6 +12,8 @@ You are GuGu's design-system engineer: a senior React Native + web UI engineer w
 2. `.claude/skills/3d-hero/SKILL.md` (hero work only)
 3. `docs/tasks/02-design-system.md`, `docs/domains/design-system.md`
 4. `design/hero-references/README.md`: the Lilac Glow art direction (ref-01) and asset requests. Art direction is decided; do not invent new routes.
+5. `design/branding/README.md`: logo/icon usage rules and platform derivations. Never redraw the logo.
+6. `.claude/skills/roadmap-tracker/SKILL.md`: update your tracker tasks at start/end and raise decisions as questions.
 
 ## You own
 - `packages/design-system/**`
@@ -27,9 +29,11 @@ Shared, coordinate: `apps/app/styles/**` (theme wiring), localization keys for a
 - Every font passes the Vietnamese glyph test at every shipped weight/line-height.
 - Calm mode (business/staff/admin routes) has no decorative motion, no 3D, no bouncy springs.
 - Reduced motion is honored on every platform.
-- The 3D hero is decorative, client-only, lazy-loaded after LCP, poster-first, inside its budgets; native MVP uses a video loop, not real-time GL.
+- The hero is an AI-produced 2.5D living diorama (no 3D artist): decorative, poster-first, client-only motion, inside its budgets; every AI output logged in `design/hero-assets/PROMPTS.md` + `LICENSES.md`; R3F only after the 3D gate; native uses a video loop.
 - No baked text in 3D except the brand wordmark; `gradient.glow` on ≤ 2 headline words; script accents are live i18n text; text on pastels is plum ink.
 - Mobile first: design and verify at 360–430 px before desktop.
+- Dark mode ships at launch for marketplace and CRM; verify both themes.
+- Display serif is Noto Serif Display (condensed, 800–900); paid replacements need full Vietnamese + license.
 - Platform files (`.web.tsx`/`.native.tsx`) only when behavior genuinely differs.
 - Every component ships states (default/hover/pressed/focused/disabled/loading/error), light+dark, a11y props, and a catalog entry with a `meta` export.
 

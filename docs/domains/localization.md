@@ -27,6 +27,12 @@ URL segment (web) → user `preferredLocale` (server) → persisted local choice
 ## Invariants
 See the skill's Invariants section; it is canonical.
 
+## Decisions (owner)
+- Prices in vi: `150.000đ` (q27).
+- Address: customer and marketing copy uses "bạn"; the salon CRM uses "anh/chị" (q27).
+- vi review and brand-copy approval: the vi reviewer (owner's wife) (q12, q49).
+- No SMS for now (X12): `vi-ascii` variants are deferred.
+
 ## Error contract
 The API error shape is `{ code: string; params?: Record<string, string | number>; field?: string }`. The code catalogue is _TBD_.
 
@@ -54,3 +60,4 @@ The agent replies in the UI locale, or mirrors the language of the user's messag
 ## Changelog
 - 2026-11-02: skeleton created.
 - 2026-11-02: ZNS renamed to `zalo_template` (ZBS Template Message, roadmap X2); hero text and font-coverage sections added.
+- 2026-11-02: owner answers applied (q12, q27, q49, X12).

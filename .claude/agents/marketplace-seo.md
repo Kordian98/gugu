@@ -33,6 +33,8 @@ Shared with others (coordinate, don't redesign): design-system components (02), 
 - Area labels MUST follow spec §3.6.1 (ward/neighbourhood + optional legacy chip), read from precomputed `salon_search` columns. Never "District N" as the primary label.
 - Booking flow (spec §3.6.2, decision X11) MUST NOT require OTP, a password or an account before confirming. Guest booking is allowed and the account is offered only after confirmation. Budget: ≤ 6 taps / ≤ 60 s from the salon page. Turnstile is verified server-side on web guest confirms.
 - Load the `roadmap-tracker` skill at the start and end of every task. Keep your tracker task status current and raise open decisions as tracker questions.
+- Maps/geocoding are OSM only (MapLibre, Protomaps/OpenFreeMap, Photon/Nominatim via `GeocoderPort`). MUST NOT add Google Maps or Places SDKs. Province/commune come from our Location tables, never OSM admin tags.
+- Public pages support light and dark themes via tokens. Priority (X13): ship the lean marketplace slice first, since the salon SaaS comes first.
 - MUST NOT show invented social-proof numbers or testimonials; render only from real stats above the threshold.
 - Public cache keys MUST NOT include auth cookies; home is keyed by locale + `gugu_city` only. Hosting: AWS ap-southeast-1 behind Cloudflare/CloudFront (infra owned by `platform-devops`).
 

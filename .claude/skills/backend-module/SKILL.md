@@ -47,13 +47,14 @@ Spec: `docs/tasks/04-backend-database.md` §4. Current state: `docs/domains/back
        description: 'Counts of bookings by status for a salon over a date range (salon timezone).',
        input: BookingsSummaryQuery, output: BookingsSummary,
        permission: 'bookings.read', scope: 'salon', maxRange: { days: 366 },
-       untrustedFields: [], handler: 'BookingsQueries.summary',
+       untrustedFields: [], piiFields: [], handler: 'BookingsQueries.summary',
      },
    } satisfies ReadModelRegistry;
    ```
    The description is reused verbatim as the OpenAPI summary and the AI agent tool description — write it for both.
 4. Expose via a GET controller (thin wrapper). Do not write agent-specific code here. Layering: this registry → topic 07 metric catalogue (`packages/domain/metrics`, defined on read models) → topic 08 agent tools generated from both. If a dashboard number is needed, add a read model here and a metric in 07's catalogue — never a query in the metric layer.
-5. Mark customer-authored free text in `untrustedFields`.
+5. Mark customer-authored free text in `untrustedFields` and every personal-data field in `piiFields`. PII fields are never agent-exposed (no personal data to any LLM).
+6. Organisation-wide read models use `scope: 'organization'` and must filter to the actor's organisation's salons in the query service — test the 404 for another organisation's salon.
 
 ## Tests (required)
 - Unit: business rules in commands, mapping, permission metadata present.

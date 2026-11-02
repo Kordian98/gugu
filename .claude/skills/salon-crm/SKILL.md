@@ -27,7 +27,7 @@ description: Rules and procedures for GuGu's salon workspace (Today, calendar UI
 3. **Click budgets:** check-in ≤ 2 taps from launch · walk-in ≤ 3 · quick add for a returning client ≤ 5 / 15 s · reschedule ≤ 4 · cancel 2.
 4. **Phone-first lookup.** Search matches the last digits of the phone and is diacritic-insensitive for names ("nguyen" matches "Nguyễn").
 5. **Readable at arm's length.** Body ≥ 16 px on mobile, 44 pt targets, status shown with icon + label + colour (never colour alone), AA contrast.
-6. **Short, conversational Vietnamese.** "Khách đã đến", not "Xác nhận check-in khách hàng". Write the vi copy first and en second.
+6. **Short, conversational Vietnamese, addressing the user as "anh/chị"** (owner q27; never "bạn" in the CRM). "Khách đã đến", not "Xác nhận check-in khách hàng". Write the vi copy first and en second.
 7. **At most 4 headline numbers** per Insights view, each with an "i" definition from the registry and a comparison with the previous period.
 8. **Prefill everything:** last service, last staff, next suggested slot, reason chips.
 9. **Mobile calendar** is a single-staff day view with a staff switcher plus an agenda. The desktop calendar is a staff-column grid with drag, resize and keyboard (`N`, `T`, `D`, `W`, arrows, `Enter`).
@@ -35,6 +35,14 @@ description: Rules and procedures for GuGu's salon workspace (Today, calendar UI
 11. **Offline:** show a "last updated" banner and cached reads. Never queue writes silently.
 12. **Calm mode, same brand.** Use the `calm` surface mode tokens: brand type, radii, plum primary, lilac accent only for selection/focus/now-line. No 3D, glass, text gradients, script accents or ambient motion. Never invent CRM-only colours.
 13. **Zalo surfaces degrade gracefully.** Hide them, never show broken UI, when Zalo is not connected.
+
+## Product rules from the owner
+- The CRM and onboarding are the core product (X13). AI setup from screenshots is in every plan and MUST stay the first onboarding card. The assistant is Pro only.
+- Chains: every metric supports `scope: salon | organization`. Operational screens stay per location.
+- One service per appointment; combos are services or add-on options. No prepaid packages and no staff commission.
+- Staff see their own ratings and, by default, client phones (`client.view_contact`, revocable).
+- Shared-tablet and personal-device setups both work with no configuration.
+- No SMS (X12): invites and messages use links, email or Zalo.
 
 ## Revenue kinds (`RevenueKind`)
 
@@ -49,7 +57,7 @@ Never sum across kinds into one unlabeled number.
 ## Procedures
 
 ### Add a metric
-1. Add an entry to `packages/domain/metrics/registry.ts`: `key`, `labelKey`, `definitionKey`, `readModels` (04 ids), `unit`, `revenueKind?`, `grain`, `dimensions`, `permission`, `handler`.
+1. Add an entry to `packages/domain/metrics/registry.ts`: `key`, `labelKey`, `definitionKey`, `readModels` (04 ids), `scopes` (`salon` and, unless impossible, `organization`), `unit`, `revenueKind?`, `grain`, `dimensions`, `permission`, `handler`.
 2. Implement the handler in `apps/api/src/modules/insights/handlers/<key>.ts`. Compute in the salon timezone, use one query (no N+1) and index-backed filters.
 3. Add vi and en strings for the label and definition (03 conventions).
 4. Tests: a handler unit test with fixed fixtures, a cross-tenant isolation test, and an agent-tool parity snapshot (same result through `insights.get_metric`).

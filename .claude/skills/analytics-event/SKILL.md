@@ -5,7 +5,7 @@ description: How to add or change a tracked analytics event in GuGu — typed ev
 
 # Adding a tracked analytics event
 
-All events are declared once in a typed catalog (`packages/analytics/src/events/`) and sent through a single facade. Business facts are emitted server-side; behavioral events are emitted by the client only with consent. Spec: `docs/tasks/12-monetization-admin.md` §3.6.
+All events are declared once in a typed catalog (`packages/analytics/src/events/`) and sent through a single facade. Analytics is **built in-house** (owner decision): client events are batched to our `POST /api/v1/events`, stored in the monthly-partitioned `analytics_event` table in our Postgres, and aggregated by BullMQ rollup jobs. There is **no PostHog or any third-party analytics**. Never add such an SDK. Business facts are emitted server-side; behavioral events are emitted by the client only with consent. Spec: `docs/tasks/12-monetization-admin.md` §3.6.
 
 ## When to use
 - You need a new event for a funnel, metric or dashboard.
@@ -14,7 +14,7 @@ All events are declared once in a typed catalog (`packages/analytics/src/events/
 
 ## Invariants
 - MUST declare the event in the catalog with a Zod schema. Untyped `track('foo')` must not compile.
-- MUST NOT include PII in properties: phone, email, names, addresses, notes, review or message text, raw IP. Use IDs (pseudonymized in the external tool). The CI linter enforces a deny-list of property names.
+- MUST NOT include PII in properties: phone, email, names, addresses, notes, review or message text, raw IP. Use IDs; `analytics_event` stores only a salted `actor_hash`, never the raw user ID. The CI linter enforces a deny-list of property names.
 - Client behavioral events MUST be dropped when analytics consent is not granted. No fingerprinting and no queue-then-send-later without consent.
 - Business facts (booking completed or cancelled, review submitted, salon registered…) MUST be emitted server-side from domain events via the outbox, never from the client. They are the source of truth for metrics.
 - Metric definitions live only in `packages/domain/metrics`. Dashboards and the AI agent reuse them; never re-derive them ad hoc.
