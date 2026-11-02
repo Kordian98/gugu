@@ -72,6 +72,16 @@ Not implemented (M6.9). Spec §9.
 - `apps/api/src/jobs/maintenance.processor.ts` — `booking.sweep` every minute.
 - Tests: `apps/api/src/modules/bookings/bookings.int.test.ts` (incl. 20-way concurrency harness), `apps/api/test/factories/booking.ts`.
 
+## Re-enabling the public booking surface (preconditions)
+The public controller is unrouted (X23). Before it is ever registered again:
+1. A Vietnamese legal review allows a customer-facing booking surface (roadmap X23).
+2. Manage tokens leave the URL path: send them in an `X-Manage-Token` header (added to
+   `REDACT_PATHS`) or in a POST body; `/public/bookings/:token` routes are removed.
+3. Every page that carries a token sends `Referrer-Policy: no-referrer`.
+4. Turnstile (or equivalent) bot check on guest holds/bookings.
+Already in place as defence in depth: the pino `req` serializer redacts `/public/bookings/<token>`
+segments from logged URLs (`infrastructure/logger/redaction.ts`, tested).
+
 ## Known limitations
 - One service per appointment (+ variant + add-ons); multi-service Phase B/C not implemented.
 - Resources/capacity units, availability cache, waitlist, recurring, group bookings, deposits not implemented.

@@ -1,7 +1,7 @@
 import { Writable } from "node:stream";
 import pino from "pino";
 import { describe, expect, it } from "vitest";
-import { REDACT_PATHS } from "./redaction";
+import { REDACT_PATHS, redactRequest, redactUrl } from "./redaction";
 
 describe("log redaction", () => {
   it("removes credentials, contact details, OTP and notes", () => {
@@ -32,5 +32,16 @@ describe("log redaction", () => {
       expect(out).not.toContain(secret);
     }
     expect(out).toContain("booking.slot_taken");
+  });
+
+  it("redacts booking manage tokens in request URLs (topic 06 security review)", () => {
+    expect(redactUrl("/api/v1/public/bookings/SeCrEt-token_123/cancel?x=1")).toBe(
+      "/api/v1/public/bookings/[Redacted]/cancel?x=1",
+    );
+    expect(redactUrl("/api/v1/public/bookings/abc")).toBe("/api/v1/public/bookings/[Redacted]");
+    expect(redactUrl("/api/v1/salons/1/bookings/2")).toBe("/api/v1/salons/1/bookings/2");
+    expect(redactUrl(undefined)).toBeUndefined();
+    const req = redactRequest({ method: "GET", url: "/api/v1/public/bookings/tok/x" });
+    expect(req).toEqual({ method: "GET", url: "/api/v1/public/bookings/[Redacted]/x" });
   });
 });
