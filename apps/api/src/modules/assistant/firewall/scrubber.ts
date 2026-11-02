@@ -1,5 +1,5 @@
 import { findContactDetails } from "../../ai-import/ai-import.facade";
-import { findNames } from "./names";
+import { findNames, type NameList } from "./names";
 import type { TokenVault } from "./token-vault";
 
 /** People and labels the firewall knows by name in one salon (built per turn, never sent). */
@@ -39,8 +39,7 @@ export async function scrubUserText(
     spans.push({ start: m.start, end: m.end, replacement: () => Promise.resolve(label) });
   }
   const staffByName = new Map(directory.staff.map((s) => [s.name, s.id]));
-  const names = [...directory.staff.map((s) => s.name), ...directory.customers, ...directory.salon];
-  for (const n of findNames(src, names)) {
+  for (const n of findNames(src, nameLists(directory))) {
     if (spans.some((s) => n.start < s.end && s.start < n.end)) continue;
     const staffId = staffByName.get(n.name);
     const isSalon = directory.salon.includes(n.name);
@@ -65,9 +64,20 @@ export async function scrubUserText(
   return { text: out + src.slice(at), changed: true };
 }
 
-/** Egress check helper: true when `text` still contains a contact detail or a directory name. */
+/**
+ * Egress check helper: true when **user-typed text after scrubbing** still contains a contact
+ * detail or a directory name. Never run it over server-made content (context lines, tool results):
+ * those are fixed vocabulary protected by the tool-result allowlist, and a customer could otherwise
+ * book under a name that matches them and block the salon's assistant (security review 08-A2).
+ */
 export function containsPersonalData(text: string, directory: Directory): boolean {
   if (findContactDetails(text).length > 0) return true;
-  const names = [...directory.staff.map((s) => s.name), ...directory.customers, ...directory.salon];
-  return findNames(text, names).length > 0;
+  return findNames(text, nameLists(directory)).length > 0;
+}
+
+function nameLists(directory: Directory): NameList[] {
+  return [
+    { names: directory.staff.map((s) => s.name), singleWord: "capital_or_cue" },
+    { names: [...directory.customers, ...directory.salon], singleWord: "capital_and_cue" },
+  ];
 }

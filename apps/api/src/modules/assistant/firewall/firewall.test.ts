@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { entityTokenSchema } from "@gugu/contracts";
+import { isFixedVocabulary } from "../application/directory";
 import { pickRoute } from "../application/routing";
 import { checkToolResult } from "./allowlist";
 import { findNames, fold } from "./names";
@@ -28,7 +29,7 @@ const directory: Directory = {
     { id: "s1", name: "Thu" },
     { id: "s2", name: "Nguyễn Văn Tuấn" },
   ],
-  customers: ["Trần Thị Bích", "Lan"],
+  customers: ["Trần Thị Bích", "Lan", "Lịch", "Vietnamese"],
   salon: ["Lotus Nail"],
 };
 
@@ -40,18 +41,36 @@ describe("fold", () => {
   });
 });
 
+const staffList = (...names: string[]) => [{ names, singleWord: "capital_or_cue" as const }];
+const customerList = (...names: string[]) => [{ names, singleWord: "capital_and_cue" as const }];
+
 describe("findNames", () => {
   it("matches multi-word names without diacritics or case", () => {
-    expect(findNames("lich cua nguyen van tuan hom nay", ["Nguyễn Văn Tuấn"])).toHaveLength(1);
+    expect(
+      findNames("lich cua nguyen van tuan hom nay", staffList("Nguyễn Văn Tuấn")),
+    ).toHaveLength(1);
+    expect(findNames("lich cua nguyen van tuan", customerList("Nguyễn Văn Tuấn"))).toHaveLength(1);
   });
-  it("matches single-word names only when capitalised or after a cue", () => {
-    expect(findNames("doanh thu tháng này", ["Thu"])).toEqual([]);
-    expect(findNames("Thu có mấy lịch", ["Thu"])).toHaveLength(1);
-    expect(findNames("lịch của chị thu", ["Thu"])).toHaveLength(1);
-    expect(findNames("ktv thu hôm nay", ["Thu"])).toHaveLength(1);
+  it("matches single-word staff names when capitalised or after a cue", () => {
+    expect(findNames("doanh thu tháng này", staffList("Thu"))).toEqual([]);
+    expect(findNames("Thu có mấy lịch", staffList("Thu"))).toHaveLength(1);
+    expect(findNames("lịch của chị thu", staffList("Thu"))).toHaveLength(1);
+    expect(findNames("ktv thu hôm nay", staffList("Thu"))).toHaveLength(1);
+  });
+  it("matches single-word customer names only when capitalised AND after a cue", () => {
+    expect(findNames("Lịch hôm nay thế nào?", customerList("Lịch"))).toEqual([]);
+    expect(findNames("khách lịch hủy chưa", customerList("Lịch"))).toEqual([]);
+    expect(
+      findNames("Context: Reply in Vietnamese", customerList("Vietnamese", "Context")),
+    ).toEqual([]);
+    expect(findNames("khách Hoa hủy chưa", customerList("Hoa"))).toHaveLength(1);
+    expect(findNames("chị Hoa đến chưa", customerList("Hoa"))).toHaveLength(1);
+  });
+  it("uses the stricter rule when a name is both staff and customer", () => {
+    expect(findNames("Thu có mấy lịch", [...staffList("Thu"), ...customerList("Thu")])).toEqual([]);
   });
   it("respects word boundaries", () => {
-    expect(findNames("Lanh hay Lan?", ["Lan"]).map((s) => s.start)).toEqual([9]);
+    expect(findNames("Lanh hay Lan?", staffList("Lan")).map((s) => s.start)).toEqual([9]);
   });
 });
 
@@ -67,6 +86,16 @@ describe("scrubUserText", () => {
       "Chị staff_1 và staff_2 có bao nhiêu lịch? Khách [redacted_name] ([redacted_phone], [redacted_email]) ở [salon]",
     );
     expect(containsPersonalData(r.text, directory)).toBe(false);
+  });
+
+  it("does not let a customer named after a common word change or block questions", async () => {
+    const q = "Lịch hôm nay thế nào? Doanh thu tuần này?";
+    const r = await scrubUserText(q, directory, memoryVault());
+    expect(r).toEqual({ text: q, changed: false });
+    expect(containsPersonalData(r.text, directory)).toBe(false);
+    expect(
+      containsPersonalData("Context: today is 2026-11-03. Reply in Vietnamese.", directory),
+    ).toBe(false);
   });
 
   it("leaves ordinary questions alone", async () => {
@@ -123,5 +152,24 @@ describe("pickRoute", () => {
     expect(pickRoute("Hôm nay có bao nhiêu lịch hẹn?")).toBe("fast");
     expect(pickRoute("So sánh doanh thu tháng này với tháng trước")).toBe("standard");
     expect(pickRoute("How did March compare to February?")).toBe("standard");
+  });
+});
+
+describe("isFixedVocabulary", () => {
+  it("drops names equal to enums, period labels, placeholders and token shapes", () => {
+    for (const n of [
+      "Confirmed",
+      "no show",
+      "No_Show",
+      "today",
+      "Last month",
+      "staff_1",
+      "Booking_7",
+      "salon",
+      "VND",
+    ]) {
+      expect(isFixedVocabulary(n)).toBe(true);
+    }
+    for (const n of ["Lan", "Nguyễn Văn Tuấn", "Lịch"]) expect(isFixedVocabulary(n)).toBe(false);
   });
 });

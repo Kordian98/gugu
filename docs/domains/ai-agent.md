@@ -117,8 +117,8 @@ _TBD._ `AssistantConversation`, `AssistantMessage`, `AssistantEntityToken`, `Ass
 
 Rules as built:
 - **Gating:** `POST turns` needs `assistant.use` (owner, manager) and `ai.agent.enabled` (Pro/Ultra/trial). Without a key it returns 503 `assistant.not_configured`. The bubble shows only for members with `assistant.use`. On plans without the assistant the panel shows the Pro upgrade prompt (CTA goes to Settings).
-- **Input scrubbing:** staff names become `staff_N`, customer names `[redacted_name]`, the salon name `[salon]`, contact details `[redacted_phone|email|link]`. Single-word names (often ordinary words such as "Thu" in "doanh thu") match only when capitalised or after a cue word (anh/chị/em/KTV/nhân viên…). The masked text is sent back as the `masked` event and shown under the user's message, with staff as `@Name`.
-- **Egress check:** before every model call, user-side content (user text and tool results) is scanned for contact details and directory names. A hit means 422 `assistant.privacy_blocked` and nothing is sent.
+- **Input scrubbing:** staff names become `staff_N`, customer names `[redacted_name]`, the salon name `[salon]`, contact details `[redacted_phone|email|link]`. Single-word **staff** names match when capitalised **or** after a cue word (anh/chị/em/KTV/nhân viên…). Single-word **customer and salon** names need a capital **and** a cue ("khách Hoa"), because customers pick their own booking names. Directory names that equal fixed vocabulary (statuses, sources, revenue kinds, period expressions, placeholders) or look like tokens are dropped (`isFixedVocabulary`). The masked text is sent back as the `masked` event and shown under the user's message, with staff as `@Name`.
+- **Egress check:** once per turn, over the **scrubbed user-typed text only**: contact details or directory names mean 422 `assistant.privacy_blocked` and nothing is sent. Server-made content (context line, tool results) is not scanned; it is fixed vocabulary protected by the allowlist. Scanning it let a customer block the assistant by booking as "Vietnamese" or "Confirmed" (security review, fixed on `ai/08-assistant-fix`).
 - **Allowlist:** every tool result is validated against its strict Zod output, and every string must be a token, an ISO date/time or a registered enum. Otherwise it is withheld: `{"error":"result_withheld"}`, audit status `withheld`, error log `pii_firewall_block`.
 - **Routing:**
   - The pre-router sends long (> 280 chars) or comparative questions to Sonnet 5.5 (effort medium, 4,096 max tokens, `fallbacks: "default"`). Everything else goes to Haiku 5.5 (effort low, 2,048 max tokens).
@@ -148,6 +148,7 @@ _TBD._ How to run, thresholds (PII suite 100%), how to add canary cases.
 ## Changelog
 - 2026-11-02: skeleton created.
 - 2026-11-02: roadmap X1/X5/X7 applied.
+- 2026-11-03: egress check limited to scrubbed user text; strict single-word customer names; fixed-vocabulary filter (security review).
 - 2026-11-03: A1 + A2 (branch ai/08-assistant): read tools, PII firewall, streaming runtime, floating bubble UI.
 - 2026-11-02: security-review fixes: month key stored on reservations, counters clamped at 0, provider failures settled by billing class, metered own retries (branch ai/08-imp-fix).
 - 2026-11-02: AI onboarding import implemented (branch ai/08-imp): no-PII gate, Sonnet extraction, review UI, interim Redis cost cap.
