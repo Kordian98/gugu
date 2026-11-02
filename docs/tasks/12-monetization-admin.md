@@ -2,7 +2,7 @@
 
 Covers master prompt sections 17 (booking attribution & monetization), 18 (platform admin), 27 (analytics & product metrics), plus the extra requirements: subscription plans and entitlements that gate the AI business agent (topic 08) and Zalo features (topic 09), usage metering, and a PII-free Admin Copilot.
 
-Product-owner decisions applied (roadmap X13, X14, X17; tracker q21, q31–q37, q42, q43, q63, q64, q70, q73–q75): GuGu is primarily a salon SaaS. Revenue is **monthly/yearly SaaS subscriptions only**, on plans **Basic, Pro and Ultra**. There is **no free plan** (X17). Commissions come later (ledger kept dormant). The AI assistant and the monthly Opus business review are included **from Pro** (Pro and Ultra), with a hard cost cap per salon. AI onboarding import is in all three plans. New salons get a 14-day trial with Pro features but Basic limits (q75 + owner correction). The final entitlement matrix is R-S2a. GuGu pays for messaging inside the plan and tracks the costs. Analytics is **built in-house** on our Postgres, with no third-party tool. Salons see their reliability score. Promoted listings and star ratings are allowed at launch. The PII-free Admin Copilot ships in v1.
+Product-owner decisions applied (roadmap X13, X14, X17, X19, X20; tracker q21, q31–q37, q42, q43, q63, q64, q70, q73–q75): GuGu is primarily a salon SaaS. Revenue is **monthly/yearly SaaS subscriptions only**, on plans **Basic, Pro and Ultra**. There is **no free plan** (X17). Commissions come later (ledger kept dormant). The AI assistant and the monthly Opus business review are included **from Pro** (Pro and Ultra), with a hard cost cap per salon. AI onboarding import is in all three plans. New salons get a 14-day trial with Pro features but Basic limits (q75 + owner correction). The final entitlement matrix is R-S2a. GuGu pays for messaging inside the plan and tracks the costs. Analytics is **built in-house** on our Postgres, with no third-party tool. Salons see their reliability score. Promoted listings and star ratings are allowed at launch. The PII-free Admin Copilot ships in v1. **Pivot (X19/X20): SaaS first.** The marketplace comes later, only after GuGu opens a Vietnamese company, so promoted listings, attribution-based fees and commissions are post-marketplace work. Landing-page promise: partner salons are listed in the marketplace free of charge, and every salon that buys a subscription before the marketplace launches pays **no booking fees for its first 2 years after launch** (founding partner, §3.2a).
 
 Status: spec. No code exists yet.
 
@@ -54,6 +54,7 @@ Status: spec. No code exists yet.
 | G17 | No admin-side AI assistance despite the AI-first goal; product-owner rule says no personal data may go to any LLM. | **Admin Copilot in v1** (q64, §3.8), limited to aggregate/tokenised platform analytics. No PII, no review or dispute text, no write actions. Support, moderation and dispute work stays human. |
 | G18 | AI features differ by plan and AI cost could run away. | `ai.onboarding_import` (price-list screenshots → services, marketed as "effortless AI setup") is in **all three plans**: Basic, Pro, Ultra (q42, X17). `ai.agent.enabled` and `ai.monthly_review` (monthly business review on Opus) are included **from Pro** (q31, q63, X17). Every AI call is checked against a **hard monthly cost cap per salon** (`ai.monthly_cost_cap_vnd`, q32). Onboarding import has its own run cap so Basic salons cannot drain cost. |
 | G19 | X17 removed the free plan, so what does a newly registered salon get? | **Decided (q75):** a 14-day trial with **Pro features but Basic limits** (AI cap 20,000 VND, 100 Zalo template messages, 30 SMS), via the internal `trial` plan in R-S2a (`status = trialing`). After that, the salon must be on a paid plan (Basic, Pro or Ultra). Without one, the subscription becomes `expired`: the workspace is read-only, the public profile stays visible, and new online bookings are paused with a localized message. No data is deleted. One trial per salon (and per owner phone). |
+| G20 | The landing page promises founding salons no booking fees, but nothing in the model records who qualifies or for how long (X19/X20). | `founding_partner` is recorded on the organisation (and on each salon) when its first **paid** subscription starts before the configured marketplace launch date. The waiver window runs from the marketplace launch until launch + 24 months. Every booking-fee or commission rule checks it first: fee = 0, and ledger entries are written as `waived` with reason `founding_partner` (§3.2a). Legal review before marketplace launch. |
 
 ---
 
@@ -108,6 +109,17 @@ Rules:
 - R-C5: No automatic charging, invoicing or dunning. `paid` is a manual bookkeeping flag.
 - R-C6: If a booking moves `completed → (reverted)`, which topic 06 must define as an admin-only correction, a `pending` entry becomes `not_applicable` and a `confirmed` entry becomes `disputed`.
 - R-C7: Salons see their own ledger (read-only) and can dispute an entry with a reason within the window.
+
+### 3.2a Founding partners (X19/X20; spec only, no code yet)
+Promise on the landing page (copy owned by 02/10, wording legally reviewed): partner salons are listed in the marketplace free of charge, and every salon that buys a subscription **before the marketplace launches** is fully exempt from booking fees for its **first 2 years after launch**.
+- R-FP1: Config `MARKETPLACE_LAUNCH_AT` (platform setting, admin-editable by `super_admin`, audit-logged; `null` until the date is set). `FOUNDING_WAIVER_MONTHS = 24`.
+- R-FP2: `founding_partner` is stored on the **organisation**, and on each salon for salons outside an organisation, as `foundingPartner { qualifiedAt, qualifyingSubscriptionId, source: "paid_before_launch" | "admin_grant" }`. The flag is never removed automatically, and only a `super_admin` can revoke it, with a reason and an audit entry.
+- R-FP3: It is set when a subscription first becomes `active` on a paid plan (`basic` / `pro` / `ultra`, not `trial`) **and** `MARKETPLACE_LAUNCH_AT` is `null` or still in the future at that moment. Set it in the same transaction as the `→ active` transition, idempotently. A trial alone does not qualify. Later lapses (past_due, expired) do not remove a flag that was earned, unless the owner decides otherwise (open question 7). Salons that an organisation adds after it qualified inherit the flag through the organisation.
+- R-FP4: Waiver window = `[MARKETPLACE_LAUNCH_AT, MARKETPLACE_LAUNCH_AT + 24 months)`, evaluated against the booking's **appointment completion time** (the fee trigger), in UTC. It is computed, not stored, so it stays correct if the launch date moves before launch. Once launch has happened, the date is frozen (changing it requires `super_admin` and a reason).
+- R-FP5: Every booking-fee or commission rule evaluation (R-C1, and any future booking fee) MUST call `FoundingPartnerPolicy.waiverFor(salonId, at)` before computing a fee. Inside the window, the fee is 0 and the ledger entry is still written, with status `waived` and `waiverReason = "founding_partner"`, so admin and the salon can see what was waived. This takes precedence over every rule, plan and override. The waiver covers booking fees and commissions only. It does not make subscriptions free and does not cover future paid add-ons (e.g. promoted listings), unless the owner decides otherwise.
+- R-FP6: Free marketplace listing applies to all partner salons (any paid plan, `booking.marketplace_listing = true` in every plan). No separate key is needed.
+- R-FP7: Visibility: salons see a "Founding partner" badge and the waiver end date in their workspace (topic 07 renders it). The status and the date are exposed via the entitlements read model (`foundingPartner: { since, waiverEndsAt | null }`). Admin can list founding partners.
+- R-FP8: **Legal review before marketplace launch:** consumer-protection and advertising wording of the promise, its enforceability, and the tax treatment of waived fees. Until it is reviewed, the landing page shows the approved wording only.
 
 ### 3.3 Plans, subscriptions, entitlements
 - R-S1: `Plan` holds `code` (`basic`, `pro`, `ultra`; there is no free plan, X17), localized name and description, `version` and `isPublic`. `PlanPrice(planId, interval ∈ {month, year}, priceVnd, activeFrom)` stores prices for display only, and prices are TBD (q31).
@@ -229,6 +241,9 @@ In-house, Postgres only (X14): `packages/analytics` provides the typed catalog, 
 ## 5. Acceptance criteria
 
 Attribution & commission
+- [ ] (Spec now, test with the fee engine) A salon whose first paid subscription became active before `MARKETPLACE_LAUNCH_AT` is flagged `founding_partner` in the same transaction. A trial-only salon, or one paying for the first time after launch, is not flagged.
+- [ ] For a founding partner, every booking-fee or commission evaluation completed inside `[launch, launch + 24 months)` yields fee 0 and a ledger entry `waived` with reason `founding_partner`. The first booking completed at launch + 24 months is charged per the rules. Boundary tests run in UTC and in `Asia/Ho_Chi_Minh`.
+- [ ] Moving `MARKETPLACE_LAUNCH_AT` before launch shifts the window. After launch, changing it is refused without `super_admin` and a reason.
 - [ ] Creating a booking always creates exactly one attribution row in the same transaction (integration test: forced failure after booking insert rolls back both).
 - [ ] (When commission is built) A marketplace booking by a customer with no prior visit at a salon with an active rule ends `completed` → ledger `pending` → after the dispute window, `confirmed` (time-travel test).
 - [ ] Cancelled and no-show bookings never produce `pending`/`confirmed` entries.
@@ -282,6 +297,8 @@ Admin Copilot (v1)
 | 10 | `PromotedListing` ranking hook and Sponsored label in search; location model for admin |
 | 11 | Customer visit confirmation prompt, quota notifications, fallback channels |
 | 03 | Localized plan names, error codes, admin UI strings |
+| 02 / 10 | Landing-page promise copy (legally reviewed), founding-partner badge on public pages if wanted |
+| 05 | `organisations` table for the organisation-level flag; `super_admin` permission for launch-date changes and revocation |
 | 13 | Rollup job scheduling, partition maintenance, CI linter for event PII, CI check banning third-party analytics SDKs |
 
 ---
@@ -295,6 +312,7 @@ Admin Copilot (v1)
 5. **M12.5 Usage metering + AI cost cap:** reserve/commit/release, Redis counters, flush job, hard AI cost cap, messaging cost tracking, quota notifications. Needed before AI onboarding import ships, since that is in every plan.
 6. **M12.6 Admin shell:** layout, salon/customer directories, verification, suspension, audit viewer.
 7. **M12.7 Trust:** customer visit confirmation, risk signals, reliability score (salon-visible), dispute flow.
+8a. **M12.1b Founding-partner flag** (small, before the first paid salon): `MARKETPLACE_LAUNCH_AT` setting, flag set on the first paid `→ active` transition, read model field, admin list. The waiver itself ships with M12.8.
 8. **M12.8 Commission foundation:** **moved to the roadmap `later` bucket** (q34). Spec kept; attribution (M12.2) already captures what it needs.
 9. **M12.9 Metrics rollups + platform analytics dashboard.**
 10. **M12.10 Moderation, taxonomy, locations, notification admin.**
@@ -348,3 +366,5 @@ Still open:
 3. Subscription payment before a processor: is bank transfer + manual activation acceptable? (assumed yes)
 4. Attribution window length (30 days proposed), relevant once commissions are introduced.
 5. Real SMS provider choice (mocked until then); add `notifications.sms.monthly_cost_cap_vnd` when it lands.
+6. **Legal review before marketplace launch** of the founding-partner promise (wording, consumer protection, tax on waived fees), once the Vietnamese company exists (X19/X20).
+7. Founding partners: does the waiver survive if the salon later stops paying (proposed: yes, earned once), and should it also cover promoted listings or other future fees (proposed: no, booking fees and commissions only)?

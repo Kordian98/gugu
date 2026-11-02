@@ -10,6 +10,8 @@ Status: **M12.1 implemented** (plans, subscriptions, entitlements, trial). Every
 - Every booking has one immutable attribution record. Commission is **dormant**: specified (append-only ledger, no automatic charging) but not built for launch.
 
 ## Invariants
+- **Founding partners (X19/X20):** salons or organisations whose first paid subscription started before `MARKETPLACE_LAUNCH_AT` carry `founding_partner`. For `[launch, launch + 24 months)`, every booking fee and commission is 0, recorded as a `waived` ledger entry with reason `founding_partner`. Fee rules MUST check `FoundingPartnerPolicy` first. Legal review is needed before marketplace launch. Spec §3.2a.
+- SaaS first: the marketplace (and with it booking fees, commissions and promoted listings) launches only after GuGu has a Vietnamese company.
 - No automatic charging. `paid` is a manual flag.
 - No commission for cancelled or no-show bookings. One-time per new customer per salon by default.
 - Gate by entitlement key, enforced on the backend.

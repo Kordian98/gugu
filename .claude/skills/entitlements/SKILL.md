@@ -80,6 +80,13 @@ Each usage event stores `unitCost`, `costCurrency` and `fxRateToVnd` for margin 
 ## Booking source and acquisition class
 Plan rules and commission eligibility use the `BookingSource` → `gugu_acquired | salon_acquired` mapping owned by topic 12 (`docs/tasks/12-monetization-admin.md` §3.1a, code in `packages/domain/attribution`). `gugu_acquired`: `marketplace`, `promoted_listing`, `gugu_campaign`, `zalo_mini_app` (GuGu discovery). Everything else (`salon_profile`, `direct_link`, `qr_code`, `social_media`, `zalo_oa`, `zalo_link`, `zalo_chat`, `phone`, `walk_in`, `staff_created`, `repeat_customer`, `ai_agent`) is `salon_acquired`. Import the enum; never redefine it.
 
+## Founding partners (spec §3.2a; not implemented yet)
+- `founding_partner` is not an entitlement key or a plan. It is a status on the organisation/salon, set once when the first **paid** subscription (`basic`, `pro` or `ultra`, never `trial`) becomes `active` before `MARKETPLACE_LAUNCH_AT` (config; `null` = not launched yet). Set it in the same transaction as that transition.
+- Waiver window: `[MARKETPLACE_LAUNCH_AT, +24 months)`. It is computed, not stored, and evaluated at the booking's completion time in UTC.
+- Any booking-fee or commission code MUST call `FoundingPartnerPolicy.waiverFor(salonId, at)` first. Inside the window, the fee is 0 and the ledger entry is written as `waived` with reason `founding_partner`. It beats rules, plans and overrides.
+- Free marketplace listing needs no special handling: `booking.marketplace_listing` is true in every paid plan.
+- Do not ship any fee logic for the marketplace before the legal review (spec R-FP8).
+
 ## Billing context
 No payment processor in the MVP. Monthly/yearly subscriptions are invoiced manually by the owner's company (Polish or Vietnamese entity, TBD), and admin activates the plan. Gating code MUST NOT assume a payment webhook exists. Commission is dormant; the `BookingSource` mapping is captured now for later use.
 
