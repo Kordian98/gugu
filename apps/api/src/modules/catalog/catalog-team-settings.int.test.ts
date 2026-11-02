@@ -91,6 +91,17 @@ describe("catalog, team & settings (integration)", () => {
       .send({ displayName: "Mai", color: "pink" })
       .expect(201);
     staffId = (res.body as { id: string }).id;
+    // "I also do services": the owner's own profile, linked to their membership, only once.
+    await api()
+      .post(`/api/v1/salons/${a.salonId}/team`)
+      .set("authorization", ownerA)
+      .send({ displayName: "Chủ salon", linkToMe: true, isBookable: false })
+      .expect(201);
+    await api()
+      .post(`/api/v1/salons/${a.salonId}/team`)
+      .set("authorization", ownerA)
+      .send({ displayName: "Again", linkToMe: true })
+      .expect(409);
   });
 
   it("services: create with variants, add-ons and staff; bumps availability version", async () => {

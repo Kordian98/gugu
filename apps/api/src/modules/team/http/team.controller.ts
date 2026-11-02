@@ -77,8 +77,9 @@ export class TeamController {
     @Param({ schema: salonParamsSchema }) _p: { salonId: string },
     @Body({ schema: staffInputSchema }) body: StaffFields,
     @CurrentSalon() salon: SalonContext,
+    @CurrentUser() user: UserPrincipal,
   ): Promise<{ id: string }> {
-    return this.team.create(salon, body);
+    return this.team.create(salon, body, user.userId);
   }
 
   @Patch("salons/:salonId/team/:staffId")

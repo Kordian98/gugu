@@ -35,7 +35,11 @@ export function TodayScreen() {
     ? t("greeting.named", { greeting, name: ws.user.firstName })
     : t("greeting.plain", { greeting });
   const subtitle = t("greeting.subtitle", { date: formatDateLong(now, locale) });
-  const setupIncomplete = ws.setupDone.length < 6;
+  // Owners/managers see the checklist until the salon is live; staff never do.
+  const setupIncomplete =
+    ws.setupLoaded &&
+    !ws.setupDone.includes("live") &&
+    (ws.role === "owner" || ws.role === "manager");
   const mobile = bp === "mobile";
 
   const timeline = (
@@ -72,7 +76,9 @@ export function TodayScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         {ws.demo ? <Pill label={tc("demo.notice")} tone="brand" /> : null}
         <PageHeader title={title} subtitle={subtitle} workspace={ws} />
-        {setupIncomplete && !ws.demo ? <SetupCard done={ws.setupDone} compact /> : null}
+        {setupIncomplete && !ws.demo ? (
+          <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} compact />
+        ) : null}
         <WeekStrip now={now} />
         <KpiRow today={ws.today} only="revenue" />
         <UpcomingCard items={ws.today.upcoming} />
@@ -93,7 +99,9 @@ export function TodayScreen() {
       contentContainerStyle={{ padding: 28, gap: 20 }}
     >
       <PageHeader title={title} subtitle={subtitle} workspace={ws} />
-      {setupIncomplete && !ws.demo ? <SetupCard done={ws.setupDone} /> : null}
+      {setupIncomplete && !ws.demo ? (
+        <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} />
+      ) : null}
       <KpiRow today={ws.today} />
       {bp === "wide" ? (
         <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>

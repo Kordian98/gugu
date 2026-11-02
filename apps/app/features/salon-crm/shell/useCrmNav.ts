@@ -28,7 +28,9 @@ export function useVisibleNav() {
   const visible = (i: NavItem) =>
     !i.permission || !salon?.summary || salon.summary.myPermissions.includes(i.permission);
   return {
-    sections: NAV.map((s) => ({ ...s, items: s.items.filter(visible) })).filter((s) => s.items.length > 0),
+    sections: NAV.map((s) => ({ ...s, items: s.items.filter(visible) })).filter(
+      (s) => s.items.length > 0,
+    ),
     items: ALL_ITEMS.filter(visible),
   };
 }

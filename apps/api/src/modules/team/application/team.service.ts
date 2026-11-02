@@ -27,6 +27,7 @@ export type StaffFields = {
   color: (typeof STAFF_COLORS)[number];
   isBookable: boolean;
   serviceIds: string[];
+  linkToMe?: boolean;
 };
 
 const color = (c: string): StaffMember["color"] =>
@@ -87,6 +88,7 @@ export class TeamService {
         member: s.member
           ? {
               id: s.member.id,
+              userId: s.member.userId,
               role: s.member.role,
               status: s.member.status,
               email: s.member.user.email,
@@ -106,9 +108,21 @@ export class TeamService {
     };
   }
 
-  async create(ctx: SalonContext, input: StaffFields): Promise<{ id: string }> {
+  async create(ctx: SalonContext, input: StaffFields, userId?: string): Promise<{ id: string }> {
     return this.prisma.$transaction(async (tx) => {
       await this.assertServices(tx, ctx, input.serviceIds);
+      let salonMemberId: string | null = null;
+      if (input.linkToMe && userId) {
+        const me = await tx.salonMember.findFirst({
+          where: { salonId: ctx.salonId, userId, status: "active" },
+        });
+        if (!me) throw new AppError(404, TEAM_ERRORS.staffNotFound, "Membership not found");
+        const existing = await tx.staffProfile.findFirst({
+          where: { salonId: ctx.salonId, salonMemberId: me.id, deletedAt: null },
+        });
+        if (existing) throw new AppError(409, TEAM_ERRORS.alreadyMember, "Profile exists");
+        salonMemberId = me.id;
+      }
       const last = await tx.staffProfile.aggregate({
         where: { salonId: ctx.salonId, deletedAt: null },
         _max: { sortOrder: true },
@@ -119,6 +133,7 @@ export class TeamService {
           displayName: input.displayName,
           color: input.color,
           isBookable: input.isBookable,
+          salonMemberId,
           sortOrder: (last._max.sortOrder ?? -1) + 1,
         },
       });

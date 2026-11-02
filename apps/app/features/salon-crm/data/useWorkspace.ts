@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import { useAuth } from "@/services/auth/AuthProvider";
 
 import { useOnboarding } from "./catalog";
@@ -19,27 +17,25 @@ export function useWorkspace(): Workspace {
   const salon = useOptionalSalon();
   const onboarding = useOnboarding();
   const name = user?.displayName ?? user?.email?.split("@")[0] ?? null;
-  return useMemo(() => {
-    if (demo) return demoWorkspace();
-    return {
-      demo: false,
-      user: name ? { name, firstName: name.split(/\s+/).slice(-1)[0] ?? name } : null,
-      salon: salon?.summary ? { name: salon.summary.name } : null,
-      role: salon?.summary?.myRole ?? null,
-      plan: null,
-      today: {
-        revenueEstimated: null,
-        appointments: null,
-        newCustomers: null,
-        occupancy: null,
-        staff: [],
-        items: [],
-        upcoming: [],
-        activity: [],
-      },
-      setupDone: onboarding.data?.done ?? [],
-      canGoLive: onboarding.data?.canGoLive ?? false,
-      setupLoaded: onboarding.isSuccess,
-    };
-  }, [demo, name, salon?.summary, onboarding.data, onboarding.isSuccess]);
+  if (demo) return demoWorkspace();
+  return {
+    demo: false,
+    user: name ? { name, firstName: name.split(/\s+/).slice(-1)[0] ?? name } : null,
+    salon: salon?.summary ? { name: salon.summary.name } : null,
+    role: salon?.summary?.myRole ?? null,
+    plan: null,
+    today: {
+      revenueEstimated: null,
+      appointments: null,
+      newCustomers: null,
+      occupancy: null,
+      staff: [],
+      items: [],
+      upcoming: [],
+      activity: [],
+    },
+    setupDone: onboarding.data?.done ?? [],
+    canGoLive: onboarding.data?.canGoLive ?? false,
+    setupLoaded: onboarding.isSuccess,
+  };
 }

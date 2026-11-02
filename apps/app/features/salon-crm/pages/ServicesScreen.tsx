@@ -1,72 +1,191 @@
-import { ScrollView, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, ScrollView, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { CalmCard, Icon, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, CalmCard, Icon, Text, useCalm } from "@gugu/design-system";
+import type { Service } from "@gugu/contracts";
 
+import { useLocale } from "@/services/i18n/useLocale";
+
+import { crmApi, useCategories, useCrmMutation, useServices, useTeam } from "../data/catalog";
+import { useSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
 import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
+import { EmptyState } from "../ui/EmptyState";
+import { useErrorText } from "../ui/errors";
+import { ErrorBanner } from "../ui/form";
+import { ServiceEditor } from "./services/ServiceEditor";
+import { ServiceRow } from "./services/ServiceRow";
 
 /**
- * Services: the two setup paths from 07 §3.7. Path A (AI from price-list screenshots, every plan) is the
- * first card; the extraction itself is topic 08's (PII-free, X10) and is wired in when it ships.
+ * Services (07 M7.4): AI setup entry (UI only until topic 08), services grouped by category with
+ * variants, add-ons, staff, active switch and ordering.
  */
 export function ServicesScreen() {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
-  const ws = useWorkspace();
+  const locale = useLocale();
   const bp = useBreakpoint();
-  const mobile = bp === "mobile";
+  const ws = useWorkspace();
+  const { can } = useSalon();
+  const params = useLocalSearchParams<{ import?: string }>();
+  const services = useServices();
+  const categories = useCategories();
+  const team = useTeam(can("members.read"));
+  const errorText = useErrorText();
+  const toggle = useCrmMutation(crmApi.setServiceActive, ["services"]);
+  const reorder = useCrmMutation(crmApi.reorderServices, ["services"]);
+  const [editing, setEditing] = useState<Service | "new" | null>(null);
+  const canEdit = can("services.write");
+  const items = services.data?.items ?? [];
+  const staff = team.data?.items ?? [];
+  const cats = categories.data?.items ?? [];
+
+  const move = (index: number, dir: -1 | 1) => {
+    const ids = items.map((s) => s.id);
+    const j = index + dir;
+    const a = ids[index];
+    const b = ids[j];
+    if (a === undefined || b === undefined) return;
+    ids[index] = b;
+    ids[j] = a;
+    reorder.mutate(ids);
+  };
+
+  const groups = [
+    ...cats.map((cat) => ({ id: cat.id, label: cat.name[locale] || cat.name.vi })),
+    { id: "none", label: t("services.uncategorized") },
+  ]
+    .map((g) => ({ ...g, items: items.filter((s) => (s.categoryId ?? "none") === g.id) }))
+    .filter((g) => g.items.length > 0);
+
   return (
-    <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 20 }}>
-      <PageHeader title={t("pages.services.title")} workspace={ws} />
-      <View style={{ flexDirection: mobile ? "column" : "row", gap: 16, alignItems: "stretch" }}>
-        <CalmCard testID="crm-ai-import" style={{ flex: 1.3, gap: 14 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Icon name="sparkles" size={18} color={c.accent} />
-            <Text role="uiSemiBold" size={16} color={c.ink}>
-              {t("setup.title")}
-            </Text>
-          </View>
-          <View
-            style={{
-              borderWidth: 1.5,
-              borderStyle: "dashed",
-              borderColor: c.accentBg,
-              borderRadius: 16,
-              backgroundColor: c.accentSoft,
-              padding: 28,
-              alignItems: "center",
-              gap: 10,
-            }}
+    <ScrollView contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}>
+      <PageHeader
+        title={t("pages.services.title")}
+        subtitle={t("services.subtitle")}
+        workspace={ws}
+      />
+      <AiSetupBanner highlight={params.import === "1" || items.length === 0} />
+      <ErrorBanner text={errorText(toggle.error ?? reorder.error)} />
+      <CalmCard style={{ gap: 14 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}
+        >
+          <Text
+            role="uiSemiBold"
+            size={12}
+            color={c.ink}
+            style={{ letterSpacing: 0.4, textTransform: "uppercase" }}
           >
-            <Icon name="upload" size={28} color={c.accent} />
-            <Text role="uiSemiBold" size={15} color={c.ink}>
-              {t("setup.importTitle")}
-            </Text>
-            <Text size={13} color={c.body} style={{ textAlign: "center", maxWidth: 420 }}>
-              {t("setup.importBody")}
-            </Text>
-          </View>
-          <Text size={13} color={c.body}>
-            {t("setup.importPending")}
+            {t("services.listTitle", { count: items.length })}
           </Text>
-          <Text size={12} color={c.muted}>
-            {t("setup.privacy")}
-          </Text>
-        </CalmCard>
-        <CalmCard style={{ flex: 1, gap: 10 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Icon name="tag" size={18} color={c.accent} />
-            <Text role="uiSemiBold" size={16} color={c.ink}>
-              {t("setup.manualTitle")}
-            </Text>
-          </View>
-          <Text size={13} color={c.body}>
-            {t("setup.manualBody")}
-          </Text>
-        </CalmCard>
-      </View>
+          {canEdit ? (
+            <CalmButton
+              testID="crm-service-add"
+              size="sm"
+              icon="plus"
+              label={t("services.add")}
+              onPress={() => {
+                setEditing("new");
+              }}
+            />
+          ) : null}
+        </View>
+        {services.isPending ? (
+          <ActivityIndicator color={c.accent} />
+        ) : services.isError ? (
+          <EmptyState compact icon="tag" title={t("errors.loadFailed")} />
+        ) : items.length === 0 ? (
+          <EmptyState
+            testID="crm-services-empty"
+            icon="tag"
+            title={t("services.emptyTitle")}
+            body={t("services.emptyBody")}
+          />
+        ) : (
+          groups.map((g) => (
+            <View key={g.id} style={{ gap: 8 }}>
+              <Text role="uiMedium" size={13} color={c.body}>
+                {g.label}
+              </Text>
+              {g.items.map((s) => {
+                const index = items.indexOf(s);
+                return (
+                  <ServiceRow
+                    key={s.id}
+                    service={s}
+                    staff={staff}
+                    canEdit={canEdit}
+                    first={index === 0}
+                    last={index === items.length - 1}
+                    onEdit={() => {
+                      setEditing(s);
+                    }}
+                    onToggle={(v) => {
+                      toggle.mutate({ id: s.id, isActive: v });
+                    }}
+                    onMove={(dir) => {
+                      move(index, dir);
+                    }}
+                  />
+                );
+              })}
+            </View>
+          ))
+        )}
+      </CalmCard>
+      {editing !== null ? (
+        <ServiceEditor
+          key={editing === "new" ? "new" : editing.id}
+          open
+          service={editing === "new" ? null : editing}
+          onClose={() => {
+            setEditing(null);
+          }}
+          categories={cats}
+          staff={staff}
+        />
+      ) : null}
     </ScrollView>
+  );
+}
+
+/** Path A of onboarding (X13): AI from price-list screenshots. Extraction ships with topic 08. */
+function AiSetupBanner({ highlight }: { highlight: boolean }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  return (
+    <View
+      testID="crm-ai-import"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 14,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: highlight ? 1.5 : 1,
+        borderStyle: highlight ? "dashed" : "solid",
+        borderColor: highlight ? c.accentBg : c.line,
+        backgroundColor: c.accentSoft,
+      }}
+    >
+      <Icon name="sparkles" size={22} color={c.accent} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text role="uiSemiBold" size={15} color={c.ink}>
+          {t("setup.title")}
+        </Text>
+        <Text size={13} color={c.body}>
+          {t("setup.importPending")}
+        </Text>
+      </View>
+    </View>
   );
 }

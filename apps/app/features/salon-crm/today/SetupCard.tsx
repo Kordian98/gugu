@@ -1,21 +1,43 @@
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { CalmButton, Icon, ProgressBar, Text, useCalm } from "@gugu/design-system";
 
 import type { SetupStep } from "../data/types";
+import { crmApi, useCrmMutation } from "../data/catalog";
 import { useCrmNav } from "../shell/useCrmNav";
+import { useErrorText } from "../ui/errors";
+import { ErrorBanner } from "../ui/form";
 
-const STEPS: SetupStep[] = ["business", "services", "hours", "team", "photos", "live"];
+const STEPS: SetupStep[] = ["business", "services", "hours", "team", "live"];
+
+/** Where each checklist step is completed. */
+const STEP_PATH: Record<SetupStep, string> = {
+  business: "/business/settings",
+  services: "/business/services",
+  hours: "/business/settings",
+  team: "/business/team",
+  live: "/business",
+};
 
 /**
  * Onboarding checklist on Today (07 §3.7). The first card is the headline "Effortless AI setup" path,
  * available in every plan (X13); it never sends personal data (X10).
  */
-export function SetupCard({ done, compact }: { done: SetupStep[]; compact?: boolean | undefined }) {
+export function SetupCard({
+  done,
+  canGoLive,
+  compact,
+}: {
+  done: SetupStep[];
+  canGoLive: boolean;
+  compact?: boolean | undefined;
+}) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const { go } = useCrmNav();
+  const errorText = useErrorText();
+  const goLive = useCrmMutation(crmApi.goLive, ["settings"]);
   return (
     <View
       testID="crm-setup-card"
@@ -82,7 +104,17 @@ export function SetupCard({ done, compact }: { done: SetupStep[]; compact?: bool
           {STEPS.map((s) => {
             const ok = done.includes(s);
             return (
-              <View key={s} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Pressable
+                key={s}
+                testID={`crm-setup-step-${s}`}
+                accessibilityRole="link"
+                accessibilityState={{ checked: ok }}
+                disabled={s === "live"}
+                onPress={() => {
+                  go(STEP_PATH[s]);
+                }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+              >
                 <View
                   style={{
                     width: 22,
@@ -100,14 +132,28 @@ export function SetupCard({ done, compact }: { done: SetupStep[]; compact?: bool
                 <Text
                   size={14}
                   color={ok ? c.muted : c.ink}
-                  style={ok ? { textDecorationLine: "line-through" } : undefined}
+                  style={{ flex: 1, ...(ok ? { textDecorationLine: "line-through" } : {}) }}
                 >
                   {t(`setup.steps.${s}`)}
                 </Text>
-              </View>
+                {!ok && s !== "live" ? (
+                  <Icon name="chevronRight" size={14} color={c.muted} />
+                ) : null}
+              </Pressable>
             );
           })}
         </View>
+        <ErrorBanner text={errorText(goLive.error)} />
+        {canGoLive ? (
+          <CalmButton
+            testID="crm-go-live"
+            icon="check"
+            label={goLive.isPending ? t("common.saving") : t("setup.goLive")}
+            onPress={() => {
+              goLive.mutate(undefined);
+            }}
+          />
+        ) : null}
       </View>
     </View>
   );

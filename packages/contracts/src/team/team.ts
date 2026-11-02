@@ -87,6 +87,7 @@ export const staffMemberSchema = z.object({
   member: z
     .object({
       id: uuidV7Schema,
+      userId: uuidV7Schema,
       role: salonRoleSchema,
       status: z.enum(["invited", "pending_verification", "active", "removed"]),
       email: z.string().nullable(),
@@ -113,6 +114,8 @@ export const staffInputSchema = z.object({
   color: staffColorSchema.default("lilac"),
   isBookable: z.boolean().default(true),
   serviceIds: z.array(uuidV7Schema).max(500).default([]),
+  /** Create the caller's own staff profile ("I also do services", solo salons). Create only. */
+  linkToMe: z.boolean().default(false),
 });
 export type StaffInput = z.input<typeof staffInputSchema>;
 

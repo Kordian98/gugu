@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { CalmCard, Icon, Text, useCalm, type IconName } from "@gugu/design-system";
@@ -6,7 +6,12 @@ import { LOCALE_LABELS, LOCALES } from "@gugu/localization";
 
 import { useLocale, useSwitchLocale } from "@/services/i18n/useLocale";
 
+import { useSettings } from "../data/catalog";
+import { useSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
+import { BookingSection, PoliciesSection } from "./settings/BookingSection";
+import { HolidaysSection, HoursSection } from "./settings/HoursSection";
+import { ProfileSection } from "./settings/ProfileSection";
 import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
 import { useThemePreference, type ThemePreference } from "../theme/CrmThemeProvider";
@@ -17,18 +22,32 @@ const THEMES: { id: ThemePreference; icon: IconName }[] = [
   { id: "dark", icon: "moon" },
 ];
 
-/** Settings available today: workspace appearance (X18) and language. */
+/** Salon settings (07 M7.5): profile, hours, booking/confirmation, holidays, policies; plus
+ * workspace appearance (X18) and language. */
 export function SettingsScreen() {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const ws = useWorkspace();
   const bp = useBreakpoint();
+  const settings = useSettings();
+  const { can, salonId } = useSalon();
   const { preference, setPreference } = useThemePreference();
   const locale = useLocale();
   const switchLocale = useSwitchLocale();
   return (
     <ScrollView contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}>
       <PageHeader title={t("pages.settings.title")} workspace={ws} />
+      {settings.data ? (
+        <View key={settings.dataUpdatedAt} style={{ gap: 20, maxWidth: 860 }}>
+          <ProfileSection settings={settings.data} canEdit={can("salon.profile.write")} />
+          <HoursSection settings={settings.data} canEdit={can("salon.settings.write")} />
+          <BookingSection settings={settings.data} canEdit={can("salon.settings.write")} />
+          <HolidaysSection settings={settings.data} canEdit={can("salon.settings.write")} />
+          <PoliciesSection settings={settings.data} canEdit={can("salon.settings.write")} />
+        </View>
+      ) : settings.isPending && salonId ? (
+        <ActivityIndicator color={c.accent} />
+      ) : null}
       <CalmCard style={{ gap: 12, maxWidth: 640 }}>
         <Text role="uiSemiBold" size={16} color={c.ink}>
           {t("pages.settings.appearance")}
