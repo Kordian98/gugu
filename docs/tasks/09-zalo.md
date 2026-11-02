@@ -1,5 +1,7 @@
 # 09 — Zalo integration
 
+> **Implementation (2026-11-02, branch `zalo/09-impl`): roadmap X24 is built.** The salon-OA booking chatbot, connection, webhook, hand-off inbox, reminders, windows, quota and send log all run against the built-in emulator. Where X24 conflicts with this spec, X24 wins: messages go from the salon's OA, superseding q70 for this flow, and the rule-based bot is not the deferred Z3. Current state: `docs/domains/zalo.md`. Go-live: `docs/runbooks/zalo-go-live.md`.
+>
 > Status: refined spec, rev. 2 (2026-11-02). Owner agent: `.claude/agents/zalo.md`. Skill: `.claude/skills/zalo-integration/`. Domain doc: `docs/domains/zalo.md`.
 >
 > **Rev. 2 constraint (PO decision, open-questions #1):** GuGu has **no Vietnamese legal entity** for now. Business validation comes first; an entity may come later. GuGu must still be **fully integration-ready**, so that turning Zalo on later is a config/credentials change, not a rebuild. See §2a for the paths that work without an entity, and §8 for the re-planned phases.

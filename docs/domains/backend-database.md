@@ -38,6 +38,7 @@ Only the API shell exists: no domain tables yet (the first migration creates ext
 | Module | Path | Tables owned | Events emitted | Read models | Status |
 |---|---|---|---|---|---|
 | health | `apps/api/src/modules/health` | — | — | — (`GET /api/v1/health` readiness: DB + Redis, 200/503; `/health/live`) | implemented |
+| zalo (topic 09) | `apps/api/src/modules/zalo` | zalo_oa_connections, zalo_conversations, zalo_messages, zalo_webhook_events, zalo_send_logs, zalo_booking_links, zalo_staff_notifications | — (consumes `booking.*` outbox events with its own cursor until 04-S5) | `/api/v1/salons/:salonId/zalo/*`; see `docs/domains/zalo.md` |
 | subscriptions (topic 12) | `apps/api/src/modules/subscriptions` | plans, plan_prices, plan_entitlements, subscriptions, subscription_events, entitlement_overrides | — | `GET /api/v1/salons/:salonId/entitlements` | M12.1 implemented; see `docs/domains/monetization-admin.md` |
 
 Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`), `logger` (nestjs-pino, `REDACT_PATHS`), `prisma` (`PrismaService`, lazy connect), `redis` (`RedisService`), `queue` (`QueueService`, `QUEUES`). Common (`apps/api/src/common`): `context` (RequestContext via AsyncLocalStorage, `x-request-id`), `problem` (`ProblemFilter`, `AppError`, `COMMON_ERRORS`), `validation` (global Zod pipe). Entrypoints: `main.ts` (HTTP), `worker.ts` (BullMQ), `bootstrap.ts` (prefix `/api`, URI versioning v1, Swagger).
@@ -49,6 +50,12 @@ Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`),
 | subscriptions | yes (`salon_id`, no FK until salons lands) | never deleted; `Restrict` | subscriptions | one current per salon |
 | subscription_events | yes | append-only | subscriptions | composite FK `(salon_id, subscription_id)` |
 | entitlement_overrides | yes | revoked via `revoked_at`, never deleted | subscriptions | |
+| zalo_oa_connections | yes (`salon_id` unique) | kept; disconnect wipes tokens | zalo | tokens AES-256-GCM (`ZALO_TOKEN_KEY`) |
+| zalo_conversations, zalo_messages | yes | `Restrict`; customer text = personal data (never to an LLM, X10) | zalo | one conversation per (OA, Zalo user) |
+| zalo_webhook_events | salon set when routed | purged after 30 days (daily job) | zalo | idempotent on `event_key` |
+| zalo_send_logs | yes | kept (cost/audit trail); `request` cleared once final | zalo | unique `dedup_key` |
+| zalo_booking_links | yes | `Restrict` | zalo | composite FK to bookings and conversations |
+| zalo_staff_notifications | yes | kept | zalo | |
 
 ## Raw SQL objects
 Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails if any is missing — Prisma itself is blind to them, ADR-0008).
@@ -63,6 +70,8 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `locations_parent_by_level` | check | `20261102115341_add_identity_tenancy` | `db:drift` |
 | `salon_members_one_owner` | partial unique index | `20261102115341_add_identity_tenancy` | `db:drift` |
 | `magic_link_tokens_attempts_range` | check | `20261102115341_add_identity_tenancy` | `auth.int.test.ts` (code lock after 5 attempts) |
+| `zalo_oa_connections_one_live_per_oa` | partial unique index | `20261102143451_add_zalo` | `db:drift`; OAuth callback maps P2002 → `zalo=oa_in_use` |
+| `zalo_send_logs_valid`, `zalo_webhook_events_status_valid`, `zalo_oa_connections_tokens_when_connected` | check | `20261102143451_add_zalo` | `db:drift`; `zalo.int.test.ts` |
 
 ## Read-model registry
 Base layer of the registries (X7): read models here → metric catalogue (07, `packages/domain/metrics`) → agent tools (08).
@@ -79,6 +88,7 @@ Base layer of the registries (X7): read models here → metric catalogue (07, `p
 | Queue | Processor | Idempotency key | Retry policy |
 |---|---|---|---|
 | `maintenance` | `jobs/maintenance.processor.ts` (`heartbeat`) | caller-supplied `jobId` | `DEFAULT_JOB_OPTIONS`: 5 attempts, exponential 1 s |
+| `zalo` | `jobs/zalo.processor.ts` (`zalo.inbound`, `zalo.send`, schedulers `zalo.minute`, `zalo.refresh_tokens`, `zalo.purge_events`) | `in-<eventId>`, `send-<firstLogId>`; rows deduped by `event_key` / `dedup_key` | `DEFAULT_JOB_OPTIONS`; last attempt marks rows failed |
 
 ## Error codes
 Cross-cutting codes: `apps/api/src/common/problem/error-codes.ts` (`common.*`, lowercase dotted per `problemSchema`). To move to `packages/contracts/src/common/errors.ts` (architecture). Domain codes use `<domain>.<reason>`, e.g. `booking.slot_taken`.

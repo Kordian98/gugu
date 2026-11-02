@@ -5,6 +5,8 @@
 export const QUEUES = {
   /** Housekeeping: heartbeats, sweepers, partition maintenance. */
   maintenance: "maintenance",
+  /** Zalo OA (topic 09): inbound webhook events, ordered send batches, reminders, token refresh. */
+  zalo: "zalo",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

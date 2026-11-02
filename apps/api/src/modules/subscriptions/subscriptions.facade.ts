@@ -3,3 +3,4 @@
 export { SubscriptionsFacade } from "./application/subscriptions.facade";
 export { EntitlementService } from "./application/entitlement.service";
 export { RequiresEntitlement } from "./http/requires-entitlement";
+export { SubscriptionsModule } from "./subscriptions.module";

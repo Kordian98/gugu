@@ -48,6 +48,29 @@ describe("parseEnv", () => {
     ).toThrow(/BOOKING_TOKEN_SECRET/);
   });
 
+  it("Zalo: emulator by default outside production, disabled in production, http needs keys", () => {
+    expect(parseEnv(base).ZALO_CLIENT).toBe("emulated");
+    const prod = {
+      ...base,
+      NODE_ENV: "production",
+      AUTH_SECRET: "x".repeat(40),
+      BOOKING_TOKEN_SECRET: "y".repeat(40),
+    };
+    expect(parseEnv(prod).ZALO_CLIENT).toBe("disabled");
+    expect(() => parseEnv({ ...prod, ZALO_CLIENT: "emulated" })).toThrow(/ZALO_CLIENT/);
+    expect(() => parseEnv({ ...base, ZALO_CLIENT: "http" })).toThrow(/ZALO_CLIENT/);
+    expect(
+      parseEnv({
+        ...base,
+        ZALO_CLIENT: "http",
+        ZALO_APP_ID: "123",
+        ZALO_APP_SECRET: "s",
+        ZALO_OA_SECRET_KEY: "k".repeat(20),
+        ZALO_TOKEN_KEY: "t".repeat(40),
+      }).ZALO_CLIENT,
+    ).toBe("http");
+  });
+
   it("parses TRUST_PROXY: off by default, hop counts and address lists, never true", () => {
     expect(parseEnv(base).TRUST_PROXY).toBe(false);
     expect(parseEnv({ ...base, TRUST_PROXY: "1" }).TRUST_PROXY).toBe(1);

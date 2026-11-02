@@ -21,6 +21,7 @@ import { SalonCrmModule } from "./modules/salon-crm/salon-crm.facade";
 import { SalonSettingsModule } from "./modules/salon-settings/salon-settings.facade";
 import { SalonsModule } from "./modules/salons/salons.module";
 import { TeamModule } from "./modules/team/team.facade";
+import { ZaloModule } from "./modules/zalo/zalo.facade";
 import { SubscriptionsModule } from "./modules/subscriptions/subscriptions.module";
 
 /** Shared infrastructure for the HTTP app and the worker. */
@@ -49,6 +50,7 @@ export const INFRASTRUCTURE_MODULES = [
     CatalogModule,
     TeamModule,
     AiImportModule,
+    ZaloModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },

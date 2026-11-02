@@ -17,7 +17,8 @@
       "resources": "Resources",
       "reviews": "Reviews",
       "insights": "Insights & reports",
-      "settings": "Settings"
+      "settings": "Settings",
+      "zalo": "Zalo"
     },
     "today": "Today",
     "more": "More",
@@ -180,7 +181,10 @@
       "title": "Before you create an appointment",
       "body": "You need at least one service and working hours so GuGu can check free times and prevent double bookings."
     },
-    "setupCta": "Set up services"
+    "setupCta": "Set up services",
+    "zalo": {
+      "title": "Zalo messages"
+    }
   },
   "guard": {
     "pendingTitle": "Confirm your email",
@@ -241,7 +245,12 @@
     "booking_override_not_allowed": "You can't book outside the rules.",
     "booking_not_found": "Appointment not found.",
     "booking_active_limit_reached": "This phone number already has several active appointments.",
-    "offline_sale_booking_not_completed": "Amounts can only be recorded for completed appointments."
+    "offline_sale_booking_not_completed": "Amounts can only be recorded for completed appointments.",
+    "zalo_window_closed": "It's been over 7 days since the customer's last message, so you can't reply.",
+    "zalo_paid_messages_off": "Paid messages are off (Settings → Zalo).",
+    "zalo_not_connected": "The salon hasn't connected a Zalo OA.",
+    "zalo_disabled": "The Zalo integration is not enabled.",
+    "zalo_conversation_not_found": "Conversation not found."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",
