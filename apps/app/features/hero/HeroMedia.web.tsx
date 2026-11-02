@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { Asset } from "expo-asset";
 
-import { IMG, VIDEO } from "../assets";
+import { HERO_IMG as IMG, HERO_VIDEO as VIDEO } from "./assets";
 
 const uri = (mod: number) => Asset.fromModule(mod).uri;
 const noopSubscribe = () => () => undefined;

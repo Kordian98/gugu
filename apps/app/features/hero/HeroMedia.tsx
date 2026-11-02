@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AccessibilityInfo, Image, StyleSheet, View } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 
-import { IMG, VIDEO } from "../assets";
+import { HERO_IMG as IMG, HERO_VIDEO as VIDEO } from "./assets";
 
 /** Native hero: poster image + muted seamless loop (expo-video). Reduced motion → poster only. */
 // Props match the web implementation; native always uses the 900 px loop without edge masks.

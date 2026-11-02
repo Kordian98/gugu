@@ -3,7 +3,7 @@ import { Platform, View } from "react-native";
 
 import { useCalm } from "@gugu/design-system";
 
-import { useViewport } from "@/features/home/useViewport";
+import { useViewport } from "@/services/viewport/useViewport";
 
 import { useWorkspace } from "../data/useWorkspace";
 import { BottomTabs, MobileHeader, MoreSheet, useMoreSheet } from "./MobileChrome";

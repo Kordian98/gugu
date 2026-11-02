@@ -3,7 +3,7 @@ import { Image, Pressable, View } from "react-native";
 import { color } from "@gugu/design-system";
 
 import { GLOW_IMG } from "../assets";
-import { AccentText } from "../hero/AccentText";
+import { AccentText } from "@/features/hero/AccentText";
 
 const OVERLAY = [
   { x: 0.073, y: 0.13, rot: -10 },

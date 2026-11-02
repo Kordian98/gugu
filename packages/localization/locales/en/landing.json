@@ -1,0 +1,114 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "marketplace": "Marketplace",
+    "signIn": "Sign in",
+    "trial": "Start free trial",
+    "trialShort": "Free trial"
+  },
+  "hero": {
+    "eyebrow": "Salon software for Vietnam",
+    "titleStart": "Run your salon.",
+    "titleAccent": "Fill your chairs.",
+    "subtitle": "Online booking, a smart team calendar and a client CRM in one simple app — set up in minutes with AI. Your clients book from your own link, QR code or Zalo, and pay at your salon as usual.",
+    "trialCta": "Start 14-day free trial",
+    "howCta": "See how it works",
+    "trialNote": "14-day trial with Pro features · no free plan after the trial"
+  },
+  "features": {
+    "eyebrow": "Everything your salon runs on",
+    "title": "One app for bookings, team and clients",
+    "bookingPage": {
+      "title": "Your own online booking page",
+      "body": "Share one link, a QR code at reception or your Zalo. Clients pick a service, a stylist and a time — 24/7."
+    },
+    "calendar": {
+      "title": "Smart calendar for the whole team",
+      "body": "Every stylist, room and break in one view. No double bookings — availability is checked for you."
+    },
+    "crm": {
+      "title": "Client CRM",
+      "body": "Visit history, notes, favourite services and no-shows for every client, in one place."
+    },
+    "aiSetup": {
+      "title": "Effortless AI setup",
+      "body": "Upload screenshots of your price list and AI creates your services, prices and durations. Included in every plan."
+    },
+    "insights": {
+      "title": "Insights",
+      "body": "Bookings, returning clients, busy hours and estimated revenue at a glance."
+    },
+    "reminders": {
+      "title": "Reminders via Zalo and email",
+      "body": "Automatic booking confirmations and reminders cut no-shows without extra work."
+    },
+    "assistant": {
+      "title": "AI business assistant",
+      "body": "Ask in plain language: “How many bookings this week?” “Who hasn’t come back in 3 months?”",
+      "badge": "Pro"
+    }
+  },
+  "pricing": {
+    "eyebrow": "Plans",
+    "title": "Simple plans for every salon",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "priceSoon": "Price coming soon",
+    "billedMonthly": "billed monthly",
+    "billedYearly": "billed yearly",
+    "cta": "Start free trial",
+    "trial": "Every plan starts with a 14-day trial with Pro features and Basic limits (AI usage and message quotas). There is no free plan.",
+    "popular": "Most popular",
+    "basic": {
+      "name": "Basic",
+      "tagline": "Everything to run one salon",
+      "items": "Online booking page (link, QR, Zalo)\nSmart team calendar\nClient CRM\nAI setup from your price list\nInsights\nReminders via Zalo and email\nFree listing in the GuGu marketplace when it launches"
+    },
+    "pro": {
+      "name": "Pro",
+      "tagline": "AI that works for your business",
+      "items": "Everything in Basic\nAI business assistant\nMonthly AI business review\nZalo inbox\nHigher message quota"
+    },
+    "ultra": {
+      "name": "Ultra",
+      "tagline": "For chains and growing brands",
+      "items": "Everything in Pro\nMultiple locations with combined reporting\nHighest AI usage limit\nAdvanced analytics\nPromoted-listing credits when the marketplace launches"
+    }
+  },
+  "marketplace": {
+    "eyebrow": "Coming soon",
+    "title": "The GuGu marketplace",
+    "body": "Once GuGu establishes its Vietnamese company, partner salons will be listed in the GuGu marketplace free of charge, so new clients can discover and book you.",
+    "offer": "Every salon that subscribes before the marketplace launches pays no booking fees for its first 2 years after launch.",
+    "point1": "Free listing for partner salons",
+    "point2": "No booking fees for 2 years for early subscribers",
+    "point3": "Your own booking page works from day one",
+    "disclaimer": "The GuGu marketplace and the terms above will start only after GuGu’s Vietnamese company has been established, in accordance with Vietnamese law. Detailed terms may be published at that time."
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "title": "Questions salon owners ask",
+    "q1": "Is there a free trial?",
+    "a1": "Yes. You get 14 days with Pro features and Basic limits. After the trial you choose Basic, Pro or Ultra — there is no free plan.",
+    "q2": "Do my clients need to install an app?",
+    "a2": "No. They book on your booking page from a link, QR code or your Zalo, in Vietnamese or English.",
+    "q3": "Does GuGu take payments?",
+    "a3": "No. Clients pay at your salon as usual. GuGu handles bookings, your calendar and your client list.",
+    "q4": "How long does setup take?",
+    "a4": "Minutes. Upload screenshots of your price list and AI creates your services; add your team and opening hours and share your link.",
+    "q5": "When does the marketplace launch?",
+    "a5": "After GuGu’s Vietnamese company is established, in line with Vietnamese law. Salons that subscribe before then get the early-subscriber terms described above."
+  },
+  "footer": {
+    "tagline": "Salon software made in Vietnam. Bookings, team and clients in one app.",
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "about": "About GuGu",
+    "contact": "Contact",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "rights": "© 2026 GuGu. All rights reserved."
+  }
+}

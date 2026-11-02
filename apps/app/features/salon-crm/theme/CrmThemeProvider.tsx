@@ -11,7 +11,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { CalmThemeProvider, type CalmScheme } from "@gugu/design-system";
 
-import { useViewport } from "@/features/home/useViewport";
+import { useViewport } from "@/services/viewport/useViewport";
 
 export type ThemePreference = "system" | "light" | "dark";
 

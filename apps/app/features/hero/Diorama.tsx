@@ -5,7 +5,7 @@ import { Logo, color } from "@gugu/design-system";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { IMG } from "../assets";
+import { HERO_IMG as IMG } from "./assets";
 import { AccentText } from "./AccentText";
 import { Float } from "./Float";
 import { HeroMedia } from "./HeroMedia";

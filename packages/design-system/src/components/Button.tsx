@@ -17,6 +17,8 @@ type Props = {
   width?: number;
   trailingArrow?: boolean;
   accessibilityLabel?: string;
+  /** Overrides the label/arrow colour (e.g. dark text on a pink custom background). */
+  labelColor?: string;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -32,6 +34,7 @@ export function Button({
   width,
   trailingArrow,
   accessibilityLabel,
+  labelColor,
   style,
 }: Props) {
   const ink = variant === "ink";
@@ -69,14 +72,18 @@ export function Button({
         role={ink ? "uiMedium" : "uiSemiBold"}
         size={fontSize}
         lineHeight={fontSize * 1.3}
-        color={ink ? color.white : color.ink}
+        color={labelColor ?? (ink ? color.white : color.ink)}
         style={{ fontFamily: ink ? font.uiMedium : font.uiSemiBold }}
       >
         {label}
       </Text>
       {trailingArrow ? (
         <View>
-          <Icon name="arrowRight" size={fontSize * 0.9} color={ink ? color.white : color.ink} />
+          <Icon
+            name="arrowRight"
+            size={fontSize * 0.9}
+            color={labelColor ?? (ink ? color.white : color.ink)}
+          />
         </View>
       ) : null}
     </Pressable>

@@ -1,9 +1,5 @@
 // Optimised homepage assets (built from design/prototypes/homepage, see design/hero/MANIFEST.md).
 export const IMG = {
-  diorama: require("../../assets/home/diorama-1400.webp") as number,
-  dioramaLarge: require("../../assets/home/diorama-2000.webp") as number,
-  polish: require("../../assets/home/prop-polish.webp") as number,
-  perfume: require("../../assets/home/prop-perfume.webp") as number,
   heart3d: require("../../assets/home/heart3d.webp") as number,
   avatars: require("../../assets/home/avatars.webp") as number,
   crown: require("../../assets/home/crown.webp") as number,
@@ -13,11 +9,6 @@ export const IMG = {
   icoPin: require("../../assets/home/ico-pin.webp") as number,
   icoNail: require("../../assets/home/ico-nail.webp") as number,
   icoCal: require("../../assets/home/ico-cal.webp") as number,
-} as const;
-
-export const VIDEO = {
-  loop1400: require("../../assets/home/diorama-loop-1400.mp4") as number,
-  loop900: require("../../assets/home/diorama-loop-900.mp4") as number,
 } as const;
 
 export const CATEGORY_ICON = {

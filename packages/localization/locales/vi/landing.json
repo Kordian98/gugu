@@ -1,0 +1,114 @@
+{
+  "nav": {
+    "features": "Tính năng",
+    "pricing": "Bảng giá",
+    "marketplace": "Marketplace",
+    "signIn": "Đăng nhập",
+    "trial": "Dùng thử miễn phí",
+    "trialShort": "Dùng thử"
+  },
+  "hero": {
+    "eyebrow": "Phần mềm quản lý salon cho Việt Nam",
+    "titleStart": "Quản lý salon nhẹ tênh.",
+    "titleAccent": "Lịch luôn kín chỗ.",
+    "subtitle": "Đặt lịch online, lịch làm việc thông minh cho cả đội và quản lý khách hàng trong một ứng dụng đơn giản — thiết lập trong vài phút nhờ AI. Khách đặt lịch qua đường link, mã QR hoặc Zalo của bạn và vẫn thanh toán tại salon như bình thường.",
+    "trialCta": "Dùng thử miễn phí 14 ngày",
+    "howCta": "Xem cách hoạt động",
+    "trialNote": "Dùng thử 14 ngày với tính năng Pro · không có gói miễn phí sau khi dùng thử"
+  },
+  "features": {
+    "eyebrow": "Mọi thứ salon của bạn cần",
+    "title": "Một ứng dụng cho lịch hẹn, nhân viên và khách hàng",
+    "bookingPage": {
+      "title": "Trang đặt lịch online của riêng bạn",
+      "body": "Chia sẻ một đường link, mã QR tại quầy hoặc Zalo. Khách tự chọn dịch vụ, thợ và giờ — 24/7."
+    },
+    "calendar": {
+      "title": "Lịch thông minh cho cả đội",
+      "body": "Mọi nhân viên, phòng và giờ nghỉ trong một màn hình. Không còn trùng lịch — hệ thống tự kiểm tra giờ trống."
+    },
+    "crm": {
+      "title": "Quản lý khách hàng",
+      "body": "Lịch sử ghé thăm, ghi chú, dịch vụ yêu thích và số lần không đến của từng khách, ở cùng một nơi."
+    },
+    "aiSetup": {
+      "title": "Thiết lập dễ dàng với AI",
+      "body": "Tải ảnh chụp bảng giá, AI sẽ tạo dịch vụ, giá và thời lượng cho bạn. Có trong mọi gói."
+    },
+    "insights": {
+      "title": "Báo cáo",
+      "body": "Lượt đặt lịch, khách quay lại, giờ cao điểm và doanh thu ước tính trong nháy mắt."
+    },
+    "reminders": {
+      "title": "Nhắc lịch qua Zalo và email",
+      "body": "Tự động xác nhận và nhắc lịch, giảm khách không đến mà không tốn thêm công sức."
+    },
+    "assistant": {
+      "title": "Trợ lý AI cho doanh nghiệp",
+      "body": "Hỏi bằng ngôn ngữ tự nhiên: “Tuần này có bao nhiêu lịch hẹn?” “Khách nào 3 tháng chưa quay lại?”",
+      "badge": "Pro"
+    }
+  },
+  "pricing": {
+    "eyebrow": "Các gói",
+    "title": "Gói đơn giản cho mọi salon",
+    "monthly": "Theo tháng",
+    "yearly": "Theo năm",
+    "priceSoon": "Giá sắp công bố",
+    "billedMonthly": "thanh toán theo tháng",
+    "billedYearly": "thanh toán theo năm",
+    "cta": "Dùng thử miễn phí",
+    "trial": "Mọi gói đều bắt đầu với 14 ngày dùng thử tính năng Pro, áp dụng giới hạn của gói Basic (mức dùng AI và hạn mức tin nhắn). Không có gói miễn phí.",
+    "popular": "Phổ biến nhất",
+    "basic": {
+      "name": "Basic",
+      "tagline": "Đủ mọi thứ để vận hành một salon",
+      "items": "Trang đặt lịch online (link, QR, Zalo)\nLịch thông minh cho cả đội\nQuản lý khách hàng\nThiết lập bằng AI từ bảng giá\nBáo cáo\nNhắc lịch qua Zalo và email\nĐăng salon miễn phí trên GuGu marketplace khi ra mắt"
+    },
+    "pro": {
+      "name": "Pro",
+      "tagline": "AI làm việc cho doanh nghiệp của bạn",
+      "items": "Mọi thứ trong gói Basic\nTrợ lý AI cho doanh nghiệp\nBáo cáo AI hằng tháng\nHộp thư Zalo\nHạn mức tin nhắn cao hơn"
+    },
+    "ultra": {
+      "name": "Ultra",
+      "tagline": "Cho chuỗi salon và thương hiệu đang phát triển",
+      "items": "Mọi thứ trong gói Pro\nNhiều chi nhánh với báo cáo tổng hợp\nGiới hạn dùng AI cao nhất\nPhân tích nâng cao\nTín dụng quảng bá khi marketplace ra mắt"
+    }
+  },
+  "marketplace": {
+    "eyebrow": "Sắp ra mắt",
+    "title": "GuGu marketplace",
+    "body": "Khi GuGu thành lập công ty tại Việt Nam, các salon đối tác sẽ được đăng trên GuGu marketplace miễn phí, để khách hàng mới tìm thấy và đặt lịch với bạn.",
+    "offer": "Mọi salon đăng ký gói trước khi marketplace ra mắt sẽ không phải trả phí đặt lịch trong 2 năm đầu sau khi ra mắt.",
+    "point1": "Đăng miễn phí cho salon đối tác",
+    "point2": "Miễn phí đặt lịch 2 năm cho salon đăng ký sớm",
+    "point3": "Trang đặt lịch riêng hoạt động ngay từ hôm nay",
+    "disclaimer": "GuGu marketplace và các điều khoản trên chỉ bắt đầu sau khi công ty GuGu tại Việt Nam được thành lập, theo quy định của pháp luật Việt Nam. Điều khoản chi tiết có thể được công bố vào thời điểm đó."
+  },
+  "faq": {
+    "eyebrow": "Câu hỏi thường gặp",
+    "title": "Chủ salon thường hỏi",
+    "q1": "Có dùng thử miễn phí không?",
+    "a1": "Có. Bạn được dùng 14 ngày với tính năng Pro và giới hạn của gói Basic. Sau đó bạn chọn Basic, Pro hoặc Ultra — không có gói miễn phí.",
+    "q2": "Khách của tôi có cần cài ứng dụng không?",
+    "a2": "Không. Khách đặt lịch trên trang đặt lịch của bạn qua link, mã QR hoặc Zalo, bằng tiếng Việt hoặc tiếng Anh.",
+    "q3": "GuGu có thu tiền của khách không?",
+    "a3": "Không. Khách vẫn thanh toán tại salon như bình thường. GuGu lo lịch hẹn, lịch làm việc và danh sách khách hàng.",
+    "q4": "Thiết lập mất bao lâu?",
+    "a4": "Vài phút. Tải ảnh bảng giá để AI tạo dịch vụ, thêm nhân viên và giờ mở cửa rồi chia sẻ đường link.",
+    "q5": "Khi nào marketplace ra mắt?",
+    "a5": "Sau khi công ty GuGu tại Việt Nam được thành lập, theo quy định của pháp luật Việt Nam. Salon đăng ký trước thời điểm đó sẽ được hưởng điều kiện dành cho người đăng ký sớm như trên."
+  },
+  "footer": {
+    "tagline": "Phần mềm salon làm tại Việt Nam. Lịch hẹn, nhân viên và khách hàng trong một ứng dụng.",
+    "product": "Sản phẩm",
+    "company": "Công ty",
+    "legal": "Pháp lý",
+    "about": "Về GuGu",
+    "contact": "Liên hệ",
+    "terms": "Điều khoản",
+    "privacy": "Quyền riêng tư",
+    "rights": "© 2026 GuGu. Bảo lưu mọi quyền."
+  }
+}

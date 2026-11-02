@@ -2,7 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { ComingSoonScreen } from "@/features/coming-soon/ComingSoonScreen";
-import { DEMO_SALONS } from "@/features/home/data";
+import { DEMO_SALONS } from "@/features/marketplace-home/data";
 
 export default function SalonScreen() {
   const { t } = useTranslation();
