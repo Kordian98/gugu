@@ -155,4 +155,97 @@ describe("salon CRM helpers (integration)", () => {
       .expect(404);
     await request(http(app)).put(url).set("authorization", owner).send({ amount: -5 }).expect(400);
   });
+
+  it("own scope (staff role) mirrors the booking engine's readScope: own clients and sales only", async () => {
+    // Staff member linked to staff profile #2; bookings above are all on staff profile #1.
+    const staffUserId = await addSalonMember(prisma, s.salonId, "staff");
+    const member = await prisma.salonMember.findFirstOrThrow({
+      where: { salonId: s.salonId, userId: staffUserId },
+    });
+    await prisma.staffProfile.update({
+      where: { id: s.staffIds[1] },
+      data: { salonMemberId: member.id },
+    });
+    const staff = await bearerFor(app, staffUserId);
+    now = new Date("2026-12-01T08:00:00+07:00");
+    const res = await request(http(app))
+      .post(`/api/v1/salons/${s.salonId}/bookings`)
+      .set("authorization", owner)
+      .set("idempotency-key", `t-${randomUUID()}`)
+      .send({
+        serviceId: s.serviceId,
+        staffId: s.staffIds[1],
+        startsAt: vnAt(DAY, "15:00"),
+        customer: { name: "Lý Thanh Tâm", phone: "0966 777 888" },
+        source: "phone",
+      })
+      .expect(201);
+    const ownBookingId = (res.body as { id: string }).id;
+
+    const lookup = async (auth: string) =>
+      clientSuggestionListSchema
+        .parse(
+          (
+            await request(http(app))
+              .get(`/api/v1/salons/${s.salonId}/clients/lookup`)
+              .set("authorization", auth)
+              .expect(200)
+          ).body,
+        )
+        .items.map((c) => c.phone)
+        .sort();
+    const bookingPhones = async (auth: string) =>
+      [
+        ...new Set(
+          (
+            (
+              await request(http(app))
+                .get(`/api/v1/salons/${s.salonId}/bookings`)
+                .query({ from: DAY, to: DAY })
+                .set("authorization", auth)
+                .expect(200)
+            ).body as { items: { customer: { phone: string | null } | null }[] }
+          ).items
+            .map((b) => b.customer?.phone)
+            .filter((x): x is string => Boolean(x)),
+        ),
+      ].sort();
+    // Parity with GET /bookings for both scopes.
+    expect(await lookup(staff)).toEqual(await bookingPhones(staff));
+    expect(await lookup(staff)).toEqual(["+84966777888"]);
+    expect(await lookup(owner)).toEqual(await bookingPhones(owner));
+
+    // Someone else's sale reads as not found; the own booking's sale is readable once recorded.
+    await request(http(app))
+      .get(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/offline-sale`)
+      .set("authorization", staff)
+      .expect(404);
+    now = new Date(vnAt(DAY, "15:50"));
+    await request(http(app))
+      .post(`/api/v1/salons/${s.salonId}/bookings/${ownBookingId}/transitions`)
+      .set("authorization", owner)
+      .set("idempotency-key", `t-${randomUUID()}`)
+      .send({ to: "completed" })
+      .expect(200);
+    await request(http(app))
+      .put(`/api/v1/salons/${s.salonId}/bookings/${ownBookingId}/offline-sale`)
+      .set("authorization", owner)
+      .send({ amount: 120000 })
+      .expect(200);
+    await request(http(app))
+      .get(`/api/v1/salons/${s.salonId}/bookings/${ownBookingId}/offline-sale`)
+      .set("authorization", staff)
+      .expect(200);
+
+    // A staff member without a linked staff profile has no scope at all.
+    const unlinked = await bearerFor(app, await addSalonMember(prisma, s.salonId, "staff"));
+    await request(http(app))
+      .get(`/api/v1/salons/${s.salonId}/clients/lookup`)
+      .set("authorization", unlinked)
+      .expect(403);
+    await request(http(app))
+      .get(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/offline-sale`)
+      .set("authorization", unlinked)
+      .expect(403);
+  });
 });

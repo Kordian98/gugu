@@ -19,6 +19,7 @@ import {
   type UserPrincipal,
 } from "../../../common/guards/principal";
 import { ClientLookupQuery } from "../application/client-lookup.query";
+import { CrmScopes } from "../application/crm-scope";
 import { OfflineSaleService } from "../application/offline-sale.service";
 
 type BookingParams = { salonId: string; bookingId: string };
@@ -29,10 +30,11 @@ export class SalonCrmController {
   constructor(
     private readonly clients: ClientLookupQuery,
     private readonly sales: OfflineSaleService,
+    private readonly scopes: CrmScopes,
   ) {}
 
   @Get("clients/lookup")
-  @RequirePermission("customers.read")
+  @RequirePermission("schedules.read")
   @ApiOperation({
     operationId: "salonCrm.lookupClients",
     summary: "Recent clients of this salon by phone or name.",
@@ -46,12 +48,19 @@ export class SalonCrmController {
     @Param({ schema: salonParamsSchema }) _p: { salonId: string },
     @Query({ schema: clientLookupQuerySchema }) query: ClientLookupQueryInput,
     @CurrentSalon() salon: SalonContext,
+    @CurrentUser() user: UserPrincipal,
   ) {
-    return { items: await this.clients.find(salon, query.q) };
+    const scope = await this.scopes.resolve(
+      salon,
+      user.userId,
+      "customers.read",
+      "customers.read.own",
+    );
+    return { items: await this.clients.find(salon, scope, query.q) };
   }
 
   @Get("bookings/:bookingId/offline-sale")
-  @RequirePermission("bookings.read")
+  @RequirePermission("schedules.read")
   @ApiOperation({
     operationId: "salonCrm.getOfflineSale",
     summary: "Amount received recorded for a booking.",
@@ -61,8 +70,15 @@ export class SalonCrmController {
   async getSale(
     @Param({ schema: bookingParamsSchema }) p: BookingParams,
     @CurrentSalon() salon: SalonContext,
+    @CurrentUser() user: UserPrincipal,
   ): Promise<OfflineSale> {
-    return this.sales.get(salon, p.bookingId);
+    const scope = await this.scopes.resolve(
+      salon,
+      user.userId,
+      "bookings.read",
+      "bookings.read.own",
+    );
+    return this.sales.get(salon, scope, p.bookingId);
   }
 
   @Put("bookings/:bookingId/offline-sale")

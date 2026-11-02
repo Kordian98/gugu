@@ -4,6 +4,7 @@ import type { SalonContext } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../../audit/audit.facade";
+import type { CrmScope } from "./crm-scope";
 
 type Row = {
   id: string;
@@ -37,9 +38,14 @@ export class OfflineSaleService {
     private readonly audit: AuditService,
   ) {}
 
-  async get(ctx: SalonContext, bookingId: string): Promise<OfflineSale> {
+  /** With an own scope, only sales of the member's own bookings (others read as not found). */
+  async get(ctx: SalonContext, scope: CrmScope, bookingId: string): Promise<OfflineSale> {
     const row = await this.prisma.offlineSale.findFirst({
-      where: { salonId: ctx.salonId, bookingId },
+      where: {
+        salonId: ctx.salonId,
+        bookingId,
+        ...(scope.staffId ? { booking: { staffId: scope.staffId } } : {}),
+      },
     });
     if (!row) throw new AppError(404, OFFLINE_SALE_ERRORS.notFound, "No amount recorded");
     return toDto(row);
