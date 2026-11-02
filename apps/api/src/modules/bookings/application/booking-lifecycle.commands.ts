@@ -20,6 +20,7 @@ import {
   resolveSelection,
   type SalonBookingContext,
 } from "../infra/booking-inputs";
+import { AvailabilityCache } from "../infra/availability-cache";
 import { BookingSecrets, MANAGE_TOKEN_TTL_AFTER_END_MS } from "../infra/booking-secrets";
 import { claimIdempotency, completeIdempotency, type IdempotencyClaim } from "../infra/idempotency";
 import {
@@ -58,15 +59,17 @@ export class BookingLifecycleCommands {
     private readonly clock: BookingClock,
     private readonly audit: AuditService,
     private readonly secrets: BookingSecrets,
+    private readonly cache: AvailabilityCache,
   ) {}
 
   private async run(
+    salonId: string,
     claim: IdempotencyClaim | null,
     work: (tx: Tx, now: Date) => Promise<Result>,
   ): Promise<Result> {
     const now = this.clock.now();
     try {
-      return await this.prisma.$transaction(
+      const result = await this.prisma.$transaction(
         async (tx) => {
           if (!claim) return work(tx, now);
           const claimed = await claimIdempotency<Result>(tx, claim, now);
@@ -78,6 +81,9 @@ export class BookingLifecycleCommands {
         },
         { timeout: 20_000, maxWait: 15_000 },
       );
+      // Status changes and reschedules change occupancy: new availability cache generation.
+      await this.cache.bumpOccupancy(salonId);
+      return result;
     } catch (error) {
       if (isSlotConflict(error)) throw slotTaken();
       throw error;
@@ -91,7 +97,7 @@ export class BookingLifecycleCommands {
     input: { to: BookingStatusValue; reason: string | null; reasonCode?: string },
     claim: IdempotencyClaim | null,
   ): Promise<Result> {
-    return this.run(claim, async (tx, now) => {
+    return this.run(ctx.salonId, claim, async (tx, now) => {
       const booking = await tx.booking.findFirst({
         where: { id: bookingId, salonId: ctx.salonId, ...ownScope(actor) },
       });
@@ -189,7 +195,7 @@ export class BookingLifecycleCommands {
     },
     claim: IdempotencyClaim,
   ): Promise<Result> {
-    return this.run(claim, async (tx, now) => {
+    return this.run(ctx.salonId, claim, async (tx, now) => {
       if (actor.kind === "system") throw new Error("system actor cannot reschedule");
       const booking = await tx.booking.findFirst({
         where: { id: bookingId, salonId: ctx.salonId, ...ownScope(actor) },

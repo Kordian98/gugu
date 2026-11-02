@@ -15,6 +15,7 @@ import {
   lockClaims,
   releaseExpiredHolds,
 } from "../infra/occupancy";
+import { AvailabilityCache } from "../infra/availability-cache";
 import { BookingClock } from "./booking-clock";
 import { slotTaken } from "./booking-errors";
 
@@ -30,6 +31,7 @@ export class HoldsCommand {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clock: BookingClock,
+    private readonly cache: AvailabilityCache,
   ) {}
 
   async create(
@@ -39,7 +41,7 @@ export class HoldsCommand {
   ): Promise<Hold> {
     const now = this.clock.now();
     try {
-      return await this.prisma.$transaction(
+      const hold = await this.prisma.$transaction(
         async (tx) => {
           const selection = await resolveSelection(tx, ctx.salonId, req);
           if (req.staffId !== null && ctx.settings.hideStaffChoice) {
@@ -100,6 +102,8 @@ export class HoldsCommand {
         },
         { timeout: 20_000, maxWait: 15_000 },
       );
+      await this.cache.bumpOccupancy(ctx.salonId);
+      return hold;
     } catch (error) {
       if (isSlotConflict(error)) throw slotTaken();
       throw error;
@@ -108,6 +112,7 @@ export class HoldsCommand {
 
   /** The device releases its hold (customer went back). */
   async release(ctx: SalonBookingContext, deviceHash: string, holdId: string): Promise<void> {
+    await this.cache.bumpOccupancy(ctx.salonId);
     await this.prisma.bookingHold.deleteMany({
       where: { id: holdId, salonId: ctx.salonId, deviceHash },
     });

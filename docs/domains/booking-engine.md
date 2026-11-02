@@ -9,7 +9,7 @@ EXCLUDE constraint, create/transition/reschedule with idempotency + history + ou
 TTL + sweeper, CRM APIs. The public salon booking page and guest manage links exist in code
 (`http/public-booking.controller.ts`) but are **not routed** (roadmap X23: no customer-facing booking
 surface on gugu.vn until a legal review); tests mount the controller to keep customer paths covered. **M6.6 resources** implemented on `booking/06-resources` (2026-11-03). **Not implemented yet:**
-availability cache (M6.7), multi-service (M6.8), AI-agent drafts (M6.9), outbox relay
+~~availability cache (M6.7)~~ (done on `booking/06-cache`), multi-service (M6.8), AI-agent drafts (M6.9), outbox relay
 (04-S5), Turnstile bot check, alternative slots in `409 slot_taken`, account-deletion
 anonymisation (q71).
 
@@ -45,6 +45,9 @@ Migration `20261102140746_add_booking_core` (after topic 07's catalog migration)
 - Engine: `pickUnits` (`packages/domain/src/booking/resources.ts`) — every staff option needs `quantity` free units of each required type for the same occupancy interval (buffers included); units fill in resource order then unit number. `unavailableReason` → `no_resource` when a required type has too few active units.
 - Writes lock staff candidates **and** all units of required types in one sorted list (`lockClaims`), release expired holds on both, and insert one occupancy row per unit; holds, reschedule (re-resolves today's requirements), cancel/no-show (deactivate by booking) cover units.
 - CRUD: `GET/POST/PATCH/DELETE /salons/:id/resource-types|resources`, `GET/PUT /salons/:id/services/:serviceId/resource-requirements`; also `resourceRequirements` in the catalog service payload/read model. Lowering capacity, pausing or deleting refuses units with future claims (`409 resource.in_use`); deleting a type in use → `409 resource.type_in_use`.
+
+## Availability cache (M6.7)
+`apps/api/src/modules/bookings/infra/availability-cache.ts` — read-through Valkey cache for `BookingQueries.availability` and `.earliest` (CRM, Zalo bot, earliest-slot search). Key: salon + `salon_settings.availability_version` (bumped in-transaction by hours/holidays/schedules/time off/catalog/resources/booking-settings writes) + per-salon occupancy generation `avail:occ:<salonId>` (INCR after every booking/hold/transition/reschedule commit) + current minute + query hash; TTL 90 s; fails open. Staleness is safe: writes always revalidate. Benchmark (`availability-cache.int.test.ts`): month view, 10 staff, 3 resource types, 120 bookings → p95 ≈ 60 ms cold, ≈ 16 ms warm over HTTP (local stack, 2026-11-03).
 
 ## Slot computation
 `packages/domain/src/booking/availability.ts` → `computeSlots(input)` / `findSlot(input, start, staffId)`.
