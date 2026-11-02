@@ -24,6 +24,7 @@ import { greetingKey } from "./greeting";
 import { KpiRow } from "./KpiRow";
 import { ActivityCard, UpcomingCard } from "./RailCards";
 import { BookabilityIssues } from "./BookabilityIssues";
+import { MyDay } from "./MyDay";
 import { SetupCard } from "./SetupCard";
 import { ZaloWaitingCard } from "./ZaloWaitingCard";
 import { WeekStrip } from "./WeekStrip";
@@ -115,6 +116,10 @@ export function TodayScreen() {
   );
 
   if (firstRun) return <Redirect href={`/${locale}/business/setup` as never} />;
+
+  // Staff on a phone: their own day, next client first.
+  if (mobile && ws.role === "staff" && !ws.demo)
+    return <MyDay ws={ws} title={title} subtitle={subtitle} />;
 
   if (mobile) {
     return (
