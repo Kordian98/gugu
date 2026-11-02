@@ -15,7 +15,8 @@ You are the GuGu AI-assistant engineer. You build and maintain the salon-facing 
 5. Skills `tenant-authorization`, `entitlements`, `salon-crm` (metric catalogue) as relevant
 
 ## Owned paths
-- `apps/api/src/modules/assistant/**`
+- `apps/api/src/modules/assistant/**`, `apps/api/src/modules/ai-import/**` (AI onboarding import, ADR 0009), `apps/api/assets/models/**`
+- `apps/app/features/ai-import/**`, `packages/contracts/src/ai-import/**`, `packages/domain/src/ai-import/**`
 - `packages/agent-tools/**` (registry, generator, firewall)
 - `packages/contracts/assistant/**` (Zod schemas, PII-free field types)
 - `apps/app/features/assistant/**`
@@ -40,8 +41,9 @@ Domain read models, metrics and `agent-tools.ts` belong to their domain owners. 
 - Provider is the Anthropic API via `LlmClientFactory` (`LLM_PROVIDER=anthropic`); other adapters are optional and unbuilt.
 - **Routing**: default `claude-haiku-5-5` (effort low). Escalate to `claude-sonnet-5-5` (effort medium) for comparisons, multi-tool questions, write proposals, photo import. `claude-opus-5-5` only for the Pro monthly business review and offline eval judging. Routing is config-driven and justified by evals.
 - Set `effort` and a tight `max_tokens` explicitly. The harness is append-only. The prompt prefix stays stable; volatile context goes in a trailing mid-conversation system message.
-- Entitlements (12): `assistant.enabled` + `assistant.deep` (monthly Opus review) on Pro only; `ai_import` on every plan.
-- **Hard monthly cost cap per salon**: reserve the worst-case cost before every request, refuse if it exceeds the remaining budget, settle from `usage`. At 80% force the `fast` route; at 100% stop. Import has its own `ai_import` budget. A platform daily kill switch is always on.
+- Entitlements (registry `ENTITLEMENT_KEYS`): `ai.agent.enabled` + `ai.monthly_review` on Pro/Ultra; `ai.onboarding_import` on every plan; hard cap `ai.monthly_cost_cap_vnd` (Basic 20,000 / Pro 250,000 / Ultra 600,000 VND).
+- Assistant UI = floating bottom-right bubble on every business page; opens a desktop side sheet or a mobile full-height sheet above the tab bar. Basic sees the bubble with an upgrade prompt (never hide it). Coordinate the mobile offset with salon-crm so it never covers the "+" button.
+- **Hard monthly cost cap per salon**: reserve the worst-case cost before every request, refuse if it exceeds the remaining budget, settle from `usage`. At 80% force the `fast` route; at 100% stop. Import counts against the same cap. A platform daily kill switch is always on.
 - **AI onboarding import** (every plan): images pass the no-PII gate (face blur, OCR redaction of phones/emails/handles/name patterns, user "What Gu sees" preview) before one structured Sonnet call. Originals are never stored.
 - Typed names outside the directory are an accepted risk (q62); always show the mask preview. Don't add a strict blocking mode.
 - The platform Admin Copilot (12) reuses this runtime and firewall. Salons are `salon_N` tokens there; review its tools.

@@ -10,6 +10,7 @@ import { QueueModule } from "./infrastructure/queue/queue.module";
 import { RedisModule } from "./infrastructure/redis/redis.module";
 import { MailModule } from "./infrastructure/mail/mail.module";
 import { RateLimitModule } from "./infrastructure/rate-limit/rate-limit.module";
+import { AiImportModule } from "./modules/ai-import/ai-import.facade";
 import { AuditModule } from "./modules/audit/audit.facade";
 import { AuthModule } from "./modules/auth/auth.facade";
 import { AuthorizationModule } from "./modules/authorization/authorization.facade";
@@ -45,6 +46,7 @@ export const INFRASTRUCTURE_MODULES = [
     SalonSettingsModule,
     CatalogModule,
     TeamModule,
+    AiImportModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },

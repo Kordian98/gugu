@@ -3,11 +3,12 @@ import { ActivityIndicator, ScrollView, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, CalmCard, Icon, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, CalmCard, Text, useCalm } from "@gugu/design-system";
 import type { Service } from "@gugu/contracts";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
+import { AiImportPanel } from "../../ai-import/AiImportPanel";
 import { crmApi, useCategories, useCrmMutation, useServices, useTeam } from "../data/catalog";
 import { useSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
@@ -20,7 +21,7 @@ import { ServiceEditor } from "./services/ServiceEditor";
 import { ServiceRow } from "./services/ServiceRow";
 
 /**
- * Services (07 M7.4): AI setup entry (UI only until topic 08), services grouped by category with
+ * Services (07 M7.4): AI price-list import (topic 08 IMP), services grouped by category with
  * variants, add-ons, staff, active switch and ordering.
  */
 export function ServicesScreen() {
@@ -68,7 +69,10 @@ export function ServicesScreen() {
         subtitle={t("services.subtitle")}
         workspace={ws}
       />
-      <AiSetupBanner highlight={params.import === "1" || items.length === 0} />
+      <AiImportPanel
+        highlight={params.import === "1" || items.length === 0}
+        autoPick={params.import === "1"}
+      />
       <ErrorBanner text={errorText(toggle.error ?? reorder.error)} />
       <CalmCard style={{ gap: 14 }}>
         <View
@@ -155,37 +159,5 @@ export function ServicesScreen() {
         />
       ) : null}
     </ScrollView>
-  );
-}
-
-/** Path A of onboarding (X13): AI from price-list screenshots. Extraction ships with topic 08. */
-function AiSetupBanner({ highlight }: { highlight: boolean }) {
-  const { c } = useCalm();
-  const { t } = useTranslation("crm");
-  return (
-    <View
-      testID="crm-ai-import"
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 14,
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: highlight ? 1.5 : 1,
-        borderStyle: highlight ? "dashed" : "solid",
-        borderColor: highlight ? c.accentBg : c.line,
-        backgroundColor: c.accentSoft,
-      }}
-    >
-      <Icon name="sparkles" size={22} color={c.accent} />
-      <View style={{ flex: 1, gap: 2 }}>
-        <Text role="uiSemiBold" size={15} color={c.ink}>
-          {t("setup.title")}
-        </Text>
-        <Text size={13} color={c.body}>
-          {t("setup.importPending")}
-        </Text>
-      </View>
-    </View>
   );
 }
