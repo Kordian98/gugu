@@ -301,7 +301,8 @@
     "deleteTitle": "Delete \"{{name}}\"?",
     "deleteBody": "The service disappears from the list, can't be booked any more and is unassigned from the team. Existing appointments (including upcoming ones) and reports keep it, with the name it had when booked. To pause it instead, use the on/off switch.",
     "deleteConfirm": "Delete service",
-    "notBookable": "Not bookable: no team member assigned"
+    "notBookable": "Not bookable: no team member assigned",
+    "inactive": "Inactive"
   },
   "team": {
     "subtitle": "Team members, roles, working hours and invitations",
@@ -368,7 +369,8 @@
     "addMe": "Add myself",
     "unassignedServices": "{{count}} services have no team member assigned, so they can't be booked.",
     "noServicesWarning": "No services",
-    "noHoursWarning": "No working hours"
+    "noHoursWarning": "No working hours",
+    "noServicesBookable": "Not bookable: this person has no services."
   },
   "settings": {
     "profile": "Salon details",
@@ -719,5 +721,10 @@
     "staffWithoutServices": "{{count}} bookable team members have no services assigned.",
     "fixServices": "Assign staff",
     "fixTeam": "Assign services"
+  },
+  "assign": {
+    "count": "{{count}} of {{total}} selected",
+    "all": "Select all",
+    "none": "None"
   }
 }

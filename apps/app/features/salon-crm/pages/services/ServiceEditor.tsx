@@ -9,7 +9,7 @@ import { formatVND } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { crmApi, useCrmMutation } from "../../data/catalog";
-import { BookabilityWarning } from "../../ui/BookabilityWarning";
+import { AssignList } from "../../ui/AssignList";
 import { useErrorText } from "../../ui/errors";
 import {
   ConfirmDialog,
@@ -289,6 +289,25 @@ export function ServiceEditor({
           />
         </Field>
       </View>
+      {/* Who performs it: prominent; silent only when the salon has exactly one bookable member. */}
+      {d.staffDefault && bookable.length === 1 && staff.length === 1 ? null : (
+        <AssignList
+          testID="crm-service-staff"
+          title={t("services.staff")}
+          items={staff.map((s) => ({
+            id: s.id,
+            label: s.displayName,
+            avatar: true,
+            hint: s.isBookable ? undefined : t("team.notBookable"),
+          }))}
+          selected={chosen}
+          onChange={(ids) => {
+            set({ staffDefault: false, staffIds: ids });
+          }}
+          warning={unassigned && staff.length ? t("services.notBookable") : null}
+          empty={t("services.noStaffYet")}
+        />
+      )}
       <Field label={t("services.description")}>
         <Input
           multiline
@@ -399,49 +418,6 @@ export function ServiceEditor({
         )}
       />
 
-      {d.staffDefault && bookable.length === 1 && staff.length === 1 ? null : (
-        <Field
-          label={t("services.staff")}
-          hint={staff.length ? undefined : t("services.noStaffYet")}
-        >
-          <View style={{ gap: 4 }}>
-            {unassigned && staff.length ? (
-              <BookabilityWarning
-                testID="crm-service-unassigned"
-                text={t("services.notBookable")}
-              />
-            ) : null}
-            {staff.map((s) => {
-              const on = chosen.includes(s.id);
-              return (
-                <View
-                  key={s.id}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingVertical: 4,
-                  }}
-                >
-                  <Text size={14} color={c.ink}>
-                    {s.displayName}
-                  </Text>
-                  <Toggle
-                    value={on}
-                    label={s.displayName}
-                    onChange={(v) => {
-                      set({
-                        staffDefault: false,
-                        staffIds: v ? [...chosen, s.id] : chosen.filter((x) => x !== s.id),
-                      });
-                    }}
-                  />
-                </View>
-              );
-            })}
-          </View>
-        </Field>
-      )}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Text size={14} color={c.ink}>
           {t("services.activeLabel")}
