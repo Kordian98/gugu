@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { CalmButton, CalmCard, Pill, Text, font, useCalm } from "@gugu/design-system";
-import type { ZaloConversation, ZaloMessage } from "@gugu/contracts";
+import type { ZaloAttentionItem, ZaloConversation, ZaloMessage } from "@gugu/contracts";
+import { formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
 import {
   type ConversationFilter,
+  useZaloAttention,
   useZaloConnection,
+  useZaloConversation,
   useZaloConversations,
   useZaloMessages,
   useZaloMutation,
-  useZaloNotifications,
   zaloApi,
 } from "../data/zalo";
 import { useWorkspace } from "../data/useWorkspace";
@@ -34,14 +37,25 @@ const KINDS = [
   "image",
   "file",
   "template",
+  "auto_released",
 ] as const;
 type Kind = (typeof KINDS)[number] | "other";
 const kindOf = (k: string): Kind =>
   (KINDS as readonly string[]).includes(k) ? (k as Kind) : "other";
+/** Indicative price of one paid consultation message (server config ZALO_PRICE_CS_PAID_VND). */
+const PAID_MESSAGE_VND = 55;
+
+const timeOf = (iso: string, locale: "vi" | "en") =>
+  new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
 
 /**
- * Zalo inbox (topic 09, X24): conversations of the salon's OA, the assistant's and staff replies,
- * take over / hand back, and what needs attention. Desktop: list + chat side by side; mobile: one.
+ * Zalo inbox (topic 09, X24). Customers waiting for a person are pinned on top; any conversation
+ * opens a thread with a reply box at the bottom — replies go out from the salon's OA, no Zalo app
+ * needed. Desktop: list + thread side by side; mobile: list, then the thread with a Back button.
+ * `?c=<conversationId>` opens a conversation directly (Today card, links).
  */
 export function ZaloInboxScreen() {
   const { c } = useCalm();
@@ -49,17 +63,29 @@ export function ZaloInboxScreen() {
   const ws = useWorkspace();
   const bp = useBreakpoint();
   const { go } = useCrmNav();
+  const params = useLocalSearchParams<{ c?: string }>();
   const connection = useZaloConnection();
   const connected =
     connection.data?.status === "connected" || connection.data?.status === "needs_reauth";
   const [filter, setFilter] = useState<ConversationFilter>("all");
-  const [selected, setSelected] = useState<string | null>(null);
+  // undefined = follow the `?c=` link; null = nothing open (e.g. after Back on mobile).
+  const [picked, setSelected] = useState<string | null | undefined>(undefined);
+  const selected = picked === undefined ? (params.c ?? null) : picked;
   const list = useZaloConversations(filter, connected);
+  const detail = useZaloConversation(selected);
   const wide = bp !== "mobile";
-  const current = list.data?.items.find((x) => x.id === selected) ?? null;
+  const current = detail.data ?? list.data?.items.find((x) => x.id === selected) ?? null;
+  const showList = wide || !selected;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}>
+    <ScrollView
+      contentContainerStyle={{
+        padding: bp === "mobile" ? 16 : 28,
+        // Room for the floating assistant button so the reply box is never covered.
+        paddingBottom: 120,
+        gap: 20,
+      }}
+    >
       <PageHeader title={t("crm:pages.zalo.title")} workspace={ws} />
       {connection.isPending ? <ActivityIndicator color={c.accent} /> : null}
       {connection.data && !connected ? (
@@ -83,11 +109,17 @@ export function ZaloInboxScreen() {
       ) : null}
       {connected ? (
         <>
-          <Attention />
+          {showList ? (
+            <Waiting
+              onOpen={(id) => {
+                setSelected(id);
+              }}
+            />
+          ) : null}
           <View
             style={{ flexDirection: wide ? "row" : "column", gap: 16, alignItems: "flex-start" }}
           >
-            {wide || !current ? (
+            {showList ? (
               <CalmCard style={{ gap: 10, width: wide ? 340 : "100%", padding: 12 }}>
                 <View
                   accessibilityRole="tablist"
@@ -106,8 +138,18 @@ export function ZaloInboxScreen() {
                     />
                   ))}
                 </View>
+                {!wide ? (
+                  <Text size={12} color={c.muted}>
+                    {t("zalo:panel.inbox.listHint")}
+                  </Text>
+                ) : null}
                 {list.data?.items.length === 0 ? (
-                  <EmptyState compact icon="chat" title={t("zalo:panel.inbox.empty")} />
+                  <EmptyState
+                    compact
+                    icon="chat"
+                    title={t("zalo:panel.inbox.empty")}
+                    body={t("zalo:panel.inbox.selectBody")}
+                  />
                 ) : null}
                 {list.data?.items.map((conv) => (
                   <ConversationRow
@@ -134,13 +176,114 @@ export function ZaloInboxScreen() {
               />
             ) : wide ? (
               <CalmCard style={{ flex: 1 }}>
-                <EmptyState compact icon="chat" title={t("zalo:panel.inbox.select")} />
+                <EmptyState
+                  icon="chat"
+                  title={t("zalo:panel.inbox.select")}
+                  body={t("zalo:panel.inbox.selectBody")}
+                />
               </CalmCard>
             ) : null}
           </View>
         </>
       ) : null}
     </ScrollView>
+  );
+}
+
+/** Pinned: customers waiting for a person, longest first, with their last messages. */
+function Waiting({ onOpen }: { onOpen: (conversationId: string) => void }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("zalo");
+  const attention = useZaloAttention();
+  const takeOver = useZaloMutation(zaloApi.takeOver);
+  const release = useZaloMutation(zaloApi.release);
+  const items = attention.data?.items ?? [];
+  if (items.length === 0) return null;
+  return (
+    <CalmCard style={{ gap: 12 }} testID="zalo-waiting">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text role="uiSemiBold" size={15} color={c.ink} style={{ flex: 1 }}>
+          {t("panel.inbox.waitingTitle")}
+        </Text>
+        <Pill label={String(attention.data?.waiting ?? items.length)} tone="down" />
+      </View>
+      {items.map((item) => (
+        <WaitingRow
+          key={item.conversationId}
+          item={item}
+          onOpen={() => {
+            onOpen(item.conversationId);
+          }}
+          onTakeOver={() => {
+            takeOver.mutate(item.conversationId, {
+              onSuccess: () => {
+                onOpen(item.conversationId);
+              },
+            });
+          }}
+          onRelease={() => {
+            release.mutate(item.conversationId);
+          }}
+        />
+      ))}
+    </CalmCard>
+  );
+}
+
+function WaitingRow({
+  item,
+  onOpen,
+  onTakeOver,
+  onRelease,
+}: {
+  item: ZaloAttentionItem;
+  onOpen: () => void;
+  onTakeOver: () => void;
+  onRelease: () => void;
+}) {
+  const { c } = useCalm();
+  const { t } = useTranslation("zalo");
+  const locale = useLocale();
+  return (
+    <View
+      testID={`zalo-waiting-${item.conversationId}`}
+      style={{ gap: 6, padding: 10, borderRadius: 12, backgroundColor: c.surfaceMuted }}
+    >
+      <Pressable accessibilityRole="button" onPress={onOpen} style={{ gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <Text role="uiSemiBold" size={14} color={c.ink} style={{ flex: 1 }}>
+            {item.displayName ?? t("panel.inbox.unknownCustomer")}
+          </Text>
+          {item.since ? (
+            <Text size={12} color={c.muted}>
+              {t("panel.inbox.waitingSince", { time: timeOf(item.since, locale) })}
+            </Text>
+          ) : null}
+        </View>
+        {item.lastMessages.map((m) => (
+          <Text key={m.createdAt} size={13} color={c.body} numberOfLines={2}>
+            {m.text ?? t(`panel.inbox.kind.${kindOf(m.kind)}`)}
+          </Text>
+        ))}
+      </Pressable>
+      <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+        <CalmButton size="sm" icon="chat" label={t("panel.inbox.reply")} onPress={onOpen} />
+        {!item.assigned ? (
+          <CalmButton
+            size="sm"
+            variant="secondary"
+            label={t("panel.inbox.takeOver")}
+            onPress={onTakeOver}
+          />
+        ) : null}
+        <CalmButton
+          size="sm"
+          variant="ghost"
+          label={t("panel.inbox.release")}
+          onPress={onRelease}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -232,41 +375,28 @@ function Chat({ conv, onBack }: { conv: ZaloConversation; onBack?: (() => void) 
   const { t } = useTranslation("zalo");
   const errorText = useErrorText();
   const messages = useZaloMessages(conv.id);
-  const reply = useZaloMutation(zaloApi.reply);
   const takeOver = useZaloMutation(zaloApi.takeOver);
   const release = useZaloMutation(zaloApi.release);
   const markRead = useZaloMutation(zaloApi.markRead);
-  const [text, setText] = useState("");
   const unread = conv.unreadCount;
   const { mutate: read } = markRead;
   useEffect(() => {
     if (unread > 0) read(conv.id);
   }, [conv.id, unread, read]);
-  const send = () => {
-    const body = text.trim();
-    if (!body) return;
-    reply.mutate(
-      { conversationId: conv.id, text: body },
-      {
-        onSuccess: () => {
-          setText("");
-        },
-      },
-    );
-  };
   return (
-    <CalmCard style={{ flex: 1, gap: 12, width: "100%" }}>
+    <CalmCard style={{ flex: 1, gap: 12, width: "100%" }} testID="zalo-thread">
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         {onBack ? (
           <CalmButton
-            variant="ghost"
+            testID="zalo-thread-back"
+            variant="secondary"
             size="sm"
             icon="chevronLeft"
             label={t("panel.inbox.back")}
             onPress={onBack}
           />
         ) : null}
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: 2, minWidth: 120 }}>
           <Text role="uiSemiBold" size={16} color={c.ink}>
             {conv.displayName ?? t("panel.inbox.unknownCustomer")}
           </Text>
@@ -277,53 +407,129 @@ function Chat({ conv, onBack }: { conv: ZaloConversation; onBack?: (() => void) 
           ) : null}
         </View>
         <WindowPill window={conv.window} />
-        {conv.mode === "bot" ? (
-          <CalmButton
-            testID="zalo-take-over"
-            size="sm"
-            variant="secondary"
-            label={t("panel.inbox.takeOver")}
-            onPress={() => {
-              takeOver.mutate(conv.id);
-            }}
-          />
-        ) : (
-          <CalmButton
-            testID="zalo-release"
-            size="sm"
-            variant="secondary"
-            label={t("panel.inbox.release")}
-            onPress={() => {
-              release.mutate(conv.id);
-            }}
-          />
-        )}
       </View>
-      <View style={{ gap: 8, minHeight: 240 }}>
+      <View style={{ gap: 8, minHeight: 200 }}>
         {messages.isPending ? <ActivityIndicator color={c.accent} /> : null}
         {messages.data?.items.map((m) => (
           <Bubble key={m.id} m={m} />
         ))}
       </View>
-      <ErrorBanner text={errorText(reply.error ?? takeOver.error ?? release.error)} />
+      <ErrorBanner text={errorText(takeOver.error ?? release.error)} />
+      <ModeBar
+        conv={conv}
+        onTakeOver={() => {
+          takeOver.mutate(conv.id);
+        }}
+        onRelease={() => {
+          release.mutate(conv.id);
+        }}
+      />
+      <Composer conv={conv} />
+    </CalmCard>
+  );
+}
+
+/** Who is answering, with the one action that changes it — right above the reply box. */
+function ModeBar({
+  conv,
+  onTakeOver,
+  onRelease,
+}: {
+  conv: ZaloConversation;
+  onTakeOver: () => void;
+  onRelease: () => void;
+}) {
+  const { c } = useCalm();
+  const { t } = useTranslation("zalo");
+  const bot = conv.mode === "bot";
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "wrap",
+        padding: 10,
+        borderRadius: 12,
+        backgroundColor: c.surfaceMuted,
+      }}
+    >
+      <Text size={13} color={c.body} style={{ flex: 1, minWidth: 180 }}>
+        {bot ? t("panel.inbox.botActiveNote") : t("panel.inbox.staffActiveNote")}
+      </Text>
+      {bot ? (
+        <CalmButton
+          testID="zalo-take-over"
+          size="sm"
+          variant="secondary"
+          label={t("panel.inbox.takeOver")}
+          onPress={onTakeOver}
+        />
+      ) : (
+        <CalmButton
+          testID="zalo-release"
+          size="sm"
+          variant="secondary"
+          label={t("panel.inbox.release")}
+          onPress={onRelease}
+        />
+      )}
+    </View>
+  );
+}
+
+/** Reply box, always at the bottom. Explains paid / blocked replies instead of failing silently. */
+function Composer({ conv }: { conv: ZaloConversation }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("zalo");
+  const locale = useLocale();
+  const errorText = useErrorText();
+  const reply = useZaloMutation(zaloApi.reply);
+  const [text, setText] = useState("");
+  const blocked = conv.window === "closed";
+  const send = () => {
+    const body = text.trim();
+    if (!body || blocked) return;
+    reply.mutate(
+      { conversationId: conv.id, text: body },
+      {
+        onSuccess: () => {
+          setText("");
+        },
+      },
+    );
+  };
+  return (
+    <View style={{ gap: 8 }}>
+      {conv.window === "paid" ? (
+        <Text size={12} color={c.body}>
+          {t("panel.inbox.paidNote", { price: formatVND(PAID_MESSAGE_VND, locale) })}
+        </Text>
+      ) : null}
+      {blocked ? (
+        <Text size={12} color={c.attention} testID="zalo-window-closed">
+          {t("panel.inbox.closedNote")}
+        </Text>
+      ) : null}
+      <ErrorBanner text={errorText(reply.error)} />
       <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
         <TextInput
           testID="zalo-reply-input"
           value={text}
           onChangeText={setText}
           onSubmitEditing={send}
-          editable={conv.window !== "closed"}
+          editable={!blocked}
           accessibilityLabel={t("panel.inbox.placeholder")}
           placeholder={t("panel.inbox.placeholder")}
           placeholderTextColor={c.muted}
           style={{
             flex: 1,
-            height: 42,
+            height: 44,
             paddingHorizontal: 12,
             borderRadius: 12,
             borderWidth: 1,
             borderColor: c.line,
-            backgroundColor: c.surface,
+            backgroundColor: blocked ? c.surfaceMuted : c.surface,
             color: c.ink,
             fontFamily: font.ui,
             fontSize: 15,
@@ -331,7 +537,10 @@ function Chat({ conv, onBack }: { conv: ZaloConversation; onBack?: (() => void) 
         />
         <CalmButton testID="zalo-reply-send" label={t("panel.inbox.send")} onPress={send} />
       </View>
-    </CalmCard>
+      <Text size={11} color={c.muted}>
+        {t("panel.inbox.sendExplain")}
+      </Text>
+    </View>
   );
 }
 
@@ -339,15 +548,18 @@ function Bubble({ m }: { m: ZaloMessage }) {
   const { c } = useCalm();
   const { t } = useTranslation("zalo");
   const locale = useLocale();
+  if (m.kind === "auto_released") {
+    return (
+      <Text size={12} color={c.muted} style={{ textAlign: "center", paddingVertical: 4 }}>
+        {t("panel.inbox.kind.auto_released")}
+      </Text>
+    );
+  }
   const mine = m.direction === "outbound";
   const label = m.text ?? t(`panel.inbox.kind.${kindOf(m.kind)}`);
-  const time = new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(m.createdAt));
   const meta = [
     t(`panel.inbox.sender.${m.sender}`),
-    time,
+    timeOf(m.createdAt, locale),
     ...(m.status && m.status !== "sent" ? [t(`panel.inbox.messageStatus.${m.status}`)] : []),
   ].join(" · ");
   return (
@@ -379,37 +591,5 @@ function Bubble({ m }: { m: ZaloMessage }) {
         {meta}
       </Text>
     </View>
-  );
-}
-
-/** Hand-off requests and bookings changed in Zalo, newest first. */
-function Attention() {
-  const { c } = useCalm();
-  const { t } = useTranslation("zalo");
-  const notifications = useZaloNotifications(true);
-  const readAll = useZaloMutation(zaloApi.notificationsRead);
-  const unread = notifications.data?.items.filter((n) => !n.read) ?? [];
-  if (unread.length === 0) return null;
-  return (
-    <CalmCard style={{ gap: 8 }}>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text role="uiSemiBold" size={15} color={c.ink} style={{ flex: 1 }}>
-          {t("panel.notifications.title")}
-        </Text>
-        <CalmButton
-          size="sm"
-          variant="ghost"
-          label={t("panel.notifications.markAllRead")}
-          onPress={() => {
-            readAll.mutate(undefined);
-          }}
-        />
-      </View>
-      {unread.slice(0, 5).map((n) => (
-        <Text key={n.id} size={13} color={c.body}>
-          {t(`panel.notifications.kind.${n.kind}`)}
-        </Text>
-      ))}
-    </CalmCard>
   );
 }

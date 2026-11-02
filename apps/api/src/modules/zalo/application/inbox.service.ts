@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   ZALO_ERRORS,
+  type ZaloAttention,
   type ZaloConversation,
   type ZaloConversationList,
   type ZaloMessageList,
@@ -64,9 +65,31 @@ export class InboxService {
       include: { messages: { orderBy: { createdAt: "desc" }, take: 1 } },
     });
     const page = rows.slice(0, query.limit);
+    const items = page.map((c) => this.toConversation(salon, c));
+    const last = page.at(-1);
+    return {
+      items,
+      nextCursor: rows.length > query.limit && last ? encode(last.lastMessageAt, last.id) : null,
+    };
+  }
+
+  /** One conversation (the inbox opens it from "needs attention" or a link). */
+  async conversationDetail(salon: SalonContext, id: string): Promise<ZaloConversation> {
+    const c = await this.prisma.zaloConversation.findFirst({
+      where: { id, salonId: salon.salonId },
+      include: { messages: { orderBy: { createdAt: "desc" }, take: 1 } },
+    });
+    if (!c) throw notFound();
+    return this.toConversation(salon, c);
+  }
+
+  private toConversation(
+    salon: SalonContext,
+    c: Prisma.ZaloConversationGetPayload<{ include: { messages: true } }>,
+  ): ZaloConversation {
     const showPhone = salon.permissions.has("customers.phone.read");
     const now = this.clock.now();
-    const items: ZaloConversation[] = page.map((c) => ({
+    return {
       id: c.id,
       displayName: c.displayName,
       phone: showPhone ? c.phoneE164 : null,
@@ -78,11 +101,6 @@ export class InboxService {
       unreadCount: c.unreadCount,
       window: sendWindow(c.lastUserInteractionAt, now),
       followed: c.unfollowedAt === null,
-    }));
-    const last = page.at(-1);
-    return {
-      items,
-      nextCursor: rows.length > query.limit && last ? encode(last.lastMessageAt, last.id) : null,
     };
   }
 
@@ -160,7 +178,12 @@ export class InboxService {
     const ids = await this.prisma.$transaction(async (tx) => {
       await tx.zaloConversation.update({
         where: { id: conv.id },
-        data: { mode: "staff", assignedUserId: conv.assignedUserId ?? userId, unreadCount: 0 },
+        data: {
+          mode: "staff",
+          assignedUserId: conv.assignedUserId ?? userId,
+          unreadCount: 0,
+          lastStaffActivityAt: this.clock.now(),
+        },
       });
       return this.outbound.record(
         salon.salonId,
@@ -185,7 +208,7 @@ export class InboxService {
     await this.prisma.$transaction(async (tx) => {
       await tx.zaloConversation.update({
         where: { id: conversationId },
-        data: { mode: "staff", assignedUserId: userId },
+        data: { mode: "staff", assignedUserId: userId, lastStaffActivityAt: this.clock.now() },
       });
       await this.audit.record(
         {
@@ -210,6 +233,7 @@ export class InboxService {
           mode: "bot",
           assignedUserId: null,
           handoffRequestedAt: null,
+          staffNoticeAt: null,
           botState: { ...INITIAL_BOT_STATE } as unknown as Prisma.InputJsonObject,
         },
       });
@@ -236,6 +260,47 @@ export class InboxService {
       where: { salonId, conversationId, readAt: null },
       data: { readAt: this.clock.now() },
     });
+  }
+
+  /**
+   * Customers waiting for a person: staff-mode chats nobody took over yet, or with unread messages.
+   * Longest waiting first; feeds the sidebar badge, the Today card and the pinned inbox section.
+   */
+  async attention(salonId: string): Promise<ZaloAttention> {
+    const where: Prisma.ZaloConversationWhereInput = {
+      salonId,
+      mode: "staff",
+      OR: [{ assignedUserId: null }, { unreadCount: { gt: 0 } }],
+    };
+    const [waiting, rows] = await Promise.all([
+      this.prisma.zaloConversation.count({ where }),
+      this.prisma.zaloConversation.findMany({
+        where,
+        orderBy: [{ handoffRequestedAt: { sort: "asc", nulls: "last" } }, { lastMessageAt: "asc" }],
+        take: 5,
+        include: {
+          messages: {
+            where: { direction: "inbound" },
+            orderBy: { createdAt: "desc" },
+            take: 3,
+          },
+        },
+      }),
+    ]);
+    return {
+      waiting,
+      items: rows.map((c) => ({
+        conversationId: c.id,
+        displayName: c.displayName,
+        since:
+          (c.handoffRequestedAt ?? c.lastStaffActivityAt ?? c.lastMessageAt)?.toISOString() ?? null,
+        assigned: c.assignedUserId !== null,
+        unreadCount: c.unreadCount,
+        lastMessages: c.messages
+          .reverse()
+          .map((m) => ({ kind: m.kind, text: m.text, createdAt: m.createdAt.toISOString() })),
+      })),
+    };
   }
 
   async notifications(salonId: string): Promise<ZaloNotificationList> {

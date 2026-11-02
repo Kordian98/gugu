@@ -10,6 +10,7 @@ import { InboundService } from "./application/inbound.service";
 import { InboxService } from "./application/inbox.service";
 import { OutboundService } from "./application/outbound.service";
 import { RemindersService } from "./application/reminders.service";
+import { StaffReleaseService } from "./application/staff-release.service";
 import { UsageQueries } from "./application/usage.queries";
 import { WebhookIngestService } from "./application/webhook-ingest.service";
 import { ZaloJobs } from "./application/zalo-jobs";
@@ -72,6 +73,7 @@ export class ZaloModule {}
     InboundService,
     RemindersService,
     BookingUpdatesService,
+    StaffReleaseService,
     ZaloJobs,
   ],
   exports: [ZaloJobs],

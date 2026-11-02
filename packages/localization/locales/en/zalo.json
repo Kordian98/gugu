@@ -52,7 +52,30 @@
     "attendanceConfirmed": "Thank you! The salon knows you're coming.",
     "bookingNotFound": "We couldn't find this appointment. Please pick an option below.",
     "updateConfirmed": "{{salon}} confirmed booking {{ref}}: {{service}} at {{when}}. See you soon!",
-    "updateCancelled": "Sorry, {{salon}} cancelled booking {{ref}} ({{service}}, {{when}}). Message “Book” to pick another time."
+    "updateCancelled": "Sorry, {{salon}} cancelled booking {{ref}} ({{service}}, {{when}}). Message “Book” to pick another time.",
+    "bookAgain": "Book again",
+    "limitReached": "You already have several upcoming appointments at this salon. You can view or change them.",
+    "staffActive": "A salon staff member is chatting with you and will reply soon. You can also go back to the booking assistant.",
+    "backToBot": "Back to assistant",
+    "typeHint": "You can also type, e.g. “tomorrow 3pm”, “sat morning”, or a number.",
+    "prev": "‹ Back",
+    "next": "Next ›",
+    "chooseTimeOfDay": "Which part of {{date}}?",
+    "part": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "partLower": {
+      "morning": "in the morning",
+      "afternoon": "in the afternoon",
+      "evening": "in the evening"
+    },
+    "partCount": "{{part}} · {{count}} times",
+    "chooseTimePart": "Free times {{part}}, {{date}}:",
+    "otherPart": "Other part of day",
+    "nearest": "{{time}} on {{date}} isn't free. Nearest free times:",
+    "dayFull": "The salon has no free time on {{date}}. Please pick another day."
   },
   "panel": {
     "title": "Zalo",
@@ -139,13 +162,24 @@
         "image": "Image",
         "file": "File",
         "template": "Template message",
-        "other": "Message"
+        "other": "Message",
+        "auto_released": "Handed back to the assistant because no staff member replied in time."
       },
       "messageStatus": {
         "queued": "Sending",
         "failed": "Failed",
         "rejected": "Not sent"
-      }
+      },
+      "listHint": "Tap a conversation to read and reply.",
+      "reply": "Reply",
+      "waitingTitle": "Customers waiting for staff",
+      "waitingSince": "Waiting since {{time}}",
+      "botActiveNote": "The assistant is replying. Sending a message takes the conversation over.",
+      "staffActiveNote": "You are replying. The assistant stays quiet until you hand it back.",
+      "paidNote": "The customer's last message was over 48 hours ago: this reply is charged (about {{price}}).",
+      "closedNote": "It's been over 7 days since the customer's last message, so Zalo doesn't allow a reply. The customer needs to message the salon first.",
+      "sendExplain": "Messages go out from the salon's Zalo OA and the customer reads them in Zalo. You don't need the Zalo app.",
+      "selectBody": "Messages customers send to the salon's Zalo OA appear here. You reply right here in GuGu Studio."
     },
     "notifications": {
       "title": "Needs attention",
@@ -159,6 +193,13 @@
         "booking_confirmed": "Customer confirmed they'll come",
         "connection_needs_reauth": "Zalo OA needs reconnecting"
       }
+    },
+    "staffRelease": "Hand back to the assistant after (minutes)",
+    "staffReleaseHint": "If nobody replies to a waiting customer within this time, the assistant continues. 0 = never.",
+    "today": {
+      "title": "Customers waiting on Zalo",
+      "body": "{{count}} customers need a staff reply.",
+      "open": "Reply now"
     }
   }
 }

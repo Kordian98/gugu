@@ -22,7 +22,8 @@
     "zalo_send_logs_valid",
     "zalo_webhook_events_status_valid",
     "zalo_oa_connections_tokens_when_connected",
-    "customer_notes_body_len"
+    "customer_notes_body_len",
+    "zalo_oa_connections_release_minutes_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",

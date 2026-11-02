@@ -25,6 +25,7 @@ import { KpiRow } from "./KpiRow";
 import { ActivityCard, UpcomingCard } from "./RailCards";
 import { BookabilityIssues } from "./BookabilityIssues";
 import { SetupCard } from "./SetupCard";
+import { ZaloWaitingCard } from "./ZaloWaitingCard";
 import { WeekStrip } from "./WeekStrip";
 
 /** Overview / Today (07 §3.2, ref crm-01): greeting, setup checklist, KPIs, timeline, right rail. */
@@ -124,6 +125,7 @@ export function TodayScreen() {
           <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} compact />
         ) : null}
         {ws.demo ? null : <BookabilityIssues />}
+        <ZaloWaitingCard />
         <WeekStrip now={now} />
         <KpiRow today={ws.today} only="revenue" />
         <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
@@ -149,6 +151,7 @@ export function TodayScreen() {
         <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} />
       ) : null}
       {ws.demo ? null : <BookabilityIssues />}
+      <ZaloWaitingCard />
       <KpiRow today={ws.today} />
       {bp === "wide" ? (
         <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>

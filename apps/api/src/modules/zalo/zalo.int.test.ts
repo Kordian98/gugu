@@ -144,6 +144,10 @@ describe("Zalo integration (emulator, end to end)", () => {
     out = await tap(out, "Dài");
     out = await tap(out, "Ai cũng được");
     out = await tap(out, "Thứ 4, 02/12");
+    // Many free times: pick the part of the day first, then the time.
+    const morning = lastText(out).buttons.find((b) => b.title.startsWith("Sáng"));
+    expect(morning).toBeDefined();
+    out = await say({ event: "user_send_text", text: morning?.payload ?? "" });
     out = await tap(out, "09:00");
     expect(out.some((e) => e.message?.kind === "request_info")).toBe(true);
     out = await say({ event: "user_submit_info", name: "Mai", phone: "0901234567" });
@@ -216,13 +220,85 @@ describe("Zalo integration (emulator, end to end)", () => {
     ).toBe(true);
   });
 
-  it("hands off to staff, stays silent, lets staff reply and release back to the bot", async () => {
+  it("regression: after a refusal + hand-off, a greeting or 'Đặt lịch' restarts the bot", async () => {
+    await connect();
+    await prisma.service.updateMany({ where: { salonId: s.salonId }, data: { isActive: false } });
+    let out = await say({ event: "follow" });
+    out = await tap(out, "Đặt lịch");
+    expect(lastText(out).text).toContain("Nhân viên sẽ trả lời");
+    expect(lastText(out).buttons.map((b) => b.title)).toEqual(["Đặt lịch lại", "Menu"]);
+    out = await say({ event: "user_send_text", text: "xin chào" });
+    expect(lastText(out).buttons[0]?.title).toBe("Đặt lịch");
+    const conv = await prisma.zaloConversation.findFirstOrThrow({ where: { salonId: s.salonId } });
+    expect(conv.mode).toBe("bot");
+    await prisma.service.updateMany({ where: { salonId: s.salonId }, data: { isActive: true } });
+    out = await tap(out, "Đặt lịch");
+    expect(lastText(out).buttons[0]?.title).toBe("Sơn gel");
+  });
+
+  it("after an explicit staff take-over, 'menu' shows a notice and 'Quay lại trợ lý' resumes the bot", async () => {
+    await connect();
+    await say({ event: "follow" });
+    const conv = await prisma.zaloConversation.findFirstOrThrow({ where: { salonId: s.salonId } });
+    await http()
+      .post(`${base()}/conversations/${conv.id}/take-over`)
+      .set("authorization", owner)
+      .expect(204);
+    let out = await say({ event: "user_send_text", text: "menu" });
+    expect(lastText(out).text).toContain("Nhân viên của salon đang trò chuyện");
+    out = await say({ event: "user_send_text", text: "cảm ơn" });
+    expect(out).toHaveLength(0);
+    out = await say({ event: "user_send_text", text: "gg|g|bot" });
+    expect(lastText(out).buttons[0]?.title).toBe("Đặt lịch");
+    expect((await prisma.zaloConversation.findUniqueOrThrow({ where: { id: conv.id } })).mode).toBe(
+      "bot",
+    );
+  });
+
+  it("lists a waiting customer in 'needs attention' and auto-releases to the bot after the quiet time", async () => {
+    await connect();
+    let out = await say({ event: "follow" });
+    out = await tap(out, "Gặp nhân viên");
+    await say({ event: "user_send_text", text: "Cho mình hỏi giá nhuộm" });
+    const attention = (
+      await http().get(`${base()}/attention`).set("authorization", owner).expect(200)
+    ).body as {
+      waiting: number;
+      items: { lastMessages: { text: string | null }[]; assigned: boolean }[];
+    };
+    expect(attention.waiting).toBe(1);
+    expect(attention.items[0]?.assigned).toBe(false);
+    expect(attention.items[0]?.lastMessages.map((m) => m.text)).toContain("Cho mình hỏi giá nhuộm");
+
+    advance(31 * 60_000);
+    await app.get(ZaloJobs).minute();
+    const conv = await prisma.zaloConversation.findFirstOrThrow({ where: { salonId: s.salonId } });
+    expect(conv).toMatchObject({ mode: "bot", staffNoticeAt: null, handoffRequestedAt: null });
+    expect(
+      await prisma.zaloMessage.count({ where: { conversationId: conv.id, kind: "auto_released" } }),
+    ).toBe(1);
+    expect(
+      (
+        (await http().get(`${base()}/attention`).set("authorization", owner)).body as {
+          waiting: number;
+        }
+      ).waiting,
+    ).toBe(0);
+    out = await say({ event: "user_send_text", text: "alo" });
+    expect(lastText(out).buttons[0]?.title).toBe("Đặt lịch");
+  });
+
+  it("hands off to staff, acknowledges once, lets staff reply and release back to the bot", async () => {
     await connect();
     let out = await say({ event: "follow" });
     out = await tap(out, "Gặp nhân viên");
     expect(lastText(out).text).toContain("Nhân viên sẽ trả lời");
     out = await say({ event: "user_send_text", text: "Cho mình hỏi giá gội đầu" });
-    expect(out).toHaveLength(0); // bot is quiet in staff mode
+    // Never silently ignored: one notice with "back to the assistant", then quiet for staff.
+    expect(lastText(out).text).toContain("Nhân viên của salon");
+    expect(lastText(out).buttons.map((b) => b.title)).toEqual(["Quay lại trợ lý"]);
+    out = await say({ event: "user_send_text", text: "Còn chỗ không ạ?" });
+    expect(out).toHaveLength(0);
 
     const list = zaloConversationListSchema.parse(
       (
@@ -233,7 +309,7 @@ describe("Zalo integration (emulator, end to end)", () => {
       ).body,
     );
     const conv = list.items[0];
-    expect(conv).toMatchObject({ mode: "staff", window: "free", unreadCount: 1, phone: null });
+    expect(conv).toMatchObject({ mode: "staff", window: "free", unreadCount: 2, phone: null });
     await http()
       .post(`${base()}/conversations/${conv?.id ?? ""}/messages`)
       .set("authorization", owner)

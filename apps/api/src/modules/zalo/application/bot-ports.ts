@@ -142,6 +142,9 @@ export class BotPortsFactory {
           if (error instanceof AppError && SLOT_TAKEN_CODES.includes(error.code)) {
             return { ok: false, reason: "slot_taken" };
           }
+          if (error instanceof AppError && error.code === BOOKING_ERRORS.activeLimitReached) {
+            return { ok: false, reason: "limit_reached" };
+          }
           this.logger.warn({ salonId, err: describe(error) }, "zalo bot booking failed");
           return { ok: false, reason: "failed" };
         }

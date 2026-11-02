@@ -156,14 +156,14 @@ describe("booking bot state machine", () => {
     expect(last(r).buttons.map((b) => b.title)).toEqual(["An", "Bình", "Ai cũng được"]);
     r = await step(r.state, tap(r, "Ai cũng được"), ports);
     expect(r.state.step.name).toBe("day");
-    expect(last(r).buttons).toHaveLength(5); // 4 days + More
+    expect(last(r).buttons).toHaveLength(5); // all 5 free days fit as buttons
     r = await step(r.state, { kind: "text", text: "2" }, ports); // typed number picks 02/12
     expect(r.state.step).toMatchObject({ name: "time", date: "2026-12-02" });
     expect(last(r).buttons.map((b) => b.title)).toEqual([
       "14:00",
       "14:30",
       "15:00",
-      "Xem thêm",
+      "15:30",
       "Ngày khác",
     ]);
     r = await step(r.state, tap(r, "14:30"), ports);

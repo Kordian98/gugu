@@ -1273,33 +1273,35 @@ enum ZaloConnectionStatus {
 
 /// One salon ↔ one Zalo Official Account. Tokens are AES-256-GCM encrypted (ZALO_TOKEN_KEY).
 model ZaloOaConnection {
-  id                 String               @id @default(uuid(7)) @db.Uuid
-  salonId            String               @unique @map("salon_id") @db.Uuid
+  id                  String               @id @default(uuid(7)) @db.Uuid
+  salonId             String               @unique @map("salon_id") @db.Uuid
   /// Zalo OA id. Unique while connected (partial index), so one OA serves one salon.
-  oaId               String               @map("oa_id")
-  oaName             String               @map("oa_name")
-  status             ZaloConnectionStatus @default(connected)
-  accessTokenEnc     String?              @map("access_token_enc")
-  refreshTokenEnc    String?              @map("refresh_token_enc")
-  accessExpiresAt    DateTime?            @map("access_expires_at") @db.Timestamptz(6)
+  oaId                String               @map("oa_id")
+  oaName              String               @map("oa_name")
+  status              ZaloConnectionStatus @default(connected)
+  accessTokenEnc      String?              @map("access_token_enc")
+  refreshTokenEnc     String?              @map("refresh_token_enc")
+  accessExpiresAt     DateTime?            @map("access_expires_at") @db.Timestamptz(6)
   /// Rule-based booking bot answers customers (X24). Off = every chat goes to staff.
-  botEnabled         Boolean              @default(true) @map("bot_enabled")
+  botEnabled          Boolean              @default(true) @map("bot_enabled")
   /// Reminder toggles (q40: on by default).
-  reminder24h        Boolean              @default(true) @map("reminder_24h")
-  reminder2h         Boolean              @default(true) @map("reminder_2h")
+  reminder24h         Boolean              @default(true) @map("reminder_24h")
+  reminder2h          Boolean              @default(true) @map("reminder_2h")
   /// Allow paid consultation messages (48 h – 7 d after the customer's last message).
-  allowPaidMessages  Boolean              @default(true) @map("allow_paid_messages")
+  allowPaidMessages   Boolean              @default(true) @map("allow_paid_messages")
   /// ZBS template ids approved for this OA: `{ "booking_confirmation": "…", "booking_reminder": "…" }`.
-  templateIds        Json                 @default("{}") @map("template_ids")
+  templateIds         Json                 @default("{}") @map("template_ids")
   /// Owner-set monthly cap on template messages (null = plan limit only).
-  monthlyTemplateCap Int?                 @map("monthly_template_cap")
-  connectedByUserId  String               @map("connected_by_user_id") @db.Uuid
-  connectedAt        DateTime             @default(now()) @map("connected_at") @db.Timestamptz(6)
-  disconnectedAt     DateTime?            @map("disconnected_at") @db.Timestamptz(6)
-  lastRefreshAt      DateTime?            @map("last_refresh_at") @db.Timestamptz(6)
-  lastError          String?              @map("last_error")
-  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  monthlyTemplateCap  Int?                 @map("monthly_template_cap")
+  /// Hand a staff-mode chat back to the bot after this many minutes without staff activity (0 = never).
+  staffReleaseMinutes Int                  @default(30) @map("staff_release_minutes")
+  connectedByUserId   String               @map("connected_by_user_id") @db.Uuid
+  connectedAt         DateTime             @default(now()) @map("connected_at") @db.Timestamptz(6)
+  disconnectedAt      DateTime?            @map("disconnected_at") @db.Timestamptz(6)
+  lastRefreshAt       DateTime?            @map("last_refresh_at") @db.Timestamptz(6)
+  lastError           String?              @map("last_error")
+  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   salon Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
 
@@ -1332,6 +1334,10 @@ model ZaloConversation {
   botState              Json                 @default("{}") @map("bot_state")
   assignedUserId        String?              @map("assigned_user_id") @db.Uuid
   handoffRequestedAt    DateTime?            @map("handoff_requested_at") @db.Timestamptz(6)
+  /// Last hand-off, take-over or staff reply: drives the auto-release back to the bot.
+  lastStaffActivityAt   DateTime?            @map("last_staff_activity_at") @db.Timestamptz(6)
+  /// When the customer was last told "a staff member will reply" (once per staff period).
+  staffNoticeAt         DateTime?            @map("staff_notice_at") @db.Timestamptz(6)
   /// Last message/click/follow from the customer — drives the 48 h / 7 d send window.
   lastUserInteractionAt DateTime?            @map("last_user_interaction_at") @db.Timestamptz(6)
   lastMessageAt         DateTime?            @map("last_message_at") @db.Timestamptz(6)
