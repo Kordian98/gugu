@@ -30,7 +30,9 @@ import {
   formatPrice,
   formatWhen,
   loadBookingView,
+  bookingStaffIds,
   serviceName,
+  staffNames,
 } from "./booking-view";
 import { NotifyClock } from "./notify-clock";
 import { RecipientsService } from "./recipients.service";
@@ -336,7 +338,7 @@ export class SenderService {
       customerName: b.customerName,
       service,
       when: formatWhen(b.startsAt, locale, tz),
-      staff: b.staff.displayName,
+      staff: staffNames(b),
       code: b.referenceCode,
       price: formatPrice(b, locale),
       address,
@@ -383,7 +385,12 @@ export class SenderService {
     // Access is re-checked at send time: a removed member or a reassigned booking gets nothing.
     const ctx = await this.membership.resolve(d.recipientUserId, d.salonId);
     if (
-      !(await this.recipients.allowed(ctx, d.recipientUserId, def.permission, b ? [b.staffId] : []))
+      !(await this.recipients.allowed(
+        ctx,
+        d.recipientUserId,
+        def.permission,
+        b ? bookingStaffIds(b) : [],
+      ))
     ) {
       return { kind: "skip", reason: "not_member" };
     }
@@ -411,7 +418,7 @@ export class SenderService {
       code: b?.referenceCode ?? null,
       when: b ? formatWhen(b.startsAt, locale, salon.timezone) : null,
       service: b ? serviceName(b, locale) || null : null,
-      staff: b?.staff.displayName ?? null,
+      staff: b ? staffNames(b) : null,
       customer: b && !b.customerAnonymisedAt ? b.customerName : null,
       link,
     });

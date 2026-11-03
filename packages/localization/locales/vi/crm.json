@@ -123,7 +123,8 @@
       "pending": "Chờ xác nhận",
       "completed": "Hoàn thành",
       "noShow": "Vắng mặt"
-    }
+    },
+    "chainPart": "phần {{index}}/{{count}}"
   },
   "upcoming": {
     "title": "Lịch hẹn sắp tới",
@@ -263,7 +264,8 @@
     "resource_in_use": "Không thể giảm hoặc tắt: đã có lịch hẹn sắp tới đang dùng chỗ này.",
     "resource_not_found": "Không tìm thấy phòng/thiết bị.",
     "resource_type_not_found": "Không tìm thấy loại phòng/thiết bị.",
-    "salon_suspended": "Salon đang bị GuGu tạm khóa. Bạn vẫn xem được dữ liệu nhưng không thể thay đổi. Vui lòng liên hệ bộ phận hỗ trợ GuGu."
+    "salon_suspended": "Salon đang bị GuGu tạm khóa. Bạn vẫn xem được dữ liệu nhưng không thể thay đổi. Vui lòng liên hệ bộ phận hỗ trợ GuGu.",
+    "booking_multi_service_disabled": "Salon chưa bật đặt nhiều dịch vụ trong một lịch hẹn."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",
@@ -524,7 +526,14 @@
     "dragUnavailable": "Khung giờ bạn vừa chọn không còn trống.",
     "overrideOn": "Đặt ngoài giờ / ngoài quy định",
     "overrideOff": "Quay lại giờ trống",
-    "overrideExplain": "Nhập giờ bất kỳ (ngoài giờ mở cửa, sát giờ…) kèm lý do. Lịch vẫn không được trùng với lịch khác của nhân viên. Thao tác được ghi nhật ký."
+    "overrideExplain": "Nhập giờ bất kỳ (ngoài giờ mở cửa, sát giờ…) kèm lý do. Lịch vẫn không được trùng với lịch khác của nhân viên. Thao tác được ghi nhật ký.",
+    "addService": "Thêm dịch vụ",
+    "removeService": "Bỏ dịch vụ này",
+    "nextServiceTitle": "Dịch vụ {{n}}",
+    "nextServiceHint": "Làm ngay sau dịch vụ trước. “Ai cũng được” sẽ ưu tiên người làm dịch vụ trước.",
+    "chainTotal": "Tổng {{minutes}} phút · {{price}}",
+    "chainPlan": "{{time}} {{service}} · {{staff}}",
+    "chainSeparator": " → "
   },
   "booking": {
     "title": "Lịch hẹn {{code}}",
@@ -599,7 +608,9 @@
     "rescheduleTitle": "Chọn giờ mới",
     "sameStaff": "Cùng nhân viên",
     "resources": "Phòng / thiết bị",
-    "deletedCustomer": "Khách đã xoá tài khoản"
+    "deletedCustomer": "Khách đã xoá tài khoản",
+    "services": "Các dịch vụ",
+    "lineDetail": "{{time}} · {{staff}} · {{price}}"
   },
   "wizard": {
     "later": "Để sau",

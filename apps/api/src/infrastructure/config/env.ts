@@ -74,6 +74,11 @@ export const envSchema = z
       .enum(["true", "false"])
       .default("false")
       .transform((v) => v === "true"),
+    /**
+     * Feature flag `booking.multiService` (topic 06 M6.8): several services in one appointment.
+     * Unset = on outside production, off in production (q17: single service at launch).
+     */
+    BOOKING_MULTI_SERVICE: z.enum(["true", "false"]).optional(),
     /** Public origin of this API (Zalo OAuth callback, emulator pages and webhook target). */
     API_PUBLIC_URL: z.url().default("http://localhost:3001"),
     /**
@@ -117,6 +122,9 @@ export const envSchema = z
   .transform((env) => ({
     ...env,
     ZALO_CLIENT: env.ZALO_CLIENT ?? (env.NODE_ENV === "production" ? "disabled" : "emulated"),
+    BOOKING_MULTI_SERVICE: env.BOOKING_MULTI_SERVICE
+      ? env.BOOKING_MULTI_SERVICE === "true"
+      : env.NODE_ENV !== "production",
   }))
   .refine((env) => env.NODE_ENV !== "production" || env.AUTH_SECRET !== DEV_AUTH_SECRET, {
     path: ["AUTH_SECRET"],

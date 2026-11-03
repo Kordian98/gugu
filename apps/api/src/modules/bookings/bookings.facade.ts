@@ -3,6 +3,7 @@ export { BookingsEngineModule, BookingsModule, BookingsWorkerModule } from "./bo
 export { BookingMaintenance } from "./application/booking-maintenance";
 // Engine API for other modules (topic 09 Zalo bot): availability, create, transitions, reschedule.
 export { BookingClock } from "./application/booking-clock";
+export { BookingFeatures, type LineRequest } from "./application/booking-chain";
 export { BookingContexts } from "./http/booking-contexts";
 export { BookingQueries } from "./application/booking.queries";
 export { BookingLifecycleCommands } from "./application/booking-lifecycle.commands";

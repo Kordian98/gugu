@@ -22,10 +22,15 @@ export async function loadBookingView(prisma: PrismaService, salonId: string, bo
       totalPriceMinor: true,
       totalPriceMaxMinor: true,
       staff: { select: { displayName: true } },
+      // Every service of the appointment, in order (multi-service bookings, M6.8).
       services: {
-        select: { name: true, variantName: true },
+        select: {
+          name: true,
+          variantName: true,
+          staffId: true,
+          staff: { select: { displayName: true } },
+        },
         orderBy: { sequence: "asc" },
-        take: 1,
       },
       salon: {
         select: {
@@ -55,12 +60,28 @@ const pick = (v: unknown, locale: Locale): string => {
   return (locale === "en" && o?.en) || o?.vi || o?.en || "";
 };
 
-export function serviceName(b: BookingView, locale: Locale): string {
-  const line = b.services[0];
-  if (!line) return "";
-  const name = pick(line.name, locale);
-  const variant = line.variantName ? pick(line.variantName, locale) : "";
-  return variant ? `${name} · ${variant}` : name;
+/** Template variables have length caps (email-templates.ts): long chains end in "…". */
+const cap = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1)}…` : s);
+
+/** "Sơn gel · Dài" — or every service of a multi-service booking: "Sơn gel · Dài + Pedicure". */
+export function serviceName(b: Pick<BookingView, "services">, locale: Locale): string {
+  const names = b.services.map((line) => {
+    const name = pick(line.name, locale);
+    const variant = line.variantName ? pick(line.variantName, locale) : "";
+    return variant ? `${name} · ${variant}` : name;
+  });
+  return cap(names.join(" + "), 300);
+}
+
+/** Staff of every service, without repeats ("Linh, Mai"). */
+export function staffNames(b: Pick<BookingView, "staff" | "services">): string {
+  const names = b.services.map((l) => l.staff.displayName);
+  return cap([...new Set(names.length > 0 ? names : [b.staff.displayName])].join(", "), 120);
+}
+
+/** Every staff member working on the booking (own-scope access checks). */
+export function bookingStaffIds(b: Pick<BookingView, "staffId" | "services">): string[] {
+  return [...new Set([b.staffId, ...b.services.map((l) => l.staffId)])];
 }
 
 /** "14:30, Thứ Tư, 14 tháng 10, 2026" / "Wednesday, October 14, 2026 at 2:30 PM" (salon tz). */

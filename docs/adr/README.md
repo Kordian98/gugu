@@ -14,3 +14,4 @@ One file per decision: `NNNN-<slug>.md`, using the template in `.claude/skills/a
 | [0008](0008-prisma-raw-sql-boundary.md) | Prisma 7 + raw SQL boundary; API bundling (spike 04-S0) | proposed |
 | [0009](0009-ai-import-pii-gate.md) | AI import no-PII image gate: Tesseract + UltraFace on our servers (spike 08-IMP) | proposed |
 | [0010](0010-platform-admin-actions.md) | Platform admin: roles on the user, one audited action runner, cheap step-up, suspension | proposed |
+| [0011](0011-multi-service-chains.md) | Multi-service bookings as chains of lines with their own occupancy (06 M6.8) | proposed |

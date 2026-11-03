@@ -1,5 +1,16 @@
-import type { AvailabilityInput } from "./availability";
+import { type AvailabilityInput, chainLines } from "./availability";
+import type { ServiceLine } from "./chain";
 import { addDays, toLocal } from "./tz";
+
+/** Some line requires a resource type with fewer active units than it needs. */
+function lacksUnits(input: AvailabilityInput, lines: readonly ServiceLine[]): boolean {
+  const units = input.resources?.units ?? [];
+  return lines.some((l) =>
+    (l.requirements ?? []).some(
+      (r) => units.filter((u) => u.resourceTypeId === r.resourceTypeId).length < r.quantity,
+    ),
+  );
+}
 
 /** Why a date range has no bookable time — shown instead of an empty slot list (CRM, Zalo bot). */
 export const UNAVAILABLE_REASONS = [
@@ -13,13 +24,20 @@ export type UnavailableReason = (typeof UNAVAILABLE_REASONS)[number];
 
 /**
  * Explains an empty availability result, most actionable cause first:
- * nobody performs the service → nobody (eligible) has working hours in the range or the salon has
+ * nobody performs the service (or one service of a chain) → nobody (eligible) has working hours in the range or the salon has
  * no opening hours → a required resource type has no active units (M6.6) → the range starts after
  * the booking window → otherwise taken/past/closed days.
  * Call only when the engine returned no slots for `input`.
  */
 export function unavailableReason(input: AvailabilityInput): UnavailableReason {
-  if (input.staff.length === 0) return "no_staff_assigned";
+  const staffIds = new Set(input.staff.map((s) => s.staffId));
+  const lines = chainLines(input);
+  // Chains (M6.8): every line needs at least one eligible staff member.
+  if (
+    input.staff.length === 0 ||
+    lines.some((l) => ![...l.staffTerms.keys()].some((id) => staffIds.has(id)))
+  )
+    return "no_staff_assigned";
   const hasHours = input.staff.some((s) =>
     s.schedules.some(
       (w) => w.effectiveFrom <= input.to && (w.effectiveTo === null || input.from <= w.effectiveTo),
@@ -27,14 +45,7 @@ export function unavailableReason(input: AvailabilityInput): UnavailableReason {
   );
   if (!hasHours || (input.openingHours.length === 0 && !input.overrides?.has("hours")))
     return "no_working_hours";
-  const resources = input.resources;
-  if (
-    resources?.requirements.some(
-      (r) =>
-        resources.units.filter((u) => u.resourceTypeId === r.resourceTypeId).length < r.quantity,
-    )
-  )
-    return "no_resource";
+  if (lacksUnits(input, lines)) return "no_resource";
   const today = toLocal(input.now, input.timeZone).date;
   if (
     !input.overrides?.has("horizon") &&

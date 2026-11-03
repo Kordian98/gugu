@@ -123,7 +123,8 @@
       "pending": "Pending",
       "completed": "Completed",
       "noShow": "No-show"
-    }
+    },
+    "chainPart": "part {{index}}/{{count}}"
   },
   "upcoming": {
     "title": "Upcoming appointments",
@@ -263,7 +264,8 @@
     "resource_in_use": "Can't reduce or turn off: upcoming appointments use these places.",
     "resource_not_found": "Room/equipment not found.",
     "resource_type_not_found": "Room/equipment type not found.",
-    "salon_suspended": "This salon is suspended by GuGu. You can view data but not make changes. Contact GuGu support."
+    "salon_suspended": "This salon is suspended by GuGu. You can view data but not make changes. Contact GuGu support.",
+    "booking_multi_service_disabled": "Several services per appointment are not enabled for this salon."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",
@@ -524,7 +526,14 @@
     "dragUnavailable": "The time you drew isn't free.",
     "overrideOn": "Book outside the rules",
     "overrideOff": "Back to free times",
-    "overrideExplain": "Enter any time (after hours, short notice…) with a reason. It still can't overlap the staff member's other appointments. This action is logged."
+    "overrideExplain": "Enter any time (after hours, short notice…) with a reason. It still can't overlap the staff member's other appointments. This action is logged.",
+    "addService": "Add a service",
+    "removeService": "Remove this service",
+    "nextServiceTitle": "Service {{n}}",
+    "nextServiceHint": "Starts right after the previous service. “Anyone” prefers whoever does the previous one.",
+    "chainTotal": "Total {{minutes}} min · {{price}}",
+    "chainPlan": "{{time}} {{service}} · {{staff}}",
+    "chainSeparator": " → "
   },
   "booking": {
     "title": "Appointment {{code}}",
@@ -599,7 +608,9 @@
     "rescheduleTitle": "Pick a new time",
     "sameStaff": "Same team member",
     "resources": "Room / equipment",
-    "deletedCustomer": "Deleted customer"
+    "deletedCustomer": "Deleted customer",
+    "services": "Services",
+    "lineDetail": "{{time}} · {{staff}} · {{price}}"
   },
   "wizard": {
     "later": "Later",

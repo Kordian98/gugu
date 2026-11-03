@@ -7,6 +7,7 @@ import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import {
   type BookingActor,
   BookingContexts,
+  BookingFeatures,
   BookingLifecycleCommands,
   BookingQueries,
   CreateBookingCommand,
@@ -61,6 +62,7 @@ export class BotPortsFactory {
     private readonly create: CreateBookingCommand,
     private readonly lifecycle: BookingLifecycleCommands,
     private readonly clock: ZaloClock,
+    private readonly features: BookingFeatures,
   ) {}
 
   /**
@@ -91,6 +93,7 @@ export class BotPortsFactory {
         name: ctx.name,
         timeZone: ctx.timeZone,
         hideStaffChoice: ctx.settings.hideStaffChoice,
+        multiService: this.features.multiService,
       },
       customer: { name: conv.displayName, phone: conv.phoneE164 },
       services,
@@ -122,6 +125,7 @@ export class BotPortsFactory {
                   ...(sel.variantId ? { variantId: sel.variantId } : {}),
                   addOnIds: [],
                   ...(sel.staffId ? { staffId: sel.staffId } : {}),
+                  nextServices: nextServices(sel),
                   from: addDays(today, BOOKING_DAYS),
                   limit: 3,
                   perDay: 1,
@@ -150,13 +154,23 @@ export class BotPortsFactory {
                 staffId: sel.staffId,
                 startsAt: new Date(startsAt),
               },
+              nextServices: nextServices(sel).map((n) => ({
+                serviceId: n.serviceId,
+                variantId: n.variantId ?? null,
+                addOnIds: [],
+                staffId: null,
+              })),
               customer: { name, phoneE164: phone },
               note: null,
               overrides: [],
               overrideReason: null,
               holdId: null,
             },
-            this.claim(actor, "zalo.bot.book", `${actionKey}:${sel.serviceId}:${startsAt}`),
+            this.claim(
+              actor,
+              "zalo.bot.book",
+              `${actionKey}:${sel.serviceId}:${sel.second?.serviceId ?? ""}:${startsAt}`,
+            ),
           );
           await this.prisma.zaloBookingLink.upsert({
             where: { bookingId },
@@ -254,6 +268,7 @@ export class BotPortsFactory {
         ...(sel.variantId ? { variantId: sel.variantId } : {}),
         addOnIds: [],
         ...(sel.staffId ? { staffId: sel.staffId } : {}),
+        nextServices: nextServices(sel),
         from,
         to,
       },
@@ -334,18 +349,23 @@ export class BotPortsFactory {
       },
       orderBy: { startsAt: "asc" },
       take: 5,
-      include: { services: true, staff: { select: { displayName: true } } },
+      include: {
+        services: { orderBy: { sequence: "asc" } },
+        staff: { select: { displayName: true } },
+      },
     });
     return rows.map((b) => {
       const line = b.services[0];
+      const second = b.services[1];
       return {
         id: b.id,
         ref: b.referenceCode,
         startsAt: b.startsAt.toISOString(),
         serviceId: line?.serviceId ?? "",
         variantId: line?.variantId ?? null,
+        second: second ? { serviceId: second.serviceId, variantId: second.variantId } : null,
         staffId: b.staffId,
-        serviceName: pick(line?.name, locale),
+        serviceName: b.services.map((l) => pick(l.name, locale)).join(" + "),
         staffName: b.staff.displayName,
         priceMinor: Number(b.totalPriceMinor),
         priceMaxMinor: b.totalPriceMaxMinor === null ? null : Number(b.totalPriceMaxMinor),
@@ -353,6 +373,19 @@ export class BotPortsFactory {
       };
     });
   }
+}
+
+/** The bot's optional second service as engine `nextServices` (M6.8). */
+function nextServices(sel: Selection): { serviceId: string; variantId?: string; addOnIds: [] }[] {
+  return sel.second
+    ? [
+        {
+          serviceId: sel.second.serviceId,
+          ...(sel.second.variantId ? { variantId: sel.second.variantId } : {}),
+          addOnIds: [],
+        },
+      ]
+    : [];
 }
 
 function memo<T>(fn: () => Promise<T>): () => Promise<T> {

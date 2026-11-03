@@ -3,8 +3,10 @@ import { BOOKING_ERRORS, type BookingSource } from "@gugu/contracts";
 import {
   decideInitialStatus,
   findSlot,
+  type LinePlan,
   requiredOverrides,
   type RuleOverride,
+  type ServiceTerms,
   toLocal,
   UPCOMING_BOOKING_STATUSES,
 } from "@gugu/domain";
@@ -15,8 +17,8 @@ import { appendOutbox } from "../../../infrastructure/outbox/outbox.writer";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../../audit/audit.facade";
 import {
-  loadAvailabilityInput,
-  resolveSelection,
+  loadChainInput,
+  type ResolvedSelection,
   type SalonBookingContext,
   type ServiceSelection,
 } from "../infra/booking-inputs";
@@ -33,12 +35,16 @@ import {
   releaseExpiredHolds,
 } from "../infra/occupancy";
 import type { BookingActor } from "./booking-actor";
+import { BookingFeatures, chainInput, type LineRequest, resolveChain } from "./booking-chain";
 import { BookingClock } from "./booking-clock";
 import { slotTaken, unbookable } from "./booking-errors";
 
 export interface CreateBookingRequest {
   source: BookingSource;
+  /** First service, its staff (null = any) and the appointment start. */
   selection: ServiceSelection & { staffId: string | null; startsAt: Date };
+  /** Further services in sequence (M6.8, flag `booking.multiService`); omitted = single. */
+  nextServices?: readonly LineRequest[];
   /** E.164 already normalised; null only for anonymous walk-ins. */
   customer: { name: string; phoneE164: string; email?: string | null } | null;
   note: string | null;
@@ -48,6 +54,16 @@ export interface CreateBookingRequest {
 }
 
 type Tx = Prisma.TransactionClient;
+
+/** Σ line prices; a range as soon as one line is a range (M6.8). */
+export function chainTotal(terms: readonly ServiceTerms[]): { min: number; max: number | null } {
+  const min = terms.reduce((sum, t) => sum + t.priceMinor, 0);
+  const ranged = terms.some((t) => t.priceMaxMinor !== null);
+  return {
+    min,
+    max: ranged ? terms.reduce((sum, t) => sum + (t.priceMaxMinor ?? t.priceMinor), 0) : null,
+  };
+}
 
 /**
  * The one booking write path for every source (spec 06 §3.6): idempotency → validate selection →
@@ -63,6 +79,7 @@ export class CreateBookingCommand {
     private readonly audit: AuditService,
     private readonly cache: AvailabilityCache,
     private readonly outbox: OutboxRelay,
+    private readonly features: BookingFeatures,
   ) {}
 
   async execute(
@@ -108,24 +125,34 @@ export class CreateBookingCommand {
     const { salonId, settings } = ctx;
     if (actor.kind === "system") throw new Error("system actor cannot create bookings");
     this.checkOverrides(actor, req.overrides);
-    const selection = await resolveSelection(tx, salonId, req.selection);
-    let candidates = this.candidates(ctx, actor, selection.staffTerms, req.selection.staffId);
+    const requests: LineRequest[] = [req.selection, ...(req.nextServices ?? [])];
+    this.features.assertChainAllowed(requests);
+    const selections = await resolveChain(tx, salonId, requests);
+    const candidates = selections.map((sel, i) =>
+      this.candidates(ctx, actor, sel.staffTerms, requests[i]?.staffId ?? null),
+    );
     const phoneHash = req.customer ? this.secrets.phoneHash(req.customer.phoneE164) : null;
 
-    const unitIds = selection.units.map((u) => u.unitId);
-    await lockClaims(tx, [...candidates, ...unitIds]);
+    // One sorted lock list over every staff member and unit any line may claim (ADR-0008).
+    const staffIds = [...new Set(candidates.flat())];
+    const unitIds = [...new Set(selections.flatMap((sel) => sel.units.map((u) => u.unitId)))];
+    await lockClaims(tx, [...staffIds, ...unitIds]);
     if (actor.kind === "customer" && phoneHash) {
       await lockPhone(tx, salonId, phoneHash);
       await this.checkActiveLimit(tx, ctx, phoneHash, now);
     }
-    await releaseExpiredHolds(tx, salonId, candidates, now, unitIds);
+    await releaseExpiredHolds(tx, salonId, staffIds, now, unitIds);
 
     let holdId: string | null = null;
     if (actor.kind === "customer") {
-      holdId = await this.usableHold(tx, salonId, actor.deviceHash, req, now);
+      // Holds cover a single service (public page, unrouted — X23); chains revalidate in full.
+      holdId =
+        requests.length === 1
+          ? await this.usableHold(tx, salonId, actor.deviceHash, req, now)
+          : null;
       if (holdId) {
         const hold = await tx.bookingHold.findUniqueOrThrow({ where: { id: holdId } });
-        candidates = [hold.staffId];
+        candidates[0] = [hold.staffId];
       }
       await tx.bookingHold.deleteMany({
         where: {
@@ -138,15 +165,15 @@ export class CreateBookingCommand {
 
     const start = req.selection.startsAt.getTime();
     const date = toLocal(start, ctx.timeZone).date;
-    const input = await loadAvailabilityInput(tx, ctx, selection, {
+    const input = await loadChainInput(tx, ctx, chainInput(selections, candidates), {
       from: date,
       to: date,
-      staffIds: candidates,
       now,
       overrides: new Set(req.overrides),
       exclude: { holdId },
     });
-    const staffFilter = candidates.length === 1 ? (candidates[0] ?? null) : null;
+    const firstCandidates = candidates[0] ?? [];
+    const staffFilter = firstCandidates.length === 1 ? (firstCandidates[0] ?? null) : null;
     const option = findSlot(input, start, staffFilter)?.options[0];
     if (!option) {
       // Only salon members can act on "outside the rules"; customers (Zalo bot) just see taken.
@@ -154,8 +181,9 @@ export class CreateBookingCommand {
         ? unbookable(requiredOverrides(input, start, staffFilter), req.overrides)
         : slotTaken();
     }
-    const terms = selection.staffTerms.get(option.staffId);
-    if (!terms) throw slotTaken();
+    const lineTerms = option.lines.map((l, i) => selections[i]?.staffTerms.get(l.staffId));
+    if (lineTerms.some((t) => !t) || lineTerms.length !== selections.length) throw slotTaken();
+    const terms = lineTerms as ServiceTerms[];
     // Record and audit only the overrides this booking really needed (audit review).
     const applied =
       req.overrides.length === 0
@@ -180,6 +208,7 @@ export class CreateBookingCommand {
       throw new AppError(422, BOOKING_ERRORS.invalidActorSource, "Source not allowed for caller");
     }
 
+    const total = chainTotal(terms);
     const booking = await tx.booking.create({
       data: {
         salonId,
@@ -197,9 +226,9 @@ export class CreateBookingCommand {
         staffId: option.staffId,
         startsAt: new Date(option.start),
         endsAt: new Date(option.end),
-        totalPriceMinor: BigInt(terms.priceMinor),
-        totalPriceMaxMinor: terms.priceMaxMinor === null ? null : BigInt(terms.priceMaxMinor),
-        currency: selection.currency,
+        totalPriceMinor: BigInt(total.min),
+        totalPriceMaxMinor: total.max === null ? null : BigInt(total.max),
+        currency: selections[0]?.currency ?? ctx.currency,
         ruleOverrides: applied,
         overrideReason: applied.length > 0 ? req.overrideReason : null,
         pendingExpiresAt:
@@ -210,15 +239,92 @@ export class CreateBookingCommand {
       select: { id: true },
     });
 
-    const line = await tx.bookingService.create({
+    for (const [i, plan] of option.lines.entries()) {
+      await this.insertLine(tx, salonId, booking.id, i + 1, selections[i], terms[i], plan);
+    }
+    await tx.bookingStatusHistory.create({
       data: {
         salonId,
         bookingId: booking.id,
+        fromStatus: null,
+        toStatus: decision.status,
+        actorType: actor.kind,
+        actorId: actor.userId,
+      },
+    });
+
+    if (holdId) {
+      await convertHold(tx, holdId, booking.id);
+    } else {
+      // One staff row + one row per unit for every line (the EXCLUDE constraints guard each).
+      for (const plan of option.lines) {
+        await insertOccupancy(tx, {
+          salonId,
+          staffId: plan.staffId,
+          unitIds: plan.unitIds,
+          period: plan.occupancy,
+          booking: booking.id,
+        });
+      }
+    }
+
+    await appendOutbox(tx, {
+      salonId,
+      aggregateType: "booking",
+      aggregateId: booking.id,
+      type: "booking.created",
+      payload: {
+        bookingId: booking.id,
+        status: decision.status,
+        source: req.source,
+        staffId: option.staffId,
+        // Every staff member of the chain (M6.8): notifications reach each of them.
+        staffIds: [...new Set(option.lines.map((l) => l.staffId))],
+        serviceCount: option.lines.length,
+        startsAt: new Date(option.start).toISOString(),
+        // Booking version and actor: notification idempotency keys and "changed by someone else".
+        version: 1,
+        actorType: actor.kind,
+        actorId: actor.kind === "salon_member" ? actor.userId : null,
+      },
+    });
+    if (applied.length > 0 && actor.kind === "salon_member") {
+      await this.audit.record(
+        {
+          action: "booking.rules_overridden",
+          actor: { type: "user", id: actor.userId },
+          salonId,
+          targetType: "booking",
+          targetId: booking.id,
+          metadata: { overrides: applied.join(","), phase: "create" },
+        },
+        tx,
+      );
+    }
+    return { bookingId: booking.id };
+  }
+
+  /** One booking_services row (+ add-ons) with its snapshots (never updated afterwards). */
+  private async insertLine(
+    tx: Tx,
+    salonId: string,
+    bookingId: string,
+    sequence: number,
+    selection: ResolvedSelection | undefined,
+    terms: ServiceTerms | undefined,
+    plan: LinePlan,
+  ): Promise<void> {
+    if (!selection || !terms) throw slotTaken();
+    const line = await tx.bookingService.create({
+      data: {
+        salonId,
+        bookingId,
+        sequence,
         serviceId: selection.serviceId,
         variantId: selection.variantId,
-        staffId: option.staffId,
-        startsAt: new Date(option.start),
-        endsAt: new Date(option.end),
+        staffId: plan.staffId,
+        startsAt: new Date(plan.start),
+        endsAt: new Date(plan.end),
         name: { ...selection.name },
         ...(selection.variantName ? { variantName: { ...selection.variantName } } : {}),
         durationMinutes: terms.durationMinutes,
@@ -243,60 +349,6 @@ export class CreateBookingCommand {
         })),
       });
     }
-    await tx.bookingStatusHistory.create({
-      data: {
-        salonId,
-        bookingId: booking.id,
-        fromStatus: null,
-        toStatus: decision.status,
-        actorType: actor.kind,
-        actorId: actor.userId,
-      },
-    });
-
-    if (holdId) {
-      await convertHold(tx, holdId, booking.id);
-    } else {
-      await insertOccupancy(tx, {
-        salonId,
-        staffId: option.staffId,
-        unitIds: option.unitIds,
-        period: option.occupancy,
-        booking: booking.id,
-      });
-    }
-
-    await appendOutbox(tx, {
-      salonId,
-      aggregateType: "booking",
-      aggregateId: booking.id,
-      type: "booking.created",
-      payload: {
-        bookingId: booking.id,
-        status: decision.status,
-        source: req.source,
-        staffId: option.staffId,
-        startsAt: new Date(option.start).toISOString(),
-        // Booking version and actor: notification idempotency keys and "changed by someone else".
-        version: 1,
-        actorType: actor.kind,
-        actorId: actor.kind === "salon_member" ? actor.userId : null,
-      },
-    });
-    if (applied.length > 0 && actor.kind === "salon_member") {
-      await this.audit.record(
-        {
-          action: "booking.rules_overridden",
-          actor: { type: "user", id: actor.userId },
-          salonId,
-          targetType: "booking",
-          targetId: booking.id,
-          metadata: { overrides: applied.join(","), phase: "create" },
-        },
-        tx,
-      );
-    }
-    return { bookingId: booking.id };
   }
 
   private async rotateManageToken(tx: Tx, bookingId: string): Promise<string> {

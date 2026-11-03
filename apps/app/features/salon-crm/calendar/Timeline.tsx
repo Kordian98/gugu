@@ -198,13 +198,14 @@ export function Timeline({
                       timeZone={timeZone}
                       onPress={onPressItem}
                       onMove={
-                        onMoveItem
+                        // A chain moves by its first block (06 M6.8: reschedule moves every line).
+                        onMoveItem && (i.chain?.index ?? 1) === 1
                           ? (dCols, dMin) => {
                               const target =
                                 staff[Math.min(staff.length - 1, Math.max(0, col + dCols))];
                               const start = minutesInZone(i.start, timeZone) + dMin;
                               if (target && (dCols !== 0 || dMin !== 0)) {
-                                onMoveItem(i.id, target.id, start);
+                                onMoveItem(i.bookingId ?? i.id, target.id, start);
                               }
                             }
                           : undefined
@@ -299,6 +300,9 @@ function BookingBlock({
   const status = t(`timeline.status.${item.status}`);
   const shown = drag ? snapDrag({ col, cols, colWidth, pxPerMin }, drag.dx, drag.dy) : null;
   const time = formatTime(item.start, locale, timeZone);
+  // Multi-service booking: "1/2" marks each staff member's part of the same appointment.
+  const part = item.chain ? t("timeline.chainPart", item.chain) : null;
+  const label = part ? `${item.service} · ${part}` : item.service;
   return (
     <View
       {...(onMove ? pan.panHandlers : {})}
@@ -318,9 +322,9 @@ function BookingBlock({
       <Pressable
         testID={`crm-booking-${item.id}`}
         accessibilityRole="button"
-        accessibilityLabel={`${time} ${item.service}, ${item.customer}, ${status}`}
+        accessibilityLabel={`${time} ${label}, ${item.customer}, ${status}`}
         onPress={() => {
-          if (!moved.current) onPress?.(item.id);
+          if (!moved.current) onPress?.(item.bookingId ?? item.id);
         }}
         style={{
           flex: 1,
@@ -336,7 +340,7 @@ function BookingBlock({
       >
         {h < 40 ? (
           <Text size={12} color={ev.text} numberOfLines={1}>
-            {`${time} · ${item.service}`}
+            {`${time} · ${label}`}
           </Text>
         ) : (
           <>
@@ -344,7 +348,7 @@ function BookingBlock({
               {time}
             </Text>
             <Text role="uiSemiBold" size={13} color={ev.text} numberOfLines={1}>
-              {item.service}
+              {label}
             </Text>
           </>
         )}
