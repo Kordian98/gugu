@@ -30,6 +30,8 @@ after app changes by stopping it). `E2E_WEB_MODE=dev` uses the Metro dev server 
 | Mail | Mailpit, every address `*@e2e.gugu.test`; cleared per run by that domain only | dev mail |
 
 `stack/config.mjs` is the single source of these values and refuses the dev ones. Parallel worktrees can move off the shared defaults with `E2E_PG_DATABASE=gugu_<suffix>`, `E2E_REDIS_DB`, `E2E_API_PORT` and `E2E_WEB_PORT` (Mailpit is shared: other runs clear `*@e2e.gugu.test`).
+`stack/config.mjs` is the single source of these values and refuses the dev ones. A parallel
+worktree can run its own copy with `E2E_DATABASE=gugu_<suffix>_e2e E2E_REDIS_DB=<n> E2E_API_PORT=… E2E_WEB_PORT=…`.
 `ANTHROPIC_API_KEY` is passed through only if you export it; by default the assistant is "not
 configured" and no LLM is called. Zalo runs on the emulator (`ZALO_CLIENT=emulated`).
 
@@ -37,6 +39,7 @@ configured" and no LLM is called. Zalo runs on the emulator (`ZALO_CLIENT=emulat
 
 `global-setup.ts` → `support/seed.ts`, through the public API only. One salon per Playwright
 project × spec area (`roles`, `zalo`, `admin`, `assistant`, `mobile`, `en`, `multi`, `basic`), so parallel
+project × spec area (`roles`, `zalo`, `admin`, `assistant`, `mobile`, `en`, `multi`, `payroll`), so parallel
 files never share an account or a salon. Fixed names, emails (`owner-<area>.<project>@e2e.gugu.test`),
 phones and wall-clock times (Lan 10:00, Mai 11:00, salon hours 08:00–22:00, Asia/Ho_Chi_Minh);
 only the date is "today in VN" because the engine refuses past times. IDs are in `.e2e/seed.json`.
@@ -73,3 +76,4 @@ accounts.
 | `admin.spec.ts` | TOTP-enrolled super admin extends a trial; high-risk suspend needs step-up; owner sees banner and `/admin` denied |
 | `mobile.spec.ts` | 390×844 business panel: tabs, agenda, new-appointment sheet, no horizontal overflow |
 | `smoke-en.spec.ts` | en sign-in and panel copy |
+| `payroll.spec.ts` | owner payroll (note, totals = API), adjustment needs a reason, close + audited reopen, This-month tiles = registry values; staff 403 on payroll and own estimate only (API) |

@@ -44,7 +44,17 @@ export class OfflineSaleService {
       where: {
         salonId: ctx.salonId,
         bookingId,
-        ...(scope.staffId ? { booking: { staffId: scope.staffId } } : {}),
+        // Any line of the member (booking engine read scope; security review L2).
+        ...(scope.staffId
+          ? {
+              booking: {
+                OR: [
+                  { staffId: scope.staffId },
+                  { services: { some: { staffId: scope.staffId } } },
+                ],
+              },
+            }
+          : {}),
       },
     });
     if (!row) throw new AppError(404, OFFLINE_SALE_ERRORS.notFound, "No amount recorded");

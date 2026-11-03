@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  MANAGER_GRANTABLE_PERMISSIONS,
   OWNER_ONLY_PERMISSIONS,
   PLATFORM_PERMISSIONS,
   PLATFORM_ROLE_PERMISSIONS,
@@ -113,6 +114,28 @@ describe("permission matrix", () => {
   it("salon roles never carry platform permissions", () => {
     for (const perms of Object.values(ROLE_PERMISSIONS)) {
       for (const p of perms) expect(p.startsWith("platform.")).toBe(false);
+    }
+  });
+
+  it("payroll: owner only by default, grantable to managers only, own pay for everyone", () => {
+    for (const p of ["payroll.read", "payroll.manage"] as const) {
+      expect(MANAGER_GRANTABLE_PERMISSIONS).toContain(p);
+      // Not owner-only: owner-only permissions can never be granted.
+      expect(OWNER_ONLY_PERMISSIONS).not.toContain(p);
+      expect(ROLE_PERMISSIONS.owner.has(p)).toBe(true);
+      for (const role of ["manager", "receptionist", "staff"] as const) {
+        expect(ROLE_PERMISSIONS[role].has(p)).toBe(false);
+      }
+      expect(effectiveSalonPermissions("manager", { grant: [p] }).has(p)).toBe(true);
+      expect(effectiveSalonPermissions("receptionist", { grant: [p] }).has(p)).toBe(false);
+      expect(effectiveSalonPermissions("staff", { grant: [p] }).has(p)).toBe(false);
+    }
+    for (const role of ["owner", "manager", "receptionist", "staff"] as const) {
+      expect(ROLE_PERMISSIONS[role].has("payroll.self.read")).toBe(true);
+      // The profit view shows service costs: whoever can get payroll.read already sees costs.
+      if (effectiveSalonPermissions(role, { grant: ["payroll.read"] }).has("payroll.read")) {
+        expect(ROLE_PERMISSIONS[role].has("services.cost.read")).toBe(true);
+      }
     }
   });
 });

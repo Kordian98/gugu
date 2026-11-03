@@ -611,6 +611,9 @@ model Salon {
   assistantConversations AssistantConversation[]
   notificationSettings   NotificationSettings?
   privacyExports         PrivacyExport[]
+  commissionPolicies     SalonCommissionPolicy[]
+  payrollMonths          PayrollMonth[]
+  salonCosts             SalonCost[]
 
   @@unique([organizationId, id])
   @@index([organizationId])
@@ -808,8 +811,8 @@ model StaffProfile {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  salon           Salon              @relation(fields: [salonId], references: [id], onDelete: Restrict)
-  member          SalonMember?       @relation(fields: [salonId, salonMemberId], references: [salonId, id], onDelete: Restrict)
+  salon           Salon               @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  member          SalonMember?        @relation(fields: [salonId, salonMemberId], references: [salonId, id], onDelete: Restrict)
   schedules       StaffSchedule[]
   breaks          StaffBreak[]
   timeOff         StaffTimeOff[]
@@ -819,6 +822,9 @@ model StaffProfile {
   bookingServices BookingService[]
   bookingHolds    BookingHold[]
   occupancy       BookingOccupancy[]
+  paySettings     StaffPaySetting[]
+  adjustments     PayrollAdjustment[]
+  payouts         PayrollPayout[]
 
   @@unique([salonId, id])
   @@index([salonId, sortOrder])
@@ -939,6 +945,7 @@ model Service {
   bookingServices      BookingService[]
   bookingHolds         BookingHold[]
   resourceRequirements ServiceResourceRequirement[]
+  commissionOverrides  StaffCommissionOverride[]
 
   @@unique([salonId, id])
   @@index([salonId, sortOrder])
@@ -961,9 +968,10 @@ model ServiceVariant {
   createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  service         Service          @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
-  staff           StaffService[]
-  bookingServices BookingService[]
+  service             Service                   @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  staff               StaffService[]
+  bookingServices     BookingService[]
+  commissionOverrides StaffCommissionOverride[]
 
   @@unique([salonId, id])
   @@index([salonId, serviceId])
@@ -1994,4 +2002,204 @@ model NotificationMemberPref {
 
   @@id([salonId, userId])
   @@map("notification_member_prefs")
+}
+
+// ---------------------------------------------------------------------------------------------
+// Staff pay, commissions, monthly payroll and fixed costs (topic 07, owner request 2026-11-04,
+// ADR-0016). Bookkeeping only: GuGu pays nobody. Figures are estimates before tax and insurance.
+// ---------------------------------------------------------------------------------------------
+
+enum BasePayType {
+  none
+  monthly
+  daily
+  hourly
+
+  @@map("base_pay_type")
+}
+
+enum CommissionBase {
+  price_after_discount
+  price_minus_cost
+
+  @@map("commission_base")
+}
+
+enum CommissionRateKind {
+  percent
+  fixed
+
+  @@map("commission_rate_kind")
+}
+
+enum PayrollAdjustmentKind {
+  bonus
+  deduction
+  advance
+
+  @@map("payroll_adjustment_kind")
+}
+
+enum SalonCostCategory {
+  rent
+  utilities
+  products
+  marketing
+  other
+
+  @@map("salon_cost_category")
+}
+
+/// One effective-dated version of a staff member's pay (history is kept: a change never rewrites
+/// earlier months). The version in force on a date is the latest `effective_from` ≤ that date.
+model StaffPaySetting {
+  id              String      @id @default(uuid(7)) @db.Uuid
+  salonId         String      @map("salon_id") @db.Uuid
+  staffId         String      @map("staff_id") @db.Uuid
+  effectiveFrom   DateTime    @map("effective_from") @db.Date
+  baseType        BasePayType @map("base_type")
+  /// VND per month / working day / hour (by base_type); 0 for none.
+  baseAmountMinor BigInt      @default(0) @map("base_amount_minor")
+  /// Default commission on services, basis points (10 % = 1000).
+  commissionBps   Int         @default(0) @map("commission_bps")
+  currency        String      @default("VND") @db.Char(3)
+  /// Member who saved it (no FK: kept when the user is anonymised, like audit_logs.actor_id).
+  createdByUserId String      @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  staff     StaffProfile              @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+  overrides StaffCommissionOverride[]
+
+  @@unique([salonId, id])
+  @@unique([salonId, staffId, effectiveFrom])
+  @@map("staff_pay_settings")
+}
+
+/// Per-service (variant null) or per-variant commission of one pay version: a % or a fixed VND
+/// amount per service performed. CHECK `staff_commission_overrides_valid` (raw SQL).
+model StaffCommissionOverride {
+  id           String             @id @default(uuid(7)) @db.Uuid
+  salonId      String             @map("salon_id") @db.Uuid
+  paySettingId String             @map("pay_setting_id") @db.Uuid
+  serviceId    String             @map("service_id") @db.Uuid
+  variantId    String?            @map("variant_id") @db.Uuid
+  kind         CommissionRateKind
+  bps          Int?
+  amountMinor  BigInt?            @map("amount_minor")
+
+  paySetting StaffPaySetting @relation(fields: [salonId, paySettingId], references: [salonId, id], onDelete: Restrict)
+  service    Service         @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  variant    ServiceVariant? @relation(fields: [salonId, variantId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, paySettingId])
+  @@map("staff_commission_overrides")
+}
+
+/// Salon-wide commission base, effective-dated (default price after discount when none).
+model SalonCommissionPolicy {
+  id              String         @id @default(uuid(7)) @db.Uuid
+  salonId         String         @map("salon_id") @db.Uuid
+  effectiveFrom   DateTime       @map("effective_from") @db.Date
+  base            CommissionBase
+  createdByUserId String         @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  salon Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@unique([salonId, effectiveFrom])
+  @@map("salon_commission_policies")
+}
+
+/// Manual bonus / deduction / advance for one person and month; reason required, audited, soft
+/// deleted (the row stays for the audit trail). CHECK `payroll_adjustments_valid` (raw SQL).
+model PayrollAdjustment {
+  id              String                @id @default(uuid(7)) @db.Uuid
+  salonId         String                @map("salon_id") @db.Uuid
+  staffId         String                @map("staff_id") @db.Uuid
+  /// First day of the month it belongs to.
+  month           DateTime              @db.Date
+  kind            PayrollAdjustmentKind
+  /// Positive VND; the kind gives the sign.
+  amountMinor     BigInt                @map("amount_minor")
+  reason          String
+  createdByUserId String                @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt       DateTime?             @map("deleted_at") @db.Timestamptz(6)
+  deletedByUserId String?               @map("deleted_by_user_id") @db.Uuid
+
+  staff StaffProfile @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, month])
+  @@map("payroll_adjustments")
+}
+
+/// A closed (or reopened) payroll month. While `closed_at` is set the month is read-only and the
+/// figures come from `snapshot`; no row = open and computed live.
+model PayrollMonth {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  salonId          String    @map("salon_id") @db.Uuid
+  /// First day of the month.
+  month            DateTime  @db.Date
+  closedAt         DateTime? @map("closed_at") @db.Timestamptz(6)
+  closedByUserId   String?   @map("closed_by_user_id") @db.Uuid
+  reopenedAt       DateTime? @map("reopened_at") @db.Timestamptz(6)
+  reopenedByUserId String?   @map("reopened_by_user_id") @db.Uuid
+  /// Payroll rows at closing (contracts `payrollSnapshotSchema`).
+  snapshot         Json?
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon   Salon           @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  payouts PayrollPayout[]
+
+  @@unique([salonId, id])
+  @@unique([salonId, month])
+  @@map("payroll_months")
+}
+
+/// "Paid out on <date>" bookkeeping mark for one person in a closed month. No money moves.
+model PayrollPayout {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  salonId        String   @map("salon_id") @db.Uuid
+  payrollMonthId String   @map("payroll_month_id") @db.Uuid
+  staffId        String   @map("staff_id") @db.Uuid
+  paidOn         DateTime @map("paid_on") @db.Date
+  markedByUserId String   @map("marked_by_user_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  payrollMonth PayrollMonth @relation(fields: [salonId, payrollMonthId], references: [salonId, id], onDelete: Restrict)
+  staff        StaffProfile @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@unique([payrollMonthId, staffId])
+  @@map("payroll_payouts")
+}
+
+/// Owner-entered monthly cost (rent, utilities…). Recurring costs apply from `start_month` until
+/// `end_month` (inclusive, null = ongoing); one-off costs only in `start_month`. Ending a
+/// recurring cost keeps earlier months unchanged. CHECK `salon_costs_valid` (raw SQL).
+model SalonCost {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  salonId         String            @map("salon_id") @db.Uuid
+  name            String
+  category        SalonCostCategory @default(other)
+  amountMinor     BigInt            @map("amount_minor")
+  currency        String            @default("VND") @db.Char(3)
+  recurring       Boolean           @default(true)
+  startMonth      DateTime          @map("start_month") @db.Date
+  endMonth        DateTime?         @map("end_month") @db.Date
+  createdByUserId String            @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime?         @map("deleted_at") @db.Timestamptz(6)
+
+  salon Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, startMonth])
+  @@map("salon_costs")
 }

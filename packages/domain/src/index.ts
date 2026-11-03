@@ -5,3 +5,4 @@ export * from "./ai-import/review";
 export * from "./assistant";
 export * from "./metrics/registry";
 export * from "./subscriptions/plan-notice";
+export * from "./payroll";

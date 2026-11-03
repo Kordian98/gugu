@@ -34,7 +34,12 @@
     "zalo_funnel_events_valid",
     "notification_deliveries_valid",
     "privacy_exports_content_valid",
-    "admin_mfa_factors_step_valid"
+    "admin_mfa_factors_step_valid",
+    "staff_commission_overrides_valid",
+    "staff_pay_settings_valid",
+    "payroll_adjustments_valid",
+    "payroll_months_first_day",
+    "salon_costs_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",
@@ -47,7 +52,8 @@
     "zalo_oa_connections_one_live_per_oa",
     "customer_salon_profiles_one_per_phone",
     "customer_salon_profiles_name_trgm",
-    "privacy_exports_one_in_flight"
+    "privacy_exports_one_in_flight",
+    "staff_commission_overrides_one_per_target"
   ],
   "triggers": [
     "audit_logs_no_update_delete",

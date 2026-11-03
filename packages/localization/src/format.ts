@@ -92,3 +92,32 @@ export function hourInZone(date: Date, timeZone = DEFAULT_SALON_TIMEZONE): numbe
   }).format(date);
   return Number(h);
 }
+
+/** Calendar month "2026-11" → "Tháng 11/2026" (vi) / "November 2026" (en). */
+export function formatMonth(month: string, locale: AppLocale): string {
+  const [y, m] = month.split("-");
+  if (locale === "vi") return `Tháng ${String(Number(m))}/${y ?? ""}`;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${month}-15T12:00:00Z`));
+}
+
+/** Ratio 0.284 → "28,4%" (vi) / "28.4%" (en); one decimal. */
+export function formatPercent(ratio: number, locale: AppLocale): string {
+  return `${new Intl.NumberFormat(tag(locale), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(ratio * 100)}%`;
+}
+
+/** Local date "2026-12-31" → "31/12/2026" (vi) / "Dec 31, 2026" (en); no timezone shift. */
+export function formatLocalDate(date: string, locale: AppLocale): string {
+  return new Intl.DateTimeFormat(tag(locale), {
+    day: locale === "vi" ? "2-digit" : "numeric",
+    month: locale === "vi" ? "2-digit" : "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T12:00:00Z`));
+}

@@ -11,7 +11,7 @@ import {
   insightsSchema,
   revenueKindSchema,
 } from "@gugu/contracts";
-import { METRIC_KEYS, REVENUE_KINDS } from "@gugu/domain";
+import { PERIOD_METRIC_KEYS, REVENUE_KINDS } from "@gugu/domain";
 import { addSalonMember, bearerFor } from "../../../test/factories/identity";
 import {
   createBookableSalon,
@@ -269,7 +269,7 @@ describe("customers & insights (integration)", () => {
           .expect(200)
       ).body,
     );
-    expect(Object.keys(res.metrics).sort()).toEqual([...METRIC_KEYS].sort());
+    expect(Object.keys(res.metrics).sort()).toEqual([...PERIOD_METRIC_KEYS].sort());
     expect(res.metrics["appointments.count"]?.value).toBe(3);
     expect(res.metrics["appointments.completed"]?.value).toBe(2);
     expect(res.metrics["no_show.rate"]?.value).toBeCloseTo(1 / 3);

@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { METRICS, METRIC_KEYS, previousPeriod, ratio } from "./registry";
+import {
+  METRICS,
+  METRIC_KEYS,
+  type MetricDefinition,
+  PERIOD_METRIC_KEYS,
+  PROFIT_METRIC_KEYS,
+  previousPeriod,
+  ratio,
+} from "./registry";
 
 describe("metric catalogue", () => {
   it("money metrics always carry a revenue kind", () => {
@@ -21,5 +29,16 @@ describe("metric catalogue", () => {
   it("ratios are null without a denominator", () => {
     expect(ratio(1, 0)).toBeNull();
     expect(ratio(1, 4)).toBe(0.25);
+  });
+  it("profit metrics: month window, owner permission, every key is profit.*", () => {
+    expect(PROFIT_METRIC_KEYS.length).toBeGreaterThan(0);
+    expect(PERIOD_METRIC_KEYS.length + PROFIT_METRIC_KEYS.length).toBe(METRIC_KEYS.length);
+    for (const k of PROFIT_METRIC_KEYS) {
+      const m: MetricDefinition = METRICS[k];
+      expect(k.startsWith("profit.")).toBe(true);
+      expect(m.requiresPermission).toBe("payroll.read");
+      expect(m.basis).toBeDefined();
+    }
+    for (const k of PERIOD_METRIC_KEYS) expect(k.startsWith("profit.")).toBe(false);
   });
 });

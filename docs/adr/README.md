@@ -18,3 +18,4 @@ One file per decision: `NNNN-<slug>.md`, using the template in `.claude/skills/a
 | [0012](0012-salon-privacy-tools.md) | Salon privacy tools: owner-only export and erasure, async salon export, retention | proposed |
 | [0013](0013-multi-service-chains.md) | Multi-service bookings as chains of lines with their own occupancy (06 M6.8) | proposed |
 | [0015](0015-basic-free-first-year.md) | Basic free for the first year: `free_until` on the subscription, trial ends into free Basic (X25) | proposed |
+| [0016](0016-staff-pay-commission-payroll.md) | Staff pay, commission per booking line, monthly payroll close/reopen, owner profit estimate | proposed |

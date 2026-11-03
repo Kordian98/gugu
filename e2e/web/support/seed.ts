@@ -19,6 +19,7 @@ export const AREAS = [
   "en",
   "multi",
   "basic",
+  "payroll",
 ] as const;
 export type Area = (typeof AREAS)[number];
 
@@ -60,7 +61,13 @@ export const SEED = {
 /** What each area needs on top of the base salon (owner, hours, Lan + Mai, two services, live). */
 const AREA_SPEC: Record<
   Area,
-  { bookings: boolean; staffAccount: boolean; receptionist: boolean; locale: "vi" | "en" }
+  {
+    bookings: boolean;
+    staffAccount: boolean;
+    receptionist: boolean;
+    locale: "vi" | "en";
+    payroll?: boolean;
+  }
 > = {
   roles: { bookings: true, staffAccount: true, receptionist: true, locale: "vi" },
   zalo: { bookings: false, staffAccount: false, receptionist: true, locale: "vi" },
@@ -71,7 +78,15 @@ const AREA_SPEC: Record<
   multi: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
   /** X25: moved from the trial to Basic (free first year, no AI assistant) by global-setup. */
   basic: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
+  payroll: { bookings: true, staffAccount: true, receptionist: false, locale: "vi", payroll: true },
 };
+
+/** Pay settings for the payroll area (ADR-0016): Lan monthly + 10 %, Mai per day + 20 %. */
+export const PAY = {
+  lan: { baseType: "monthly", baseAmount: 8_000_000, commissionPercent: 10 },
+  mai: { baseType: "daily", baseAmount: 300_000, commissionPercent: 20 },
+  rent: { name: "Tiền thuê", category: "rent", amount: 12_000_000 },
+} as const;
 
 export interface SeededSalon {
   project: string;
@@ -182,6 +197,25 @@ export async function seedSalon(project: string, area: Area): Promise<SeededSalo
       ).id;
     }
     bookingIds = ids;
+  }
+
+  if (spec.payroll) {
+    const from = `${today.slice(0, 7)}-01`;
+    for (const key of ["lan", "mai"] as const) {
+      await owner.call(`/salons/${S}/payroll/staff/${staffIds[key]}/pay`, "PUT", {
+        effectiveFrom: from,
+        ...PAY[key],
+      });
+    }
+    await owner.call(`/salons/${S}/costs`, "POST", { ...PAY.rent, month: today.slice(0, 7) });
+    // Bookings already started today are completed (earned); later ones stay projected.
+    for (const key of ["lanToday", "maiToday"] as const) {
+      if (bookingIds && SEED.bookings[key].time <= vnNow()) {
+        await owner.call(`/salons/${S}/bookings/${bookingIds[key]}/transitions`, "POST", {
+          to: "completed",
+        });
+      }
+    }
   }
 
   // Member accounts join through the real invitation API (the invite UI is covered in roles.spec).
