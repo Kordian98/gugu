@@ -33,9 +33,6 @@ import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
-import { checkToolResult } from "../assistant/firewall/allowlist";
-import type { TokenVault } from "../assistant/firewall/token-vault";
-import { ReadTools } from "../assistant/tools/read-tools";
 import { BookingClock } from "../bookings/bookings.facade";
 import { PayrollClock } from "./salon-crm.facade";
 
@@ -632,7 +629,7 @@ describe("payroll, commissions and profit (integration)", () => {
       .expect(403);
   });
 
-  it("profit view: tiles match the registry; assistant gets totals only (PII firewall)", async () => {
+  it("profit view: tiles match the registry and add up", async () => {
     now = new Date(vnAt("2026-12-15", "12:00"));
     const p = profitSchema.parse(
       (
@@ -657,43 +654,6 @@ describe("payroll, commissions and profit (integration)", () => {
     expect(b.revenueEarnedRecorded).toBe(280_000);
     expect(p.metrics["profit.revenue_earned_recorded"]?.revenueKind).toBe("recorded_offline_sale");
     expect(p.metrics["profit.no_show_allowance"]?.basis).toBe("assumption");
-
-    const tools = app.get(ReadTools, { strict: false });
-    const tool = tools.all().find((t) => t.name === "month_profit");
-    if (!tool) throw new Error("month_profit tool missing");
-    expect(tool.permission).toBe("payroll.read");
-    const tokens = new Map<string, string>();
-    const vault = {
-      tokenFor: (kind: string, id: string) => {
-        const k = `${kind}:${id}`;
-        if (!tokens.has(k)) tokens.set(k, `${kind}_${String(tokens.size + 1)}`);
-        return Promise.resolve(tokens.get(k) ?? "");
-      },
-    } as unknown as TokenVault;
-    const out = await tool.handler(
-      {
-        salonId: s.salonId,
-        timeZone: "Asia/Ho_Chi_Minh",
-        permissions: new Set(["payroll.read"]),
-        vault,
-        now: () => now.getTime(),
-      },
-      tool.input.parse({ date: "2026-12-15" }),
-    );
-    const checked = checkToolResult(tool.output, out);
-    expect(checked.ok).toBe(true);
-    // Parity with the Insights tile and no personal data: no salary, no staff, no names.
-    expect((out as { netProfitVnd: number }).netProfitVnd).toBe(v("profit.net"));
-    const json = JSON.stringify(out);
-    expect(json).not.toContain(String(SALARY_CANARY));
-    expect(json).not.toMatch(/staff_|Linh|Mai/);
-    expect(tokens.size).toBe(0);
-    // A mutated result with a per-person salary is withheld by the allowlist.
-    const leak = { ...(out as object), staff: [{ staff: "staff_1", salaryVnd: SALARY_CANARY }] };
-    expect(checkToolResult(tool.output, leak).ok).toBe(false);
-    expect(checkToolResult(tool.output, { ...(out as object), note: "Linh earns a lot" }).ok).toBe(
-      false,
-    );
   });
 
   it("constraints: checks, one override per target, no cross-tenant references", async () => {

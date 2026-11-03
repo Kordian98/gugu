@@ -156,8 +156,8 @@ Owner request 2026-11-04. Bookkeeping only: GuGu moves no money and computes no 
 | `apps/api/src/modules/salon-crm/payroll/` | `payroll-data.ts` (loader, `PayrollClock`), `payroll-engine.ts` (stale rule, month DTO, snapshot), `payroll.service.ts`, `pay-settings.service.ts`, `salon-costs.service.ts`, `payroll-export.ts` (CSV with BOM + formula guard, minimal XLSX) |
 | `apps/api/src/modules/salon-crm/http/payroll.controller.ts` | Payroll, settings, costs endpoints |
 | `apps/api/src/modules/insights/application/profit.service.ts` | Profit view; registry key → value map (exhaustive) |
-| `apps/api/src/modules/assistant/tools/read-tools.ts` | `month_profit` tool |
-| `apps/api/src/modules/salon-crm/payroll.int.test.ts` | Integration suite (chain split, discount, policy, tz boundaries, adjustments, close/reopen/paid, export, permissions, tenant isolation, costs, profit/registry/assistant firewall) |
+| `apps/api/src/modules/assistant/tools/read-tools.ts` | `month_profit` tool; test `assistant/month-profit.int.test.ts` (parity with the profit view, PII allowlist, salary canary) |
+| `apps/api/src/modules/salon-crm/payroll.int.test.ts` | Integration suite (chain split, discount, policy, tz boundaries, adjustments, close/reopen/paid, export, permissions, tenant isolation, costs, profit tiles = registry, DB constraints) |
 | `apps/app/features/salon-crm/data/payroll.ts` | Hooks (query keys include salonId) |
 | `apps/app/features/salon-crm/pages/payroll/` | `PayrollScreen`, `StaffPayrollSheet`, `PaySheet` (also from Team → "Lương"), `parts` |
 | `apps/app/features/salon-crm/pages/insights/ProfitView.tsx` | Insights → "Tháng này / This month" (4 tiles, breakdown, fixed costs) |
