@@ -224,7 +224,7 @@ describe("subscriptions & entitlements (integration)", () => {
     await facade.endDueTrials();
     const sub = await prisma.subscription.findFirstOrThrow({
       where: { salonId },
-      include: { events: true },
+      include: { events: { orderBy: { occurredAt: "asc" } } },
     });
     expect(sub.status).toBe("expired");
     expect(sub.events.map((e) => [e.fromStatus, e.toStatus])).toEqual([
