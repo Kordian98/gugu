@@ -38,7 +38,7 @@ Only the API shell exists: no domain tables yet (the first migration creates ext
 | Module | Path | Tables owned | Events emitted | Read models | Status |
 |---|---|---|---|---|---|
 | health | `apps/api/src/modules/health` | — | — | — (`GET /api/v1/health` readiness: DB + Redis, 200/503; `/health/live`) | implemented |
-| zalo (topic 09) | `apps/api/src/modules/zalo` | zalo_oa_connections, zalo_conversations, zalo_messages, zalo_webhook_events, zalo_send_logs, zalo_booking_links, zalo_staff_notifications | — (consumes `booking.*` outbox events with its own cursor until 04-S5) | `/api/v1/salons/:salonId/zalo/*`; see `docs/domains/zalo.md` |
+| zalo (topic 09) | `apps/api/src/modules/zalo` | zalo_oa_connections, zalo_conversations, zalo_messages, zalo_webhook_events, zalo_send_logs, zalo_booking_links, zalo_staff_notifications | — (consumes `booking.created`, `booking.status_changed`, `booking.rescheduled` via the outbox relay: `ZaloBookingEventsHandler`) | `/api/v1/salons/:salonId/zalo/*`; see `docs/domains/zalo.md` |
 | assistant (topic 08) | `apps/api/src/modules/assistant` | assistant_conversations, assistant_messages, assistant_entity_tokens, assistant_tool_calls | — | `/api/v1/salons/:salonId/assistant` (status, SSE turns); see `docs/domains/ai-agent.md` |
 | subscriptions (topic 12) | `apps/api/src/modules/subscriptions` | plans, plan_prices, plan_entitlements, subscriptions, subscription_events, entitlement_overrides | — | `GET /api/v1/salons/:salonId/entitlements` | M12.1 implemented; see `docs/domains/monetization-admin.md` |
 

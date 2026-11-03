@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
-import { BookingUpdatesService } from "./booking-updates.service";
 import { ConnectionService } from "./connection.service";
 import { InboundService } from "./inbound.service";
 import { OutboundService } from "./outbound.service";
@@ -19,7 +18,6 @@ export class ZaloJobs {
     private readonly inbound: InboundService,
     private readonly outbound: OutboundService,
     private readonly reminders: RemindersService,
-    private readonly updates: BookingUpdatesService,
     private readonly staffRelease: StaffReleaseService,
     private readonly funnelSweep: FunnelSweepService,
     private readonly connections: ConnectionService,
@@ -40,11 +38,10 @@ export class ZaloJobs {
   }
 
   async minute() {
-    const updates = await this.updates.scan();
     const reminders = await this.reminders.scan();
     const released = await this.staffRelease.sweep();
     await this.funnelSweep.sweep();
-    return { updates: updates.queued, reminders: reminders.queued, released: released.released };
+    return { reminders: reminders.queued, released: released.released };
   }
 
   refreshTokens() {

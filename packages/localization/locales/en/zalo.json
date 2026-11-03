@@ -279,6 +279,17 @@
       "free": "Free messages",
       "costNote": "Zalo charges the salon's Zalo wallet; figures are estimates.",
       "empty": "No Zalo activity in this period."
+    },
+    "insights": {
+      "title": "Zalo",
+      "subtitle": "Booking assistant in the salon's Zalo OA",
+      "customers": "Customers in contact",
+      "bookings": "Bookings via Zalo",
+      "conversion": "Conversion",
+      "cost": "Message costs",
+      "topLost": "Top lost reason: {{reason}} ({{count}})",
+      "open": "Open Zalo statistics",
+      "none": "No Zalo activity in this period."
     }
   }
 }

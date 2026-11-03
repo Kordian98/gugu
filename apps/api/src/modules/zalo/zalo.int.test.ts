@@ -25,6 +25,7 @@ import { ZaloJobs } from "./application/zalo-jobs";
 import { computeZaloSignature } from "./domain/signature";
 import { ZaloEmulatorController, type EmulatorEvent } from "./emulator/emulator.controller";
 import { EMULATOR_APP_ID, EmulatorStore, type OutboxEntry } from "./emulator/emulator-store";
+import { ZaloBookingEventsHandler } from "./application/booking-events.handler";
 import { ZaloWorkerModule } from "./zalo.module";
 
 let now = new Date("2026-12-01T01:00:00Z"); // 08:00 in Ho Chi Minh City
@@ -347,6 +348,38 @@ describe("Zalo integration (emulator, end to end)", () => {
       .get(`/api/v1/salons/${s.salonId}/zalo/stats?from=2026-12-01&to=2026-12-01`)
       .set("authorization", await bearerFor(app, other.ownerUserId))
       .expect(404);
+  });
+
+  it("tells the customer when the salon cancels, via the outbox relay event (once, even if redelivered)", async () => {
+    await connect();
+    const bookingId = await bookViaBot();
+    const before = (await store.outbox(oaId, userId)).length;
+    await http()
+      .post(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/transitions`)
+      .set("authorization", owner)
+      .set("idempotency-key", `cancel-${bookingId}`)
+      .send({ to: "cancelled_by_salon", reason: "Nhân viên nghỉ ốm" })
+      .expect(200);
+    const row = await prisma.outboxEvent.findFirstOrThrow({
+      where: { aggregateId: bookingId, type: "booking.status_changed" },
+      orderBy: { occurredAt: "desc" },
+    });
+    const event = {
+      id: row.id,
+      salonId: row.salonId,
+      aggregateType: row.aggregateType,
+      aggregateId: row.aggregateId,
+      type: row.type,
+      payload: row.payload as Record<string, unknown>,
+      occurredAt: row.occurredAt.toISOString(),
+    };
+    const handler = app.get(ZaloBookingEventsHandler);
+    await Promise.all([handler.handle(event), handler.handle(event)]); // at-least-once delivery
+    await handler.handle(event);
+    await drain();
+    const sent = (await store.outbox(oaId, userId)).slice(before);
+    expect(sent).toHaveLength(1);
+    expect(lastText(sent).text).toContain("đã hủy lịch hẹn");
   });
 
   it("hands off to staff, acknowledges once, lets staff reply and release back to the bot", async () => {
