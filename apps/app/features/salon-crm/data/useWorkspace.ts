@@ -6,7 +6,7 @@ import { DEFAULT_SALON_TIMEZONE } from "@gugu/localization";
 import { useAuth } from "@/services/auth/AuthProvider";
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { dayTimeline, isActive, serviceLabel, useBookings } from "./bookings";
+import { dayTimeline, isActive, serviceLabel, useBookings, customerLabel } from "./bookings";
 import { useOnboarding, useTeam } from "./catalog";
 import { salonDate } from "./dates";
 import { demoWorkspace } from "./demo";
@@ -55,7 +55,10 @@ export function useWorkspace(): Workspace {
       .map((b) => ({
         id: b.id,
         start: new Date(b.startsAt),
-        customer: b.customer?.name ?? t("booking.walkIn"),
+        customer: customerLabel(b, {
+          walkIn: t("booking.walkIn"),
+          deleted: t("booking.deletedCustomer"),
+        }),
         service: serviceLabel(b, locale),
         staff: staffList.find((s) => s.id === b.staffId)?.displayName ?? "",
         estimatedVnd: b.totalPriceMinor,
@@ -107,6 +110,7 @@ export function useWorkspace(): Workspace {
       staff: bookable.map((s) => ({ id: s.id, name: s.displayName })),
       items: dayTimeline(raw, bookable, today, tz, locale, {
         walkIn: t("booking.walkIn"),
+        deleted: t("booking.deletedCustomer"),
         timeOff: t("calendar.timeOff"),
       }),
       upcoming,

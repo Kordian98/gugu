@@ -4,13 +4,13 @@ import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { CalmButton, CalmCard, Icon, Text, useCalm } from "@gugu/design-system";
-import type { SalonBooking } from "@gugu/contracts";
+import type { RuleOverride, SalonBooking } from "@gugu/contracts";
 import { DEFAULT_SALON_TIMEZONE, formatDateLong } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { Timeline } from "../../calendar/Timeline";
-import { dayTimeline, hourRange, useReschedule } from "../../data/bookings";
+import { dayTimeline, hourRange, requiredOverrides, useReschedule } from "../../data/bookings";
 import { addDays, instantAt, isoWeekday, minutesInZone, salonDate } from "../../data/dates";
 import { useSalon } from "../../data/SalonContext";
 import { useWorkspace } from "../../data/useWorkspace";
@@ -19,6 +19,7 @@ import { useBreakpoint } from "../../shell/useBreakpoint";
 import { EmptyState } from "../../ui/EmptyState";
 import { useErrorText } from "../../ui/errors";
 import { ErrorBanner } from "../../ui/form";
+import { OverridePrompt } from "../../ui/OverridePrompt";
 import { AgendaList } from "./AgendaList";
 import { BookingSheet } from "./BookingSheet";
 import { NewAppointmentSheet, type NewAppointmentPrefill } from "./NewAppointmentSheet";
@@ -39,7 +40,7 @@ export function CalendarScreen() {
   const params = useLocalSearchParams<{ new?: string; date?: string }>();
   const errorText = useErrorText();
   const mobile = bp === "mobile";
-  const { summary } = useSalon();
+  const { summary, can } = useSalon();
   const tz = summary?.timezone ?? DEFAULT_SALON_TIMEZONE;
   const today = salonDate(new Date(), tz);
   const [date, setDate] = useState(params.date ?? today);
@@ -48,12 +49,33 @@ export function CalendarScreen() {
   const [creating, setCreating] = useState<NewAppointmentPrefill | null>(null);
   const [focus, setFocus] = useState<string>("all");
   const reschedule = useReschedule();
+  // A drop outside the rules (after hours, short notice): ask for a reason, then retry (06, audited).
+  const [overridePending, setOverridePending] = useState<{
+    id: string;
+    body: { startsAt: string; staffId?: string };
+    codes: RuleOverride[];
+  } | null>(null);
+  const moveTo = (id: string, body: { startsAt: string; staffId?: string }) => {
+    reschedule.mutate(
+      { id, body },
+      {
+        onError: (e) => {
+          const codes = requiredOverrides(e);
+          if (codes?.length && can("bookings.override_rules"))
+            setOverridePending({ id, body, codes });
+        },
+      },
+    );
+  };
+  const rescheduleError = requiredOverrides(reschedule.error) ? null : reschedule.error;
 
   const hasServices = day.services.data?.items.some((s) => s.isActive) ?? false;
   // `?new=1` (header "New appointment"): open the sheet once services are known; without an
   // active service, explain the prerequisites instead.
   const wantsNew = params.new === "1" && !day.services.isPending;
-  const sheet = creating ?? (wantsNew && hasServices ? { date: today } : null);
+  // Start on the day being viewed (never in the past).
+  const sheet =
+    creating ?? (wantsNew && hasServices ? { date: date < today ? today : date } : null);
   const closeNew = () => {
     setCreating(null);
     if (params.new) router.setParams({ new: undefined });
@@ -71,6 +93,7 @@ export function CalendarScreen() {
     () =>
       dayTimeline(items, staff, date, tz, locale, {
         walkIn: t("booking.walkIn"),
+        deleted: t("booking.deletedCustomer"),
         timeOff: t("calendar.timeOff"),
       }),
     [items, staff, date, tz, locale, t],
@@ -129,8 +152,8 @@ export function CalendarScreen() {
       </View>
       <ErrorBanner
         text={
-          reschedule.error
-            ? `${errorText(reschedule.error) ?? ""} ${t("calendar.dragRevertHint")}`
+          rescheduleError
+            ? `${errorText(rescheduleError) ?? ""} ${t("calendar.dragRevertHint")}`
             : null
         }
       />
@@ -230,12 +253,9 @@ export function CalendarScreen() {
               !mobile && (ws.role ?? "staff") !== "staff"
                 ? (id, staffId, minutes) => {
                     const b = items.find((x) => x.id === id);
-                    reschedule.mutate({
-                      id,
-                      body: {
-                        startsAt: instantAt(date, minutes, tz),
-                        ...(b && b.staffId !== staffId ? { staffId } : {}),
-                      },
+                    moveTo(id, {
+                      startsAt: instantAt(date, minutes, tz),
+                      ...(b && b.staffId !== staffId ? { staffId } : {}),
                     });
                   }
                 : undefined
@@ -244,6 +264,27 @@ export function CalendarScreen() {
         )}
       </CalmCard>
 
+      {overridePending ? (
+        <OverridePrompt
+          codes={overridePending.codes}
+          busy={reschedule.isPending}
+          onCancel={() => {
+            setOverridePending(null);
+            reschedule.reset();
+          }}
+          onConfirm={(reason) => {
+            const p = overridePending;
+            reschedule.mutate(
+              { id: p.id, body: { ...p.body, overrides: p.codes, overrideReason: reason } },
+              {
+                onSettled: () => {
+                  setOverridePending(null);
+                },
+              },
+            );
+          }}
+        />
+      ) : null}
       {open ? (
         <BookingSheet
           key={open.id}

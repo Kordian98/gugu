@@ -24,6 +24,8 @@ export interface MetricDefinition {
   definition: string;
   /** Safe for the AI assistant: aggregate only, no personal data (X10). */
   agentExposed: boolean;
+  /** "now": a snapshot from now on (no previous period), e.g. upcoming appointments. */
+  window?: "now";
   /** Only computed for readers with this permission (otherwise omitted from the response). */
   requiresPermission?: "services.cost.read";
 }
@@ -34,6 +36,15 @@ export const METRICS = {
     readModels: ["bookings"],
     definition: "Appointments starting in the period, excluding cancelled ones.",
     agentExposed: true,
+  },
+  "appointments.upcoming": {
+    unit: "count",
+    readModels: ["bookings"],
+    definition:
+      "Active appointments (pending, confirmed) starting from now on, within the booking window. " +
+      "A snapshot: independent of the selected period, no previous value.",
+    agentExposed: true,
+    window: "now",
   },
   "appointments.completed": {
     unit: "count",

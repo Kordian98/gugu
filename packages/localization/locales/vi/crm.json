@@ -509,7 +509,10 @@
     },
     "findEarliest": "Tìm giờ sớm nhất",
     "earliestTitle": "Giờ trống sớm nhất",
-    "dragUnavailable": "Khung giờ bạn vừa chọn không còn trống."
+    "dragUnavailable": "Khung giờ bạn vừa chọn không còn trống.",
+    "overrideOn": "Đặt ngoài giờ / ngoài quy định",
+    "overrideOff": "Quay lại giờ trống",
+    "overrideExplain": "Nhập giờ bất kỳ (ngoài giờ mở cửa, sát giờ…) kèm lý do. Lịch vẫn không được trùng với lịch khác của nhân viên. Thao tác được ghi nhật ký."
   },
   "booking": {
     "title": "Lịch hẹn {{code}}",
@@ -583,7 +586,8 @@
     "cancelConfirm": "Huỷ lịch hẹn",
     "rescheduleTitle": "Chọn giờ mới",
     "sameStaff": "Cùng nhân viên",
-    "resources": "Phòng / thiết bị"
+    "resources": "Phòng / thiết bị",
+    "deletedCustomer": "Khách đã xoá tài khoản"
   },
   "wizard": {
     "later": "Để sau",
@@ -704,7 +708,7 @@
       "d90": "90 ngày"
     },
     "metrics": {
-      "appointments_count": "Lịch hẹn",
+      "appointments_count": "Lịch hẹn trong kỳ",
       "appointments_completed": "Hoàn thành",
       "customers_new": "Khách mới",
       "customers_returning": "Khách quay lại",
@@ -712,7 +716,8 @@
       "cancellation_rate": "Tỷ lệ huỷ",
       "revenue_estimated": "Doanh thu ước tính",
       "revenue_offline_recorded": "Đã ghi nhận tại salon",
-      "margin_estimated": "Lợi nhuận gộp ước tính"
+      "margin_estimated": "Lợi nhuận gộp ước tính",
+      "appointments_upcoming": "Lịch hẹn sắp tới"
     },
     "vsPrevious": "so với kỳ trước",
     "noPrevious": "Kỳ trước chưa có số liệu",
@@ -727,7 +732,9 @@
     "ownScope": "Bạn đang xem số liệu từ lịch hẹn của chính mình.",
     "forbiddenTitle": "Bạn chưa có quyền xem báo cáo",
     "forbiddenBody": "Chủ salon có thể cấp quyền xem báo cáo trong mục Nhân viên.",
-    "marginHint": "Giá dịch vụ trừ chi phí nội bộ, tính trên lịch hẹn đã hoàn thành có nhập chi phí."
+    "marginHint": "Giá dịch vụ trừ chi phí nội bộ, tính trên lịch hẹn đã hoàn thành có nhập chi phí.",
+    "fromNow": "Từ bây giờ, không phụ thuộc kỳ đã chọn",
+    "range": "{{from}} – {{to}} (lịch bắt đầu trong kỳ)"
   },
   "today": {
     "unassignedServices": "{{count}} dịch vụ chưa có nhân viên thực hiện — khách và Zalo không đặt được.",
@@ -760,5 +767,31 @@
     "deleteTypeInUse": "Đang có {{count}} dịch vụ cần loại này. Bỏ yêu cầu trong từng dịch vụ trước khi xoá.",
     "deleteResource": "Xoá {{name}}",
     "active": "Bật/tắt {{name}}"
+  },
+  "myDay": {
+    "total": "{{count}} lịch hôm nay",
+    "done": "{{count}} xong",
+    "left": "{{count}} còn lại",
+    "now": "Đang phục vụ",
+    "next": "Khách tiếp theo",
+    "walkIn": "Khách vãng lai",
+    "open": "Mở lịch hẹn",
+    "call": "Gọi khách",
+    "today": "Hôm nay · {{date}}",
+    "emptyTitle": "Hôm nay chưa có lịch",
+    "emptyBody": "Lịch hẹn của anh/chị sẽ hiện ở đây.",
+    "week": "Xem lịch cả tuần",
+    "subtitle": "Lịch của anh/chị hôm nay, {{date}}"
+  },
+  "override": {
+    "title": "Ngoài quy định đặt lịch — vẫn đặt?",
+    "confirm": "Vẫn đặt",
+    "body": "Lịch vẫn không được trùng lịch khác. Lý do sẽ được ghi vào nhật ký.",
+    "placeholder": "VD: khách quen xin đến sớm",
+    "codes": {
+      "hours": "Ngoài giờ làm việc",
+      "lead_time": "Quá sát giờ",
+      "horizon": "Ngoài khoảng nhận đặt lịch"
+    }
   }
 }

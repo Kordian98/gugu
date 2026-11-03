@@ -9,6 +9,7 @@ import type {
   OfflineSale,
   OfflineSaleInput,
   RescheduleInput,
+  RuleOverride,
   SalonBooking,
   StaffMember,
   TransitionInput,
@@ -157,6 +158,18 @@ function useBookingMutation<TVars, TResult>(
   });
 }
 
+/**
+ * 409 booking.override_required (06): the rules this time breaks (after hours, short notice, beyond
+ * the window). Retry with these `overrides` + a reason; the API audits it. Null for other errors.
+ */
+export function requiredOverrides(e: unknown): RuleOverride[] | null {
+  if (!(e instanceof ApiError) || e.code !== "booking.override_required") return null;
+  const codes = (e.problem?.errors ?? []).filter((x) => x.path === "overrides").map((x) => x.code);
+  return codes.filter(
+    (c): c is RuleOverride => c === "hours" || c === "lead_time" || c === "horizon",
+  );
+}
+
 export const useCreateBooking = () =>
   useBookingMutation((s, body: CreateSalonBookingInput, idem) =>
     apiFetch<SalonBooking>(`/salons/${s}/bookings`, {
@@ -193,6 +206,15 @@ export const useRecordSale = () =>
     }),
   );
 
+/** Client label: the name, "Walk-in", or "Deleted customer" after an account deletion (q71). */
+export function customerLabel(
+  b: Pick<SalonBooking, "customer" | "customerAnonymised">,
+  labels: { walkIn: string; deleted: string },
+): string {
+  if (b.customerAnonymised) return labels.deleted;
+  return b.customer?.name ?? labels.walkIn;
+}
+
 /** Localized booking service name ("Sơn gel · Tay"). */
 export function serviceLabel(b: SalonBooking, locale: "vi" | "en"): string {
   const name = (locale === "en" && b.service.name.en) || b.service.name.vi;
@@ -212,7 +234,7 @@ export function dayTimeline(
   date: string,
   tz: string,
   locale: "vi" | "en",
-  labels: { walkIn: string; timeOff: string },
+  labels: { walkIn: string; timeOff: string; deleted: string },
 ): TimelineItem[] {
   const items: TimelineItem[] = [];
   for (const b of bookings) {
@@ -226,7 +248,7 @@ export function dayTimeline(
       end: new Date(b.endsAt),
       status,
       service: serviceLabel(b, locale),
-      customer: b.customer?.name ?? labels.walkIn,
+      customer: customerLabel(b, labels),
     });
   }
   const weekday = isoWeekday(date);

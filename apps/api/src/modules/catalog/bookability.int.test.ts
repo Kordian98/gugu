@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   availabilitySchema,
   earliestSlotsSchema,
+  insightsSchema,
   onboardingSchema,
   type ServiceInput,
   serviceSchema,
@@ -225,5 +226,33 @@ describe("bookability defaults & unavailable reasons (integration)", () => {
     const closed = await earliest({ serviceId: s.serviceId });
     expect(closed.slots).toEqual([]);
     expect(closed.unavailableReason).toBe("fully_booked");
+  });
+
+  it("insights: upcoming appointments are a separate snapshot metric (period ends today)", async () => {
+    await prisma.salonHoliday.deleteMany({ where: { salonId: s.salonId } }); // earlier test closed it
+    const day = addDays(today, 1);
+    await api()
+      .post(`/api/v1/salons/${s.salonId}/bookings`)
+      .set("authorization", owner)
+      .set("idempotency-key", `t-${String(Date.now())}`)
+      .send({
+        serviceId: s.serviceId,
+        staffId: s.staffIds[0],
+        startsAt: new Date(`${day}T10:00:00+07:00`).toISOString(),
+        customer: { name: "Khách Ngày Mai", phone: "0912 444 555" },
+        source: "phone",
+      })
+      .expect(201);
+    const res = insightsSchema.parse(
+      (
+        await api()
+          .get(`/api/v1/salons/${s.salonId}/insights`)
+          .query({ from: addDays(today, -29), to: today })
+          .set("authorization", owner)
+          .expect(200)
+      ).body,
+    );
+    expect(res.metrics["appointments.count"]?.value).toBe(0);
+    expect(res.metrics["appointments.upcoming"]).toMatchObject({ value: 1, previous: null });
   });
 });

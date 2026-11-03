@@ -26,7 +26,7 @@ export function PageHeader({
   const { t } = useTranslation("crm");
   const { t: tc } = useTranslation();
   const bp = useBreakpoint();
-  const { go } = useCrmNav();
+  const { go, newAppointment } = useCrmNav();
   const [query, setQuery] = useState("");
   const [bellOpen, setBellOpen] = useState(false);
   const mobile = bp === "mobile";
@@ -93,7 +93,7 @@ export function PageHeader({
               icon="plus"
               label={t("shell.newAppointment")}
               onPress={() => {
-                go("/business/calendar?new=1");
+                newAppointment();
               }}
             />
             <View>

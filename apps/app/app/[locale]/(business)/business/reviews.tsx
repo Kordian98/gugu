@@ -1,5 +1,7 @@
-import { SectionScreen } from "@/features/salon-crm/pages/SectionScreen";
+import { Redirect, useLocalSearchParams } from "expo-router";
 
+/** Reviews arrive with topic 11; until then the page is hidden from the nav and redirects home. */
 export default function Screen() {
-  return <SectionScreen id="reviews" />;
+  const { locale } = useLocalSearchParams<{ locale?: string }>();
+  return <Redirect href={`/${locale ?? "vi"}/business` as never} />;
 }
