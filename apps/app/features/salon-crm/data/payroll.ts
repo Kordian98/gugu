@@ -5,6 +5,7 @@ import type {
   CommissionBulkInput,
   CommissionLines,
   CommissionPolicyInput,
+  MyCommissionLines,
   MyEarnings,
   PayrollAdjustment,
   PayrollExport,
@@ -72,7 +73,7 @@ export const useCommissionLines = (staffId: string | null, month: string) =>
 
 /** The member's own commission lines (payroll.self.read); only when they have a staff profile. */
 export const useMyLines = (month: string, enabled = true) =>
-  useGated<CommissionLines>(
+  useGated<MyCommissionLines>(
     ["me", "lines", month],
     (s) => `/salons/${s}/payroll/me/lines?month=${month}`,
     enabled,

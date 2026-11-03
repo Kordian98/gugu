@@ -1065,7 +1065,10 @@
       "total": "To pay",
       "paidOn": "Paid on",
       "totals": "Total",
-      "note": "Estimates before personal income tax and social insurance, for bookkeeping only."
+      "note": "Estimates before personal income tax and social insurance, for bookkeeping only.",
+      "gross": "Pay (gross)",
+      "realCost": "Real cost",
+      "realCostNote": "Real cost = gross pay + taxes/insurance as entered by the salon (GuGu does not calculate them)."
     },
     "services": "Services: {{count}}",
     "tabs": {

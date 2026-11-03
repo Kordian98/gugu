@@ -8,6 +8,8 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   commissionLinesSchema,
+  myCommissionLinesSchema,
+  payrollExportSchema,
   type PayrollMonth,
   type PayrollRow,
   payrollMonthSchema,
@@ -202,6 +204,9 @@ describe("payroll UX: bulk commission, own lines, employer cost (integration)", 
       where: { salonId: s.salonId, action: "payroll.commission_bulk_saved" },
     });
     expect(audit.metadata).toMatchObject({ staff: 2, versions: 3, target: "default" });
+    // Who was changed is recorded (ids only, never the rate).
+    expect((audit.metadata as { staffIds: string[] }).staffIds.sort()).toEqual([linh, mai].sort());
+    expect(JSON.stringify(audit.metadata)).not.toMatch(/"(rate|percent|amount)"/);
   });
 
   it("bulk own rate per service: set in every later version, then removed", async () => {
@@ -228,6 +233,82 @@ describe("payroll UX: bulk commission, own lines, employer cost (integration)", 
     }).expect(200);
     l = await pay(linh);
     expect(l.versions.every((v) => v.overrides.length === 0)).toBe(true);
+  });
+
+  it("bulk audit names the services; a deleted service cannot get a new own rate", async () => {
+    await bulk({
+      effectiveFrom: "2026-12-16",
+      staffIds: [mai],
+      change: {
+        target: "override",
+        services: [{ serviceId: s.serviceId, variantId: s.variantId }],
+        rate: { kind: "percent", percent: 25 },
+      },
+    }).expect(200);
+    const audit = await prisma.auditLog.findFirstOrThrow({
+      where: { salonId: s.salonId, action: "payroll.commission_bulk_saved" },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(audit.metadata).toMatchObject({
+      target: "override",
+      staffIds: [mai],
+      services: [{ serviceId: s.serviceId, variantId: s.variantId }],
+      removed: false,
+    });
+    expect(JSON.stringify(audit.metadata)).not.toMatch(/"(rate|percent|amount)"/);
+    // Soft-delete a spare service: a new own rate on it is refused (422)…
+    const spare = await prisma.service.create({
+      data: {
+        salonId: s.salonId,
+        name: { vi: "Dịch vụ cũ", en: "Old service" },
+        priceAmountMinor: 100_000n,
+        durationMinutes: 30,
+      },
+    });
+    await bulk({
+      effectiveFrom: "2026-12-16",
+      staffIds: [mai],
+      change: {
+        target: "override",
+        services: [{ serviceId: spare.id }],
+        rate: { kind: "percent", percent: 5 },
+      },
+    }).expect(200);
+    await prisma.service.update({ where: { id: spare.id }, data: { deletedAt: new Date() } });
+    await bulk({
+      effectiveFrom: "2026-12-16",
+      staffIds: [linh],
+      change: {
+        target: "override",
+        services: [{ serviceId: spare.id }],
+        rate: { kind: "percent", percent: 5 },
+      },
+    }).expect(422);
+    // …but the pay sheet can still be saved with the own rate Mai already had on it.
+    const m = await pay(mai);
+    const v = m.versions.find((x) => x.effectiveFrom === "2026-12-16");
+    if (!v) throw new Error("no version");
+    await api()
+      .put(url(`payroll/staff/${mai}/pay`))
+      .set("authorization", owner)
+      .send({
+        effectiveFrom: v.effectiveFrom,
+        baseType: v.baseType,
+        baseAmount: v.baseAmount,
+        commissionPercent: v.commissionPercent,
+        overrides: v.overrides,
+      })
+      .expect(200);
+    // Clean up so the employer-cost figures below stay as computed.
+    await bulk({
+      effectiveFrom: "2026-12-16",
+      staffIds: [mai],
+      change: {
+        target: "override",
+        services: [{ serviceId: s.serviceId, variantId: s.variantId }],
+        rate: null,
+      },
+    }).expect(200);
   });
 
   it("bulk refuses other salons' staff and services, staff members and closed months", async () => {
@@ -275,7 +356,7 @@ describe("payroll UX: bulk commission, own lines, employer cost (integration)", 
   });
 
   it("own commission lines: the staff member's only; 404 without a staff profile", async () => {
-    const mine = commissionLinesSchema.parse(
+    const mine = myCommissionLinesSchema.parse(
       (
         await api()
           .get(url("payroll/me/lines"))
@@ -284,8 +365,7 @@ describe("payroll UX: bulk commission, own lines, employer cost (integration)", 
           .expect(200)
       ).body,
     );
-    expect(mine.staffId).toBe(mai);
-    expect(mine.items.map((i) => [i.state, i.price])).toEqual([["earned", 300_000]]);
+    expect(mine.items.map((i) => [i.state, i.amount])).toEqual([["earned", 0]]);
     const p = problemSchema.parse(
       (
         await api()
@@ -302,6 +382,52 @@ describe("payroll UX: bulk commission, own lines, employer cost (integration)", 
       .query({ month: "2026-12" })
       .set("authorization", staffMai)
       .expect(404);
+  });
+
+  it("own lines carry no price or base: under price_minus_cost they would reveal the cost", async () => {
+    await prisma.service.update({
+      where: { id: s.serviceId },
+      data: { costAmountMinor: 120_000n },
+    });
+    await api()
+      .put(url("payroll/settings/commission-base"))
+      .set("authorization", owner)
+      .send({ base: "price_minus_cost", effectiveFrom: "2026-12-01" })
+      .expect(200);
+    // The owner (payroll.read ⇒ services.cost.read) sees the base after cost…
+    const ownerView = commissionLinesSchema.parse(
+      (
+        await api()
+          .get(url(`payroll/staff/${mai}/lines`))
+          .query({ month: "2026-12" })
+          .set("authorization", owner)
+          .expect(200)
+      ).body,
+    );
+    expect(ownerView.items[0]).toMatchObject({ price: 300_000, base: 180_000 });
+    // …the staff member does not: no price, no base, no cost-derived number.
+    const res = await api()
+      .get(url("payroll/me/lines"))
+      .query({ month: "2026-12" })
+      .set("authorization", staffMai)
+      .expect(200);
+    const body = res.body as { items: Record<string, unknown>[] };
+    const mine = myCommissionLinesSchema.strict().parse(body);
+    expect(mine.items).toHaveLength(1);
+    for (const item of body.items) {
+      expect(Object.keys(item)).not.toEqual(expect.arrayContaining(["price"]));
+      expect(Object.keys(item)).not.toEqual(expect.arrayContaining(["base"]));
+    }
+    const json = JSON.stringify(res.body);
+    expect(json).not.toContain("180000");
+    expect(json).not.toContain("120000");
+    // Back to the default policy and no cost, so the figures below are unchanged.
+    await api()
+      .put(url("payroll/settings/commission-base"))
+      .set("authorization", owner)
+      .send({ base: "price_after_discount", effectiveFrom: "2026-12-01" })
+      .expect(200);
+    await prisma.service.update({ where: { id: s.serviceId }, data: { costAmountMinor: null } });
   });
 
   it("employer cost: fixed pro-rated and % day-weighted per version; totals; never to staff", async () => {
@@ -388,6 +514,26 @@ describe("payroll UX: bulk commission, own lines, employer cost (integration)", 
       .get(url(`payroll/staff/${mai}/pay`))
       .set("authorization", staffMai)
       .expect(403);
+  });
+
+  it("the export carries gross and real cost next to each other", async () => {
+    const csv = payrollExportSchema.parse(
+      (
+        await api()
+          .get(url("payroll/export"))
+          .query({ month: "2026-12", format: "csv", locale: "vi" })
+          .set("authorization", owner)
+          .expect(200)
+      ).body,
+    );
+    const lines = csv.content.split(/\r?\n/);
+    const header = (lines[1] ?? "").split(",");
+    const g = header.indexOf("Lương (gross)");
+    const r = header.indexOf("Chi phí thực tế");
+    expect(r).toBe(g + 1);
+    const maiLine = lines.find((l) => l.startsWith("Mai,"))?.split(",") ?? [];
+    expect(maiLine[g]).toBe("1545000");
+    expect(maiLine[r]).toBe(String(1_545_000 + EMPLOYER_CANARY));
   });
 
   it("a closed month keeps the employer cost from its snapshot", async () => {

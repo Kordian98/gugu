@@ -269,7 +269,7 @@ export function sortLines(items: CommissionLines["items"]): {
 
 /** Commission per service ("Sơn gel × 5 · 75.000đ"), biggest first — the staff "my earnings" list. */
 export function topServices(
-  items: CommissionLines["items"],
+  items: Pick<CommissionLines["items"][number], "state" | "service" | "amount">[],
   locale: "vi" | "en",
   limit = 5,
 ): { name: string; count: number; amount: number }[] {

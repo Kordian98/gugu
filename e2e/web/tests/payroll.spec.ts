@@ -201,9 +201,14 @@ test("owner: pay setup, month table, breakdown, bulk %, service commission, prof
     );
     expect(mine["hasProfile"]).toBe(true);
     expect(JSON.stringify(mine)).not.toMatch(/employer|realCost/i);
-    const lines = await staff.call<{ staffId: string }>(
+    // Own lines only, and no price/base (cost-derived under "price minus cost").
+    const lines = await staff.call<{ items: Record<string, unknown>[] }>(
       `/salons/${seed.salonId}/payroll/me/lines?month=${month}`,
     );
-    expect(lines.staffId).toBe(seed.staffIds.lan);
+    for (const item of lines.items) {
+      expect(Object.keys(item).sort()).toEqual(
+        ["amount", "bookingId", "date", "lineId", "rate", "service", "state"].sort(),
+      );
+    }
   });
 });

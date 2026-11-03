@@ -26,6 +26,8 @@ import {
   monthSchema,
   type MonthQuery,
   monthQuerySchema,
+  type MyCommissionLines,
+  myCommissionLinesSchema,
   type MyEarnings,
   myEarningsSchema,
   paidInputSchema,
@@ -130,16 +132,17 @@ export class PayrollController {
   @RequirePermission("payroll.self.read")
   @ApiOperation({
     operationId: "payroll.getMyCommissionLines",
-    summary: "The caller's own commission per service in a month (never anyone else's).",
+    summary:
+      "The caller's own commission per service in a month (never anyone else's; no price or base).",
   })
-  @ApiResponse({ status: 200, description: "Own lines.", standardSchema: commissionLinesSchema })
+  @ApiResponse({ status: 200, description: "Own lines.", standardSchema: myCommissionLinesSchema })
   @ApiResponse({ status: 404, description: "No staff profile.", standardSchema: problemSchema })
   myLines(
     @Param({ schema: salonParamsSchema }) _p: SalonP,
     @Query({ schema: linesQuerySchema }) q: { month: string },
     @CurrentSalon() salon: SalonContext,
     @CurrentUser() user: UserPrincipal,
-  ): Promise<CommissionLines> {
+  ): Promise<MyCommissionLines> {
     return this.payroll.myLines(salon, user.userId, q.month);
   }
 

@@ -1065,7 +1065,10 @@
       "total": "Còn nhận",
       "paidOn": "Ngày trả",
       "totals": "Tổng cộng",
-      "note": "Số ước tính trước thuế TNCN và BHXH, chỉ dùng để ghi sổ."
+      "note": "Số ước tính trước thuế TNCN và BHXH, chỉ dùng để ghi sổ.",
+      "gross": "Lương (gross)",
+      "realCost": "Chi phí thực tế",
+      "realCostNote": "Chi phí thực tế = lương gross + thuế/BH theo số salon nhập (GuGu không tự tính)."
     },
     "services": "{{count}} dịch vụ",
     "tabs": {

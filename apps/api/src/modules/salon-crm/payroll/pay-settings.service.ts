@@ -147,10 +147,21 @@ export class PaySettingsService {
     raw: PayVersionInput,
   ): Promise<StaffPay> {
     const input = payVersionInputSchema.parse(raw);
-    await this.payroll.assertStaff(ctx.salonId, staffId);
-    await this.assertOverrides(ctx.salonId, input.overrides);
     await this.prisma.$transaction(async (tx) => {
       await lockPayroll(tx, ctx.salonId);
+      await this.payroll.assertStaff(ctx.salonId, staffId, false, tx);
+      // An own rate the person already has may stay on a service deleted since (the sheet sends
+      // it back unchanged); a NEW own rate needs a live service/variant.
+      const had = await tx.staffCommissionOverride.findMany({
+        where: { salonId: ctx.salonId, paySetting: { staffId } },
+        select: { serviceId: true, variantId: true },
+      });
+      await this.assertOverrides(
+        tx,
+        ctx.salonId,
+        input.overrides.map((o) => ({ serviceId: o.serviceId, variantId: o.variantId })),
+        new Set(had.map((o) => `${o.serviceId}:${o.variantId ?? ""}`)),
+      );
       const replaced = await this.writeVersion(tx, ctx.salonId, userId, staffId, input);
       await this.audit.record(
         {
@@ -215,23 +226,23 @@ export class PaySettingsService {
   ): Promise<PayrollSettings> {
     const input = commissionBulkInputSchema.parse(raw);
     const staffIds = [...new Set(input.staffIds)];
-    const found = await this.prisma.staffProfile.findMany({
-      where: { salonId: ctx.salonId, deletedAt: null, id: { in: staffIds } },
-      select: { id: true },
-    });
-    if (found.length !== staffIds.length) {
-      throw new AppError(404, PAYROLL_ERRORS.staffNotFound, "Staff not found");
-    }
-    if (input.change.target === "override") {
-      await this.assertOverrides(
-        ctx.salonId,
-        input.change.services.map((s) => ({ serviceId: s.serviceId, variantId: s.variantId })),
-      );
-    }
+    const overrideTargets =
+      input.change.target === "override"
+        ? input.change.services.map((x) => ({ serviceId: x.serviceId, variantId: x.variantId }))
+        : [];
     const from = input.effectiveFrom;
     let written = 0;
     await this.prisma.$transaction(async (tx) => {
       await lockPayroll(tx, ctx.salonId);
+      // Validated under the lock: a person or service removed concurrently cannot slip in.
+      const found = await tx.staffProfile.findMany({
+        where: { salonId: ctx.salonId, deletedAt: null, id: { in: staffIds } },
+        select: { id: true },
+      });
+      if (found.length !== staffIds.length) {
+        throw new AppError(404, PAYROLL_ERRORS.staffNotFound, "Staff not found");
+      }
+      await this.assertOverrides(tx, ctx.salonId, overrideTargets);
       const rows = await tx.staffPaySetting.findMany({
         where: { salonId: ctx.salonId, staffId: { in: staffIds } },
         include: { overrides: { orderBy: [{ serviceId: "asc" }, { variantId: "asc" }] } },
@@ -276,8 +287,10 @@ export class PaySettingsService {
             staff: staffIds.length,
             versions: written,
             target: input.change.target,
+            // Who and what changed (ids only; rates and amounts stay out of the log).
+            staffIds,
             ...(input.change.target === "override"
-              ? { services: input.change.services.length, removed: input.change.rate === null }
+              ? { services: overrideTargets, removed: input.change.rate === null }
               : {}),
           },
         },
@@ -375,26 +388,30 @@ export class PaySettingsService {
     return existing !== null;
   }
 
+  /** Live (not deleted) services/variants of this salon; `keep` = targets the person already has. */
   private async assertOverrides(
+    tx: Tx,
     salonId: string,
     overrides: { serviceId: string; variantId: string | null }[],
+    keep: Set<string> = new Set(),
   ): Promise<void> {
-    if (!overrides.length) return;
-    const serviceIds = [...new Set(overrides.map((o) => o.serviceId))];
-    const variantIds = overrides.flatMap((o) => (o.variantId ? [o.variantId] : []));
+    const check = overrides.filter((o) => !keep.has(`${o.serviceId}:${o.variantId ?? ""}`));
+    if (!check.length) return;
+    const serviceIds = [...new Set(check.map((o) => o.serviceId))];
+    const variantIds = check.flatMap((o) => (o.variantId ? [o.variantId] : []));
     const [services, variants] = await Promise.all([
-      this.prisma.service.findMany({
-        where: { salonId, id: { in: serviceIds } },
+      tx.service.findMany({
+        where: { salonId, id: { in: serviceIds }, deletedAt: null },
         select: { id: true },
       }),
-      this.prisma.serviceVariant.findMany({
-        where: { salonId, id: { in: variantIds } },
+      tx.serviceVariant.findMany({
+        where: { salonId, id: { in: variantIds }, deletedAt: null },
         select: { id: true, serviceId: true },
       }),
     ]);
     const known = new Set(services.map((s) => s.id));
     const variantOf = new Map(variants.map((v) => [v.id, v.serviceId]));
-    for (const o of overrides) {
+    for (const o of check) {
       const ok =
         known.has(o.serviceId) &&
         (o.variantId === null || variantOf.get(o.variantId) === o.serviceId);

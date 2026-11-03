@@ -18,6 +18,8 @@ export function payrollTable(p: PayrollMonth, locale: "vi" | "en"): Cell[][] {
     col("deduction"),
     col("advance"),
     col("total"),
+    col("gross"),
+    col("realCost"),
     col("paidOn"),
   ];
   const rows: Cell[][] = p.rows.map((r) => [
@@ -30,6 +32,8 @@ export function payrollTable(p: PayrollMonth, locale: "vi" | "en"): Cell[][] {
     r.deduction,
     r.advance,
     r.total,
+    r.gross,
+    r.realCost,
     r.paidOn ?? "",
   ]);
   const totals: Cell[] = [
@@ -42,9 +46,19 @@ export function payrollTable(p: PayrollMonth, locale: "vi" | "en"): Cell[][] {
     p.totals.deduction,
     p.totals.advance,
     p.totals.total,
+    p.totals.gross,
+    p.totals.realCost,
     "",
   ];
-  return [[`${col("title")} ${p.month}`], header, ...rows, totals, [], [col("note")]];
+  return [
+    [`${col("title")} ${p.month}`],
+    header,
+    ...rows,
+    totals,
+    [],
+    [col("note")],
+    [col("realCostNote")],
+  ];
 }
 
 const BOM = String.fromCharCode(0xfeff);

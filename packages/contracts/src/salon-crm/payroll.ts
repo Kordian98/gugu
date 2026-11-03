@@ -288,6 +288,27 @@ export const commissionLinesSchema = z.object({
 });
 export type CommissionLines = z.infer<typeof commissionLinesSchema>;
 
+/**
+ * A staff member's own commission lines (`GET payroll/me/lines`, payroll.self.read). Deliberately
+ * WITHOUT `price` and `base`: under the `price_minus_cost` policy `price − base` is the internal
+ * service cost, which needs services.cost.read (security review 2026-11-03). Keys are asserted in
+ * apps/api cost-exposure.test.ts.
+ */
+export const myCommissionLineSchema = commissionLineSchema.pick({
+  lineId: true,
+  bookingId: true,
+  date: true,
+  service: true,
+  state: true,
+  rate: true,
+  amount: true,
+});
+export const myCommissionLinesSchema = z.object({
+  month: monthSchema,
+  items: z.array(myCommissionLineSchema),
+});
+export type MyCommissionLines = z.infer<typeof myCommissionLinesSchema>;
+
 export const payrollStaffParamsSchema = z.object({ salonId: uuidV7Schema, staffId: uuidV7Schema });
 export const payrollMonthParamsSchema = z.object({ salonId: uuidV7Schema, month: monthSchema });
 export const payrollMonthStaffParamsSchema = payrollMonthParamsSchema.extend({

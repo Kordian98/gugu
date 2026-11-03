@@ -126,14 +126,14 @@ Owner request 2026-11-04. Bookkeeping only: GuGu moves no money and computes no 
 |---|---|---|
 | `GET payroll?month=` | `payroll.read` | Rows per person (base, detail, commission, projected, adjustments, total, paidOn), totals, status |
 | `GET payroll/me?month=` | `payroll.self.read` | Own estimate only (never the real cost) |
-| `GET payroll/me/lines?month=` | `payroll.self.read` | Own commission lines; 404 `payroll.staff_not_found` without a staff profile |
+| `GET payroll/me/lines?month=` | `payroll.self.read` | Own commission lines, self-view DTO without `price`/`base` (cost-derived under `price_minus_cost`; keys pinned in `cost-exposure.test.ts`); 404 `payroll.staff_not_found` without a staff profile |
 | `GET payroll/staff/:staffId/lines?month=` | `payroll.read` | Commission per line (earned / projected) |
-| `GET payroll/export?month=&format=csv\|xlsx&locale=` | `payroll.read` | `{ fileName, mimeType, encoding, content }`; audited |
+| `GET payroll/export?month=&format=csv\|xlsx&locale=` | `payroll.read` | `{ fileName, mimeType, encoding, content }`; gross and real-cost columns; audited |
 | `POST payroll/adjustments` · `DELETE payroll/adjustments/:id` | `payroll.manage` | Reason required; audited (no reason text in the log) |
 | `POST payroll/months/:month/close` · `…/reopen` | `payroll.manage` | Reopen body `{ reason }`; audited |
 | `PUT\|DELETE payroll/months/:month/staff/:staffId/paid` | `payroll.manage` | Closed months only; audited |
 | `GET payroll/settings` · `PUT payroll/settings/commission-base` | `payroll.read` / `payroll.manage` | Policy history, current + next scheduled pay per person, managers + grant |
-| `POST payroll/commission/bulk` | `payroll.manage` | `{ effectiveFrom, staffIds, change: default % \| own rate per service/variant (null removes) }`; also applied to later versions; audited `payroll.commission_bulk_saved` |
+| `POST payroll/commission/bulk` | `payroll.manage` | `{ effectiveFrom, staffIds, change: default % \| own rate per service/variant (null removes) }`; also applied to later versions; staff/services validated under the payroll lock (deleted services refused); audited `payroll.commission_bulk_saved` with staffIds + service/variant ids, no rates |
 | `GET\|PUT payroll/staff/:staffId/pay` | `payroll.read` / `payroll.manage` | Versions with overrides |
 | `PUT members/:memberId/payroll-access` | `members.roles.write` | Managers only (409 `payroll.not_a_manager`) |
 | `GET\|POST costs`, `PATCH\|DELETE costs/:costId?month=` | `payroll.read` / `payroll.manage` | Changes apply from the viewed month |
