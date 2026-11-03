@@ -274,8 +274,7 @@ export class AdminController {
   @RequirePlatformPermission("platform.entitlements.write")
   @ApiOperation({
     operationId: "admin.createOverride",
-    summary:
-      "Grant or restrict one entitlement until an expiry (≤ 366 days). Needs a step-up.",
+    summary: "Grant or restrict one entitlement until an expiry (≤ 366 days). Needs a step-up.",
   })
   @MutationResponses()
   createOverride(

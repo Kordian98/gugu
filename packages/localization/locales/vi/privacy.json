@@ -1,0 +1,90 @@
+{
+  "export": {
+    "title": "Dữ liệu khách hàng do {{salon}} lưu trữ",
+    "generatedAt": "Xuất lúc: {{at}}",
+    "intro": "Tài liệu này liệt kê dữ liệu mà salon lưu về khách hàng trong GuGu Studio: hồ sơ, lịch hẹn, ghi chú nội bộ, hội thoại Zalo và nhật ký tin nhắn đã gửi.",
+    "disclaimer": "GuGu Studio được thiết kế để hỗ trợ salon trả lời yêu cầu về dữ liệu cá nhân. Đây không phải tư vấn pháp lý.",
+    "sections": {
+      "client": "Hồ sơ khách",
+      "bookings": "Lịch hẹn",
+      "notes": "Ghi chú của salon",
+      "zalo": "Hội thoại Zalo",
+      "notifications": "Tin nhắn đã gửi"
+    },
+    "fields": {
+      "name": "Tên",
+      "phone": "Số điện thoại",
+      "email": "Email",
+      "tags": "Thẻ",
+      "consent": "Đồng ý nhận tin tiếp thị",
+      "source": "Nguồn",
+      "createdAt": "Tạo lúc",
+      "reference": "Mã lịch hẹn",
+      "status": "Trạng thái",
+      "time": "Thời gian",
+      "services": "Dịch vụ",
+      "total": "Tổng (ước tính)",
+      "note": "Ghi chú của khách",
+      "cancellation": "Lý do huỷ",
+      "payment": "Thanh toán tại salon",
+      "history": "Lịch sử trạng thái",
+      "channel": "Kênh",
+      "event": "Sự kiện",
+      "sentAt": "Gửi lúc"
+    },
+    "consentChannels": {
+      "zalo": "Zalo",
+      "email": "Email",
+      "sms": "SMS"
+    },
+    "none": "Không có",
+    "yes": "Có",
+    "no": "Không"
+  },
+  "client": {
+    "section": "Dữ liệu và quyền riêng tư",
+    "hint": "Chỉ chủ salon. Dùng khi khách yêu cầu xem hoặc xoá dữ liệu của họ. Mọi thao tác đều được ghi nhật ký.",
+    "export": "Xuất dữ liệu của khách",
+    "exportJson": "Tải JSON",
+    "exportText": "Tải bản dễ đọc",
+    "exportReady": "Bản xuất đã sẵn sàng.",
+    "erase": "Xoá dữ liệu của khách",
+    "eraseTitle": "Xoá vĩnh viễn dữ liệu của khách này?",
+    "eraseBody": "Hồ sơ, thẻ, ghi chú nội bộ và nội dung hội thoại Zalo của khách sẽ bị xoá. Lịch hẹn cũ được giữ cho báo cáo nhưng hiển thị là “Khách đã xoá tài khoản”, không còn tên, số điện thoại hay email. Lịch hẹn sắp tới sẽ bị huỷ. Không thể hoàn tác.",
+    "eraseHint": "Nên xuất dữ liệu trước nếu khách cũng muốn nhận bản sao.",
+    "eraseConfirm": "Xoá vĩnh viễn",
+    "erased": "Đã xoá dữ liệu khách: {{bookings}} lịch hẹn được ẩn danh, {{cancelled}} lịch hẹn sắp tới bị huỷ."
+  },
+  "salon": {
+    "title": "Dữ liệu và quyền riêng tư",
+    "body": "Xuất toàn bộ dữ liệu khách hàng của salon (JSON và CSV). Tệp chỉ tải được tại đây, trong 24 giờ; không có đường link gửi qua email.",
+    "request": "Tạo bản xuất",
+    "requested": "Đang tạo bản xuất. Trang này tự cập nhật.",
+    "empty": "Chưa có bản xuất nào.",
+    "status": {
+      "queued": "Đang chờ",
+      "running": "Đang tạo",
+      "ready": "Sẵn sàng",
+      "failed": "Lỗi",
+      "expired": "Đã hết hạn"
+    },
+    "meta": "{{clients}} khách · {{bookings}} lịch hẹn",
+    "expires": "Tải được đến {{at}}",
+    "downloadJson": "JSON",
+    "downloadCsv": "CSV",
+    "retentionTitle": "Thời gian lưu",
+    "retention": "Nhật ký gửi thông báo được xoá sau 12 tháng. Sự kiện Zalo thô được xoá sau 30 ngày. Phiên đăng nhập và đường link đăng nhập hết hạn được dọn dẹp tự động.",
+    "disclaimer": "GuGu Studio được thiết kế để hỗ trợ salon xử lý yêu cầu dữ liệu cá nhân của khách. Đây không phải tư vấn pháp lý."
+  },
+  "csv": {
+    "name": "Tên",
+    "phone": "Số điện thoại",
+    "tags": "Thẻ",
+    "consentZalo": "Đồng ý Zalo",
+    "consentEmail": "Đồng ý Email",
+    "consentSms": "Đồng ý SMS",
+    "visits": "Số lần đến",
+    "lastVisit": "Lần đến gần nhất",
+    "createdAt": "Tạo lúc"
+  }
+}

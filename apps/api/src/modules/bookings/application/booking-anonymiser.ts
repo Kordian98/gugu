@@ -160,7 +160,10 @@ export class BookingAnonymiser {
         );
         cancelled++;
       } catch (error) {
-        this.logger.warn({ bookingId: id, err: (error as Error).message }, "cancel on erase failed");
+        this.logger.warn(
+          { bookingId: id, err: (error as Error).message },
+          "cancel on erase failed",
+        );
       }
     }
     return cancelled;

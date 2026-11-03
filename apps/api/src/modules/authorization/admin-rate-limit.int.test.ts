@@ -40,7 +40,7 @@ describe("admin API rate limits (integration)", () => {
     app = configureHttpApp(moduleRef.createNestApplication());
     await app.init();
     prisma = app.get(PrismaService);
-    env = app.get(AppConfig).env as typeof env;
+    env = app.get(AppConfig).env;
     saved = { ...env };
   });
 

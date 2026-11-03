@@ -60,10 +60,7 @@ export class EntitlementService {
     // A salon without a subscription is about to get one (registration → startTrial); never cache
     // that state, and never cache a trial beyond its end.
     if (subscription) {
-      const ttl = cacheTtl(
-        [subscription.trialEndsAt, ...overrides.map((o) => o.expiresAt)],
-        now,
-      );
+      const ttl = cacheTtl([subscription.trialEndsAt, ...overrides.map((o) => o.expiresAt)], now);
       if (ttl > 0) await this.cache.set(salonId, result, ttl);
     }
     return result;
