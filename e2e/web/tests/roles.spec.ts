@@ -7,7 +7,7 @@
 import type { Page } from "@playwright/test";
 import { t, tx } from "../support/i18n";
 import { API } from "../support/env";
-import { expect, otherSeed, test } from "../support/fixtures";
+import { expect, need, otherTenant, test } from "../support/fixtures";
 import { waitForMail } from "../support/mailpit";
 import { SEED, mail } from "../support/seed";
 import { addDays } from "../support/time";
@@ -23,6 +23,8 @@ async function openBlock(page: Page, time: string, service: string, customer: st
   await tap(block);
   await expect(page.getByTestId("crm-booking-customer")).toHaveText(customer);
 }
+
+test.use({ area: "roles" });
 
 test.describe("roles @vi", () => {
   test("receptionist joins by email invite and sees all bookings with phones", async ({
@@ -75,22 +77,19 @@ test.describe("roles @vi", () => {
     seed,
     signedIn,
   }, info) => {
-    const page = await signedIn(seed.staffEmail, { mobile: true });
+    const bookingIds = need(seed.bookingIds, "bookings");
+    const page = await signedIn(need(seed.staffEmail, "staff account"), { mobile: true });
 
     await test.step("lands on my day with only her own client", async () => {
       await page.goto("/vi/business");
       const myDay = page.getByTestId("crm-my-day");
-      await expect(myDay.getByTestId(`crm-my-day-${seed.bookingIds.lanToday}`)).toContainText(
-        lan.name,
-      );
-      await expect(myDay.getByTestId(`crm-my-day-${seed.bookingIds.maiToday}`)).toHaveCount(0);
+      await expect(myDay.getByTestId(`crm-my-day-${bookingIds.lanToday}`)).toContainText(lan.name);
+      await expect(myDay.getByTestId(`crm-my-day-${bookingIds.maiToday}`)).toHaveCount(0);
       await expect(myDay).not.toContainText(mai.name);
     });
 
     await test.step("drawer shows the client's phone (staff see phones by default)", async () => {
-      await tap(
-        page.getByTestId("crm-my-day").getByTestId(`crm-my-day-${seed.bookingIds.lanToday}`),
-      );
+      await tap(page.getByTestId("crm-my-day").getByTestId(`crm-my-day-${bookingIds.lanToday}`));
       await expect(page.getByTestId("crm-booking-customer")).toHaveText(lan.name);
       await expect(page.getByRole("link", { name: e164(lan.phone) })).toBeVisible();
     });
@@ -103,22 +102,22 @@ test.describe("roles @vi", () => {
       );
       expect(list.status(), "own salon bookings list").toBe(200);
       const ids = ((await list.json()) as { items: { id: string }[] }).items.map((b) => b.id);
-      expect(ids, `staff list should hold Lan's ${seed.bookingIds.lanToday} only`).toContain(
-        seed.bookingIds.lanToday,
+      expect(ids, `staff list should hold Lan's ${bookingIds.lanToday} only`).toContain(
+        bookingIds.lanToday,
       );
-      expect(ids, `staff list must not hold Mai's ${seed.bookingIds.maiToday}`).not.toContain(
-        seed.bookingIds.maiToday,
+      expect(ids, `staff list must not hold Mai's ${bookingIds.maiToday}`).not.toContain(
+        bookingIds.maiToday,
       );
 
       const other = await page.request.get(
-        `${API}/salons/${seed.salonId}/bookings/${seed.bookingIds.maiToday}`,
+        `${API}/salons/${seed.salonId}/bookings/${bookingIds.maiToday}`,
       );
       expect(
         [403, 404],
-        `GET Mai's booking ${seed.bookingIds.maiToday} as Lan → ${String(other.status())}`,
+        `GET Mai's booking ${bookingIds.maiToday} as Lan → ${String(other.status())}`,
       ).toContain(other.status());
 
-      const foreign = otherSeed(info.project.name);
+      const foreign = otherTenant(info.project.name, "roles");
       const escape = await page.request.get(
         `${API}/salons/${foreign.salonId}/bookings?from=${from}&to=${to}`,
       );
@@ -139,7 +138,7 @@ test.describe("roles @vi", () => {
         "Today timeline columns come from GET /team, which staff may not read (members.read), so a staff member with appointments sees 'Chưa có lịch hẹn hôm nay' on desktop while the KPI says 1. Expected: her own column with her booking.",
     });
     test.fail();
-    const page = await signedIn(seed.staffEmail);
+    const page = await signedIn(need(seed.staffEmail, "staff account"));
     await page.goto("/vi/business");
     await expect(
       page.getByRole("button", {

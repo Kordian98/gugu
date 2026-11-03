@@ -55,7 +55,9 @@ export function backendEnv() {
     WEB_APP_URL: webUrl,
     WEB_ORIGINS: webUrl,
     API_PUBLIC_URL: apiUrl,
-    TRUST_PROXY: "false",
+    // Seed calls (Node, via loopback) send X-Forwarded-For so they get their own rate-limit
+    // buckets; browsers send none, so their req.ip stays 127.0.0.1. See support/api.ts.
+    TRUST_PROXY: "loopback",
     SMTP_URL: `smtp://127.0.0.1:${String(E2E.smtpPort)}`,
     MAIL_FROM: "GuGu E2E <no-reply@gugu.local>",
     ZALO_CLIENT: "emulated",

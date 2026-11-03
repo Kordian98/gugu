@@ -5,7 +5,15 @@ import { API } from "./env";
 import { latestMagicLink, searchMail } from "./mailpit";
 
 export class ApiClient {
-  constructor(private token = "") {}
+  /**
+   * `clientIp` is sent as X-Forwarded-For; the E2E backend trusts loopback proxies
+   * (TRUST_PROXY=loopback) so seed sign-ins get their own rate-limit bucket instead of eating the
+   * per-IP magic-link budget (30 / 15 min) the browser sign-ins on 127.0.0.1 need.
+   */
+  constructor(
+    private token = "",
+    private clientIp = "",
+  ) {}
 
   async call<T = unknown>(
     path: string,
@@ -18,6 +26,7 @@ export class ApiClient {
       headers: {
         "content-type": "application/json",
         ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
+        ...(this.clientIp ? { "x-forwarded-for": this.clientIp } : {}),
         ...(method !== "GET" && path.includes("/bookings")
           ? { "idempotency-key": `e2e-${randomUUID()}` }
           : {}),
@@ -32,20 +41,21 @@ export class ApiClient {
   }
 
   /** Signs in by magic link (read from Mailpit) as a native client. */
-  static async signIn(email: string): Promise<ApiClient> {
+  static async signIn(email: string, clientIp: string): Promise<ApiClient> {
     const before = (await searchMail(`to:"${email}"`)).length;
-    await new ApiClient().call("/auth/magic-link", "POST", {
+    const anon = new ApiClient("", clientIp);
+    await anon.call("/auth/magic-link", "POST", {
       email,
       locale: "vi",
       client: "native",
     });
     const link = await latestMagicLink(email, before);
     const token = new URL(link).searchParams.get("token") ?? "";
-    const session = await new ApiClient().call<{ session: { tokens: { accessToken: string } } }>(
+    const session = await anon.call<{ session: { tokens: { accessToken: string } } }>(
       "/auth/magic-link/verify",
       "POST",
       { token, client: "native" },
     );
-    return new ApiClient(session.session.tokens.accessToken);
+    return new ApiClient(session.session.tokens.accessToken, clientIp);
   }
 }

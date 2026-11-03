@@ -1,21 +1,23 @@
 // Deterministic seed for the E2E suite, created through the public API (no DB writes) by
-// global-setup. One salon per Playwright project so chromium and webkit never share state.
+// global-setup. One salon per (Playwright project × spec area), so files running in parallel never
+// share an account (two parallel magic-link sign-ins for one email would race) or a salon.
 // Every name, email, phone and wall-clock time below is fixed; only the calendar date is "today in
-// Asia/Ho_Chi_Minh" because the booking engine refuses past times (it has no injectable clock over
-// HTTP). Entities are looked up by these fixed values in the tests.
+// Asia/Ho_Chi_Minh" because the booking engine refuses past times and has no injectable clock over
+// HTTP. Tests look entities up by these fixed values and by the IDs in the manifest.
 import { ApiClient } from "./api";
 import { MAIL_DOMAIN } from "./env";
 import { addDays, vnDate, vnInstant, vnNow } from "./time";
 
 export const PROJECTS = ["chromium", "webkit"] as const;
-export type ProjectName = (typeof PROJECTS)[number];
+export const AREAS = ["roles", "zalo", "admin", "assistant", "mobile", "en"] as const;
+export type Area = (typeof AREAS)[number];
 
 export const mail = (local: string, project: string): string =>
   `${local}.${project}@${MAIL_DOMAIN}`;
 
-/** Fixed seed values (per project only the emails and salon name differ). */
+/** Fixed seed values (per salon only the emails and the salon name differ). */
 export const SEED = {
-  salonName: (p: string) => `Lotus E2E Spa ${p}`,
+  salonName: (area: string, project: string) => `Lotus E2E ${area} ${project}`,
   ownerPhone: "0912 345 678",
   street: "12 Lê Lợi",
   staff: {
@@ -45,27 +47,47 @@ export const SEED = {
   },
 } as const;
 
+/** What each area needs on top of the base salon (owner, hours, Lan + Mai, two services, live). */
+const AREA_SPEC: Record<
+  Area,
+  { bookings: boolean; staffAccount: boolean; receptionist: boolean; locale: "vi" | "en" }
+> = {
+  roles: { bookings: true, staffAccount: true, receptionist: true, locale: "vi" },
+  zalo: { bookings: false, staffAccount: false, receptionist: true, locale: "vi" },
+  admin: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
+  assistant: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
+  mobile: { bookings: true, staffAccount: false, receptionist: false, locale: "vi" },
+  en: { bookings: true, staffAccount: false, receptionist: false, locale: "en" },
+};
+
 export interface SeededSalon {
   project: string;
+  area: Area;
   salonId: string;
   salonName: string;
   ownerEmail: string;
-  staffEmail: string;
-  receptionistEmail: string;
-  adminEmail: string;
+  staffEmail: string | null;
+  receptionistEmail: string | null;
   staffIds: { lan: string; mai: string };
   serviceIds: { gel: string; cut: string };
-  bookingIds: { lanToday: string; maiToday: string };
+  bookingIds: { lanToday: string; maiToday: string } | null;
   today: string;
 }
+
+export type SeedManifest = Record<string, Record<Area, SeededSalon> & { adminEmail: string }>;
 
 interface Item {
   id: string;
 }
 
-export async function seedSalon(project: string): Promise<SeededSalon> {
-  const ownerEmail = mail("owner", project);
-  const owner = await ApiClient.signIn(ownerEmail);
+// One X-Forwarded-For per seeded account, each in its own /24 (rate limits key on the IP prefix).
+let ipCounter = 0;
+const nextIp = () => `10.77.${String(++ipCounter)}.1`;
+
+export async function seedSalon(project: string, area: Area): Promise<SeededSalon> {
+  const spec = AREA_SPEC[area];
+  const ownerEmail = mail(`owner-${area}`, project);
+  const owner = await ApiClient.signIn(ownerEmail, nextIp());
   const cats = (await owner.call<{ items: (Item & { slug: string })[] }>("/public/categories"))
     .items;
   const prov = (await owner.call<{ items: Item[] }>("/public/locations?level=province")).items[0];
@@ -76,7 +98,7 @@ export async function seedSalon(project: string): Promise<SeededSalon> {
   const nails = cats.find((c) => c.slug === "nails") ?? cats[0];
   if (!ward || !nails) throw new Error("seed: missing ward/category reference data");
 
-  const salonName = SEED.salonName(project);
+  const salonName = SEED.salonName(area, project);
   const { salonId: S } = await owner.call<{ salonId: string }>("/salons/registrations", "POST", {
     businessName: salonName,
     categoryId: nails.id,
@@ -85,7 +107,7 @@ export async function seedSalon(project: string): Promise<SeededSalon> {
     wardId: ward.id,
     streetAddress: SEED.street,
     locationsHint: "1",
-    locale: "vi",
+    locale: spec.locale,
   });
   // Open every day 08:00–22:00 so "today" always has room for the fixed booking times.
   const week = [1, 2, 3, 4, 5, 6, 7];
@@ -123,52 +145,56 @@ export async function seedSalon(project: string): Promise<SeededSalon> {
 
   const today = vnDate();
   const serviceIds = { gel: gel.id, cut: cut.id };
-  const bookingIds = { lanToday: "", maiToday: "" };
-  for (const key of ["lanToday", "maiToday"] as const) {
-    const b = SEED.bookings[key];
-    // Past wall-clock times today need the documented lead-time override (same as the demo seed).
-    const past = b.time <= vnNow();
-    bookingIds[key] = (
-      await owner.call<Item>(`/salons/${S}/bookings`, "POST", {
-        serviceId: serviceIds[b.service],
-        staffId: staffIds[b.staff],
-        startsAt: vnInstant(today, b.time),
-        source: "phone",
-        customer: { name: b.name, phone: b.phone },
-        ...(past
-          ? { overrides: ["lead_time"], overrideReason: "E2E seed: fixed time earlier today" }
-          : {}),
-      })
-    ).id;
+  let bookingIds: SeededSalon["bookingIds"] = null;
+  if (spec.bookings) {
+    const ids = { lanToday: "", maiToday: "" };
+    for (const key of ["lanToday", "maiToday"] as const) {
+      const b = SEED.bookings[key];
+      // Past wall-clock times today need the documented lead-time override (as the demo seed does).
+      const past = b.time <= vnNow();
+      ids[key] = (
+        await owner.call<Item>(`/salons/${S}/bookings`, "POST", {
+          serviceId: serviceIds[b.service],
+          staffId: staffIds[b.staff],
+          startsAt: vnInstant(today, b.time),
+          source: "phone",
+          customer: { name: b.name, phone: b.phone },
+          ...(past
+            ? { overrides: ["lead_time"], overrideReason: "E2E seed: fixed time earlier today" }
+            : {}),
+        })
+      ).id;
+    }
+    bookingIds = ids;
   }
 
-  // Staff account linked to Lan's profile, receptionist account (accepted via API here; the
-  // invitation UI is covered in roles.spec.ts with its own invite).
-  const staffEmail = mail("staff", project);
-  const receptionistEmail = mail("recep", project);
-  for (const [email, role, staffProfileId] of [
-    [staffEmail, "staff", staffIds.lan],
-    [receptionistEmail, "receptionist", undefined],
-  ] as const) {
+  // Member accounts join through the real invitation API (the invite UI is covered in roles.spec).
+  const join = async (email: string, role: "staff" | "receptionist", staffProfileId?: string) => {
     const inv = await owner.call<{ acceptUrl: string }>(`/salons/${S}/invitations`, "POST", {
       role,
       ...(staffProfileId ? { staffProfileId } : {}),
       locale: "vi",
     });
-    const token =
-      /[?&]token=([\w-]+)/.exec(inv.acceptUrl)?.[1] ?? inv.acceptUrl.split("/").pop() ?? "";
-    const member = await ApiClient.signIn(email);
+    const token = new URL(inv.acceptUrl).searchParams.get("token") ?? "";
+    const member = await ApiClient.signIn(email, nextIp());
     await member.call("/invitations/accept", "POST", { token });
-  }
+    return email;
+  };
+  const staffEmail = spec.staffAccount
+    ? await join(mail(`staff-${area}`, project), "staff", staffIds.lan)
+    : null;
+  const receptionistEmail = spec.receptionist
+    ? await join(mail(`recep-${area}`, project), "receptionist")
+    : null;
 
   return {
     project,
+    area,
     salonId: S,
     salonName,
     ownerEmail,
     staffEmail,
     receptionistEmail,
-    adminEmail: mail("admin", project),
     staffIds,
     serviceIds,
     bookingIds,

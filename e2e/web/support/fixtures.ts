@@ -5,21 +5,32 @@ import { resolve } from "node:path";
 import { test as base, type Page } from "@playwright/test";
 import { signInViaUi } from "./auth";
 import { WEB } from "./env";
-import type { SeededSalon } from "./seed";
+import type { Area, SeedManifest, SeededSalon } from "./seed";
 
 const SEED_FILE = resolve(import.meta.dirname, "../.e2e/seed.json");
 
-export function seedFor(project: string): SeededSalon {
-  const all = JSON.parse(readFileSync(SEED_FILE, "utf8")) as Record<string, SeededSalon>;
-  const s = all[project];
-  if (!s) throw new Error(`no seed for project ${project} in ${SEED_FILE}`);
+function manifest(): SeedManifest {
+  return JSON.parse(readFileSync(SEED_FILE, "utf8")) as SeedManifest;
+}
+
+/** This project's seeded salon for `area`. */
+export function seedFor(project: string, area: Area): SeededSalon {
+  const s = manifest()[project]?.[area];
+  if (!s) throw new Error(`no seed for ${project}/${area} in ${SEED_FILE}`);
   return s;
 }
 
-export function otherSeed(project: string): SeededSalon {
-  const all = JSON.parse(readFileSync(SEED_FILE, "utf8")) as Record<string, SeededSalon>;
-  const other = Object.values(all).find((s) => s.project !== project);
-  if (!other) throw new Error("need two seeded salons for cross-tenant checks");
+/** Super-admin email seeded for this project. */
+export function adminEmailFor(project: string): string {
+  const e = manifest()[project]?.adminEmail;
+  if (!e) throw new Error(`no admin email for ${project} in ${SEED_FILE}`);
+  return e;
+}
+
+/** A salon of the other project (a different tenant) for cross-tenant probes. */
+export function otherTenant(project: string, area: Area): SeededSalon {
+  const other = Object.entries(manifest()).find(([p]) => p !== project)?.[1]?.[area];
+  if (!other) throw new Error("need two seeded projects for cross-tenant checks");
   return other;
 }
 
@@ -31,14 +42,17 @@ export interface SignedInOptions {
 }
 
 type Fixtures = {
+  /** Spec area whose seeded salon `seed` returns (set with `test.use({ area: "zalo" })`). */
+  area: Area;
   seed: SeededSalon;
   /** Opens a fresh context signed in as `email` (vi unless given). */
   signedIn: (email: string, opts?: SignedInOptions) => Promise<Page>;
 };
 
 export const test = base.extend<Fixtures>({
-  seed: async ({}, use, info) => {
-    await use(seedFor(info.project.name));
+  area: ["roles", { option: true }],
+  seed: async ({ area }, use, info) => {
+    await use(seedFor(info.project.name, area));
   },
   signedIn: async ({ browser }, use, info) => {
     const contexts: Awaited<ReturnType<typeof browser.newContext>>[] = [];
@@ -62,3 +76,9 @@ export const test = base.extend<Fixtures>({
 });
 
 export { expect } from "@playwright/test";
+
+/** Narrows an optional seed value, failing with a clear message when the area lacks it. */
+export function need<T>(value: T | null | undefined, what: string): T {
+  if (value === null || value === undefined) throw new Error(`seed has no ${what} for this area`);
+  return value;
+}
