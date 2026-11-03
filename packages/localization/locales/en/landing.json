@@ -490,7 +490,8 @@
       "p4": "The owner's “This month”: earned so far, still to come from bookings, payroll, costs, estimated net profit and margins",
       "p5": "Staff only see their own earnings",
       "note": "Estimates before tax and insurance.",
-      "shot": "Pay & commissions · per person, this month"
+      "shot": "Monthly payroll · CSV / Excel export, close the month",
+      "shotPerson": "Per person · commission by service"
     }
   }
 }

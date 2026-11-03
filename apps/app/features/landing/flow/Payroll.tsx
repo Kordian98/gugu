@@ -28,13 +28,24 @@ export function PayrollPanel() {
         </ul>
         <p className="py-note">{t("flow.payroll.note")}</p>
       </div>
-      <Shot
-        name="payrollTable"
-        name2x="payrollTable2x"
-        caption={t("flow.payroll.shot")}
-        sizes="(max-width: 899px) 154vw, 52vw"
-        className="pay"
-      />
+      {/* The whole payroll month screen (export, close, summary, table); the per-person drawer slides in
+          over it, as in the app. Phones show the drawer only (the full table is unreadable there). */}
+      <div className="py-shots">
+        <Shot
+          name="payrollMonth"
+          name2x="payrollMonth2x"
+          caption={t("flow.payroll.shot")}
+          sizes="(max-width: 899px) 1px, 56vw"
+          className="pay-month"
+        />
+        <Shot
+          name="payrollPerson"
+          name2x="payrollPerson2x"
+          caption={t("flow.payroll.shotPerson")}
+          sizes="(max-width: 899px) 92vw, 20vw"
+          className="pay-person"
+        />
+      </div>
     </div>
   );
 }

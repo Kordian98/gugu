@@ -21,7 +21,15 @@
  * update docs/qa/02-landing-flow.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -61,7 +69,9 @@ const crm = (loc) =>
  * srcset) or nothing (full screen, resized to 2400 px wide). `tab` clicks a tab label first.
  */
 const SHOTS = (t) => [
-  { name: "overview", route: "business" },
+  // Scrolled to the team timeline: the "Tháng này" card above it would show the demo salon's month
+  // estimate, which is not ours to pick for marketing.
+  { name: "overview", route: "business", scrollY: 470, region: [248, 335, 1192, 565] },
   { name: "timeline", route: "business", card: t.timeline.title },
   { name: "upcoming", route: "business", card: t.upcoming.title },
   { name: "kpis", route: "business", card: t.kpi.revenueToday, row: t.kpi.occupancy },
@@ -76,7 +86,20 @@ const SHOTS = (t) => [
   { name: "insights-month", route: "business/insights", tab: t.profit.tabs.month },
   { name: "payroll", route: "business/payroll" },
   { name: "insights-kpis", route: "business/insights", region: [736, 204, 677, 324] },
-  { name: "payroll-table", route: "business/payroll", region: [276, 220, 944, 366] },
+  // The whole payroll month screen (export open: CSV + Excel, close the month, summary, table, note)…
+  {
+    name: "payroll-month",
+    route: "business/payroll",
+    region: [262, 96, 1164, 790],
+    clickText: t.payroll.month.export,
+  },
+  // …and the per-person drawer (first row: pay rule, commission per completed service, projections).
+  {
+    name: "payroll-person",
+    route: "business/payroll",
+    region: [920, 0, 520, 760],
+    clickAt: [1380, 525],
+  },
   { name: "zalo", route: "business/zalo" },
 ];
 
@@ -188,13 +211,65 @@ for (const loc of ["vi", "en"]) {
     if (only.length && !only.includes(s0.name)) continue;
     const s = s0;
     const pg = s.region ? cropPage : page;
-    await pg.goto(`${web}/${loc}/${s.route}`, { waitUntil: "load" });
-    await pg.waitForTimeout(3500);
+    // Metro can answer 500 (SSR "Server Error") while it rebuilds: retry a few times.
+    for (let attempt = 0; ; attempt++) {
+      const resp = await pg.goto(`${web}/${loc}/${s.route}`, { waitUntil: "load" });
+      await pg.waitForTimeout(3500);
+      const ok = (resp?.status() ?? 200) < 500 && !(await pg.getByText("Server Error").count());
+      if (ok) break;
+      if (attempt >= 3) throw new Error(`${loc} ${s.name}: dev server keeps failing`);
+      await pg.waitForTimeout(5000);
+    }
     await pg.addStyleTag({ content: "#error-overlay,#error-toast{display:none!important}" });
+    if (s.scrollY) {
+      await pg.evaluate((dy) => {
+        const sc = [...document.querySelectorAll("div")].filter(
+          (d) =>
+            /(auto|scroll)/.test(getComputedStyle(d).overflowY) &&
+            d.scrollHeight > d.clientHeight + 10,
+        );
+        sc.sort((a, b) => b.scrollHeight - a.scrollHeight);
+        if (sc[0]) sc[0].scrollTop = dy;
+      }, s.scrollY);
+      await pg.waitForTimeout(800);
+    }
+    if (s.clickText) {
+      await pg.getByText(s.clickText, { exact: true }).filter({ visible: true }).first().click();
+      await pg.waitForTimeout(1200);
+    }
+    if (s.clickAt) {
+      await pg.mouse.click(s.clickAt[0], s.clickAt[1]);
+      await pg.waitForTimeout(2000);
+    }
     if (s.tab) {
       await pg.getByText(s.tab, { exact: true }).filter({ visible: true }).first().click();
       await pg.waitForTimeout(2000);
     }
+    // Hide the floating assistant bubble (a fixed overlay in the bottom-right corner, not page content).
+    await pg.evaluate(() => {
+      for (const el of document.querySelectorAll("body *")) {
+        const cs = getComputedStyle(el);
+        if (cs.position !== "fixed" && cs.position !== "absolute") continue;
+        const r = el.getBoundingClientRect();
+        if (
+          r.width < 90 &&
+          r.height < 90 &&
+          r.right > innerWidth - 120 &&
+          r.bottom > innerHeight - 120
+        )
+          el.style.visibility = "hidden";
+      }
+    });
+    // Never capture a dev error overlay / LogBox (e.g. while Metro rebuilds): fail instead.
+    const broken = await pg.evaluate(() =>
+      /Call Stack|Uncaught Error|UnknownModuleError|Render Error|Something went wrong/i.test(
+        document.body.innerText,
+      ),
+    );
+    if (broken)
+      throw new Error(
+        `${loc} ${s.name}: an error overlay is on screen; is the dev server healthy?`,
+      );
     // The landing must show a salon that is already set up: the checklist title may not be on a used
     // full screen, nor inside a crop rectangle.
     const setupBox = await pg
@@ -231,7 +306,10 @@ for (const loc of ["vi", "en"]) {
       const [x, y, w, h] = s.region;
       clip = { x, y, width: w, height: h };
     }
-    const png = join(dir, `${s.name}.png`);
+    // Write into a temp dir and rename into place: a running Metro (e.g. the :8094 preview) watches
+    // assets/studio and fails on half-written files ("Image asset … cannot be an empty file").
+    const tmp = mkdtempSync(join(tmpdir(), "gugu-shot-"));
+    const png = join(tmp, `${s.name}.png`);
     const buf = await pg.screenshot({ path: png, ...(clip ? { clip } : {}) });
     const w = buf.readUInt32BE(16);
     const h = buf.readUInt32BE(20);
@@ -262,12 +340,17 @@ for (const loc of ["vi", "en"]) {
       "-o",
       png.replace(/\.png$/, ".webp"),
     ]);
-    rmSync(png);
+    for (const suffix of [".webp", "-2x.webp"]) {
+      const f = png.replace(/\.png$/, suffix);
+      if (existsSync(f)) renameSync(f, join(dir, `${s.name}${suffix}`));
+    }
+    rmSync(tmp, { recursive: true, force: true });
     console.log("captured", loc, s.name);
   }
   await page.close();
   await crops.close();
 }
 await browser.close();
-writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+writeFileSync(`${manifestPath}.tmp`, JSON.stringify(manifest, null, 2) + "\n");
+renameSync(`${manifestPath}.tmp`, manifestPath);
 console.log("wrote", manifestPath);

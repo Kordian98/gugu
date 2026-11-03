@@ -110,6 +110,18 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **`srcset` + `sizes`:** derived from the displayed width (box width × crop aspect ÷ box aspect). `width`/`height` attributes give the ratio before lazy load, which fixes a 0 px image on phones.
 - **Measured upscale** (displayed device px ÷ chosen file px; ≤ 1.15 required): 1440@2× 0.76–1.00, 1280@1× 0.44–0.52, 390@3× 0.60–0.82, 360@3× 0.59–0.82.
 
+## Final retake after payroll UX (main `96cdd79`)
+
+- **Fresh capture:** own DB `landing_gugu_payroll`, re-seeded with `seed-payroll-demo.mjs`; owner signed in, setup finished (no checklist anywhere; the script fails if one appears).
+- **Pay page = the whole feature:**
+  - the full payroll month screen: tabs, month, "Tải CSV / Tải Excel", "Chốt bảng lương", summary (to pay, projected, real employer cost), table and the tax note;
+  - the per-person drawer slides in over it (pay rule, commission per completed service, "Sửa lương");
+  - phones show the drawer only.
+- **Office laptop:** the overview crop below the "Tháng này" card (team timeline, upcoming, recent activity). The seeded month estimate is −19,047,029 ₫, so it is not shown in marketing.
+- **Refreshed with the same seed:** Insights KPIs, timeline, calendar, appointments and services crops.
+- **The error the owner saw on :8094:** the capture script wrote images in place, and the running Metro picked up half-written files ("Image asset … cannot be an empty file"). Now files are written in a temp dir and renamed atomically (images and manifest), and the script fails on any error overlay or "Server Error" instead of capturing it. The floating assistant bubble is hidden in captures.
+- **Intro speed-up:** Next / → / ↓ again during the intro speeds it up (owner); scroll, ← and chapters are still ignored.
+
 ## Back office uses real screens (owner, 2026-11-04)
 
 - **Insights page:** a real crop of the app's Insights screen ("Phân tích & báo cáo", 30 days: completed bookings, new and returning clients, estimated revenue, recorded at the salon, estimated gross margin).

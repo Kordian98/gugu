@@ -15,8 +15,8 @@ import { gsap } from "gsap";
  *   page the visitor left) and the sections below. While the journey is partly out of the viewport a
  *   "Center view" button smoothly re-docks it.
  * - Pages turn only by Next/Prev, HUD chapters, ← / → while the story is in view and one HORIZONTAL
- *   touch swipe per page. ↑ ↓ PgUp PgDn Space and vertical swipes scroll the page. Every input is ignored
- *   while the intro plays. A turn plays the timeline from one composed page to
+ *   touch swipe per page. ↑ ↓ PgUp PgDn Space and vertical swipes scroll the page. Scroll, swipes, ← and chapters are ignored
+ *   while the intro plays; Next / → / ↓ again speed it up. A turn plays the timeline from one composed page to
  *   the next at the original pacing and cannot stop half-way. Pressing Next / → again during a forward
  *   turn (or Prev / ← during a backward one) speeds it up to finish within 0.45 s, without skipping a
  *   page; the opposite direction reverses it. Page 1 has no Prev (nothing replays).
@@ -230,7 +230,11 @@ export function book(o: Opts): BookApi {
     if (then) after = then;
   };
   function next() {
-    if (intro === "playing") return; // every input is ignored while the intro plays
+    // Next / → again while the intro plays speeds it up (owner); nothing is queued, no page is skipped.
+    if (intro === "playing") {
+      fastForward();
+      return;
+    }
     if (intro === "todo") {
       playIntro();
       return;
@@ -379,7 +383,8 @@ export function book(o: Opts): BookApi {
     if (!horiz && !down && !up) return;
     if (!focusOk) return;
     if (intro === "playing") {
-      e.preventDefault(); // every input is ignored while the intro plays
+      e.preventDefault(); // scroll keys and ← are ignored; → / ↓ / PgDn / Space speed the intro up
+      if (k === "ArrowRight" || down) fastForward();
       return;
     }
     // ← → turn pages (and → / ↓ / PgDn / Space at the hero commit the intro, like a small scroll).

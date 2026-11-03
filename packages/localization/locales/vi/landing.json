@@ -490,7 +490,8 @@
       "p4": "Mục “Tháng này” cho chủ salon: đã có, sắp tới từ lịch hẹn, lương, chi phí, lãi ròng ước tính và biên lợi nhuận",
       "p5": "Nhân viên chỉ xem được thu nhập của chính mình",
       "note": "Số ước tính trước thuế và bảo hiểm.",
-      "shot": "Lương & hoa hồng · từng người, tháng này"
+      "shot": "Bảng lương tháng · tải CSV / Excel, chốt tháng",
+      "shotPerson": "Từng người · hoa hồng theo dịch vụ"
     }
   }
 }

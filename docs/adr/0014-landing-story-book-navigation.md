@@ -74,7 +74,8 @@ Normal page scrolling must always work, including while the story is in view." S
   out of the viewport and smoothly re-docks it;
 - "Skip the story" is removed (scrolling is free); "Finish journey" stays on the last page;
 - keys: only ← / → turn pages; ↑ ↓ PgUp PgDn Space are plain page scrolling (design re-review B2);
-- every input (scroll, keys, Next/Prev, chapters, swipes) is ignored while the intro plays (B1);
+- scroll, swipes, ← and chapters are ignored while the intro plays (B1); Next / → / ↓ again speed it up
+  (owner, later the same day);
 - only the intro keeps its narrow capture (the small-scroll threshold at the hero and the ≈ 7 s intro
   itself), which the owner asked for separately;
 - the hero's one call to action is a plaque at the foot of the arch ("Cuộn xuống hoặc bấm Bắt đầu để

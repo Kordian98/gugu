@@ -410,7 +410,8 @@ export function buildJourney(
   const PY = PH.pay;
   show(tl, q, ".ov-p .t", PY, { y: 50 }, 0.025);
   stagger(tl, q, ".ov-p .in-list li", PY + 0.012, 0.007, { x: -20 }, 0.02);
-  show(tl, q, ".ov-p .bo-shot", PY + 0.006, { x: 40, scale: 0.96 }, 0.03);
+  show(tl, q, ".ov-p .pay-month", PY + 0.006, { x: 40, scale: 0.96 }, 0.03);
+  show(tl, q, ".ov-p .pay-person", PY + 0.035, { x: 60 }, 0.03);
   hide(tl, q, ".ov-p .t, .ov-p .bo-shot", PH.payOut);
 
   // switching (still in the office): the old system (notebook, spreadsheet, another app) flows into

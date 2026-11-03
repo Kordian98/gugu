@@ -326,12 +326,18 @@ export const FLOW_CSS = `
 .in-list li i{font-style:normal;flex:0 0 22px;height:22px;border-radius:50%;background:${color.ink};color:${color.white};display:flex;align-items:center;justify-content:center;font-size:12px}
 .py-note{font-family:${font.ui};font-size:12.5px;color:${color.ink2};margin:12px 0 0}
 .bo-shot{grid-row:1 / 3;align-self:center;margin:0;padding:14px}
-.bo-shot.ins{grid-column:7/13}.bo-shot.pay{grid-column:6/13}
+.bo-shot.ins{grid-column:7/13}
+.py-shots{grid-column:6/13;grid-row:1 / 3;align-self:center;position:relative;padding-bottom:4%}
+.py-shots .bo-shot{margin:0}
+.pay-person{position:absolute;right:-1.5%;bottom:-4%;width:31%;box-shadow:0 30px 70px rgba(42,20,38,.28)}
+.pay-person.bo-shot{padding:10px}
+.pay-person figcaption{font-size:12.5px;padding:0 2px 8px}
 .bo-shot figcaption{font-family:${font.uiSemiBold};font-size:14px;color:${color.ink};padding:2px 4px 12px}
 /* desktop: the whole crop at ≈ 1:1 CSS px; phones: full height, cropped sideways (text stays legible) */
 .bo-img{position:relative;overflow:hidden;border-radius:14px;border:1px solid ${color.lineSoft};background:${color.canvas};aspect-ratio:var(--ar)}
 .bo-img img{position:absolute;top:0;left:0;height:100%;width:auto;max-width:none;display:block}
-.bo-shot.ins{--ar:2.09}.bo-shot.pay{--ar:2.58}
+.bo-shot.ins{--ar:2.09}.pay-month{--ar:1.4734}.pay-person{--ar:.684}
+.pay-month .bo-img img,.pay-person .bo-img img{width:100%;height:auto}
 @media (max-width:899px){
   .ov-i,.ov-p{justify-content:flex-start}
   .ov-i .t .fl-h,.ov-p .t .fl-h{font-size:clamp(22px,6.2vw,27px);margin-bottom:0}
@@ -343,7 +349,11 @@ export const FLOW_CSS = `
   .py-note{font-size:11px;margin-top:6px}
   .bo-shot{padding:10px;width:100%;box-sizing:border-box}
   .bo-shot figcaption{font-size:12.5px;padding:0 2px 8px}
-  .bo-shot.ins{--ar:1.3}.bo-shot.pay{--ar:1.45}
+  .bo-shot.ins{--ar:1.3}
+  .py-shots{width:100%;padding:0}
+  .pay-month{display:none}
+  .pay-person{position:relative;right:auto;bottom:auto;width:100%;box-shadow:0 22px 60px rgba(42,20,38,.12)}
+  .pay-person{--ar:1.15}
 }
 /* X25 band right after the story: Basic free for the first year */
 .fy{padding:clamp(72px,12vh,140px) var(--g);background:linear-gradient(180deg,${color.canvas},${color.lilac100})}
