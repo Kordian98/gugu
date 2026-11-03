@@ -17,7 +17,12 @@ import {
   zaloMessageListSchema,
 } from "@gugu/contracts";
 import { createBookableSalon, type BookableSalonFixture } from "../../../test/factories/booking";
-import { addSalonMember, bearerFor, testEmail } from "../../../test/factories/identity";
+import {
+  addSalonMember,
+  bearerFor,
+  steppedUpBearerFor,
+  testEmail,
+} from "../../../test/factories/identity";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
@@ -78,7 +83,7 @@ describe("Zalo on a suspended salon (q89, emulator, end to end)", () => {
         profile: { create: {} },
       },
     });
-    admin = await bearerFor(app, user.id);
+    admin = await steppedUpBearerFor(app, user.id);
   });
 
   afterAll(async () => {

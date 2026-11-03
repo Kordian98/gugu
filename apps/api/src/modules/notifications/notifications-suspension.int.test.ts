@@ -14,7 +14,12 @@ import {
   type BookableSalonFixture,
   vnAt,
 } from "../../../test/factories/booking";
-import { addSalonMember, bearerFor, testEmail } from "../../../test/factories/identity";
+import {
+  addSalonMember,
+  bearerFor,
+  steppedUpBearerFor,
+  testEmail,
+} from "../../../test/factories/identity";
 import { countMailsTo } from "../../../test/mailpit";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
@@ -66,7 +71,7 @@ describe("customer notifications of a suspended salon (integration)", () => {
         profile: { create: {} },
       },
     });
-    admin = await bearerFor(app, user.id);
+    admin = await steppedUpBearerFor(app, user.id);
   });
 
   afterAll(async () => {
