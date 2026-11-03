@@ -29,7 +29,7 @@ const PHONE = "☎";
 const CHECK = "✓";
 const SEP = " · ";
 const ZERO = "0";
-const DOWN = "\u2192";
+const NEXT_ARROW = "\u2192";
 /**
  * Navigation chapters → pages (PAGES). The book starts at Front desk (its first bar fills while the intro
  * plays), then before | after, the treatment room's three facts, the office + Insights and switching.
@@ -131,7 +131,20 @@ export function Journey({
     const stage = el.querySelector<HTMLElement>(".jr-stage");
     const h = hud.current;
     const count = h?.querySelector<HTMLElement>(".hud-count");
+    const sr = h?.querySelector<HTMLElement>(".hud-sr");
     const lbls = h?.querySelector<HTMLElement>(".hud-lbls");
+    const nextBtn = h?.querySelector<HTMLButtonElement>(".hud-next");
+    const prevBtn = h?.querySelector<HTMLButtonElement>(".hud-prev");
+    // Page → the panel that is on screen; every other panel is inert (no focus, no AT) while hidden.
+    const PANELS: [string, number[]][] = [
+      [".sp", [1, 2]],
+      [".ov-f", [3, 4, 5]],
+      [".ov-o", [6]],
+      [".ov-i", [7]],
+      [".ov-s", [8]],
+    ];
+    const chapterOf = (page: number) =>
+      HUD.find((c) => (c.stops as readonly number[]).includes(page));
     const skipBtn = el.querySelector<HTMLElement>(".jr-skip");
     // Book pages are 1..8 (the hero is not a page).
     const total = PAGES.length - 1;
@@ -149,6 +162,11 @@ export function Journey({
         b.setAttribute("aria-current", stops.includes(page) ? "step" : "false");
       });
       if (count) count.textContent = t("flow.hud.page", { n: Math.max(1, page), total });
+      PANELS.forEach(([sel, pages]) => {
+        const panel = el.querySelector<HTMLElement>(sel);
+        if (panel) panel.inert = !pages.includes(page);
+      });
+      if (prevBtn) prevBtn.disabled = page <= 1;
       const key = labelFor(page);
       if (lbls && key !== lastLabel) {
         lastLabel = key;
@@ -156,12 +174,25 @@ export function Journey({
         lbls.querySelectorAll<HTMLElement>("[data-k]").forEach((l) => {
           const on = l.dataset["k"] === key;
           l.classList.toggle("on", on);
-          if (on) w = l.offsetWidth;
+          if (on) {
+            w = l.offsetWidth;
+            nextBtn?.setAttribute("aria-label", l.textContent);
+          }
         });
         lbls.style.width = `${String(w)}px`;
       }
       skipBtn?.classList.toggle("gone", page === PAGES.length - 1);
-      if (settled) h.dataset["settled"] = String(page);
+      if (settled) {
+        h.dataset["settled"] = String(page);
+        // Screen readers hear the page once it has settled (the visible counter is aria-hidden).
+        const c = chapterOf(page);
+        if (sr && page > 0 && c)
+          sr.textContent = t("flow.hud.pageSr", {
+            n: page,
+            total,
+            chapter: t(`flow.hud.${c.k}`),
+          });
+      }
     };
     // Static hero: the same door window as the stage at time 0 (clip, offset, first walk frame).
     const syncHero = () => {
@@ -212,6 +243,10 @@ export function Journey({
             },
             ready,
             exitTo: () => document.getElementById("fl-free"),
+            onExited: (target) => {
+              // After Finish / Skip, move focus to the section the visitor landed on.
+              target?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
+            },
           })
         : null;
     if (__DEV__) (window as unknown as { __book?: BookApi | null }).__book = ch.current;
@@ -342,7 +377,7 @@ export function Journey({
                   <div className="pn-g">
                     {AFTER.map((k) => (
                       <div key={k} className="pn-gi">
-                        <i>{CHECK}</i>
+                        <i aria-hidden>{CHECK}</i>
                         {t(`flow.ba.${k}`)}
                       </div>
                     ))}
@@ -363,7 +398,7 @@ export function Journey({
                         decoding="async"
                       />
                       <div className="sp-booked">
-                        <i>{CHECK}</i>
+                        <i aria-hidden>{CHECK}</i>
                         {t("flow.ba.booked")}
                       </div>
                     </div>
@@ -440,16 +475,18 @@ export function Journey({
                       </span>
                     ))}
                   </span>
-                  <em>{t(`flow.hud.${c.k}`)}</em>
+                  <em className="hud-name">{t(`flow.hud.${c.k}`)}</em>
                 </button>
               ))}
             </div>
-            <span className="hud-count" aria-live="polite">
+            <span className="hud-sr" aria-live="polite" />
+            <span className="hud-count" aria-hidden>
               {t("flow.hud.page", { n: 1, total: PAGES.length })}
             </span>
             <button
               type="button"
               className="hud-prev"
+              disabled
               aria-label={t("flow.hud.prev")}
               onClick={() => {
                 ch.current?.prev();
@@ -460,18 +497,19 @@ export function Journey({
             <button
               type="button"
               className="hud-next"
+              aria-label={t("flow.hud.start")}
               onClick={() => {
                 ch.current?.next();
               }}
             >
               <span className="hud-lbls">
                 {LABELS.map((k) => (
-                  <span key={k} data-k={k} className={k === "start" ? "on" : undefined}>
+                  <span key={k} data-k={k} aria-hidden className={k === "start" ? "on" : undefined}>
                     {t(`flow.hud.${k}`)}
                   </span>
                 ))}
               </span>
-              <i>{DOWN}</i>
+              <i aria-hidden>{NEXT_ARROW}</i>
             </button>
             <span className="hud-hint">
               <span className="h0">

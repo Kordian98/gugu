@@ -1,4 +1,5 @@
 export * from "./tokens";
+export * from "./a11y";
 export * from "./scale";
 export * from "./components/Text";
 export * from "./components/GradientText";

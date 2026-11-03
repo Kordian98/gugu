@@ -160,7 +160,7 @@
     "billedYearly": "thanh toán theo năm",
     "cta": "Dùng thử miễn phí",
     "popular": "Phổ biến nhất",
-    "trial": "Gói Basic miễn phí cho mọi salon trong năm đầu tiên, sau đó 99.000₫/tháng. Salon mới được dùng thử Pro 14 ngày, rồi tự chuyển về Basic miễn phí. Basic có thiết lập bằng AI từ bảng giá; trợ lý AI có từ gói Pro.",
+    "trial": "Gói Basic miễn phí cho mọi salon trong năm đầu tiên, sau đó {{price}}/tháng. Salon mới được dùng thử Pro 14 ngày, rồi tự chuyển về Basic miễn phí. Basic có thiết lập bằng AI từ bảng giá; trợ lý AI có từ gói Pro.",
     "basic": {
       "name": "Basic",
       "tagline": "Đủ mọi thứ để vận hành một salon",
@@ -177,7 +177,8 @@
       "items": "Mọi thứ trong gói Pro\nNhiều chi nhánh với báo cáo tổng hợp\nGiới hạn dùng AI cao nhất\nPhân tích nâng cao"
     },
     "basicFree": "Miễn phí năm đầu",
-    "basicThen": "sau đó 99.000₫/tháng"
+    "basicThen": "sau đó {{price}}/tháng",
+    "basicCta": "Bắt đầu miễn phí"
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
@@ -444,7 +445,8 @@
       "hintTouch": "Vuốt hoặc nhấn Tiếp theo để đi tiếp",
       "hintStartKeys": "Cuộn hoặc nhấn Bắt đầu để bước vào",
       "hintStartTouch": "Vuốt lên hoặc nhấn Bắt đầu để bước vào",
-      "resume": "Tiếp tục hành trình"
+      "resume": "Tiếp tục hành trình",
+      "pageSr": "Trang {{n}}/{{total}}: {{chapter}}"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",
@@ -466,18 +468,13 @@
       "i5": "Phễu Zalo: từ tin nhắn đến lịch hẹn",
       "win": "Báo cáo · 30 ngày",
       "eg": "Số liệu minh hoạ",
-      "revA": "48,6 tr ₫",
-      "revB": "45,2 tr ₫",
       "margin": "Lợi nhuận gộp theo dịch vụ",
       "s1": "Sơn gel",
       "s2": "Đắp bột",
       "s3": "Nhuộm tóc",
       "funnel": "Phễu Zalo",
-      "f1n": "120",
       "f1": "tin nhắn",
-      "f2n": "58",
       "f2": "hỏi giờ trống",
-      "f3n": "41",
       "f3": "lịch hẹn"
     },
     "free": {
@@ -485,7 +482,7 @@
       "pre": "Gói Basic ",
       "glow": "miễn phí",
       "post": " năm đầu cho mọi salon.",
-      "sub": "Sau đó 99.000₫/tháng. Basic có thiết lập dịch vụ bằng AI từ ảnh bảng giá; trợ lý AI có từ gói Pro.",
+      "sub": "Sau đó {{price}}/tháng. Basic có thiết lập dịch vụ bằng AI từ ảnh bảng giá; trợ lý AI có từ gói Pro.",
       "cta": "Bắt đầu miễn phí",
       "plans": "Xem các gói"
     }

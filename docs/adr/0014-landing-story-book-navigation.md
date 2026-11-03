@@ -51,6 +51,23 @@ directional settle. The owner then asked for a different model: "mega robust, li
 8. **Sizing:** the stage and static hero are one scroller viewport high (`--sv` = `clientHeight`), because
    the page scrolls inside the RN Web ScrollView.
 
+## Scroll capture is the owner's decision
+
+The design-system skill says "never scroll-jack". This ADR deliberately captures scroll in three narrow
+places, because the product owner asked for exactly that on 2026-11-04 (relayed by the coordinator):
+
+- "mega robust, like a book": "one fast, unlucky scroll can blow through the whole section";
+- "Mouse wheel and trackpad no longer drive the story. … Momentum flicks therefore can't wreck it";
+- "A small scroll from the hero, about 10% … commits to the full first animation … During the intro,
+  further scroll input is ignored. It must not skip or double-trigger";
+- "Scrolling up from any page never reverses pages or replays animations. It is plain page scrolling."
+
+The captures are: (1) at the static hero before the intro, wheel and swipe are held until the threshold
+commits the intro; (2) wheel and swipe are ignored while the intro plays (≈ 7 s); (3) at the dock, the
+remainder of a gesture that started on the other side is absorbed, once. Everything else is native
+scrolling, and the keyboard, scrollbar and links always work. Revisit this if usability testing shows
+visitors trying to scroll the story.
+
 ## Consequences
 
 - No gesture is swallowed except the remainder of a flick at the dock, which is intended.

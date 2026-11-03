@@ -60,6 +60,8 @@ type Opts = {
   /** Resolves when the media for a turn through [from, to] is ready (walk frames) or after a timeout. */
   ready: (from: number, to: number) => Promise<void>;
   exitTo: () => Element | null;
+  /** Called when an exit scroll (Finish / Skip) has arrived, with its target (to move focus there). */
+  onExited?: (target: Element | null) => void;
 };
 
 /** Small-scroll threshold that commits to the intro (one wheel notch / a short swipe is enough). */
@@ -98,12 +100,17 @@ export function book(o: Opts): BookApi {
     scrollTw?.kill();
     scrollTw = null;
   };
-  const scrollToY = (to: number, dur: number, ease = "sine.inOut") => {
+  const scrollToY = (to: number, dur: number, ease = "sine.inOut", done?: () => void) => {
     stopScroll();
     const max = scroller.scrollHeight - scroller.clientHeight;
     const target = clamp(to, 0, max);
     const proxy = { y: y() };
-    if (Math.abs(target - proxy.y) < 1) return;
+    // Reduced motion: programmatic scrolls jump.
+    if (Math.abs(target - proxy.y) < 1 || o.reduce) {
+      scroller.scrollTop = target;
+      done?.();
+      return;
+    }
     scrollTw = gsap.to(proxy, {
       y: target,
       duration: dur,
@@ -113,6 +120,7 @@ export function book(o: Opts): BookApi {
       },
       onComplete: () => {
         scrollTw = null;
+        done?.();
       },
     });
   };
@@ -125,7 +133,9 @@ export function book(o: Opts): BookApi {
     const to = el
       ? el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + y()
       : dockY + vh;
-    scrollToY(to, scrollDur(to - y()));
+    scrollToY(to, scrollDur(to - y()), "sine.inOut", () => {
+      o.onExited?.(el);
+    });
   };
 
   const draw = () => {
@@ -233,11 +243,22 @@ export function book(o: Opts): BookApi {
     const to = clamp(i, 1, last);
     queued = 0;
     if (intro === "todo") {
-      playIntro(to > 1 ? () => { play(to, durFor(to, to === 2)); } : undefined);
+      playIntro(
+        to > 1
+          ? () => {
+              play(to, durFor(to, to === 2));
+            }
+          : undefined,
+      );
       return;
     }
     if (intro === "playing") {
-      after = to > 1 ? () => { play(to, durFor(to, to === 2)); } : null;
+      after =
+        to > 1
+          ? () => {
+              play(to, durFor(to, to === 2));
+            }
+          : null;
       return;
     }
     if (to === page && !turn) {

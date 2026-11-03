@@ -41,7 +41,7 @@ export function StaticHero({
         <button type="button" className="hud-next" onClick={onStart}>
           <span className="l-start">{t("flow.hud.start")}</span>
           <span className="l-resume">{t("flow.hud.resume")}</span>
-          <i>{ARROW}</i>
+          <i aria-hidden>{ARROW}</i>
         </button>
         <span className="hud-hint">
           <span className="h0">

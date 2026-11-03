@@ -2,7 +2,12 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Button, Icon, Text, color } from "@gugu/design-system";
+import { Button, Icon, Text, checkableA11y, color } from "@gugu/design-system";
+import { formatVND } from "@gugu/localization";
+
+import { useLocale } from "@/services/i18n/useLocale";
+
+import { BASIC_MONTHLY_VND } from "./plans";
 
 import { Container, SectionHead } from "./Section";
 import type { LandingNavActions } from "./useLandingNav";
@@ -14,6 +19,8 @@ const PERIODS = ["monthly", "yearly"] as const;
 export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boolean }) {
   const { t } = useTranslation("landing");
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
+  const locale = useLocale();
+  const price = formatVND(BASIC_MONTHLY_VND, locale);
   return (
     <Container className="gap-10 py-20">
       <View className="gap-6 min-[900px]:flex-row min-[900px]:items-end min-[900px]:justify-between">
@@ -27,11 +34,11 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
             <Pressable
               key={p}
               accessibilityRole="radio"
-              accessibilityState={{ checked: period === p }}
+              {...checkableA11y(period === p)}
               onPress={() => {
                 setPeriod(p);
               }}
-              className="rounded-full px-5 py-2.5"
+              className="min-h-11 justify-center rounded-full px-5 py-2.5"
               style={{ backgroundColor: period === p ? color.ink : "transparent" }}
             >
               <Text role="uiSemiBold" size={14} color={period === p ? color.white : color.body}>
@@ -80,7 +87,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
                       {t("pricing.basicFree")}
                     </Text>
                     <Text role="uiSemiBold" size={14.5} color={color.ink2}>
-                      {t("pricing.basicThen")}
+                      {t("pricing.basicThen", { price })}
                     </Text>
                   </>
                 ) : (
@@ -120,7 +127,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
               </View>
               <View className="mt-auto gap-2 pt-2">
                 <Button
-                  label={t("pricing.cta")}
+                  label={t(plan === "basic" ? "pricing.basicCta" : "pricing.cta")}
                   onPress={nav.trial}
                   height={54}
                   fontSize={16}
@@ -135,7 +142,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
         })}
       </View>
       <Text size={14.5} lineHeight={22} color={color.muted} style={{ maxWidth: 760 }}>
-        {t("pricing.trial")}
+        {t("pricing.trial", { price })}
       </Text>
     </Container>
   );

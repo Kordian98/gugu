@@ -30,6 +30,17 @@ export const color = {
   star: "#F0A93B",
   neon: "#FFE6F0",
   neonGlow: "#F57DB2",
+  /** Pain / "before" accents (landing story) — on white or canvas only. */
+  danger: "#C2414B",
+  dangerInk: "#9A3B44",
+  dangerTint: "#FDE2E4",
+  /** Zalo brand blue, only for Zalo message chips. */
+  zalo: "#0068FF",
+  /** Paper props in illustrations (notebook, price list) and spreadsheet cells. */
+  paper: "#FFFBEF",
+  paperLine: "#EADFC2",
+  sheet: "#EEF3EC",
+  sheetLine: "#DCE6D8",
 } as const;
 
 export const gradient = {
@@ -37,6 +48,21 @@ export const gradient = {
   glowHere: ["#A68CF6", "#C99BEA", "#FD909F"],
   /** "glow-up." */
   glowUp: ["#6F55C9", "#B58BEA", "#F69BB3", "#F8A27C"],
+  /** Two-stop lilac → pink used for big numbers and progress fills (≤ 2 headline words). */
+  glowSoft: ["#A68CF6", "#F08DB4"],
+} as const;
+
+/** CSS linear-gradient from a gradient token. */
+export const cssGradient = (stops: readonly string[], angle = "90deg") =>
+  `linear-gradient(${angle},${stops.join(",")})`;
+
+/**
+ * Motion tokens (design-system skill: fast 120 · base 200 · slow 320 · deliberate 500 ms). Expressive
+ * surfaces only; calm surfaces use fast/base without springs. Honour reduced motion everywhere.
+ */
+export const motion = {
+  duration: { fast: 120, base: 200, slow: 320, deliberate: 500 },
+  ease: { out: "cubic-bezier(.2,.7,.2,1)", inOut: "cubic-bezier(.45,0,.55,1)" },
 } as const;
 
 /** Font families registered by the app (expo-font keys = family names). */

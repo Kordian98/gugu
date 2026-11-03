@@ -160,7 +160,7 @@
     "billedYearly": "billed yearly",
     "cta": "Start free trial",
     "popular": "Most popular",
-    "trial": "Basic is free for every salon for the first year, then 99,000₫/month. New salons get a 14-day Pro trial first, then move to free Basic automatically. Basic includes AI setup from your price list; the AI assistant starts at Pro.",
+    "trial": "Basic is free for every salon for the first year, then {{price}}/month. New salons get a 14-day Pro trial first, then move to free Basic automatically. Basic includes AI setup from your price list; the AI assistant starts at Pro.",
     "basic": {
       "name": "Basic",
       "tagline": "Everything to run one salon",
@@ -177,7 +177,8 @@
       "items": "Everything in Pro\nMultiple locations with combined reporting\nHighest AI usage limit\nAdvanced analytics"
     },
     "basicFree": "Free for the first year",
-    "basicThen": "then 99,000₫/month"
+    "basicThen": "then {{price}}/month",
+    "basicCta": "Start free"
   },
   "cta": {
     "title": "Ready to glow? Your first year of Basic is free.",
@@ -444,7 +445,8 @@
       "hintTouch": "Swipe or tap Next to go on",
       "hintStartKeys": "Scroll or press Start to walk in",
       "hintStartTouch": "Swipe up or tap Start to walk in",
-      "resume": "Continue the journey"
+      "resume": "Continue the journey",
+      "pageSr": "Page {{n}}/{{total}}: {{chapter}}"
     },
     "calc": {
       "t": "What fewer no-shows are worth",
@@ -466,18 +468,13 @@
       "i5": "Zalo funnel: from message to booking",
       "win": "Insights · 30 days",
       "eg": "Illustrative figures",
-      "revA": "48.6M ₫",
-      "revB": "45.2M ₫",
       "margin": "Gross margin by service",
       "s1": "Gel polish",
       "s2": "Acrylic set",
       "s3": "Hair colour",
       "funnel": "Zalo funnel",
-      "f1n": "120",
       "f1": "messages",
-      "f2n": "58",
       "f2": "asked for a slot",
-      "f3n": "41",
       "f3": "bookings"
     },
     "free": {
@@ -485,7 +482,7 @@
       "pre": "Basic is ",
       "glow": "free",
       "post": " for every salon for the first year.",
-      "sub": "Then 99,000₫/month. Basic includes AI setup from a photo of your price list; the AI assistant starts at Pro.",
+      "sub": "Then {{price}}/month. Basic includes AI setup from a photo of your price list; the AI assistant starts at Pro.",
       "cta": "Start free",
       "plans": "See the plans"
     }

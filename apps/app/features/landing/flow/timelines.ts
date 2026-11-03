@@ -1,5 +1,7 @@
 import { gsap } from "gsap";
 
+import { color } from "@gugu/design-system";
+
 import type { Segment, WalkPlayer } from "./sequence";
 import type { Page } from "./book";
 
@@ -407,7 +409,7 @@ export function buildJourney(
       IN + 0.032 + i * 0.005,
     );
   });
-  stagger(tl, q, ".in-fun > div", IN + 0.05, 0.006, { y: 12, scale: 0.9 }, 0.016);
+  stagger(tl, q, ".in-step", IN + 0.05, 0.006, { y: 12, scale: 0.9 }, 0.016);
   hide(tl, q, ".ov-i .t, .in-win", PH.insOut);
 
   // switching (still in the office): the old system (notebook, spreadsheet, another app) flows into
@@ -420,12 +422,14 @@ export function buildJourney(
   stagger(tl, q, ".sw-o", swAt(0.006), swDur(0.008), { y: 30, scale: 0.9 }, swDur(0.022));
   show(tl, q, ".sw-win", swAt(0.016), { x: 40, scale: 0.96 }, swDur(0.025));
   show(tl, q, ".sw-arrow", swAt(0.022), { x: -16 }, swDur(0.015));
-  // old cards slide toward the GuGu window and fade back while their content is "moved"
-  tl.to(
-    q(".sw-o.xl, .sw-o.app"),
-    { x: 28, opacity: 0.35, duration: swDur(0.05), ease: "power1.inOut" },
-    swAt(0.03),
-  );
+  // old cards slide toward the GuGu window and fade back while their content is "moved" (desktop only:
+  // on phones the old-system chips stay fully legible)
+  if (!mobile)
+    tl.to(
+      q(".sw-o.xl, .sw-o.app"),
+      { x: 28, opacity: 0.35, duration: swDur(0.05), ease: "power1.inOut" },
+      swAt(0.03),
+    );
   tl.fromTo(
     q(".sw-scan"),
     { yPercent: -100, opacity: 1 },
@@ -457,7 +461,7 @@ export function buildJourney(
     }
     if (knob && tog) {
       tl.to(knob, { x: 14, duration: swDur(0.01), ease: "back.out(2)" }, at + swDur(0.03));
-      tl.to(tog, { backgroundColor: "#A98BEB", duration: swDur(0.01) }, at + swDur(0.03));
+      tl.to(tog, { backgroundColor: color.lilac500, duration: swDur(0.01) }, at + swDur(0.03));
     }
   });
   tl.to(q(".sw-status .s1"), { opacity: 0, duration: swDur(0.01) }, swAt(0.092));

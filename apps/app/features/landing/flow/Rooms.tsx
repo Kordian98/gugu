@@ -71,7 +71,7 @@ export function FeaturesPanel() {
             <h3>{t(`flow.features.${f.k}k`)}</h3>
             <p className="tr-g">{t(`flow.features.${f.k}g`)}</p>
             <p className="tr-p">
-              <i>{CROSS}</i>
+              <i aria-hidden>{CROSS}</i>
               <span>
                 <em>{t("flow.features.today")}</em>
                 {t(`flow.features.${f.k}p`)}
@@ -88,7 +88,7 @@ export function FeaturesPanel() {
               <img src={shot(f.shot)} alt="" decoding="async" loading="lazy" />
             </div>
             <div className="tr-call">
-              <i>{PIN}</i>
+              <i aria-hidden>{PIN}</i>
               {t(`flow.features.${f.call}`)}
             </div>
           </figure>
@@ -245,7 +245,9 @@ export function SwitchPanel() {
             <li key={k}>
               <b>{String(i + 1)}</b>
               <span>{t(`flow.switch.${k}`)}</span>
-              <i className="ok">{CHECK}</i>
+              <i className="ok" aria-hidden>
+                {CHECK}
+              </i>
             </li>
           ))}
         </ol>
@@ -279,7 +281,6 @@ export function SwitchPanel() {
           {ARROW}
         </div>
         <div className="card sw-win">
-          {" "}
           <div className="sw-bar">
             <span />
             <span />
@@ -288,7 +289,7 @@ export function SwitchPanel() {
           </div>
           <div className="sw-ai">
             <div className="sw-ai-h">
-              <i>{SPARK}</i>
+              <i aria-hidden>{SPARK}</i>
               {t("flow.switch.ai")}
             </div>
             <div className="sw-prog">
