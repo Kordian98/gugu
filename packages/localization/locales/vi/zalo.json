@@ -47,6 +47,7 @@
     "cancelled": "Đã hủy lịch {{ref}}. Hẹn gặp bạn lần sau!",
     "cancelTooLate": "Đã quá thời hạn hủy lịch qua tin nhắn. Nhân viên sẽ liên hệ với bạn.",
     "rescheduleTooLate": "Đã quá thời hạn đổi lịch qua tin nhắn. Nhân viên sẽ liên hệ với bạn.",
+    "rescheduleContactSalon": "Lịch hẹn này có nhiều dịch vụ nên chưa đổi giờ được qua tin nhắn. Nhân viên sẽ liên hệ với bạn.",
     "rescheduled": "Đã đổi lịch {{ref}} sang {{when}}.",
     "handoff": "Salon đã nhận tin nhắn. Nhân viên sẽ trả lời bạn sớm nhất có thể.",
     "fallback": "Xin lỗi, salon chưa hiểu ý bạn. Bạn chọn một mục bên dưới nhé.",

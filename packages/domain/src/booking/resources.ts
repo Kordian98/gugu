@@ -27,7 +27,8 @@ export interface ResourceInput {
   units: readonly ResourceUnitAvailability[];
 }
 
-const byOrder = (a: ResourceUnitAvailability, b: ResourceUnitAvailability) =>
+/** Stable unit fill order: resource sort order, then unit id. */
+export const unitOrder = (a: ResourceUnitAvailability, b: ResourceUnitAvailability) =>
   a.sortOrder - b.sortOrder || (a.unitId < b.unitId ? -1 : a.unitId > b.unitId ? 1 : 0);
 
 /**
@@ -46,7 +47,7 @@ export function pickUnits(
         (u) =>
           u.resourceTypeId === req.resourceTypeId && !u.busy.some((b) => overlaps(b, occupancy)),
       )
-      .sort(byOrder)
+      .sort(unitOrder)
       .slice(0, req.quantity);
     if (free.length < req.quantity) return null;
     chosen.push(...free.map((u) => u.unitId));

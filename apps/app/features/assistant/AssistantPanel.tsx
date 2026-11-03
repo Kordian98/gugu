@@ -71,7 +71,11 @@ export function AssistantPanel({
       {loading ? (
         <ActivityIndicator color={c.accent} style={{ marginTop: 32 }} />
       ) : status?.configured === false ? (
-        <Notice icon="settings" title={t("assistant.notConfigured")} />
+        <Notice
+          testID="assistant-not-configured"
+          icon="settings"
+          title={t("assistant.notConfigured")}
+        />
       ) : status?.entitled === false ? (
         <Notice
           testID="assistant-upgrade"

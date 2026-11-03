@@ -25,3 +25,6 @@ apps/app/android/
 # API (topic 04)
 apps/api/src/infrastructure/prisma/generated/
 apps/api/prisma/spike/generated/
+
+# Test reports (pnpm gate, pnpm e2e:web)
+reports/

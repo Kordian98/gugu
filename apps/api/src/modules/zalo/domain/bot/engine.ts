@@ -25,6 +25,7 @@ import {
   type BotT,
   FLOW_TIMEOUT_MS,
   BOOKING_DAYS,
+  BOT_MAX_SERVICES,
   INITIAL_BOT_STATE,
   isSetupIssue,
   MAX_BUTTONS,
@@ -1065,6 +1066,12 @@ class BotRun {
     if (!booking) {
       this.say(this.t("bookingNotFound"));
       this.showHome(false);
+      return;
+    }
+    // The bot only models two services: a longer chain is moved by the salon (review L3).
+    if ((booking.serviceCount ?? 1) > BOT_MAX_SERVICES) {
+      this.say(this.t("rescheduleContactSalon"));
+      this.handoff();
       return;
     }
     const sel: Selection = {

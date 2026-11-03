@@ -16,6 +16,9 @@ export const FLOW_TIMEOUT_MS = 30 * 60_000;
 /** Days offered for booking (owner 2026-11-03: the next 14 days, within the salon's window). */
 export const BOOKING_DAYS = 14;
 
+/** Services one booking may have for the bot to handle it: the first + an optional second. */
+export const BOT_MAX_SERVICES = 2;
+
 export interface BotButton {
   title: string;
   /** Hidden payload Zalo sends back when the customer taps the button. */
@@ -123,6 +126,11 @@ export interface BotBooking {
   variantId: string | null;
   /** Second service of a two-service booking (M6.8), kept when rescheduling. */
   second?: { serviceId: string; variantId: string | null } | null;
+  /**
+   * Services in the booking (default 1). The bot models at most BOT_MAX_SERVICES; longer chains
+   * (booked in the CRM) are rescheduled by the salon (security review L3).
+   */
+  serviceCount?: number;
   staffId: string;
   serviceName: string;
   staffName: string | null;

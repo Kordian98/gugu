@@ -17,6 +17,8 @@ import {
   isTerminal,
   requiredOverrides,
   MAX_AVAILABILITY_DAYS,
+  MAX_CHAIN_EARLIEST_DAYS,
+  searchBudget,
   toLocal,
   unavailableReason,
 } from "@gugu/domain";
@@ -29,6 +31,7 @@ import {
   type SalonBookingContext,
 } from "../infra/booking-inputs";
 import {
+  BookingFeatures,
   chainDuration,
   chainInput,
   lineRequests,
@@ -124,6 +127,7 @@ export class BookingQueries {
     private readonly clock: BookingClock,
     private readonly secrets: BookingSecrets,
     private readonly cache: AvailabilityCache,
+    private readonly features: BookingFeatures,
   ) {}
 
   private scope(ctx: SalonBookingContext, kind: string) {
@@ -141,12 +145,18 @@ export class BookingQueries {
     query: Chained<AvailabilityQuery>,
     opts: { hideStaff: boolean; onlyStaffId?: string | null },
   ): Promise<Availability> {
+    // Before the cache: a chain cached while the flag was on is not served once it is off.
+    this.features.assertChainAllowed(lineRequests(query, query.nextServices));
     return this.cache.getOrCompute(this.scope(ctx, "availability"), { query, opts }, () =>
       this.computeAvailability(ctx, query, opts),
     );
   }
 
-  /** Resolves the chain and each line's candidates (`only` = own-calendar scope, every line). */
+  /**
+   * Resolves the chain and each line's candidates (`only` = own-calendar scope, every line).
+   * Every read path goes through here, so `nextServices` while `booking.multiService` is off is
+   * a 422 on reads as on create (security review L1).
+   */
   private async chain(
     ctx: SalonBookingContext,
     query: Chained<
@@ -155,6 +165,7 @@ export class BookingQueries {
     only: string | null,
   ): Promise<ResolvedChain> {
     const lines = lineRequests(query, query.nextServices);
+    this.features.assertChainAllowed(lines);
     const selections = await resolveChain(this.prisma, ctx.salonId, lines);
     const candidates = selections.map((sel, i) =>
       readCandidates(sel, only ?? lines[i]?.staffId ?? null),
@@ -174,7 +185,8 @@ export class BookingQueries {
       now: this.clock.now(),
     });
     const days = new Map<string, Availability["days"][number]["slots"]>();
-    const slots = computeSlots(input);
+    const budget = searchBudget();
+    const slots = computeSlots(input, budget);
     for (const slot of slots) {
       const date = toLocal(slot.start, ctx.timeZone).date;
       const first = slot.options[0];
@@ -192,7 +204,9 @@ export class BookingQueries {
       timeZone: ctx.timeZone,
       durationMinutes: chainDuration(selections),
       days: [...days].map(([date, slots]) => ({ date, slots })),
-      unavailableReason: days.size === 0 ? unavailableReason(input) : null,
+      // Empty because the search stopped early is not a reason the salon can act on.
+      unavailableReason: days.size === 0 && !budget.truncated ? unavailableReason(input) : null,
+      truncated: budget.truncated,
     };
   }
 
@@ -205,6 +219,7 @@ export class BookingQueries {
     query: Chained<EarliestSlotsQuery>,
     opts: { onlyStaffId?: string | null },
   ): Promise<EarliestSlots> {
+    this.features.assertChainAllowed(lineRequests(query, query.nextServices));
     return this.cache.getOrCompute(this.scope(ctx, "earliest"), { query, opts }, () =>
       this.computeEarliest(ctx, query, opts),
     );
@@ -219,16 +234,21 @@ export class BookingQueries {
     const chain = chainInput(selections, candidates);
     const now = this.clock.now();
     const today = toLocal(now.getTime(), ctx.timeZone).date;
-    const last = addDays(today, ctx.settings.bookingWindowDays);
+    const windowEnd = addDays(today, ctx.settings.bookingWindowDays);
     let from = query.from && query.from > today ? query.from : today;
+    // Chains (security review M1): one search budget for the whole scan, and at most
+    // MAX_CHAIN_EARLIEST_DAYS from where the scan starts.
+    const chainEnd = addDays(from, MAX_CHAIN_EARLIEST_DAYS - 1);
+    const last = selections.length > 1 && chainEnd < windowEnd ? chainEnd : windowEnd;
+    const budget = searchBudget();
     const found: EarliestSlots["slots"] = [];
     const perDay = new Map<string, number>();
     let firstInput: Parameters<typeof unavailableReason>[0] | null = null;
-    while (from <= last && found.length < query.limit) {
+    while (from <= last && found.length < query.limit && !budget.truncated) {
       const to = [addDays(from, MAX_AVAILABILITY_DAYS - 1), last].sort()[0] ?? last;
       const input = await loadChainInput(this.prisma, ctx, chain, { from, to, now });
       firstInput ??= input;
-      for (const slot of computeSlots(input)) {
+      for (const slot of computeSlots(input, budget)) {
         const option = slot.options[0];
         if (!option) continue;
         const date = toLocal(slot.start, ctx.timeZone).date;
@@ -247,11 +267,15 @@ export class BookingQueries {
       if (candidates.some((c) => c.length === 0)) break;
       from = addDays(to, 1);
     }
+    const unscanned = found.length < query.limit && last < windowEnd && from > last;
+    const truncated = found.length < query.limit && (budget.truncated || unscanned);
     return {
       timeZone: ctx.timeZone,
       durationMinutes: chainDuration(selections),
       slots: found,
-      unavailableReason: found.length === 0 && firstInput ? unavailableReason(firstInput) : null,
+      unavailableReason:
+        found.length === 0 && !truncated && firstInput ? unavailableReason(firstInput) : null,
+      truncated,
     };
   }
 

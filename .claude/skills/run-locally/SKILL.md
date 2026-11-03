@@ -35,7 +35,7 @@ description: Boot the full GuGu stack locally (Postgres+PostGIS, Redis, MinIO, M
 
 ## Procedure: verify web
 1. Open `http://localhost:8081/vi` and `/en`; confirm locale strings differ and no raw keys (`booking.bookNow`) render.
-2. For a screenshot or interaction, use Playwright: `pnpm --filter e2e-web exec playwright test --grep @smoke` or a browser tool.
+2. For a screenshot or interaction, use Playwright: `pnpm e2e:web` (own stack, see `e2e/web/README.md`) or a browser tool.
 3. Check the browser console for errors.
 
 ## Procedure: verify Android
