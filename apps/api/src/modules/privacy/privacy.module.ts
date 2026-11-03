@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { RateLimitModule } from "../../infrastructure/rate-limit/rate-limit.module";
 import { AuditModule } from "../audit/audit.facade";
 import { BookingsEngineModule } from "../bookings/bookings.facade";
 import { ClientPrivacyService } from "./application/client-privacy.service";
@@ -21,7 +22,8 @@ export class PrivacyModule {}
 
 /** Worker slice: export builder and retention purge (no controllers). */
 @Module({
-  imports: [AuditModule],
+  // The worker process does not load the API's global RateLimitModule.
+  imports: [AuditModule, RateLimitModule],
   providers: [SalonExportService, RetentionService],
   exports: [SalonExportService, RetentionService],
 })
