@@ -81,6 +81,14 @@ Normal page scrolling must always work, including while the story is in view." S
 - the hero's one call to action is a plaque at the foot of the arch ("Cuộn xuống hoặc bấm Bắt đầu để
   bước vào" + Start); it disappears after the first walk-in and never returns.
 
+## Perspectives (owner, 2026-11-04)
+
+The story has three perspectives in the same pinned stage: the salon owner's walk (the book), the
+client's Zalo chat and the owner's AI assistant. Tabs at the top switch between them; the hero plaque and
+the last salon page link to them. Side perspectives are scripted stepped chats with their own Next/Prev
+(← / →, horizontal swipe). The book is inactive meanwhile (no keys, swipes or intro). No language model is
+called from the public page (keys, cost and abuse limits would need a server endpoint).
+
 ## Consequences
 
 - No gesture is swallowed except the remainder of a flick at the dock, which is intended.

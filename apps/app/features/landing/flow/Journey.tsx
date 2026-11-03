@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Asset } from "expo-asset";
 import { gsap } from "gsap";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,9 @@ import { HeroCopy } from "../StudioHero";
 import { screen } from "../screens";
 import type { LandingNavActions } from "../useLandingNav";
 import { PHOTO } from "./media";
+import { ChatStory } from "./ChatStory";
 import { InsightsPanel } from "./Insights";
+import { AI_STEPS, CLIENT_STEPS, ViewTabs, type View } from "./Perspectives";
 import { PayrollPanel } from "./Payroll";
 import { FeaturesPanel, OfficePanel, SwitchPanel } from "./Rooms";
 import { WalkPlayer, frameUrl, type Segment } from "./sequence";
@@ -104,6 +106,17 @@ export function Journey({
   const hud = useRef<HTMLElement>(null);
   const heroBlock = useRef<HTMLDivElement>(null);
   const ch = useRef<BookApi | null>(null);
+  const [view, setView] = useState<View>("salon");
+  /** Switch perspective: the salon walk (book), the client's Zalo chat, or the owner's AI assistant. */
+  const pick = (v: View) => {
+    setView(v);
+    ch.current?.setActive(v === "salon");
+    if (v === "salon") ch.current?.start();
+    else ch.current?.dock();
+  };
+  const exit = () => {
+    ch.current?.exit();
+  };
   const zero = (d: number) =>
     new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(0);
 
@@ -257,6 +270,7 @@ export function Journey({
             onPage,
             onIntroDone: () => {
               hb?.classList.add("done");
+              el.classList.add("intro-done");
             },
             ready,
             exitTo: () => document.getElementById("fl-free"),
@@ -292,9 +306,11 @@ export function Journey({
         onStart={() => {
           ch.current?.start();
         }}
+        onView={pick}
       />
       <div className="jr" ref={track}>
-        <div className="jr-stage">
+        <div className={`jr-stage v-${view}`}>
+          <ViewTabs view={view} onPick={pick} />
           {/* The stage's copy of the hero (time 0) only animates away in the intro; the static hero above
             is the interactive one. */}
           <div className="jr-hero" inert>
@@ -477,7 +493,76 @@ export function Journey({
             <InsightsPanel />
             <PayrollPanel />
             <SwitchPanel />
+            {/* Last salon page: see the other two perspectives, or finish (owner). */}
+            <div className="jr-end">
+              <button
+                type="button"
+                className="cs-alt"
+                onClick={() => {
+                  pick("client");
+                }}
+              >
+                {t("views.toClient")}
+              </button>
+              <button
+                type="button"
+                className="cs-alt"
+                onClick={() => {
+                  pick("ai");
+                }}
+              >
+                {t("views.toAi")}
+              </button>
+            </div>
           </div>
+          <ChatStory
+            ns="views.client"
+            kind="phone"
+            steps={CLIENT_STEPS}
+            active={view === "client"}
+            reduce={reduce}
+            bg={PHOTO.customer}
+            onFinish={exit}
+            ends={[
+              {
+                k: "views.toAi",
+                go: () => {
+                  pick("ai");
+                },
+              },
+              {
+                k: "views.toSalon",
+                go: () => {
+                  pick("salon");
+                },
+              },
+              { k: "views.finish", go: exit, primary: true },
+            ]}
+          />
+          <ChatStory
+            ns="views.ai"
+            kind="panel"
+            steps={AI_STEPS}
+            active={view === "ai"}
+            reduce={reduce}
+            bg={PHOTO.calm169}
+            onFinish={exit}
+            ends={[
+              {
+                k: "views.toClient",
+                go: () => {
+                  pick("client");
+                },
+              },
+              {
+                k: "views.toSalon",
+                go: () => {
+                  pick("salon");
+                },
+              },
+              { k: "views.finish", go: exit, primary: true },
+            ]}
+          />
 
           <nav className="jr-hud hinted" ref={hud} aria-label={t("flow.hud.label")} data-page="0">
             <div className="hud-steps">

@@ -92,6 +92,8 @@ export function book(o: Opts): BookApi {
   let queued: 1 | -1 | 0 = 0;
   let token = 0;
   let intro: "todo" | "playing" | "done" = "todo";
+  /** False while another perspective (client / AI) is shown: no intro, keys or swipes. */
+  let active = true;
   /** When the intro settled; the trailing momentum of the triggering gesture is swallowed briefly. */
   let introEndAt = 0;
   let vh = scroller.clientHeight || window.innerHeight;
@@ -322,7 +324,7 @@ export function book(o: Opts): BookApi {
       e.preventDefault(); // ignored while the intro plays
       return;
     }
-    if (intro === "todo" && (inHero() || atDock())) {
+    if (intro === "todo" && active && (inHero() || atDock())) {
       e.preventDefault(); // the hero does not move until the intro commits
       if (e.deltaY > 0 || atDock()) {
         acc += Math.abs(e.deltaY);
@@ -343,7 +345,7 @@ export function book(o: Opts): BookApi {
   const onScroll = () => {
     syncCenter();
     if (scrollTw) return;
-    if (intro === "todo") {
+    if (intro === "todo" && active) {
       // Arrived at the stage another way (scrollbar, from below after a nav link): once the scroll rests
       // there, dock and play the intro. Scrolls that only pass through (e.g. to Pricing) are left alone.
       window.clearTimeout(settleTimer);
@@ -379,7 +381,6 @@ export function book(o: Opts): BookApi {
     const s = scroller.getBoundingClientRect();
     return Math.min(r.bottom, s.bottom) - Math.max(r.top, s.top) > r.height * 0.5;
   };
-  let active = true;
   const onKey = (e: KeyboardEvent) => {
     if (!active && track.contains(e.target as Node | null)) return;
     if (!active && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;

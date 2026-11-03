@@ -279,8 +279,8 @@
       "eyebrow": "Trợ lý AI · Pro",
       "title": "Bận quá không kịp xem? Cứ hỏi.",
       "sub": "Trợ lý trả lời dựa trên lịch của chính salon và soạn sẵn tin trả lời Zalo. Không gửi thông tin cá nhân của khách cho mô hình AI.",
-      "q": "Chiều mai Mai còn trống giờ nào làm gel không?",
-      "a": "Chiều mai Mai trống lúc 14:00 và 16:30 (sơn gel, 60 phút). Soạn tin trả lời nhé?",
+      "q": "Tuần này ai đang kín lịch nhất?",
+      "a": "Mai kín 92% giờ làm, Tuấn còn trống nhiều nhất vào chiều thứ Ba.",
       "draft": "Soạn tin trả lời"
     },
     "switch": {
@@ -516,5 +516,121 @@
     "gainsSub": "thời gian và doanh thu giữ lại (ước tính)",
     "plusHours": "+{{n}} giờ",
     "plusMoney": "+{{v}}"
+  },
+  "views": {
+    "label": "Góc nhìn",
+    "or": "Hoặc xem góc nhìn:",
+    "tab": {
+      "salon": "Chủ salon",
+      "client": "Khách hàng",
+      "ai": "Trợ lý AI"
+    },
+    "toClient": "Xem góc nhìn của khách",
+    "toAi": "Xem trợ lý AI",
+    "toSalon": "Quay lại câu chuyện salon",
+    "finish": "Kết thúc hành trình",
+    "client": {
+      "eyebrow": "Góc nhìn của khách",
+      "title": "Khách đặt lịch ngay trong Zalo của salon.",
+      "note": "Hội thoại minh hoạ. Bot nói với tư cách salon của bạn; khách thanh toán tại salon.",
+      "avatar": "LN",
+      "who": "Lotus Nail & Spa",
+      "whoSub": "Zalo OA của salon",
+      "input": "Nhắn tin…",
+      "s1": {
+        "h": "Khách nhắn Zalo OA của salon",
+        "b": "Không cần tải app hay tạo tài khoản: khách đặt lịch trong Zalo, với tên và logo của salon bạn."
+      },
+      "s2": {
+        "h": "Chọn dịch vụ, thợ và giờ còn trống thật",
+        "b": "Bot chỉ đưa ra giờ còn trống trong lịch của salon, nên không bao giờ trùng lịch."
+      },
+      "s3": {
+        "h": "Đặt xong trong chưa đầy một phút",
+        "b": "Khách chia sẻ số điện thoại, lịch hẹn vào thẳng lịch của salon và cả đội thấy ngay."
+      },
+      "s4": {
+        "h": "Nhắc lịch trước 24 giờ và 2 giờ",
+        "b": "Khách bấm một nút để xác nhận, đổi giờ hoặc huỷ, nên ghế trống được báo sớm."
+      },
+      "s5": {
+        "h": "Cần người thật? Chỉ một chạm",
+        "b": "Khách bấm “Gặp nhân viên”, cuộc trò chuyện chuyển sang hộp thư Zalo của salon trong GuGu Studio."
+      },
+      "m1": "Chào salon, em muốn đặt lịch làm móng ạ",
+      "m2": "Chào chị! Chị muốn làm dịch vụ nào ạ?",
+      "b1": "Sơn gel",
+      "b2": "Đắp bột",
+      "b3": "Chăm sóc chân",
+      "b4": "Gặp nhân viên",
+      "m3": "Sơn gel",
+      "m4": "Chị muốn làm với ai ạ?",
+      "b5": "Mai",
+      "b6": "Linh",
+      "b7": "Ai cũng được",
+      "m5": "Mai",
+      "m6": "Giờ còn trống của Mai:",
+      "b8": "T7 · 14:00",
+      "b9": "T7 · 15:30",
+      "b10": "CN · 10:00",
+      "m7": "T7 · 14:00",
+      "m8": "Chị cho em xin số điện thoại để giữ lịch nhé.",
+      "b11": "Chia sẻ số điện thoại",
+      "m9": "Đã chia sẻ số điện thoại",
+      "m10": "Đã đặt lịch\nSơn gel · Mai\nThứ Bảy, 14:00 · 150.000đ\nThanh toán tại salon",
+      "m11": "Thứ Sáu · 14:00",
+      "m12": "Nhắc lịch: ngày mai 14:00 chị có hẹn Sơn gel với Mai.",
+      "b12": "Tôi sẽ đến",
+      "b13": "Đổi giờ",
+      "b14": "Hủy",
+      "m13": "Tôi sẽ đến",
+      "m14": "Cảm ơn chị, hẹn gặp chị ngày mai!",
+      "m15": "Gặp nhân viên",
+      "m16": "Em đã báo nhân viên, chị chờ một chút nhé.",
+      "m17": "Dạ em Lan đây ạ, chị cần em hỗ trợ gì?"
+    },
+    "ai": {
+      "eyebrow": "Trợ lý AI · gói Pro",
+      "title": "Hỏi về salon của bạn, có câu trả lời trong vài giây.",
+      "note": "Hội thoại minh hoạ, số liệu ví dụ. Có trong gói Pro và Ultra.",
+      "avatar": "AI",
+      "who": "Trợ lý GuGu",
+      "whoSub": "Chỉ đọc số liệu của salon bạn",
+      "input": "Hỏi về lịch hẹn, doanh thu, lãi…",
+      "s1": {
+        "h": "Hỏi bằng lời, như hỏi một trợ lý",
+        "b": "Chủ salon hỏi về lịch hẹn, doanh thu, lương và lãi của chính salon mình, bằng tiếng Việt hoặc tiếng Anh."
+      },
+      "s2": {
+        "h": "Biết ai đang kín lịch, ai còn trống",
+        "b": "Tỷ lệ lấp đầy tính theo giờ làm thật của từng người, đã trừ giờ nghỉ."
+      },
+      "s3": {
+        "h": "Doanh thu: ước tính và đã ghi nhận",
+        "b": "Luôn ghi rõ đâu là số ước tính từ lịch hẹn, đâu là số salon đã ghi nhận."
+      },
+      "s4": {
+        "h": "Lãi tháng này, không lộ lương từng người",
+        "b": "Trợ lý chỉ thấy tổng lương của cả đội, không bao giờ thấy lương hay hoa hồng của từng người."
+      },
+      "s5": {
+        "h": "Không gửi dữ liệu khách cho AI",
+        "b": "Tin nhắn có tên hoặc số điện thoại của khách không được gửi đi; AI chỉ làm việc với số liệu tổng hợp."
+      },
+      "m1": "Tuần này salon có bao nhiêu lịch hẹn?",
+      "m2": "Tuần này có 64 lịch hẹn: 52 đã hoàn thành, 4 khách vắng, 8 sắp tới. Thứ Bảy đông nhất với 18 lịch.",
+      "src1": "Nguồn: lịch hẹn",
+      "m3": "Ai đang kín lịch nhất?",
+      "m4": "Mai kín 92% giờ làm, Linh 78%, Tuấn 61%. Tuấn còn trống nhiều nhất vào chiều thứ Ba và thứ Tư.",
+      "src2": "Nguồn: tỷ lệ lấp đầy",
+      "m5": "Doanh thu tháng này thế nào?",
+      "m6": "Ước tính 64.150.000đ từ lịch hẹn đã hoàn thành; salon đã ghi nhận 10.904.000đ tại quầy.",
+      "src3": "Nguồn: doanh thu",
+      "m7": "Tháng này lãi ước tính bao nhiêu?",
+      "m8": "Lãi ròng ước tính 12.400.000đ, biên 19%, sau lương cả đội, chi phí dịch vụ và chi phí khác.",
+      "src4": "Nguồn: lãi tháng này",
+      "m9": "Chị Hoa 0901 234 567 đặt mấy lần rồi?",
+      "m10": "Không gửi: tin nhắn có số điện thoại của khách. Hãy hỏi về số liệu của salon nhé."
+    }
   }
 }

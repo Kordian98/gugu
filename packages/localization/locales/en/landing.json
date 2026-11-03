@@ -279,8 +279,8 @@
       "eyebrow": "AI assistant · Pro",
       "title": "Too busy to check? Just ask.",
       "sub": "It answers from your salon's own calendar and drafts the Zalo reply. No customer personal data goes to the AI model.",
-      "q": "Any free slot for gel nails tomorrow afternoon with Mai?",
-      "a": "Mai is free tomorrow at 14:00 and 16:30 (gel nails, 60 min). Draft a reply?",
+      "q": "Who is the most booked this week?",
+      "a": "Mai is booked 92% of her working hours; Tuấn has the most free time on Tuesday afternoon.",
       "draft": "Draft reply"
     },
     "switch": {
@@ -516,5 +516,121 @@
     "gainsSub": "time and revenue kept (estimate)",
     "plusHours": "+{{n}} h",
     "plusMoney": "+{{v}}"
+  },
+  "views": {
+    "label": "Perspectives",
+    "or": "Or see it as:",
+    "tab": {
+      "salon": "Salon owner",
+      "client": "Your clients",
+      "ai": "AI assistant"
+    },
+    "toClient": "See your clients' side",
+    "toAi": "See the AI assistant",
+    "toSalon": "Back to the salon story",
+    "finish": "Finish journey",
+    "client": {
+      "eyebrow": "Your clients' side",
+      "title": "Clients book right inside your salon's Zalo.",
+      "note": "Illustrative chat. The bot speaks as your salon; clients pay at the salon.",
+      "avatar": "LN",
+      "who": "Lotus Nail & Spa",
+      "whoSub": "Your salon's Zalo OA",
+      "input": "Message…",
+      "s1": {
+        "h": "The client messages your salon's Zalo OA",
+        "b": "No app to download, no account: clients book in Zalo, under your salon's name and logo."
+      },
+      "s2": {
+        "h": "Service, stylist and a slot that is really free",
+        "b": "The bot only offers times that are free in your salon's calendar, so nothing is double-booked."
+      },
+      "s3": {
+        "h": "Booked in under a minute",
+        "b": "The client shares a phone number, the booking lands in your calendar and the whole team sees it."
+      },
+      "s4": {
+        "h": "Reminders 24 h and 2 h before",
+        "b": "One tap to confirm, change or cancel, so you hear about empty chairs early."
+      },
+      "s5": {
+        "h": "Need a person? One tap",
+        "b": "The client taps “Talk to staff” and the chat moves to your salon's Zalo inbox in GuGu Studio."
+      },
+      "m1": "Hi, I'd like to book a nail appointment",
+      "m2": "Hi! Which service would you like?",
+      "b1": "Gel polish",
+      "b2": "Acrylic set",
+      "b3": "Pedicure",
+      "b4": "Talk to staff",
+      "m3": "Gel polish",
+      "m4": "Who would you like?",
+      "b5": "Mai",
+      "b6": "Linh",
+      "b7": "Anyone",
+      "m5": "Mai",
+      "m6": "Mai's free times:",
+      "b8": "Sat · 14:00",
+      "b9": "Sat · 15:30",
+      "b10": "Sun · 10:00",
+      "m7": "Sat · 14:00",
+      "m8": "Could you share your phone number to hold the booking?",
+      "b11": "Share phone number",
+      "m9": "Phone number shared",
+      "m10": "Booked\nGel polish · Mai\nSaturday, 14:00 · 150,000đ\nPay at the salon",
+      "m11": "Friday · 14:00",
+      "m12": "Reminder: tomorrow at 14:00 you have gel polish with Mai.",
+      "b12": "I'll come",
+      "b13": "Change time",
+      "b14": "Cancel",
+      "m13": "I'll come",
+      "m14": "Thank you, see you tomorrow!",
+      "m15": "Talk to staff",
+      "m16": "I've let the team know, someone will be with you shortly.",
+      "m17": "Hi, it's Lan here. How can I help?"
+    },
+    "ai": {
+      "eyebrow": "AI assistant · Pro",
+      "title": "Ask about your salon, get the answer in seconds.",
+      "note": "Illustrative chat with example figures. In the Pro and Ultra plans.",
+      "avatar": "AI",
+      "who": "GuGu Assistant",
+      "whoSub": "Reads only your salon's figures",
+      "input": "Ask about bookings, revenue, profit…",
+      "s1": {
+        "h": "Ask in plain words, like asking an assistant",
+        "b": "Owners ask about their own salon's bookings, revenue, pay and profit, in Vietnamese or English."
+      },
+      "s2": {
+        "h": "See who is fully booked and who has gaps",
+        "b": "Utilization uses each person's real working hours, after breaks."
+      },
+      "s3": {
+        "h": "Revenue: estimated and recorded",
+        "b": "Always clear which figure is estimated from bookings and which the salon recorded."
+      },
+      "s4": {
+        "h": "This month's profit, without anyone's pay",
+        "b": "The assistant sees the team's pay total only, never one person's salary or commission."
+      },
+      "s5": {
+        "h": "No client data goes to the AI",
+        "b": "A message with a client's name or phone number is not sent; the AI works with aggregate figures only."
+      },
+      "m1": "How many bookings did we have this week?",
+      "m2": "64 bookings this week: 52 completed, 4 no-shows, 8 upcoming. Saturday was busiest with 18.",
+      "src1": "Source: bookings",
+      "m3": "Who is the most booked?",
+      "m4": "Mai is booked 92% of her working hours, Linh 78%, Tuấn 61%. Tuấn has the most free time on Tuesday and Wednesday afternoons.",
+      "src2": "Source: utilization",
+      "m5": "How is revenue this month?",
+      "m6": "An estimated 64,150,000đ from completed bookings; the salon recorded 10,904,000đ at the desk.",
+      "src3": "Source: revenue",
+      "m7": "What's this month's estimated profit?",
+      "m8": "Estimated net profit 12,400,000đ, a 19% margin, after team pay, service costs and other costs.",
+      "src4": "Source: this month's profit",
+      "m9": "How many times has Ms Hoa 0901 234 567 booked?",
+      "m10": "Not sent: the message contains a client's phone number. Ask about your salon's figures instead."
+    }
   }
 }

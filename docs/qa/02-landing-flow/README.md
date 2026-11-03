@@ -110,6 +110,23 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **`srcset` + `sizes`:** derived from the displayed width (box width × crop aspect ÷ box aspect). `width`/`height` attributes give the ratio before lazy load, which fixes a 0 px image on phones.
 - **Measured upscale** (displayed device px ÷ chosen file px; ≤ 1.15 required): 1440@2× 0.76–1.00, 1280@1× 0.44–0.52, 390@3× 0.60–0.82, 360@3× 0.59–0.82.
 
+## Three perspectives (owner, 2026-11-04)
+
+- **Tabs at the top of the story:** "Chủ salon · Khách hàng · Trợ lý AI". They show after the intro, or whenever a side perspective is open.
+- **Ways in:** the hero plaque has "Hoặc xem góc nhìn: Khách hàng · Trợ lý AI". The last salon page has "Xem góc nhìn của khách" and "Xem trợ lý AI" next to "Kết thúc hành trình".
+- **Client perspective (5 steps):** booking in the salon's own Zalo OA. The bot speaks as the salon; real free slots; phone share; confirmation (pay at the salon); 24 h / 2 h reminder with "Tôi sẽ đến / Đổi giờ / Hủy"; "Gặp nhân viên" hand-off.
+- **AI perspective (5 steps, Pro):** only what the read tools do: bookings count, utilization, revenue estimated vs recorded, and month profit as totals (no per-person pay). The privacy firewall refuses a message containing a client's phone number.
+- **Both are scripted:** no model is called from the landing. A live demo would need a server endpoint with rate and cost limits.
+- **Shared mechanics:** each side view has its own Next/Prev; ← / → while shown; one horizontal swipe per step. Messages type in one by one, and a press completes the step first (one press, one step). Last-step buttons lead to the other perspectives or finish. With reduced motion, messages appear at once.
+- **Book scope:** the salon book ignores keys and swipes while a side view is open, and never starts the intro from a side view.
+- **Office copy fix:** the "AI assistant" card no longer claims a free-slot lookup or drafted replies (the assistant has no such tool).
+
+## Pricing and business types rebuilt (owner, 2026-11-04)
+
+- **Pricing:** headline "Thêm giờ rảnh, thêm doanh thu. Năm đầu miễn phí." (gradient on two words). A "Salon của bạn" bar takes two numbers. Every plan card then shows a live gradient benefit (+N giờ, +revenue kept each month) right under the price and above its CTA. The CTAs carry the benefit: "Lấy lại N giờ/tháng · miễn phí" and "Thử Pro 14 ngày · miễn phí". Assumptions and disclaimer sit under the cards.
+- **Business types:** one grid, no swiping. Per business, one big illustrative result plus the feature behind it, with a source note.
+- **Turns:** a press in the second half of a turn (or the intro) completes it and turns one page on; an early press speeds the turn up.
+
 ## Pricing: what you get back vs what you put in (owner, 2026-11-04)
 
 - **`RoiCalculator`** sits under the plan cards. Two steppers (bookings per week, average price, with 44 px buttons) drive three tiles: time back per month, revenue kept per month and "what you pay in year one: 0đ". A verdict line follows, then the disclaimer.

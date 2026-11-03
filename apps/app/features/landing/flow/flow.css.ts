@@ -34,8 +34,12 @@ export const FLOW_CSS = `
 .jr-plaque p{margin:0;font-family:${font.serif};font-size:15px;line-height:1.3;color:${color.ink};max-width:24ch;text-wrap:balance}
 .jr-plaque .tc{display:none}
 @media (pointer:coarse){.jr-plaque .k{display:none}.jr-plaque .tc{display:inline}}
-.jr-plaque button{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:10px;background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:14px;cursor:pointer}
-.jr-plaque button i{font-style:normal}
+.jr-plaque .jr-go{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:10px;background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:14px;cursor:pointer}
+.jr-plaque .jr-go i{font-style:normal}
+.jr-plaque{flex-wrap:wrap;row-gap:6px}
+.jr-plaque p{flex:1 1 220px}
+.jr-or{order:3;flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-family:${font.ui};font-size:13px;color:${color.ink2}}
+.jr-or button{border:0;background:none;padding:6px 2px;min-height:32px;font-family:${font.uiSemiBold};font-size:13px;color:${color.ink};text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .jr-static.done .jr-plaque{display:none}
 /* "Center view": fixed at the top while the journey is partly out of the viewport */
 .jr-center{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:30;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:99px;border:1px solid ${color.line};background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 12px 30px rgba(42,20,38,.16);color:${color.ink};font-family:${font.uiSemiBold};font-size:13.5px;cursor:pointer}
@@ -355,6 +359,80 @@ export const FLOW_CSS = `
   .pay-person{position:relative;right:auto;bottom:auto;width:100%;box-shadow:0 22px 60px rgba(42,20,38,.12)}
   .pay-person{--ar:1.15}
 }
+/* perspectives: tabs at the top of the story, the client's Zalo chat and the owner's AI assistant */
+.jr-views{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:7;display:flex;gap:4px;padding:4px;border-radius:99px;background:rgba(255,255,255,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(42,20,38,.12);opacity:0;pointer-events:none;transition:opacity ${String(motion.duration.slow)}ms ${motion.ease.out}}
+.jr.intro-done .jr-views,.jr-stage.v-client .jr-views,.jr-stage.v-ai .jr-views{opacity:1;pointer-events:auto}
+.jr-views button{border:0;background:none;cursor:pointer;min-height:40px;padding:0 16px;border-radius:99px;font-family:${font.uiSemiBold};font-size:13.5px;color:${color.ink2};white-space:nowrap}
+.jr-views button.on{background:${color.ink};color:${color.white}}
+.jr-stage.v-client .jr-frame,.jr-stage.v-ai .jr-frame,.jr-stage.v-client .jr-hud,.jr-stage.v-ai .jr-hud{visibility:hidden}
+.cs{position:absolute;inset:0;z-index:6;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,64px);align-items:center;padding:clamp(76px,10vh,110px) var(--g) calc(var(--hud) + 20px);box-sizing:border-box;opacity:0;visibility:hidden;transition:opacity ${String(motion.duration.deliberate)}ms ${motion.ease.out},visibility ${String(motion.duration.deliberate)}ms}
+.jr-stage.v-client .cs-phone,.jr-stage.v-ai .cs-panel{opacity:1;visibility:visible}
+.cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.cs-veil{position:absolute;inset:0;background:rgba(253,250,247,.88);z-index:-1}
+.cs-copy{max-width:560px;justify-self:end}
+.cs-copy .fl-h{font-size:clamp(30px,3.2vw,52px);margin-bottom:0}
+.cs-step{margin-top:clamp(14px,2.4vh,26px);background:${color.white};border-radius:22px;padding:clamp(16px,2vw,26px);box-shadow:0 22px 60px rgba(42,20,38,.12);animation:csIn ${String(motion.duration.deliberate)}ms ${motion.ease.out}}
+.cs-step b{display:block;font-family:${font.uiSemiBold};font-size:clamp(18px,1.6vw,23px);line-height:1.25;color:${color.ink}}
+.cs-step p{margin:8px 0 0;font-family:${font.ui};font-size:clamp(14.5px,1.15vw,17px);line-height:1.5;color:${color.ink2};text-wrap:pretty}
+.cs-note{margin:12px 0 0;font-family:${font.ui};font-size:12px;color:${color.ink2}}
+.cs-device{justify-self:start;width:min(100%,400px);height:min(100%,640px);display:flex;flex-direction:column;background:${color.white};border-radius:34px;box-shadow:0 30px 80px rgba(42,20,38,.22);overflow:hidden;border:8px solid ${color.plum950}}
+.cs-panel .cs-device{width:min(100%,520px);border-radius:22px;border:1px solid ${color.lineSoft}}
+.cs-top{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid ${color.lineSoft};background:${color.canvas}}
+.cs-phone .cs-top{background:${color.zalo};color:${color.white};border-bottom:0}
+.cs-ava{flex:0 0 36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:${font.uiSemiBold};font-size:13px;background:${color.lilac100};color:${color.ink}}
+.cs-top b{display:block;font-family:${font.uiSemiBold};font-size:14.5px}
+.cs-top small{display:block;font-family:${font.ui};font-size:12px;opacity:.85}
+.cs-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:${color.tile}}
+.cs-panel .cs-log{background:${color.white}}
+.cs-msg{display:flex;flex-direction:column;align-items:flex-start;max-width:86%;animation:csIn ${String(motion.duration.slow)}ms ${motion.ease.out}}
+.cs-msg.me{align-self:flex-end;align-items:flex-end}
+.cs-msg.sys{align-self:center;max-width:94%}
+.cs-bubble{font-family:${font.ui};font-size:14px;line-height:1.45;padding:9px 13px;border-radius:18px;background:${color.white};color:${color.ink};box-shadow:0 2px 8px rgba(42,20,38,.06);white-space:pre-line}
+.cs-panel .cs-msg.them .cs-bubble{background:${color.lilac100}}
+.cs-msg.me .cs-bubble{background:${color.ink};color:${color.white}}
+.cs-phone .cs-msg.me .cs-bubble{background:${color.zalo}}
+.cs-msg.staff .cs-bubble{background:${color.white};border:1px solid ${color.lilac300}}
+.cs-msg.sys .cs-bubble{background:none;box-shadow:none;font-size:12.5px;color:${color.ink2};text-align:center;padding:4px 8px}
+.cs-msg.card .cs-bubble{border-left:4px solid ${color.lilac500};font-family:${font.uiMedium}}
+.cs-src{margin-top:4px;font-family:${font.uiMedium};font-size:11.5px;color:${color.ink2};background:${color.canvas};border:1px solid ${color.lineSoft};padding:2px 8px;border-radius:99px}
+.cs-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.cs-btns span{font-family:${font.uiSemiBold};font-size:12.5px;padding:7px 11px;border-radius:12px;background:${color.white};border:1px solid ${color.line};color:${color.ink}}
+.cs-typing{display:flex;gap:4px;padding:12px 14px}
+.cs-typing i{width:7px;height:7px;border-radius:50%;background:${color.lilac500};animation:csDot 1s infinite ease-in-out}
+.cs-typing i:nth-child(2){animation-delay:.15s}.cs-typing i:nth-child(3){animation-delay:.3s}
+.cs-input{padding:10px 14px;border-top:1px solid ${color.lineSoft};font-family:${font.ui};font-size:13px;color:${color.muted}}
+.cs-nav{position:absolute;left:50%;bottom:clamp(14px,3vh,28px);transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:99px;background:rgba(255,255,255,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(42,20,38,.16)}
+.cs-bars{display:flex;gap:4px}
+.cs-bars span{width:28px;height:4px;border-radius:4px;background:${color.lineSoft}}
+.cs-bars span.on{background:${cssGradient(gradient.glowSoft)}}
+.cs-count{font-family:${font.uiSemiBold};font-size:12.5px;color:${color.ink2};font-variant-numeric:tabular-nums;white-space:nowrap}
+.cs-nav button{white-space:nowrap;flex:0 0 auto}
+.cs-nav .hud-prev:disabled{opacity:.35}
+.cs-alt{min-height:44px;padding:0 16px;border-radius:99px;border:1px solid ${color.line};background:${color.white};color:${color.ink};font-family:${font.uiSemiBold};font-size:13.5px;cursor:pointer;white-space:nowrap}
+.jr-end{position:absolute;right:var(--g);top:clamp(70px,9vh,96px);display:none;gap:8px;z-index:6}
+.jr-stage:has(.jr-hud[data-settled="9"]) .jr-end{display:flex}
+@keyframes csIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes csDot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.cs-step,.cs-msg{animation:none}.cs-typing i{animation:none}.cs{transition:none}}
+@media (max-width:899px){
+  .jr-views{top:10px;max-width:calc(100% - 24px)}
+  .jr-views button{padding:0 11px;font-size:12.5px}
+  .cs{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:10px;padding:62px 14px calc(var(--hud) + 8px);align-items:stretch}
+  .cs-copy{justify-self:stretch;max-width:none}
+  .cs-copy .fl-eye{display:none}
+  .cs-copy .fl-h{font-size:22px}
+  .cs-step{margin-top:6px;padding:10px 14px;border-radius:16px}
+  .cs-step b{font-size:15px}.cs-step p{font-size:12.5px;margin-top:3px}
+  .cs-note{display:none}
+  .cs-device,.cs-panel .cs-device{justify-self:stretch;width:100%;height:auto;min-height:0;border-width:5px;border-radius:24px}
+  .cs-nav{left:12px;right:12px;transform:none;bottom:12px;justify-content:space-between;flex-wrap:wrap;border-radius:24px;padding:6px}
+  .cs-count{display:none}
+  .cs-alt{padding:0 11px;font-size:12.5px}
+  .jr-end{left:14px;right:14px;top:auto;bottom:calc(var(--hud) + 10px);flex-wrap:wrap;justify-content:center}
+  /* last salon page on phones: make room for the two perspective buttons above the HUD */
+  .jr-stage:has(.jr-hud[data-settled="9"]) .sw-old,.jr-stage:has(.jr-hud[data-settled="9"]) .sw-arrow{display:none}
+  .jr-stage:has(.jr-hud[data-settled="9"]) .ov-s .sw-row:nth-child(n+3){display:none}
+}
 /* X25 band right after the story: Basic free for the first year */
 .fy{padding:clamp(72px,12vh,140px) var(--g);background:linear-gradient(180deg,${color.canvas},${color.lilac100})}
 .fy-in{max-width:980px;margin:0 auto;text-align:center}
@@ -429,7 +507,7 @@ export const FLOW_CSS = `
 .jr-stage .jr-hud[data-page="0"] .hud-hint{opacity:0}
 .hud-prev:hover{border-color:${color.lilac500}}
 .hud-prev:disabled{cursor:default}
-.hud-s:focus-visible,.hud-next:focus-visible,.hud-prev:focus-visible,.jr-center:focus-visible,.jr-plaque button:focus-visible{outline:2px solid ${color.lilac500};outline-offset:3px}
+.hud-s:focus-visible,.hud-next:focus-visible,.hud-prev:focus-visible,.jr-center:focus-visible,.jr-plaque button:focus-visible,.jr-views button:focus-visible,.cs-alt:focus-visible{outline:2px solid ${color.lilac500};outline-offset:3px}
 .hud-hint{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);white-space:nowrap;font-family:${font.uiMedium};font-size:12.5px;color:${color.ink};background:rgba(255,255,255,.9);padding:7px 12px;border-radius:99px;box-shadow:0 10px 30px rgba(42,20,38,.14);opacity:0;transition:opacity ${String(motion.duration.slow)}ms ${motion.ease.out};pointer-events:none}
 .jr-hud.hinted .hud-hint{opacity:1}
 /* while the first-view hint shows on Front desk, the citation footnote sits above it */

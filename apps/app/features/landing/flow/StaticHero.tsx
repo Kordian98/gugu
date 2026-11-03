@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { HeroCopy } from "../StudioHero";
 import type { LandingNavActions } from "../useLandingNav";
+import type { View } from "./Perspectives";
 
 const ARROW = "→";
 
@@ -19,12 +20,15 @@ export function StaticHero({
   width,
   heroRef,
   onStart,
+  onView,
 }: {
   nav: LandingNavActions;
   desktop: boolean;
   width: number;
   heroRef: Ref<HTMLDivElement>;
   onStart: () => void;
+  /** Jump straight to the client's or the AI's perspective. */
+  onView: (v: View) => void;
 }) {
   const { t } = useTranslation("landing");
   return (
@@ -51,7 +55,26 @@ export function StaticHero({
           <span className="k">{t("flow.hud.walkIn")}</span>
           <span className="tc">{t("flow.hud.walkInTouch")}</span>
         </p>
-        <button type="button" onClick={onStart}>
+        <span className="jr-or">
+          {t("views.or")}
+          <button
+            type="button"
+            onClick={() => {
+              onView("client");
+            }}
+          >
+            {t("views.tab.client")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onView("ai");
+            }}
+          >
+            {t("views.tab.ai")}
+          </button>
+        </span>
+        <button type="button" className="jr-go" onClick={onStart}>
           {t("flow.hud.startShort")}
           <i aria-hidden>{ARROW}</i>
         </button>
