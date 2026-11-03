@@ -10,7 +10,7 @@ import type { LandingNavActions } from "./useLandingNav";
 const PLANS = ["basic", "pro", "ultra"] as const;
 const PERIODS = ["monthly", "yearly"] as const;
 
-/** Basic / Pro / Ultra (X17, q75). Prices are not set yet, so each card says "coming soon". */
+/** Basic / Pro / Ultra (X17, q75, X25): Basic free for the first year then 99,000 VND/month; Pro/Ultra prices TBA. */
 export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boolean }) {
   const { t } = useTranslation("landing");
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
@@ -73,12 +73,26 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
                 {t(`pricing.${plan}.tagline`)}
               </Text>
               <View className="gap-1">
-                <Text role="uiSemiBold" size={22} color={pro ? "#FBF1F6" : color.ink}>
-                  {t("pricing.priceSoon")}
-                </Text>
-                <Text size={13.5} color={pro ? "#BBA6B6" : color.muted}>
-                  {t(period === "monthly" ? "pricing.billedMonthly" : "pricing.billedYearly")}
-                </Text>
+                {plan === "basic" ? (
+                  <>
+                    {/* X25: Basic is free for the first year, then 99,000 VND/month. */}
+                    <Text role="display" size={30} lineHeight={34} color={color.ink}>
+                      {t("pricing.basicFree")}
+                    </Text>
+                    <Text role="uiSemiBold" size={14.5} color={color.ink2}>
+                      {t("pricing.basicThen")}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text role="uiSemiBold" size={22} color={pro ? "#FBF1F6" : color.ink}>
+                      {t("pricing.priceSoon")}
+                    </Text>
+                    <Text size={13.5} color={pro ? "#BBA6B6" : color.muted}>
+                      {t(period === "monthly" ? "pricing.billedMonthly" : "pricing.billedYearly")}
+                    </Text>
+                  </>
+                )}
               </View>
               <View className="gap-3">
                 {t(`pricing.${plan}.items`)

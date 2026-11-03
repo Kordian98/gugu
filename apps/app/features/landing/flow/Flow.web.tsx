@@ -6,6 +6,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import type { LandingNavActions } from "../useLandingNav";
 import { FLOW_CSS } from "./flow.css";
+import { FreeYear } from "./FreeYear";
 import { Journey } from "./Journey";
 import { Businesses } from "./Rooms";
 
@@ -69,6 +70,8 @@ export function Flow({
       <style>{FLOW_CSS}</style>
 
       <Journey nav={nav} desktop={desktop} width={width} reduce={reduce} />
+
+      <FreeYear nav={nav} />
 
       <Businesses />
     </div>

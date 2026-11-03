@@ -178,10 +178,10 @@ export const FLOW_CSS = `
 .tr-call{position:absolute;display:flex;align-items:center;gap:8px;background:${color.ink};color:#fff;font-family:${font.uiSemiBold};font-size:clamp(12.5px,1vw,14px);padding:10px 14px;border-radius:14px;box-shadow:0 16px 40px rgba(34,16,36,.3);opacity:0;will-change:transform,opacity;max-width:70%}
 .tr-call i{font-style:normal;color:${color.lilac300}}
 .tr-call::before{content:"";position:absolute;width:12px;height:12px;background:inherit;transform:rotate(45deg)}
-/* callouts point at their detail: the 10:00 booking, the walk-in row, the price ranges */
+/* callouts point at their detail: the 10:00 booking, the walk-in row, options + add-ons */
 .tr-shot.cal .tr-call{left:46%;top:73%}.tr-shot.cal .tr-call::before{left:22px;top:-5px}
 .tr-shot.appt .tr-call{right:22px;top:52%}.tr-shot.appt .tr-call::before{left:-5px;top:calc(50% - 6px)}
-.tr-shot.svc .tr-call{right:18px;bottom:-14px}.tr-shot.svc .tr-call::before{right:22px;top:-5px}
+.tr-shot.svc .tr-call{left:48%;top:30%}.tr-shot.svc .tr-call::before{left:-5px;top:calc(50% - 6px)}
 .tr-note{grid-column:1/13;grid-row:3;margin:0;font-family:${font.ui};font-size:12px;color:${color.muted};opacity:0}
 @media (max-width:899px){
   .ov-f{justify-content:flex-start}
@@ -279,7 +279,7 @@ export const FLOW_CSS = `
   .ov-s .fl-eye{font-size:11px}
   .sw-demo{display:flex;flex-direction:column;gap:8px}
   .sw-old{flex-direction:row;gap:6px;justify-content:center;flex-wrap:nowrap}
-  .ov-s .sw-old .sw-o{display:block;width:auto;margin:0;translate:none;rotate:none;padding:6px 11px;border-radius:99px;background:#fff;border:1px solid ${color.lineSoft};box-shadow:0 8px 20px rgba(42,20,38,.1);white-space:nowrap}
+  .ov-s .sw-old .sw-o{transform:none!important;display:block;width:auto;margin:0;translate:none;rotate:none;padding:6px 11px;border-radius:99px;background:#fff;border:1px solid ${color.lineSoft};box-shadow:0 8px 20px rgba(42,20,38,.1);white-space:nowrap}
   .ov-s .sw-old .sw-o .lbl{font-size:10.5px}
   .sw-o .sw-app-ui,.sw-o .sw-grid,.ov-s .sw-o.nb p,.sw-o .sw-scan{display:none}
   .sw-arrow{position:static;margin:0 auto;width:28px;height:28px;font-size:14px;transform:rotate(90deg)}
@@ -293,6 +293,63 @@ export const FLOW_CSS = `
   .sw-rows{margin:0 10px 10px}
 }
 }
+/* back office · Insights (CRM-styled, illustrative figures) */
+.ov-i .t{grid-column:1/6;grid-row:1 / 3;align-self:center}
+.ov-i .t .fl-h{font-size:clamp(30px,3.2vw,52px)}
+.ov-i .t,.in-list li,.in-win,.in-kpi,.in-fun>div{opacity:0;will-change:transform,opacity}
+.in-sub{font-size:clamp(14px,1.1vw,17px)!important;margin-top:6px}
+.in-list{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.in-list li{display:flex;gap:10px;align-items:center;font-family:${font.uiMedium};font-size:clamp(13px,1vw,15px);color:${color.ink};background:#fff;border-radius:14px;padding:9px 12px;box-shadow:0 10px 26px rgba(42,20,38,.08)}
+.in-list li i{font-style:normal;flex:0 0 22px;height:22px;border-radius:50%;background:${color.ink};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.in-win{grid-column:7/13;grid-row:1 / 3;align-self:center;padding:0;overflow:hidden}
+.in-eg{margin-left:auto;font-style:normal;font-family:${font.ui};font-size:11.5px;color:${color.muted}}
+.in-body{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.in-kpis{grid-column:1/3;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.in-kpi{border:1px solid ${color.lineSoft};border-radius:14px;padding:12px 14px}
+.in-kpi small{display:block;font-family:${font.uiMedium};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${color.muted}}
+.in-kpi b{display:block;margin-top:6px;font-family:${font.uiSemiBold};font-size:clamp(22px,2vw,30px);color:${color.ink};font-variant-numeric:tabular-nums}
+.in-block{border:1px solid ${color.lineSoft};border-radius:14px;padding:12px 14px}
+.in-zalo{grid-column:1/3}
+.in-bh{font-family:${font.uiSemiBold};font-size:12.5px;color:${color.ink};margin-bottom:8px}
+.in-bh.sm{margin-top:10px;font-family:${font.uiMedium};color:${color.ink2}}
+.in-bar{position:relative;display:flex;align-items:center;gap:8px;height:22px}
+.in-bar.sm{flex:1;height:10px;background:${color.tile};border-radius:6px;overflow:hidden}
+.in-fill{display:block;height:100%;border-radius:6px;transform-origin:left center;transform:scaleX(0)}
+.in-bar:not(.sm) .in-fill{flex:1}
+.in-bar.sm .in-fill{width:100%}
+.in-fill.a{background:${color.lilac500}}.in-fill.b{background:${color.lilac300}}
+.in-bar em{flex:0 0 auto;min-width:5.6em;text-align:right;font-style:normal;font-family:${font.uiSemiBold};font-size:12.5px;color:${color.ink};font-variant-numeric:tabular-nums}
+.in-row{display:grid;grid-template-columns:minmax(0,1.1fr) 1.4fr auto;align-items:center;gap:10px;font-family:${font.ui};font-size:12.5px;color:${color.ink2};margin-top:8px}
+.in-row b{font-family:${font.uiSemiBold};color:${color.ink};font-variant-numeric:tabular-nums}
+.in-fun{display:flex;align-items:center;gap:10px}
+.in-fun>div{flex:1;background:${color.lilac100};border-radius:12px;padding:10px 12px}
+.in-fun>div:last-child{background:${color.ink};color:#fff}
+.in-fun b{display:block;font-family:${font.uiSemiBold};font-size:20px;font-variant-numeric:tabular-nums}
+.in-fun small{font-family:${font.ui};font-size:11.5px;opacity:.8}
+.in-fun i{flex:0 0 14px;height:2px;background:${color.line}}
+@media (max-width:899px){
+  .ov-i{justify-content:flex-start}
+  .ov-i .t .fl-h{font-size:clamp(24px,6.6vw,30px);margin-bottom:0}
+  .in-sub{display:none}
+  .in-list{gap:5px;margin-top:10px}
+  .in-list li{padding:6px 10px;font-size:12px}
+  .in-list li:nth-child(4){display:none}
+  .in-body{padding:10px;gap:8px}
+  .in-kpi{padding:8px 10px}.in-kpi small{font-size:9.5px}.in-kpi b{font-size:19px}
+  .in-mg{display:none}
+  .in-rev{grid-column:1/3}
+  .in-fun b{font-size:16px}
+}
+/* X25 band right after the story: Basic free for the first year */
+.fy{padding:clamp(72px,12vh,140px) var(--g);background:linear-gradient(180deg,${color.canvas},${color.lilac100})}
+.fy-in{max-width:980px;margin:0 auto;text-align:center}
+.fy-h{font-size:clamp(38px,5.6vw,84px)}
+.fy-glow{background:linear-gradient(90deg,#A68CF6,#F08DB4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.fy-sub{margin:0 auto}
+.fy-cta{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:28px}
+.fy-btn{border:0;cursor:pointer;background:${color.ink};color:#fff;font-family:${font.uiSemiBold};font-size:16px;padding:16px 26px;border-radius:99px}
+.fy-link{border:0;background:none;cursor:pointer;font-family:${font.uiSemiBold};font-size:15px;color:${color.ink};text-decoration:underline;text-underline-offset:4px}
+.fy-btn:focus-visible,.fy-link:focus-visible{outline:2px solid ${color.lilac500};outline-offset:3px}
 /* earnings calculator */
 .calc{pointer-events:auto;padding:16px 18px}
 .calc-t{font-family:${font.uiSemiBold};font-size:15px;margin-bottom:4px}
@@ -408,7 +465,7 @@ export const FLOW_CSS = `
 .chip{display:inline-block;font-family:${font.uiSemiBold};font-size:12px;padding:.35em .85em;border-radius:99px;background:${color.ink};color:#fff}
 .ft-m{display:none}
 @media (max-width:899px){
-  .ov{display:flex;flex-direction:column;gap:10px;padding:64px 16px calc(var(--hud) + 14px);justify-content:center}
+  .ov{display:flex;flex-direction:column;gap:10px;padding:84px 16px calc(var(--hud) + 14px);justify-content:center}
   .ov .lap{padding:6px;border-radius:10px 10px 0 0}
   .ov .lap-base{height:8px}
   .ov-o .of-lap{order:2}.ov-o .t{order:1}.ov-o .of-side{order:3}

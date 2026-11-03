@@ -65,7 +65,10 @@ const PH = {
   w3: [0.781, 0.881],
   office: 0.881,
   officeOut: 0.978,
-  sw: 0.993,
+  /** Back office, second page: Insights. */
+  ins: 0.985,
+  insOut: 1.068,
+  sw: 1.083,
 } as const;
 /** Switching plays 1.6× slower than the original cut (owner, 2026-11-04). */
 const SWK = 1.6;
@@ -77,7 +80,8 @@ export const WIPE = [PH.wipe, PH.wipe + 0.055] as const;
 /**
  * Book pages (journey time where each is composed) and the seconds each forward turn plays — the original
  * pacing of the one-gesture transitions (7.0 s hero→before split at the doors, 3.4, 6.2 → treatment room
- * split into three facts, 6.0, switching 1.6× slower). Page 0 → 1 (doors open) is scroll-driven.
+ * split into three facts, 6.0, then Insights, switching 1.6× slower). Page 0 → 1 (doors open) is
+ * scroll-driven.
  */
 export const PAGES: readonly Page[] = [
   { t: 0, dur: 0 },
@@ -88,6 +92,7 @@ export const PAGES: readonly Page[] = [
   { t: PH.facts[1] + 0.045, dur: 1.5 },
   { t: PH.facts[2] + 0.045, dur: 1.5 },
   { t: PH.office + 0.088, dur: 6.0 },
+  { t: PH.ins + 0.07, dur: 3.2 },
   { t: SW_END, dur: 5.8 },
 ];
 
@@ -369,6 +374,23 @@ export function buildJourney(
   show(tl, q, ".ov-o .t", PH.office + 0.025, { y: 60 });
   stagger(tl, q, ".of-side .card", PH.office + 0.045, 0.02, { y: 26 }, 0.03);
   hide(tl, q, ".of-lap, .ov-o .t, .of-side .card", PH.officeOut);
+
+  // back office, second page: Insights (metrics, revenue estimated vs recorded, margin, Zalo funnel)
+  const IN = PH.ins;
+  show(tl, q, ".ov-i .t", IN, { y: 50 }, 0.025);
+  stagger(tl, q, ".in-list li", IN + 0.012, 0.007, { x: -20 }, 0.02);
+  show(tl, q, ".in-win", IN + 0.006, { x: 40, scale: 0.96 }, 0.025);
+  stagger(tl, q, ".in-kpi", IN + 0.02, 0.006, { y: 16 }, 0.018);
+  q(".in-fill").forEach((el, i) => {
+    tl.fromTo(
+      el,
+      { scaleX: 0 },
+      { scaleX: Number((el as HTMLElement).style.getPropertyValue("--w") || 1), duration: 0.025 },
+      IN + 0.032 + i * 0.005,
+    );
+  });
+  stagger(tl, q, ".in-fun > div", IN + 0.05, 0.006, { y: 12, scale: 0.9 }, 0.016);
+  hide(tl, q, ".ov-i .t, .in-win", PH.insOut);
 
   // switching (still in the office): the old system (notebook, spreadsheet, another app) flows into
   // GuGu Studio — the AI reads the price list and fills the services screen, then the remaining steps.

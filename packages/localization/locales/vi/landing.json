@@ -60,7 +60,7 @@
     "reminders": {
       "eyebrow": "Tự động",
       "title": "Nhắc lịch tự gửi đi.",
-      "sub": "Xác nhận và nhắc lịch qua Zalo hoặc email. Ít ghế trống hơn.",
+      "sub": "Xác nhận và nhắc lịch gửi qua Zalo OA của salon, trước 24 giờ và 2 giờ. Ít ghế trống hơn.",
       "msg": "Chào chị Thu Trang! Hẹn gặp chị ngày mai lúc 15:00, sơn gel với Mai. Chị trả lời tin này nếu muốn đổi giờ nhé.",
       "sent": "Tự động gửi · trước 24 giờ"
     },
@@ -125,7 +125,7 @@
       "body": "Lịch sử ghé thăm, ghi chú, dịch vụ yêu thích và số lần không đến."
     },
     "reminders": {
-      "title": "Nhắc lịch qua Zalo & email",
+      "title": "Nhắc lịch qua Zalo",
       "body": "Tự động xác nhận và nhắc lịch trước mỗi lượt hẹn."
     },
     "aiSetup": {
@@ -160,11 +160,11 @@
     "billedYearly": "thanh toán theo năm",
     "cta": "Dùng thử miễn phí",
     "popular": "Phổ biến nhất",
-    "trial": "Mọi gói đều bắt đầu với 14 ngày dùng thử tính năng Pro, áp dụng giới hạn của gói Basic (mức dùng AI và hạn mức tin nhắn). Không có gói miễn phí.",
+    "trial": "Gói Basic miễn phí cho mọi salon trong năm đầu tiên, sau đó 99.000₫/tháng. Basic có thiết lập bằng AI từ bảng giá; trợ lý AI có từ gói Pro.",
     "basic": {
       "name": "Basic",
       "tagline": "Đủ mọi thứ để vận hành một salon",
-      "items": "Lịch cả đội\nKhách hàng\nNhắc lịch qua Zalo & email\nThiết lập bằng AI từ bảng giá\nBáo cáo"
+      "items": "Lịch cả đội\nKhách hàng\nNhắc lịch qua Zalo\nThiết lập bằng AI từ bảng giá\nBáo cáo"
     },
     "pro": {
       "name": "Pro",
@@ -175,7 +175,9 @@
       "name": "Ultra",
       "tagline": "Cho chuỗi salon và thương hiệu đang phát triển",
       "items": "Mọi thứ trong gói Pro\nNhiều chi nhánh với báo cáo tổng hợp\nGiới hạn dùng AI cao nhất\nPhân tích nâng cao"
-    }
+    },
+    "basicFree": "Miễn phí năm đầu",
+    "basicThen": "sau đó 99.000₫/tháng"
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Dùng thử miễn phí 14 ngày.",
@@ -381,7 +383,7 @@
       "shotSvc": "Dịch vụ · tuỳ chọn & khoảng giá",
       "shotAppt": "Lịch hẹn · một hàng chờ",
       "callAppt": "Khách vãng lai, Zalo và điện thoại: một danh sách",
-      "callSvc": "Khoảng giá, tuỳ chọn và dịch vụ thêm"
+      "callSvc": "Tuỳ chọn và dịch vụ thêm cho từng dịch vụ"
     },
     "office": {
       "eyebrow": "Phòng làm việc",
@@ -451,6 +453,40 @@
       "year": "mỗi năm",
       "note": "Ước tính minh hoạ: giả định 10% khách không đến và giảm ~25% nhờ nhắc lịch (BMJ Open 2016). Số liệu của bạn sẽ khác.",
       "perWeek": "/ tuần"
+    },
+    "insights": {
+      "eyebrow": "Văn phòng · Báo cáo nâng cao",
+      "title": "Biết salon đang lãi ở đâu.",
+      "sub": "Số liệu lấy từ chính lịch hẹn của salon, cập nhật khi lịch hẹn hoàn thành.",
+      "i1": "Chỉ số chính: lịch hẹn, khách mới và khách quay lại, tỷ lệ vắng mặt",
+      "i2": "Doanh thu ước tính so với số đã ghi nhận tại salon",
+      "i3": "Lợi nhuận gộp theo từng dịch vụ, tính từ chi phí thực hiện",
+      "i4": "Lịch hẹn sắp tới của cả đội",
+      "i5": "Phễu Zalo: từ tin nhắn đến lịch hẹn",
+      "win": "Báo cáo · 30 ngày",
+      "eg": "Số liệu minh hoạ",
+      "revA": "48,6 tr ₫",
+      "revB": "45,2 tr ₫",
+      "margin": "Lợi nhuận gộp theo dịch vụ",
+      "s1": "Sơn gel",
+      "s2": "Đắp bột",
+      "s3": "Nhuộm tóc",
+      "funnel": "Phễu Zalo",
+      "f1n": "120",
+      "f1": "tin nhắn",
+      "f2n": "58",
+      "f2": "hỏi giờ trống",
+      "f3n": "41",
+      "f3": "lịch hẹn"
+    },
+    "free": {
+      "eyebrow": "GuGu Studio Basic",
+      "pre": "Gói Basic ",
+      "glow": "miễn phí",
+      "post": " năm đầu cho mọi salon.",
+      "sub": "Sau đó 99.000₫/tháng. Basic có thiết lập dịch vụ bằng AI từ ảnh bảng giá; trợ lý AI có từ gói Pro.",
+      "cta": "Bắt đầu miễn phí",
+      "plans": "Xem các gói"
     }
   }
 }

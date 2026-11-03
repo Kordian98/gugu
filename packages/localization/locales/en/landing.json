@@ -60,7 +60,7 @@
     "reminders": {
       "eyebrow": "Automatic",
       "title": "Reminders send themselves.",
-      "sub": "Confirmations and reminders go out by Zalo or email. Fewer empty chairs.",
+      "sub": "Confirmations and reminders go out through your salon's Zalo OA, 24 h and 2 h before. Fewer empty chairs.",
       "msg": "Hi Thu Trang! See you tomorrow at 15:00 for gel nails with Mai. Reply to change your time.",
       "sent": "Sent automatically · 24 h before"
     },
@@ -125,7 +125,7 @@
       "body": "Visit history, notes, favourite services and no-shows for every client."
     },
     "reminders": {
-      "title": "Zalo & email reminders",
+      "title": "Zalo reminders",
       "body": "Automatic confirmations and reminders before every visit."
     },
     "aiSetup": {
@@ -160,11 +160,11 @@
     "billedYearly": "billed yearly",
     "cta": "Start free trial",
     "popular": "Most popular",
-    "trial": "Every plan starts with a 14-day trial with Pro features and Basic limits (AI usage and message quotas). There is no free plan.",
+    "trial": "Basic is free for every salon for the first year, then 99,000₫/month. Basic includes AI setup from your price list; the AI assistant starts at Pro.",
     "basic": {
       "name": "Basic",
       "tagline": "Everything to run one salon",
-      "items": "Team calendar\nClients\nZalo & email reminders\nAI setup from your price list\nInsights"
+      "items": "Team calendar\nClients\nZalo reminders\nAI setup from your price list\nInsights"
     },
     "pro": {
       "name": "Pro",
@@ -175,7 +175,9 @@
       "name": "Ultra",
       "tagline": "For chains and growing brands",
       "items": "Everything in Pro\nMultiple locations with combined reporting\nHighest AI usage limit\nAdvanced analytics"
-    }
+    },
+    "basicFree": "Free for the first year",
+    "basicThen": "then 99,000₫/month"
   },
   "cta": {
     "title": "Ready to glow? Start your 14-day free trial.",
@@ -381,7 +383,7 @@
       "shotSvc": "Services · options & price ranges",
       "shotAppt": "Appointments · one queue",
       "callAppt": "Walk-ins, Zalo and phone: one list",
-      "callSvc": "Price ranges, options and add-ons"
+      "callSvc": "Options and add-ons on every service"
     },
     "office": {
       "eyebrow": "Back office",
@@ -451,6 +453,40 @@
       "year": "per year",
       "note": "Illustrative estimate: assumes 10% no-shows and ~25% fewer with reminders (BMJ Open 2016). Your numbers will differ.",
       "perWeek": "/ week"
+    },
+    "insights": {
+      "eyebrow": "Back office · Advanced insights",
+      "title": "Know where your salon really earns.",
+      "sub": "Figures from your salon's own appointments, updated as appointments complete.",
+      "i1": "Key metrics: bookings, new and returning clients, no-show rate",
+      "i2": "Estimated revenue vs what was recorded at the salon",
+      "i3": "Gross margin per service, from its execution cost",
+      "i4": "The whole team's upcoming appointments",
+      "i5": "Zalo funnel: from message to booking",
+      "win": "Insights · 30 days",
+      "eg": "Illustrative figures",
+      "revA": "48.6M ₫",
+      "revB": "45.2M ₫",
+      "margin": "Gross margin by service",
+      "s1": "Gel polish",
+      "s2": "Acrylic set",
+      "s3": "Hair colour",
+      "funnel": "Zalo funnel",
+      "f1n": "120",
+      "f1": "messages",
+      "f2n": "58",
+      "f2": "asked for a slot",
+      "f3n": "41",
+      "f3": "bookings"
+    },
+    "free": {
+      "eyebrow": "GuGu Studio Basic",
+      "pre": "Basic is ",
+      "glow": "free",
+      "post": " for every salon for the first year.",
+      "sub": "Then 99,000₫/month. Basic includes AI setup from a photo of your price list; the AI assistant starts at Pro.",
+      "cta": "Start free",
+      "plans": "See the plans"
     }
   }
 }

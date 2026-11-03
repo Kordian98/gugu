@@ -9,6 +9,7 @@ import { HeroCopy } from "../StudioHero";
 import { screen } from "../screens";
 import type { LandingNavActions } from "../useLandingNav";
 import { PHOTO } from "./media";
+import { InsightsPanel } from "./Insights";
 import { FeaturesPanel, OfficePanel, SwitchPanel } from "./Rooms";
 import { WalkPlayer, type Segment } from "./sequence";
 import { book, type BookApi } from "./book";
@@ -36,8 +37,8 @@ const HUD = [
   { k: "c0", stops: [0, 1] },
   { k: "c1", stops: [2, 3] },
   { k: "c2", stops: [4, 5, 6] },
-  { k: "c3", stops: [7] },
-  { k: "c4", stops: [8] },
+  { k: "c3", stops: [7, 8] },
+  { k: "c4", stops: [9] },
 ] as const;
 /** Next-button label per page: start the tour, see the after, finish, otherwise "Next". */
 const LABELS = ["start", "next", "after", "finish"] as const;
@@ -175,7 +176,7 @@ export function Journey({
             },
             onPage,
             ready,
-            exitTo: () => document.getElementById("fl-biz"),
+            exitTo: () => document.getElementById("fl-free"),
           })
         : null;
     if (__DEV__) (window as unknown as { __book?: BookApi | null }).__book = ch.current;
@@ -394,6 +395,7 @@ export function Journey({
           <div className="wk-cap cap-office">{t("flow.walk.office")}</div>
           <FeaturesPanel />
           <OfficePanel />
+          <InsightsPanel />
           <SwitchPanel />
         </div>
 
