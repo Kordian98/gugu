@@ -11,17 +11,26 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { useBreakpoint } from "../salon-crm/shell/useBreakpoint";
 import { Select } from "../salon-crm/ui/form";
 import { type SalonFilters, useAdminSalons } from "./data";
-import { addDays, fmtDate, fmtNumber, todayVn } from "./format";
+import { addDays, fmtDate, fmtFreeDay, fmtNumber, todayVn } from "./format";
 import { LoadError, Loading, Page, StatusPill } from "./ui";
 
 type FilterId =
-  "plan" | "status" | "trialEnds" | "activity" | "zalo" | "founding" | "created" | "bookings";
+  | "plan"
+  | "status"
+  | "trialEnds"
+  | "freeEnds"
+  | "activity"
+  | "zalo"
+  | "founding"
+  | "created"
+  | "bookings";
 type Filters = Partial<Record<FilterId, string>> & { sort: (typeof ADMIN_SALON_SORTS)[number] };
 
 const OPTIONS: Record<FilterId, readonly string[]> = {
   plan: ["basic", "pro", "ultra", "trial", "none"],
   status: ["trialing", "active", "past_due", "expired", "cancelled", "none"],
   trialEnds: ["7", "14"],
+  freeEnds: ["30", "90", "ended"],
   activity: ["active7", "active30", "inactive30"],
   zalo: ["true", "false"],
   founding: ["true", "false"],
@@ -43,6 +52,9 @@ function toApi(f: Filters, q: string): SalonFilters {
     plan: f.plan,
     subscriptionStatus: f.status,
     trialEndsWithinDays: f.trialEnds,
+    // X25 free Basic year: ends within N days, or already over (Basic is now paid).
+    freeEndsWithinDays: f.freeEnds && f.freeEnds !== "ended" ? f.freeEnds : undefined,
+    freeEnded: f.freeEnds === "ended" ? "true" : undefined,
     ...(f.activity ? activity[f.activity] : {}),
     zaloConnected: f.zalo,
     foundingPartner: f.founding,
@@ -92,6 +104,7 @@ export function SalonsScreen() {
     plan: t("salons.filter.plan"),
     status: t("salons.filter.status"),
     trialEnds: t("salons.filter.trialEnds"),
+    freeEnds: t("salons.filter.freeEnds"),
     activity: t("salons.filter.activity"),
     zalo: t("salons.filter.zalo"),
     founding: t("salons.filter.founding"),
@@ -253,6 +266,7 @@ const COLS = {
   salon: 3,
   plan: 1.4,
   trialEnds: 1.2,
+  freeUntil: 1.2,
   paidUntil: 1.2,
   created: 1.1,
   activity: 1.2,
@@ -360,6 +374,10 @@ function SalonRow({
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
             {planCell}
             <Meta label={t("salons.col.trialEnds")} value={date(salon.trialEndsAt)} />
+            <Meta
+              label={t("salons.col.freeUntil")}
+              value={fmtFreeDay(salon.freeUntil, locale) ?? none}
+            />
             <Meta label={t("salons.col.activity")} value={date(salon.lastActivityAt)} />
             <Meta label={t("salons.col.bookings")} value={bookings} />
           </View>
@@ -370,6 +388,14 @@ function SalonRow({
           <View style={{ flex: COLS.plan }}>{planCell}</View>
           <Text size={13} color={c.body} style={{ flex: COLS.trialEnds }}>
             {date(salon.trialEndsAt)}
+          </Text>
+          <Text
+            testID={`admin-salon-free-${salon.id}`}
+            size={13}
+            color={c.body}
+            style={{ flex: COLS.freeUntil }}
+          >
+            {fmtFreeDay(salon.freeUntil, locale) ?? none}
           </Text>
           <View style={{ flex: COLS.paidUntil }}>{paid}</View>
           <Text size={13} color={c.body} style={{ flex: COLS.created }}>

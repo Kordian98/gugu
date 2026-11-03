@@ -13,6 +13,7 @@ import { useSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
 import { BookingSection, PoliciesSection } from "./settings/BookingSection";
 import { HolidaysSection, HoursSection } from "./settings/HoursSection";
+import { PlanSection } from "./settings/PlanSection";
 import { PrivacySection } from "./settings/PrivacySection";
 import { ProfileSection } from "./settings/ProfileSection";
 import { ZaloSection } from "./settings/ZaloSection";
@@ -45,6 +46,7 @@ export function SettingsScreen() {
       <PageHeader title={t("pages.settings.title")} workspace={ws} />
       {settings.data ? (
         <View key={settings.dataUpdatedAt} style={{ gap: 20, maxWidth: 860 }}>
+          {can("subscription.read") ? <PlanSection timeZone={ws.timeZone} /> : null}
           <ProfileSection settings={settings.data} canEdit={can("salon.profile.write")} />
           <HoursSection settings={settings.data} canEdit={can("salon.settings.write")} />
           <BookingSection settings={settings.data} canEdit={can("salon.settings.write")} />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canTransition, effectiveStatus, isCurrent } from "./subscription-status";
+import { canTransition, effectivePlan, effectiveStatus, isCurrent } from "./subscription-status";
 
 describe("subscription state machine", () => {
   it.each([
@@ -36,5 +36,20 @@ describe("subscription state machine", () => {
     expect(effectiveStatus({ status: "active", trialEndsAt }, new Date("2027-01-01Z"))).toBe(
       "active",
     );
+  });
+
+  it("X25: an ended trial inside the free year reads as active Basic; after it, expired", () => {
+    const trialEndsAt = new Date("2026-11-16T00:00:00Z");
+    const freeUntil = new Date("2027-11-03T17:00:00Z");
+    const sub = { status: "trialing" as const, trialEndsAt, freeUntil };
+    const during = new Date("2026-11-20T00:00:00Z");
+    expect(effectiveStatus(sub, new Date("2026-11-15T00:00:00Z"))).toBe("trialing");
+    expect(effectivePlan(sub, "trial", new Date("2026-11-15T00:00:00Z"))).toBe("trial");
+    expect(effectiveStatus(sub, during)).toBe("active");
+    expect(effectivePlan(sub, "trial", during)).toBe("basic");
+    expect(effectiveStatus(sub, freeUntil)).toBe("expired");
+    expect(effectivePlan(sub, "trial", freeUntil)).toBe("trial");
+    // A stored Basic subscription is never re-mapped.
+    expect(effectivePlan({ status: "active", trialEndsAt, freeUntil }, "pro", during)).toBe("pro");
   });
 });

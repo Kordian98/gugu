@@ -15,6 +15,7 @@ import {
   type Subscription,
 } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
+import { freeYearEnd, isInFreeYear } from "../domain/free-year";
 import { canTransition } from "../domain/subscription-status";
 import { Clock } from "./clock";
 import { EntitlementService } from "./entitlement.service";
@@ -35,7 +36,10 @@ export class SubscriptionsFacade {
     private readonly entitlements: EntitlementService,
   ) {}
 
-  /** Contract: @gugu/contracts `startTrialInputSchema` (14-day trial, Pro features, Basic limits). */
+  /**
+   * Contract: @gugu/contracts `startTrialInputSchema` (14-day trial, Pro features, small AI cap).
+   * Also records the free Basic year (X25): registration date + 12 months in the salon's zone.
+   */
   async startTrial(input: StartTrialInput, tx?: Db): Promise<SubscriptionSummary> {
     const run = async (db: Db): Promise<SubscriptionSummary> => {
       const existing = await db.subscription.findMany({
@@ -46,8 +50,13 @@ export class SubscriptionsFacade {
       if (current) return summary(current);
       if (existing.length > 0) throw trialUnavailable();
       const plan = await db.plan.findUniqueOrThrow({ where: { code: "trial" } });
+      const salon = await db.salon.findUniqueOrThrow({
+        where: { id: input.salonId },
+        select: { createdAt: true, timezone: true },
+      });
       const now = this.clock.now();
       const trialEndsAt = new Date(now.getTime() + TRIAL_DAYS * DAY_MS);
+      const freeUntil = freeYearEnd(salon.createdAt, salon.timezone);
       try {
         const created = await db.subscription.create({
           data: {
@@ -56,6 +65,7 @@ export class SubscriptionsFacade {
             planVersion: plan.version,
             status: "trialing",
             trialEndsAt,
+            freeUntil,
             currentPeriodStart: now,
             currentPeriodEnd: trialEndsAt,
             events: {
@@ -130,29 +140,78 @@ export class SubscriptionsFacade {
   }
 
   /**
-   * Writes `trialing → expired` for trials past their end. Access does not depend on this (reads
-   * use the effective status); it keeps stored state and history accurate. Returns the count.
+   * Ends trials past their end. Access does not depend on this (reads use the effective status and
+   * plan); it keeps stored state and history accurate. X25: inside the free year the trial falls
+   * to Basic (`trialing → active`, plan `trial → basic`, covered until the free year ends; not a
+   * paid activation, so no founding-partner qualification); otherwise `trialing → expired`.
    */
-  async expireDueTrials(): Promise<number> {
+  async endDueTrials(): Promise<{ toBasic: number; expired: number }> {
+    const now = this.clock.now();
     const due = await this.prisma.subscription.findMany({
-      where: { status: "trialing", trialEndsAt: { lte: this.clock.now() } },
-      select: { id: true, salonId: true },
+      where: { status: "trialing", trialEndsAt: { lte: now } },
+      select: { id: true, salonId: true, freeUntil: true },
     });
-    let expired = 0;
+    const counts = { toBasic: 0, expired: 0 };
     for (const sub of due) {
       try {
-        await this.transition({
-          ...sub,
-          subscriptionId: sub.id,
-          to: "expired",
-          reason: "trial_ended",
-        });
-        expired++;
+        if (isInFreeYear(sub.freeUntil, now)) {
+          await this.fallToFreeBasic(sub.salonId, sub.id);
+          counts.toBasic++;
+        } else {
+          await this.transition({
+            ...sub,
+            subscriptionId: sub.id,
+            to: "expired",
+            reason: "trial_ended",
+          });
+          counts.expired++;
+        }
       } catch (e) {
         if (!(e instanceof AppError && e.code === SUBSCRIPTION_ERRORS.invalidTransition)) throw e;
       }
     }
-    return expired;
+    return counts;
+  }
+
+  /** Ended trial → free Basic, in place on the same row (keeps trial end and free year). */
+  private async fallToFreeBasic(salonId: string, subscriptionId: string): Promise<void> {
+    await this.prisma.$transaction(async (db) => {
+      const sub = await db.subscription.findUnique({
+        where: { salonId_id: { salonId, id: subscriptionId } },
+      });
+      if (!sub?.trialEndsAt || !sub.freeUntil || !canTransition(sub.status, "active")) {
+        throw new AppError(409, SUBSCRIPTION_ERRORS.invalidTransition, "Transition not allowed");
+      }
+      const basic = await db.plan.findUniqueOrThrow({ where: { code: "basic" } });
+      // Conditional update: a concurrent job run or admin change makes this a no-op → 409.
+      const { count } = await db.subscription.updateMany({
+        where: { id: sub.id, salonId, status: "trialing", planId: sub.planId },
+        data: {
+          planId: basic.id,
+          planVersion: basic.version,
+          status: "active",
+          interval: "month",
+          currentPeriodStart: sub.trialEndsAt,
+          currentPeriodEnd: sub.freeUntil,
+        },
+      });
+      if (count === 0) {
+        throw new AppError(409, SUBSCRIPTION_ERRORS.invalidTransition, "Changed concurrently");
+      }
+      await db.subscriptionEvent.create({
+        data: {
+          salonId,
+          subscriptionId: sub.id,
+          fromStatus: "trialing",
+          toStatus: "active",
+          fromPlanCode: "trial",
+          toPlanCode: "basic",
+          actor: actor(),
+          reason: "trial_ended_free_basic",
+        },
+      });
+    });
+    await this.entitlements.invalidate(salonId);
   }
 }
 
@@ -163,6 +222,7 @@ function summary(sub: Subscription & { plan: Plan }): SubscriptionSummary {
     plan: planCodeSchema.parse(sub.plan.code),
     status: sub.status,
     trialEndsAt: sub.trialEndsAt?.toISOString() ?? null,
+    freeUntil: sub.freeUntil?.toISOString() ?? null,
   };
 }
 

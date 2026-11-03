@@ -80,6 +80,24 @@ test.describe("platform admin @vi", () => {
       expect(ent.status).toBe("trialing");
     });
 
+    await test.step("the owner finds the trial end in Settings → Plan (X25)", async () => {
+      await owner.goto("/vi/business/settings");
+      await expect(owner.getByTestId("crm-plan-name")).toHaveText(t(L, "crm:plan.name.trial"));
+      const trialDay = await owner.evaluate(
+        (iso) =>
+          new Intl.DateTimeFormat("vi-VN", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            timeZone: "Asia/Ho_Chi_Minh",
+          }).format(new Date(iso)),
+        endOfDayVn(target),
+      );
+      await expect(owner.getByTestId("crm-plan-trial-ends")).toContainText(trialDay);
+      await expect(owner.getByTestId("crm-plan-free-until")).toBeVisible();
+    });
+
     await test.step("suspending is high-risk: TOTP step-up, the owner sees the banner, unsuspend", async () => {
       await tap(admin.getByTestId("admin-open-suspend"));
       await fillField(
@@ -111,6 +129,24 @@ test.describe("platform admin @vi", () => {
       await owner.reload();
       await expect(owner.getByTestId("crm-nav-calendar")).toBeVisible();
       await expect(owner.getByTestId("crm-suspension-banner")).toHaveCount(0);
+    });
+
+    await test.step("extend the free Basic year by 30 days (high risk, audited)", async () => {
+      const freeRow = card.getByText(t(L, "admin:detail.subscription.freeUntil")).locator("..");
+      const before = (await freeRow.innerText()).trim();
+      await tap(card.getByTestId("admin-open-free"));
+      await tap(admin.getByRole("button", { name: t(L, "admin:actions.dates.d30"), exact: true }));
+      await fillField(
+        admin.getByTestId("admin-extend-free-reason"),
+        "E2E: pilot partner, one extra free month",
+      );
+      // Still inside the step-up window from the suspension above: no new code needed.
+      await tap(admin.getByTestId("admin-extend-free-submit"));
+      await expect(admin.getByTestId("admin-extend-free-submit")).toHaveCount(0);
+      await expect(freeRow).not.toHaveText(before);
+      await expect(admin.getByTestId("admin-audit")).toContainText(
+        t(L, "admin:auditAction.admin_free_period_extended"),
+      );
     });
 
     await test.step("the owner gets the denied card at /admin and the admin API refuses", async () => {

@@ -5,7 +5,8 @@ import { planCodeSchema, subscriptionStatusSchema } from "./entitlements";
 /**
  * Contract between salon registration (topic 05) and subscriptions (topic 12): registration calls
  * `SubscriptionsFacade.startTrial({ salonId })` inside its own transaction right after inserting
- * the salon. Every new salon gets a 14-day trial with Pro features and Basic limits (plan `trial`).
+ * the salon. Every new salon gets a 14-day trial with Pro features and a small AI cap (plan `trial`),
+ * then falls to Basic, free until 12 months after registration (X25).
  * Idempotent per salon: calling it again while that trial is current returns the same subscription;
  * calling it for a salon that already used a trial or has another subscription fails with
  * `subscription.trial_unavailable` (409).
@@ -21,5 +22,7 @@ export const subscriptionSummarySchema = z.object({
   plan: planCodeSchema,
   status: subscriptionStatusSchema,
   trialEndsAt: z.iso.datetime().nullable(),
+  /** X25: end of the free Basic year (registration + 12 months, salon time zone). */
+  freeUntil: z.iso.datetime().nullable(),
 });
 export type SubscriptionSummary = z.infer<typeof subscriptionSummarySchema>;

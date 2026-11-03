@@ -101,6 +101,15 @@ export const salonEntitlementsSchema = z.object({
   plan: planCodeSchema.nullable(),
   status: z.union([subscriptionStatusSchema, z.literal("none")]),
   trialEndsAt: z.iso.datetime().nullable(),
+  /**
+   * X25: end (exclusive) of the salon's free Basic year, counted from registration in the salon's
+   * time zone; null when the salon has none. Basic costs nothing before this instant.
+   */
+  freeUntil: z.iso.datetime().nullable(),
+  /** End of the paid (or free) period an admin recorded; null while trialing. Manual billing. */
+  paidUntil: z.iso.datetime().nullable(),
+  /** Current list price of Basic per month in VND (display only; invoiced manually). */
+  basicMonthlyPriceVnd: z.number().int().nonnegative().nullable(),
   /** Suspended by GuGu staff: nothing is granted and the workspace is read-only (M12.6). */
   suspended: z.boolean(),
   /**
@@ -113,6 +122,12 @@ export const salonEntitlementsSchema = z.object({
   entitlements: entitlementMapSchema,
 });
 export type SalonEntitlements = z.infer<typeof salonEntitlementsSchema>;
+
+/** X25: every salon gets Basic free for this many months from registration. */
+export const FREE_BASIC_MONTHS = 12;
+
+/** Owners see a notice this many days before the trial or the free Basic year ends. */
+export const PLAN_ENDING_NOTICE_DAYS = 14;
 
 /** Booking-fee waiver length for founding partners (R-FP1). */
 export const FOUNDING_WAIVER_MONTHS = 24;

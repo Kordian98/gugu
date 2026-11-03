@@ -674,9 +674,9 @@
       "bookings_list": "Booking list"
     },
     "notConfigured": "The AI assistant is not enabled on this server.",
-    "upgradeTitle": "The AI assistant is part of Pro",
-    "upgradeBody": "Ask Gu anytime: today's bookings, this month's revenue, who is fully booked. Upgrade to Pro to use it.",
-    "upgradeCta": "See the Pro plan",
+    "upgradeTitle": "The AI assistant is available from Pro",
+    "upgradeBody": "Basic already includes the AI price-list import. From Pro, you can ask Gu anytime: today's bookings, this month's revenue, who is fully booked.",
+    "upgradeCta": "See your plan",
     "errors": {
       "generic": "Gu couldn't answer. Please try again.",
       "assistant_not_configured": "The AI assistant is not enabled on this server.",
@@ -820,6 +820,41 @@
       "hours": "Outside working hours",
       "lead_time": "Too short notice",
       "horizon": "Beyond the booking window"
+    }
+  },
+  "plan": {
+    "title": "Plan",
+    "name": {
+      "trial": "Pro trial",
+      "basic": "Basic",
+      "pro": "Pro",
+      "ultra": "Ultra",
+      "none": "No plan"
+    },
+    "status": {
+      "trialing": "Trial",
+      "active": "Active",
+      "past_due": "Payment due",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "none": "No plan"
+    },
+    "trialEnds": "Trial ends",
+    "freeUntil": "Basic is free through",
+    "paidUntil": "Paid until",
+    "trialBody": "During the trial your salon has every Pro feature, including the AI assistant, with a small AI allowance. Afterwards you continue on Basic, free for your first year.",
+    "freeBody": "Basic is completely free for your first year. After that it costs {{price}} per month and GuGu will send you an invoice. The AI assistant is available from Pro.",
+    "freeBodyNoPrice": "Basic is completely free for your first year. The AI assistant is available from Pro.",
+    "basicBody": "Basic includes bookings, clients, Zalo and the AI price-list import. The AI assistant is available from Pro. Contact GuGu to change your plan.",
+    "contactBody": "GuGu invoices and updates plans manually. Contact GuGu to change your plan.",
+    "notice": {
+      "trialTitle": "Your Pro trial ends soon",
+      "trialBody": "Your Pro trial ends on {{date}}. Afterwards you continue on Basic, free through {{freeUntil}} (without the AI assistant).",
+      "trialBodyNoFree": "Your Pro trial ends on {{date}}. Contact GuGu to choose a plan.",
+      "freeTitle": "Your free Basic year ends soon",
+      "freeBody": "Basic is free through {{date}}. After that it costs {{price}} per month and GuGu will send you an invoice.",
+      "freeBodyNoPrice": "Basic is free through {{date}}. After that GuGu will send you an invoice.",
+      "cta": "See plan"
     }
   }
 }

@@ -13,6 +13,7 @@ import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { Clock } from "./application/clock";
 import { EntitlementService } from "./application/entitlement.service";
 import { SubscriptionsFacade } from "./application/subscriptions.facade";
+import { freeYearEnd } from "./domain/free-year";
 import { PLAN_CATALOG } from "./domain/plan-catalog";
 
 const DAY = 86_400_000;
@@ -89,6 +90,9 @@ describe("subscriptions & entitlements (integration)", () => {
     const trial = await facade.startTrial({ salonId });
     expect(trial).toMatchObject({ salonId, plan: "trial", status: "trialing" });
     expect(trial.trialEndsAt).toBe(new Date(T0.getTime() + 14 * DAY).toISOString());
+    // X25: the free Basic year is recorded at registration, in the salon's time zone.
+    const salon = await prisma.salon.findUniqueOrThrow({ where: { id: salonId } });
+    expect(trial.freeUntil).toBe(freeYearEnd(salon.createdAt, salon.timezone).toISOString());
 
     const e = await entitlements.forSalon(salonId);
     expect(e.status).toBe("trialing");
@@ -113,7 +117,7 @@ describe("subscriptions & entitlements (integration)", () => {
     expect((await facade.startTrial({ salonId })).id).toBe(first.id);
 
     clock.current = new Date(T0.getTime() + 15 * DAY);
-    expect(await facade.expireDueTrials()).toBeGreaterThanOrEqual(1);
+    expect((await facade.endDueTrials()).toBasic).toBeGreaterThanOrEqual(1);
     await expect(facade.startTrial({ salonId })).rejects.toMatchObject({
       status: 409,
       code: "subscription.trial_unavailable",
@@ -143,9 +147,68 @@ describe("subscriptions & entitlements (integration)", () => {
     expect(await prisma.subscription.count({ where: { salonId } })).toBe(0);
   });
 
-  it("an ended trial denies everything, before and after the expiry job", async () => {
+  it("X25: an ended trial falls to free Basic (no assistant, import kept), before and after the job", async () => {
     const salonId = await newSalon();
     await facade.startTrial({ salonId });
+    // Cached while trialing (Pro features)...
+    expect((await entitlements.forSalon(salonId)).plan).toBe("trial");
+    clock.current = new Date(T0.getTime() + 14 * DAY);
+    await entitlements.invalidate(salonId);
+
+    const lazy = await entitlements.forSalon(salonId);
+    expect(lazy).toMatchObject({ plan: "basic", status: "active" });
+    expect(lazy.paidUntil).toBe(lazy.freeUntil);
+    expect(lazy.basicMonthlyPriceVnd).toBe(99_000);
+    expect(lazy.entitlements).toEqual(PLAN_CATALOG.basic.entitlements);
+    await expect(entitlements.assert(salonId, "ai.agent.enabled")).rejects.toMatchObject({
+      status: 403,
+      code: "entitlement.required",
+    });
+    await expect(entitlements.assert(salonId, "ai.onboarding_import")).resolves.toBeUndefined();
+
+    expect((await facade.endDueTrials()).toBasic).toBeGreaterThanOrEqual(1);
+    const sub = await prisma.subscription.findFirstOrThrow({
+      where: { salonId },
+      include: { events: { orderBy: { occurredAt: "asc" } }, plan: true },
+    });
+    expect(sub).toMatchObject({ status: "active", interval: "month" });
+    expect(sub.plan.code).toBe("basic");
+    expect(sub.currentPeriodEnd?.toISOString()).toBe(sub.freeUntil?.toISOString());
+    expect(
+      sub.events.map((e) => [e.fromStatus, e.toStatus, e.fromPlanCode, e.toPlanCode, e.reason]),
+    ).toEqual([
+      [null, "trialing", null, null, "trial_started"],
+      ["trialing", "active", "trial", "basic", "trial_ended_free_basic"],
+    ]);
+    // Free Basic is not a paid activation: no founding-partner flag (X20 unchanged).
+    expect((await entitlements.forSalon(salonId)).foundingPartner).toBeNull();
+    // A second run finds nothing to do.
+    const again = await facade.endDueTrials();
+    expect(await prisma.subscriptionEvent.count({ where: { salonId } })).toBe(2);
+    expect(again.toBasic + again.expired).toBeGreaterThanOrEqual(0);
+  });
+
+  it("the end-of-trial job clears the entitlement cache (no stale trial read)", async () => {
+    const salonId = await newSalon();
+    await facade.startTrial({ salonId });
+    clock.current = new Date(T0.getTime() + 13 * DAY);
+    expect((await entitlements.forSalon(salonId)).plan).toBe("trial"); // now cached
+    // Stored-state change without the lazy read: only the job's invalidation can reveal it.
+    clock.current = new Date(T0.getTime() + 15 * DAY);
+    await facade.endDueTrials();
+    const after = await entitlements.forSalon(salonId);
+    expect(after).toMatchObject({ plan: "basic", status: "active" });
+    expect(after.entitlements["ai.agent.enabled"]).toBe(false);
+  });
+
+  it("an ended trial after the free year denies everything, before and after the job", async () => {
+    const salonId = await newSalon();
+    await facade.startTrial({ salonId });
+    // E.g. a salon registered over a year ago whose trial was re-opened by an admin.
+    await prisma.subscription.updateMany({
+      where: { salonId },
+      data: { freeUntil: new Date(T0.getTime() + 10 * DAY) },
+    });
     clock.current = new Date(T0.getTime() + 14 * DAY);
     await entitlements.invalidate(salonId);
 
@@ -158,7 +221,7 @@ describe("subscriptions & entitlements (integration)", () => {
       code: "entitlement.required",
     });
 
-    await facade.expireDueTrials();
+    await facade.endDueTrials();
     const sub = await prisma.subscription.findFirstOrThrow({
       where: { salonId },
       include: { events: true },

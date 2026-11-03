@@ -35,6 +35,8 @@ export const ADMIN_ERRORS = {
   foundingPartnerExists: "admin.founding_partner_exists",
   foundingPartnerMissing: "admin.founding_partner_missing",
   usageMonthUnavailable: "admin.usage_month_unavailable",
+  /** The free Basic year (X25) only applies to a current trial or Basic subscription. */
+  freePeriodNotApplicable: "admin.free_period_not_applicable",
 } as const;
 
 /** Returned to members of a suspended salon on any write (read-only until unsuspended). */
@@ -67,6 +69,7 @@ export const ADMIN_SALON_SORTS = [
   "created_asc",
   "name_asc",
   "trial_ends_asc",
+  "free_until_asc",
   "last_activity_desc",
   "bookings_desc",
 ] as const;
@@ -78,6 +81,10 @@ export const adminSalonListQuerySchema = cursorQuerySchema.extend({
   subscriptionStatus: effectiveSubscriptionStatusSchema.optional(),
   /** Trialing salons whose trial ends within this many days from now. */
   trialEndsWithinDays: z.coerce.number().int().min(0).max(90).optional(),
+  /** X25: the free Basic year (trial or Basic) ends within this many days from now. */
+  freeEndsWithinDays: z.coerce.number().int().min(0).max(366).optional(),
+  /** X25: true = the free Basic year is over (Basic is now paid); false = still free. */
+  freeEnded: boolParam.optional(),
   createdFrom: z.iso.date().optional(),
   createdTo: z.iso.date().optional(),
   /** Any member session, booking or audited change within this many days. */
@@ -104,6 +111,8 @@ export const adminSalonListItemSchema = z.object({
   trialEndsAt: z.iso.datetime().nullable(),
   /** End of the paid period (manual billing) — `current_period_end` of a paid subscription. */
   paidUntil: z.iso.datetime().nullable(),
+  /** X25: end of the free Basic year (exclusive); null when the salon has none. */
+  freeUntil: z.iso.datetime().nullable(),
   /** Paid period ended but the subscription is still current: invoice follow-up needed. */
   paidUntilOverdue: z.boolean(),
   bookingsTotal: z.number().int(),
@@ -150,6 +159,8 @@ export const adminSubscriptionSchema = z.object({
   trialEndsAt: z.iso.datetime().nullable(),
   currentPeriodStart: z.iso.datetime().nullable(),
   paidUntil: z.iso.datetime().nullable(),
+  /** X25: end of the free Basic year (exclusive); null when the salon has none. */
+  freeUntil: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
 });
 export type AdminSubscription = z.infer<typeof adminSubscriptionSchema>;
@@ -260,6 +271,17 @@ export const adminSetPaidUntilInputSchema = z.object({
   reason: adminReasonSchema,
 });
 export type AdminSetPaidUntilInput = z.infer<typeof adminSetPaidUntilInputSchema>;
+
+/**
+ * X25: move the end of the free Basic year later (absolute, UTC), at most 366 days from now. Only
+ * for a current trial or Basic subscription. A free Basic period that covered the subscription
+ * moves with it; a past_due Basic subscription becomes active again. Needs a step-up.
+ */
+export const adminExtendFreePeriodInputSchema = z.object({
+  freeUntil: z.iso.datetime(),
+  reason: adminReasonSchema,
+});
+export type AdminExtendFreePeriodInput = z.infer<typeof adminExtendFreePeriodInputSchema>;
 
 /** Per-salon override with a mandatory expiry (≤ 366 days). Value must fit the key's type. */
 export const adminCreateOverrideInputSchema = z.object({
