@@ -39,4 +39,17 @@ export class RateLimitService {
       });
     }
   }
+
+  /**
+   * Gives back one hit counted by `consume` (reserve-before-compare: count the attempt first,
+   * refund it when it turned out to be legitimate). Never goes below zero.
+   */
+  async refund(rule: RateLimitRule, subject: string): Promise<void> {
+    const key = `rl:${rule.name}:${subject}`;
+    await this.redis.client.eval(
+      "local v = tonumber(redis.call('GET', KEYS[1]) or '0'); if v > 0 then redis.call('DECR', KEYS[1]) end; return v",
+      1,
+      key,
+    );
+  }
 }

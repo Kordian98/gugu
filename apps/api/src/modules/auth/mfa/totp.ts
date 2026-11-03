@@ -113,9 +113,5 @@ export function generateRecoveryCode(): string {
 
 /** Canonical form for hashing: upper-case, no separators, Crockford look-alikes folded. */
 export function normalizeRecoveryCode(input: string): string {
-  return input
-    .toUpperCase()
-    .replace(/[\s-]/g, "")
-    .replace(/[IL]/g, "1")
-    .replace(/O/g, "0");
+  return input.toUpperCase().replace(/[\s-]/g, "").replace(/[IL]/g, "1").replace(/O/g, "0");
 }

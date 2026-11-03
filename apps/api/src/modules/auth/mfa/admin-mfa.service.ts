@@ -123,7 +123,7 @@ export class AdminMfaService {
     code: string,
     meta: RequestMeta,
   ): Promise<AdminMfaRecoveryCodes> {
-    await this.assertNotLocked(admin);
+    await this.reserveAttempt(admin);
     const factor = await this.prisma.adminMfaFactor.findUnique({
       where: { userId: admin.userId },
     });
@@ -162,6 +162,7 @@ export class AdminMfaService {
         recoveryCodes: codes.length,
       });
     });
+    await this.refundAttempt(admin);
     return { recoveryCodes: codes, stepUpUntil: stepUpUntil.toISOString() };
   }
 
@@ -171,7 +172,7 @@ export class AdminMfaService {
     input: AdminStepUpInput,
     meta: RequestMeta,
   ): Promise<AdminStepUpResult> {
-    await this.assertNotLocked(admin);
+    await this.reserveAttempt(admin);
     const factor = await this.confirmedFactor(admin);
     const now = Date.now();
     const stepUpUntil = new Date(now + ADMIN_STEP_UP_MINUTES * MINUTE);
@@ -187,6 +188,7 @@ export class AdminMfaService {
       return true;
     });
     if (!ok) return this.fail(admin, meta, method);
+    await this.refundAttempt(admin);
     const remaining = await this.prisma.adminRecoveryCode.count({
       where: { userId: admin.userId, usedAt: null },
     });
@@ -199,7 +201,7 @@ export class AdminMfaService {
     code: string,
     meta: RequestMeta,
   ): Promise<AdminMfaRecoveryCodes> {
-    await this.assertNotLocked(admin);
+    await this.reserveAttempt(admin);
     const factor = await this.confirmedFactor(admin);
     const now = Date.now();
     const codes = Array.from({ length: ADMIN_RECOVERY_CODE_COUNT }, generateRecoveryCode);
@@ -214,6 +216,7 @@ export class AdminMfaService {
       return true;
     });
     if (!ok) return this.fail(admin, meta, "totp");
+    await this.refundAttempt(admin);
     return { recoveryCodes: codes, stepUpUntil: stepUpUntil.toISOString() };
   }
 
@@ -237,7 +240,12 @@ export class AdminMfaService {
       where: { id: admin.sessionId },
       select: { stepUpUntil: true, revokedAt: true },
     });
-    if (!session || session.revokedAt || !session.stepUpUntil || session.stepUpUntil <= new Date()) {
+    if (
+      !session ||
+      session.revokedAt ||
+      !session.stepUpUntil ||
+      session.stepUpUntil <= new Date()
+    ) {
       throw new AppError(403, ADMIN_ERRORS.stepUpRequired, "Confirm with your authenticator code");
     }
   }
@@ -318,18 +326,23 @@ export class AdminMfaService {
     if (count !== 1) throw new AppError(401, COMMON_ERRORS.unauthorized, "Session ended");
   }
 
-  private async assertNotLocked(admin: UserPrincipal): Promise<void> {
-    if (await this.limits.exceeded(MFA_FAILURE_RULE, admin.userId)) {
-      throw new AppError(429, COMMON_ERRORS.rateLimited, "Too many wrong codes", {
-        detail: `retry within ${String(MFA_FAILURE_RULE.windowSeconds)}s`,
-      });
-    }
+  /**
+   * Reserve-before-compare (security review; same pattern as the magic-link fix ff06a1f): every
+   * attempt is counted atomically (INCR) BEFORE any code is compared, so parallel requests cannot
+   * all slip past the lockout — at most MFA_FAILURE_RULE.limit attempts per window are evaluated,
+   * the rest get 429. A successful attempt is refunded afterwards.
+   */
+  private async reserveAttempt(admin: UserPrincipal): Promise<void> {
+    await this.limits.consume(MFA_FAILURE_RULE, admin.userId);
   }
 
-  /** Counts the failure (429 once over the limit), audits it and answers 400. */
+  private async refundAttempt(admin: UserPrincipal): Promise<void> {
+    await this.limits.refund(MFA_FAILURE_RULE, admin.userId);
+  }
+
+  /** The reserved attempt stays counted; audits the failure and answers 400. */
   private async fail(admin: UserPrincipal, meta: RequestMeta, method: string): Promise<never> {
     await this.record(this.prisma, "admin.mfa_step_up_failed", admin, meta, { method });
-    await this.limits.consume(MFA_FAILURE_RULE, admin.userId);
     throw new AppError(400, ADMIN_MFA_ERRORS.codeInvalid, "Code invalid");
   }
 

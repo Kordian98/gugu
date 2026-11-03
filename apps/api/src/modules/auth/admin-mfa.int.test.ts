@@ -255,6 +255,59 @@ describe("admin TOTP step-up (integration)", () => {
     ).toBeGreaterThanOrEqual(5);
   });
 
+  it("12 parallel wrong codes: at most 5 are evaluated, the rest get 429 (reserve before compare)", async () => {
+    const a = await admin();
+    const { secret } = await enrol(a.bearer);
+    const bad = String((Number(totp(secret, Date.now())) + 11) % 1_000_000).padStart(6, "0");
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () => call("post", "mfa/step-up", a.bearer, { code: bad })),
+    );
+    const statuses = results.map((r) => r.status);
+    expect(statuses.filter((x) => x === 400).length).toBeLessThanOrEqual(5);
+    expect(statuses.filter((x) => x === 429).length).toBeGreaterThanOrEqual(7);
+    expect(statuses.every((x) => x === 400 || x === 429)).toBe(true);
+    // Only evaluated attempts are audited as failures.
+    expect(
+      await prisma.auditLog.count({ where: { actorId: a.id, action: "admin.mfa_step_up_failed" } }),
+    ).toBeLessThanOrEqual(5);
+    // Recovery codes go through the same reservation.
+    const more = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        call("post", "mfa/step-up", a.bearer, { recoveryCode: "AAAAA-BBBBB" }),
+      ),
+    );
+    expect(more.map((r) => r.status)).toEqual([429, 429, 429, 429]);
+  });
+
+  it("a code used in parallel requests elevates exactly one session (no replay)", async () => {
+    const a = await admin();
+    const { secret, codes } = await enrol(a.bearer);
+    const sessions = await Promise.all(Array.from({ length: 4 }, () => bearerFor(app, a.id)));
+    const code = totp(secret, Date.now() + STEP_MS);
+    const totpResults = await Promise.all(
+      sessions.map((b) => call("post", "mfa/step-up", b, { code })),
+    );
+    expect(totpResults.filter((r) => r.status === 200)).toHaveLength(1);
+    await clearRateLimits(app);
+    const recovery = codes[2] ?? "";
+    const recResults = await Promise.all(
+      sessions.map((b) => call("post", "mfa/step-up", b, { recoveryCode: recovery })),
+    );
+    expect(recResults.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(
+      await prisma.adminRecoveryCode.count({ where: { userId: a.id, usedAt: { not: null } } }),
+    ).toBe(1);
+  });
+
+  it("successful attempts are refunded: they never lock the admin out", async () => {
+    const a = await admin();
+    const { codes } = await enrol(a.bearer);
+    for (let i = 0; i < 6; i++) {
+      const b = await bearerFor(app, a.id);
+      await call("post", "mfa/step-up", b, { recoveryCode: codes[i] }).expect(200);
+    }
+  });
+
   it("re-enrolment needs a step-up; the old factor works until the new one is confirmed", async () => {
     const a = await admin();
     const first = await enrol(a.bearer);
