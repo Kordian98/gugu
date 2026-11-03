@@ -8,7 +8,7 @@ import { formatVND } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { BASIC_MONTHLY_VND } from "./plans";
-import { RoiCalculator } from "./RoiCalculator";
+import { RoiBenefit, RoiInputs, useRoi } from "./RoiCalculator";
 
 import { Container, SectionHead } from "./Section";
 import type { LandingNavActions } from "./useLandingNav";
@@ -22,6 +22,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const locale = useLocale();
   const price = formatVND(BASIC_MONTHLY_VND, locale);
+  const roi = useRoi();
   return (
     <Container className="gap-10 py-20">
       <View className="gap-6 min-[900px]:flex-row min-[900px]:items-end min-[900px]:justify-between">
@@ -52,8 +53,8 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
           ))}
         </View>
       </View>
-      {/* Benefits first, right under the headline and next to a CTA (owner): the calculator. */}
-      <RoiCalculator stacked={stacked} onStart={nav.trial} />
+      {/* "Your salon": two numbers drive the benefit shown in every card, right above its CTA (owner). */}
+      <RoiInputs roi={roi} stacked={stacked} />
       <View className={stacked ? "gap-5" : "flex-row gap-5"}>
         {PLANS.map((plan) => {
           const pro = plan === "pro";
@@ -110,6 +111,26 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
                   </>
                 )}
               </View>
+              {/* Benefit + CTA directly under the price: what this plan gives back, then buy. */}
+              <RoiBenefit roi={roi} dark={pro} />
+              <View className="gap-2">
+                <Button
+                  label={
+                    plan === "basic"
+                      ? t("pricing.basicCtaGain", { n: roi.hours })
+                      : plan === "pro"
+                        ? t("pricing.proCta")
+                        : t("pricing.cta")
+                  }
+                  onPress={nav.trial}
+                  height={54}
+                  fontSize={16}
+                  trailingArrow
+                  {...(pro
+                    ? { style: { backgroundColor: color.pink300 }, labelColor: color.plum950 }
+                    : {})}
+                />
+              </View>
               <View className="gap-3">
                 {t(`pricing.${plan}.items`)
                   .split("\n")
@@ -134,25 +155,18 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
                     </View>
                   ))}
               </View>
-              <View className="mt-auto gap-2 pt-2">
-                <Button
-                  label={t(plan === "basic" ? "pricing.basicCta" : "pricing.cta")}
-                  onPress={nav.trial}
-                  height={54}
-                  fontSize={16}
-                  trailingArrow
-                  {...(pro
-                    ? { style: { backgroundColor: color.pink300 }, labelColor: color.plum950 }
-                    : {})}
-                />
-              </View>
             </View>
           );
         })}
       </View>
-      <Text size={14.5} lineHeight={22} color={color.muted} style={{ maxWidth: 760 }}>
-        {t("pricing.trial", { price })}
-      </Text>
+      <View className="gap-2" style={{ maxWidth: 860 }}>
+        <Text size={14.5} lineHeight={22} color={color.ink2}>
+          {t("pricing.trial", { price })}
+        </Text>
+        <Text size={12.5} lineHeight={19} color={color.ink2}>
+          {t("roi.note")}
+        </Text>
+      </View>
     </Container>
   );
 }

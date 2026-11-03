@@ -2,27 +2,47 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Button, GradientText, Text, color, font, gradient } from "@gugu/design-system";
+import { GradientText, Text, color, font, gradient } from "@gugu/design-system";
 import { formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { BASIC_MONTHLY_VND } from "./plans";
-
 /**
- * "What you save vs what you invest" (pricing, owner 2026-11-04). Clearly illustrative, assumptions
- * spelled out in the note:
+ * Benefits built into the pricing cards (owner, 2026-11-04). The visitor sets two numbers once
+ * ("your salon"), and every plan card shows what it gives back each month right above its CTA.
+ * Clearly illustrative; the assumptions are in `roi.note` under the cards:
  * - time: ≈ 3 min of confirming / reminding / rebooking by phone or chat per booking;
- * - money: 10 % no-shows, 25 % fewer with reminders (BMJ Open 2016), × average service price;
- * - cost: Basic is 0 ₫ in the first year, then BASIC_MONTHLY_VND per month (X25).
+ * - money: 10 % no-shows, 25 % fewer with reminders (BMJ Open 2016), × average service price.
  */
 const WEEKS = 4.33;
 const MIN_PER_BOOKING = 3;
 const NO_SHOW = 0.1;
 const FEWER = 0.25;
-const MINUS = "\u2212";
+const MINUS = "−";
 const PLUS = "+";
-type TileKey = "time" | "money" | "cost";
+
+export type Roi = {
+  weekly: number;
+  price: number;
+  setWeekly: (v: number) => void;
+  setPrice: (v: number) => void;
+  hours: number;
+  recovered: number;
+};
+
+export function useRoi(): Roi {
+  const [weekly, setWeekly] = useState(80);
+  const [price, setPrice] = useState(350_000);
+  const monthly = weekly * WEEKS;
+  return {
+    weekly,
+    price,
+    setWeekly,
+    setPrice,
+    hours: Math.round((monthly * MIN_PER_BOOKING) / 60),
+    recovered: Math.round((monthly * NO_SHOW * FEWER * price) / 1000) * 1000,
+  };
+}
 
 function Stepper({
   label,
@@ -32,8 +52,6 @@ function Stepper({
   step,
   min,
   max,
-  less,
-  more,
 }: {
   label: string;
   value: number;
@@ -42,13 +60,12 @@ function Stepper({
   step: number;
   min: number;
   max: number;
-  less: string;
-  more: string;
 }) {
+  const { t } = useTranslation("landing");
   const btn = (txt: string, a11y: string, d: number, disabled: boolean) => (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={a11y}
+      accessibilityLabel={`${a11y}: ${label}`}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={() => {
@@ -72,124 +89,100 @@ function Stepper({
     </Pressable>
   );
   return (
-    <View className="gap-2">
-      <Text size={14} color={color.ink2}>
+    <View style={{ gap: 6 }}>
+      <Text size={13.5} color={color.ink2}>
         {label}
       </Text>
-      <View className="flex-row items-center gap-3">
-        {btn(MINUS, less, -step, value <= min)}
-        <View style={{ minWidth: 132, alignItems: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        {btn(MINUS, t("roi.less"), -step, value <= min)}
+        <View style={{ minWidth: 120, alignItems: "center" }}>
           <Text role="uiSemiBold" size={18} color={color.ink}>
             {shown}
           </Text>
         </View>
-        {btn(PLUS, more, step, value >= max)}
+        {btn(PLUS, t("roi.more"), step, value >= max)}
       </View>
     </View>
   );
 }
 
-export function RoiCalculator({ stacked, onStart }: { stacked: boolean; onStart: () => void }) {
+/** "Your salon": the two inputs that drive every card's benefit. */
+export function RoiInputs({ roi, stacked }: { roi: Roi; stacked: boolean }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
-  const [weekly, setWeekly] = useState(80);
-  const [price, setPrice] = useState(350_000);
-  const monthly = weekly * WEEKS;
-  const hours = Math.round((monthly * MIN_PER_BOOKING) / 60);
-  const recovered = Math.round((monthly * NO_SHOW * FEWER * price) / 1000) * 1000;
-  const multiple = Math.max(1, Math.floor(recovered / BASIC_MONTHLY_VND));
-  const vnd = (v: number) => formatVND(v, locale);
-  const tile = (k: TileKey, value: string, sub: string, dark = false) => (
-    <View
-      key={k}
-      style={{
-        flex: 1,
-        gap: 4,
-        borderRadius: 22,
-        padding: 20,
-        backgroundColor: dark ? color.plum950 : color.white,
-      }}
-    >
-      <Text size={13.5} color={dark ? color.lilac100 : color.ink2}>
-        {t(`roi.${k}`)}
-      </Text>
-      {dark ? (
-        <Text role="display" size={40} lineHeight={44} color={color.white}>
-          {value}
-        </Text>
-      ) : (
-        <GradientText
-          colors={gradient.glowHere}
-          style={{ fontFamily: font.display, fontSize: 40, lineHeight: 44 }}
-        >
-          {value}
-        </GradientText>
-      )}
-      <Text size={13} color={dark ? color.lilac100 : color.ink2}>
-        {sub}
-      </Text>
-    </View>
-  );
   return (
     <View
-      className="gap-6 rounded-[30px] p-6 min-[900px]:p-8"
-      style={{ backgroundColor: color.lilac100 }}
-      accessibilityLabel={t("roi.title")}
+      style={{
+        flexDirection: stacked ? "column" : "row",
+        alignItems: stacked ? "flex-start" : "center",
+        gap: stacked ? 14 : 36,
+        padding: 20,
+        borderRadius: 24,
+        backgroundColor: color.lilac100,
+      }}
     >
-      <View className="gap-2">
-        <Text role="display" size={30} lineHeight={34} color={color.ink}>
+      <View style={{ gap: 2, flexShrink: 1 }}>
+        <Text role="uiSemiBold" size={17} color={color.ink}>
           {t("roi.title")}
         </Text>
-        <Text size={15} color={color.ink2}>
+        <Text size={13.5} color={color.ink2}>
           {t("roi.sub")}
         </Text>
       </View>
-      <View className={stacked ? "gap-5" : "flex-row gap-10"}>
-        <Stepper
-          label={t("roi.weekly")}
-          value={weekly}
-          shown={t("roi.perWeek", { n: weekly })}
-          onChange={setWeekly}
-          step={10}
-          min={10}
-          max={500}
-          less={t("roi.less")}
-          more={t("roi.more")}
-        />
-        <Stepper
-          label={t("roi.price")}
-          value={price}
-          shown={vnd(price)}
-          onChange={setPrice}
-          step={50_000}
-          min={50_000}
-          max={2_000_000}
-          less={t("roi.less")}
-          more={t("roi.more")}
-        />
+      <Stepper
+        label={t("roi.weekly")}
+        value={roi.weekly}
+        shown={t("roi.perWeek", { n: roi.weekly })}
+        onChange={roi.setWeekly}
+        step={10}
+        min={10}
+        max={500}
+      />
+      <Stepper
+        label={t("roi.price")}
+        value={roi.price}
+        shown={formatVND(roi.price, locale)}
+        onChange={roi.setPrice}
+        step={50_000}
+        min={50_000}
+        max={2_000_000}
+      />
+    </View>
+  );
+}
+
+/** The benefit right above a plan's CTA: hours and revenue back every month (live, gradient). */
+export function RoiBenefit({ roi, dark }: { roi: Roi; dark: boolean }) {
+  const { t } = useTranslation("landing");
+  const locale = useLocale();
+  const big = { fontFamily: font.display, fontSize: 38, lineHeight: 42 } as const;
+  return (
+    <View
+      accessibilityLiveRegion="polite"
+      style={{
+        gap: 4,
+        padding: 16,
+        borderRadius: 20,
+        backgroundColor: dark ? "rgba(255,255,255,0.08)" : color.canvas,
+        borderWidth: 1,
+        borderColor: dark ? "rgba(255,255,255,0.14)" : color.lineSoft,
+      }}
+    >
+      <Text size={13} color={dark ? color.lilac100 : color.ink2}>
+        {t("roi.gives")}
+      </Text>
+      <View
+        style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: 12 }}
+      >
+        <GradientText colors={gradient.glowHere} style={big}>
+          {t("roi.plusHours", { n: roi.hours })}
+        </GradientText>
+        <GradientText colors={gradient.glowHere} style={big}>
+          {t("roi.plusMoney", { v: formatVND(roi.recovered, locale) })}
+        </GradientText>
       </View>
-      <View className={stacked ? "gap-3" : "flex-row gap-3"} accessibilityLiveRegion="polite">
-        {tile("time", t("roi.hours", { n: hours }), t("roi.timeSub"))}
-        {tile("money", vnd(recovered), t("roi.moneySub"))}
-        {tile("cost", vnd(0), t("roi.costSub", { price: vnd(BASIC_MONTHLY_VND) }), true)}
-      </View>
-      <View className={stacked ? "gap-4" : "flex-row items-center justify-between gap-6"}>
-        <Text role="uiSemiBold" size={17} color={color.ink} style={{ flexShrink: 1 }}>
-          {recovered >= BASIC_MONTHLY_VND * 2
-            ? t("roi.verdict", { x: multiple })
-            : t("roi.verdictLow", { price: vnd(BASIC_MONTHLY_VND) })}
-        </Text>
-        <Button
-          label={t("roi.cta")}
-          onPress={onStart}
-          height={56}
-          fontSize={16.5}
-          paddingX={30}
-          trailingArrow
-        />
-      </View>
-      <Text size={12.5} lineHeight={19} color={color.ink2}>
-        {t("roi.note")}
+      <Text size={13} color={dark ? color.lilac100 : color.ink2}>
+        {t("roi.gainsSub")}
       </Text>
     </View>
   );

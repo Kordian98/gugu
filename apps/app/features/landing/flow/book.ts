@@ -45,6 +45,10 @@ export type BookApi = {
   page: () => number;
   /** A turn or a programmatic scroll is running. */
   busy: () => boolean;
+  /** Another perspective (client / AI) is shown: the book ignores keys and swipes meanwhile. */
+  setActive: (on: boolean) => void;
+  /** Smoothly scrolls the story into view (docks it) without touching the page or the intro. */
+  dock: () => void;
 };
 
 type Opts = {
@@ -375,7 +379,10 @@ export function book(o: Opts): BookApi {
     const s = scroller.getBoundingClientRect();
     return Math.min(r.bottom, s.bottom) - Math.max(r.top, s.top) > r.height * 0.5;
   };
+  let active = true;
   const onKey = (e: KeyboardEvent) => {
+    if (!active && track.contains(e.target as Node | null)) return;
+    if (!active && (e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
     const el = e.target as HTMLElement | null;
     const tag = el?.tagName ?? "";
@@ -427,6 +434,10 @@ export function book(o: Opts): BookApi {
   let fired = false;
   let skip = false;
   const onTouchStart = (e: TouchEvent) => {
+    if (!active) {
+      skip = true;
+      return;
+    }
     newGesture();
     if (intro !== "playing") stopScroll();
     const p = e.touches[0];
@@ -516,5 +527,11 @@ export function book(o: Opts): BookApi {
     },
     page: () => page,
     busy: () => turn !== null || scrollTw !== null,
+    setActive: (on: boolean) => {
+      active = on;
+    },
+    dock: () => {
+      if (!atDock()) scrollToY(dockY, scrollDur(dockY - y()));
+    },
   };
 }

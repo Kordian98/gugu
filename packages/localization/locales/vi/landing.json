@@ -181,7 +181,9 @@
     "noCard": "Không cần thẻ hay thanh toán khi đăng ký.",
     "titlePre": "Thêm giờ rảnh, thêm doanh thu. Năm đầu ",
     "titleGlow": "miễn phí",
-    "titlePost": "."
+    "titlePost": ".",
+    "basicCtaGain": "Lấy lại {{n}} giờ/tháng · miễn phí",
+    "proCta": "Thử Pro 14 ngày · miễn phí"
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
@@ -396,40 +398,43 @@
     },
     "biz": {
       "eyebrow": "Mọi loại hình làm đẹp",
-      "hint": "Vuốt, kéo hoặc dùng mũi tên",
-      "prev": "Trước",
-      "next": "Tiếp",
       "nails": {
         "t": "Tiệm nail",
-        "b": "Sơn gel, đắp bột, vẽ móng, kèm tuỳ chọn và dịch vụ thêm.",
-        "c": "Sơn gel · 45 phút · 2 tuỳ chọn"
+        "n": "0 lần",
+        "w": "trùng ghế và đèn UV",
+        "f": "nhờ mỗi dịch vụ tự giữ đúng ghế và thiết bị"
       },
       "hair": {
         "t": "Salon tóc",
-        "b": "Dịch vụ nhuộm dài và khoảng giá, đặt theo từng thợ.",
-        "c": "Nhuộm tóc · 120 phút · từ 650.000₫"
+        "n": "−6 giờ",
+        "w": "nhắn tin hỏi giờ mỗi tuần",
+        "f": "nhờ khách tự đặt lịch trong Zalo OA của salon"
       },
       "barber": {
         "t": "Barbershop",
-        "b": "Khách vãng lai và khách đặt trước trong cùng hàng chờ.",
-        "c": "Cắt tóc nam · 30 phút · vãng lai"
+        "n": "1 hàng chờ",
+        "w": "cho khách vãng lai và khách đặt trước",
+        "f": "nhờ danh sách lịch hẹn chung của cả tiệm"
       },
       "spa": {
         "t": "Spa",
-        "b": "Phòng và giường được đặt như tài nguyên, không bao giờ trùng.",
-        "c": "Chăm sóc da mặt · 60 phút · Phòng 2"
+        "n": "−25%",
+        "w": "khách vắng mặt",
+        "f": "nhờ nhắc lịch qua Zalo trước 24 giờ và 2 giờ"
       },
       "lash": {
-        "t": "Tiệm nối mi",
-        "b": "Lịch dài, tỉ mỉ, đúng kỹ thuật viên.",
-        "c": "Nối mi · 75 phút"
+        "t": "Tiệm mi",
+        "n": "10 phút",
+        "w": "để có bảng dịch vụ đầy đủ",
+        "f": "nhờ AI đọc ảnh bảng giá của bạn"
       },
       "brow": {
         "t": "Tiệm chân mày",
-        "b": "Dịch vụ ngắn, xếp xen giữa các lịch dài.",
-        "c": "Tạo dáng chân mày · 30 phút"
+        "n": "0 giờ",
+        "w": "cộng hoa hồng bằng tay",
+        "f": "nhờ bảng lương tự tính theo từng dịch vụ"
       },
-      "note": "Ảnh minh hoạ, không phải khách hàng.",
+      "note": "Ví dụ minh hoạ cho một salon điển hình; mức giảm khách vắng theo Robotham và cộng sự, BMJ Open 2016 (phòng khám). Ảnh minh hoạ, không phải khách hàng.",
       "titlePre": "Nail, tóc, spa hay mi: ghế ",
       "titleGlow": "kín hơn",
       "titlePost": ", bớt việc vặt."
@@ -499,23 +504,17 @@
     }
   },
   "roi": {
-    "title": "Mỗi tháng, salon của bạn lấy lại được bao nhiêu?",
-    "sub": "Kéo số lịch hẹn và giá dịch vụ của salon, con số tự cập nhật.",
+    "title": "Salon của bạn",
+    "sub": "Chỉnh hai con số, mỗi gói cho thấy bạn được gì.",
     "weekly": "Lịch hẹn mỗi tuần",
     "perWeek": "{{n}} / tuần",
     "price": "Giá dịch vụ trung bình",
     "less": "Giảm",
     "more": "Tăng",
-    "time": "Thời gian lấy lại mỗi tháng",
-    "hours": "≈ {{n}} giờ",
-    "timeSub": "bớt gọi điện và nhắn tin để xác nhận, nhắc và đổi lịch",
-    "money": "Doanh thu giữ lại mỗi tháng",
-    "moneySub": "nhờ ít khách vắng hơn khi được nhắc lịch qua Zalo",
-    "cost": "Bạn trả trong năm đầu",
-    "costSub": "gói Basic miễn phí năm đầu, sau đó {{price}}/tháng",
-    "verdict": "Sau năm đầu, doanh thu giữ lại ước tính gấp khoảng {{x}} lần phí gói Basic.",
-    "verdictLow": "Năm đầu miễn phí; từ năm thứ hai, gói Basic là {{price}}/tháng.",
     "note": "Ước tính minh hoạ, không phải cam kết: giả định khoảng 3 phút làm việc cho mỗi lịch hẹn (xác nhận, nhắc, đổi lịch), 10% khách không đến và giảm 25% nhờ nhắc lịch (BMJ Open 2016, phòng khám). Kết quả thực tế của salon có thể khác.",
-    "cta": "Bắt đầu miễn phí"
+    "gives": "Mỗi tháng bạn lấy lại",
+    "gainsSub": "thời gian và doanh thu giữ lại (ước tính)",
+    "plusHours": "+{{n}} giờ",
+    "plusMoney": "+{{v}}"
   }
 }

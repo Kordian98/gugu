@@ -17,8 +17,6 @@ const CHECK = "\u2713";
 const SEP = " \u00B7 ";
 const PIN = "\u25CF";
 const BIZ = ["nails", "hair", "barber", "spa", "lash", "brow"] as const;
-const CHEV_L = "‹";
-const CHEV_R = "›";
 
 function useShot() {
   const locale = useLocale();
@@ -372,98 +370,43 @@ export function SwitchPanel() {
   );
 }
 
-/** Business types: a horizontal swipe through photoreal scenes, each with the matching CRM detail. */
+/**
+ * Business types as ONE benefit view (owner): per business, one big illustrative result and the feature
+ * that delivers it ("saved X thanks to Y"), over the photoreal scene. No swiping.
+ */
 export function Businesses() {
   const { t } = useTranslation("landing");
-  const row = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const r = row.current;
-    if (r === null) return;
-    let x0 = 0;
-    let s0 = 0;
-    let down = false;
-    const dn = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
-      down = true;
-      x0 = e.clientX;
-      s0 = r.scrollLeft;
-      r.classList.add("drag");
-    };
-    const mv = (e: PointerEvent) => {
-      if (down) r.scrollLeft = s0 - (e.clientX - x0);
-    };
-    const up = () => {
-      down = false;
-      r.classList.remove("drag");
-    };
-    r.addEventListener("pointerdown", dn);
-    window.addEventListener("pointermove", mv);
-    window.addEventListener("pointerup", up);
-    return () => {
-      r.removeEventListener("pointerdown", dn);
-      window.removeEventListener("pointermove", mv);
-      window.removeEventListener("pointerup", up);
-    };
-  }, []);
-  const slide = (dir: number) => {
-    row.current?.scrollBy({
-      left: dir * Math.min(580, window.innerWidth * 0.8),
-      behavior: "smooth",
-    });
-  };
   return (
     <section className="bz" id="fl-biz">
       <div className="bz-head">
-        <div>
-          <div className="fl-eye rv">{t("flow.biz.eyebrow")}</div>
-          <h2 className="fl-h rv">
-            {t("flow.biz.titlePre")}
-            <span className="fy-glow">{t("flow.biz.titleGlow")}</span>
-            {t("flow.biz.titlePost")}
-          </h2>
-        </div>
-        <div className="bz-nav">
-          <span>{t("flow.biz.hint")}</span>
-          <button
-            type="button"
-            aria-label={t("flow.biz.prev")}
-            onClick={() => {
-              slide(-1);
-            }}
-          >
-            {CHEV_L}
-          </button>
-          <button
-            type="button"
-            aria-label={t("flow.biz.next")}
-            onClick={() => {
-              slide(1);
-            }}
-          >
-            {CHEV_R}
-          </button>
-        </div>
+        <div className="fl-eye rv">{t("flow.biz.eyebrow")}</div>
+        <h2 className="fl-h rv">
+          {t("flow.biz.titlePre")}
+          <span className="fy-glow">{t("flow.biz.titleGlow")}</span>
+          {t("flow.biz.titlePost")}
+        </h2>
       </div>
-      <div className="bz-row" ref={row}>
+      <div className="bz-grid">
         {BIZ.map((k, i) => (
           <article
             key={k}
-            className="bz-card rv"
-            style={{ ["--d" as string]: `${String(i * 80)}ms` }}
+            className="bz-tile rv"
+            style={{ ["--d" as string]: `${String(i * 70)}ms` }}
           >
-            <img src={PHOTO[k]} alt="" loading="lazy" decoding="async" draggable={false} />
-            <div className="bz-chip">
-              <i />
-              {t(`flow.biz.${k}.c`)}
-            </div>
-            <div className="bz-txt">
-              <h3>{t(`flow.biz.${k}.t`)}</h3>
-              <p>{t(`flow.biz.${k}.b`)}</p>
+            <img src={PHOTO[k]} alt="" loading="lazy" decoding="async" />
+            <div className="bz-body">
+              <span className="bz-type">{t(`flow.biz.${k}.t`)}</span>
+              <b className="bz-num">{t(`flow.biz.${k}.n`)}</b>
+              <p className="bz-what">{t(`flow.biz.${k}.w`)}</p>
+              <p className="bz-how">
+                <i aria-hidden>{SPARK}</i>
+                {t(`flow.biz.${k}.f`)}
+              </p>
             </div>
           </article>
         ))}
       </div>
-      <div className="bz-note">{t("flow.biz.note")}</div>
+      <p className="bz-note">{t("flow.biz.note")}</p>
     </section>
   );
 }

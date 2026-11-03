@@ -181,7 +181,9 @@
     "noCard": "No card or payment needed to start.",
     "titlePre": "More free hours, more revenue. Year one is ",
     "titleGlow": "free",
-    "titlePost": "."
+    "titlePost": ".",
+    "basicCtaGain": "Get {{n}} h/month back · free",
+    "proCta": "Try Pro 14 days · free"
   },
   "cta": {
     "title": "Ready to glow? Your first year of Basic is free.",
@@ -396,40 +398,43 @@
     },
     "biz": {
       "eyebrow": "Every kind of beauty business",
-      "hint": "Swipe, drag or use the arrows",
-      "prev": "Previous",
-      "next": "Next",
       "nails": {
         "t": "Nail bars",
-        "b": "Gel, acrylic and art, with options and add-ons priced in.",
-        "c": "Gel polish · 45 min · 2 options"
+        "n": "0",
+        "w": "double-booked chairs or UV lamps",
+        "f": "because every service holds its own chair and device"
       },
       "hair": {
         "t": "Hair salons",
-        "b": "Long colour services and price ranges, booked per stylist.",
-        "c": "Hair colour · 120 min · from 650,000₫"
+        "n": "−6 h",
+        "w": "of 'any slot?' messages a week",
+        "f": "because clients book themselves in your salon's Zalo OA"
       },
       "barber": {
         "t": "Barbershops",
-        "b": "Walk-ins and bookings in the same queue.",
-        "c": "Men's haircut · 30 min · walk-in"
+        "n": "1 queue",
+        "w": "for walk-ins and bookings",
+        "f": "because the whole shop shares one appointment list"
       },
       "spa": {
-        "t": "Day spas",
-        "b": "Rooms and beds are booked as resources, so they never overlap.",
-        "c": "Facial · 60 min · Room 2"
+        "t": "Spas",
+        "n": "−25%",
+        "w": "no-shows",
+        "f": "because of Zalo reminders 24 h and 2 h before"
       },
       "lash": {
         "t": "Lash studios",
-        "b": "Long, precise appointments matched to the right technician.",
-        "c": "Lash extensions · 75 min"
+        "n": "10 min",
+        "w": "to a complete service menu",
+        "f": "because AI reads a photo of your price list"
       },
       "brow": {
         "t": "Brow studios",
-        "b": "Short services that fit between longer ones.",
-        "c": "Brow shaping · 30 min"
+        "n": "0 h",
+        "w": "adding up commissions by hand",
+        "f": "because payroll works it out per service"
       },
-      "note": "Illustrative photos, not customers.",
+      "note": "Illustrative examples for a typical salon; no-show reduction per Robotham et al., BMJ Open 2016 (clinics). Photos are illustrative, not customers.",
       "titlePre": "Nails, hair, spa or lashes: ",
       "titleGlow": "fuller chairs",
       "titlePost": ", less busywork."
@@ -499,23 +504,17 @@
     }
   },
   "roi": {
-    "title": "How much does your salon win back every month?",
-    "sub": "Set your bookings and service price; the numbers update live.",
+    "title": "Your salon",
+    "sub": "Set two numbers; every plan shows what you get.",
     "weekly": "Bookings per week",
     "perWeek": "{{n}} / week",
     "price": "Average service price",
     "less": "Decrease",
     "more": "Increase",
-    "time": "Time back each month",
-    "hours": "≈ {{n}} h",
-    "timeSub": "fewer calls and messages to confirm, remind and reschedule",
-    "money": "Revenue kept each month",
-    "moneySub": "from fewer no-shows when clients get Zalo reminders",
-    "cost": "What you pay in year one",
-    "costSub": "Basic is free for the first year, then {{price}}/month",
-    "verdict": "After the first year, the revenue kept is about {{x}}× the Basic fee (estimate).",
-    "verdictLow": "Free for the first year; from year two Basic is {{price}}/month.",
     "note": "Illustrative estimate, not a promise: assumes about 3 minutes of admin per booking (confirming, reminding, rescheduling), 10% no-shows and 25% fewer with reminders (BMJ Open 2016, clinics). Your salon's results may differ.",
-    "cta": "Start free"
+    "gives": "Every month you get back",
+    "gainsSub": "time and revenue kept (estimate)",
+    "plusHours": "+{{n}} h",
+    "plusMoney": "+{{v}}"
   }
 }
