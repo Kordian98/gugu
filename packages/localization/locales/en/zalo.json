@@ -47,6 +47,7 @@
     "cancelled": "Booking {{ref}} is cancelled. Hope to see you another time!",
     "cancelTooLate": "It's too late to cancel by message. A staff member will contact you.",
     "rescheduleTooLate": "It's too late to reschedule by message. A staff member will contact you.",
+    "rescheduleContactSalon": "This appointment has several services, so it can't be rescheduled by message yet. A staff member will contact you.",
     "rescheduled": "Booking {{ref}} moved to {{when}}.",
     "handoff": "Thanks for your message. A staff member will reply as soon as possible.",
     "fallback": "Sorry, we didn't understand. Please pick an option below.",

@@ -1,13 +1,7 @@
 import { intersect, type Interval, normalize, overlapLength, subtract } from "./intervals";
-import {
-  type ChainClaims,
-  MAX_SERVICE_LINES,
-  type OccupancyTerms,
-  planLines,
-  type ServiceLine,
-  type SlotOption,
-  toOption,
-} from "./chain";
+import { MAX_SERVICE_LINES, type OccupancyTerms, type ServiceLine, type SlotOption } from "./chain";
+import { prepareChainDay } from "./chain-day";
+import { planStart, type SearchBudget, searchBudget } from "./chain-search";
 import type { ResourceInput } from "./resources";
 import {
   addDays,
@@ -119,6 +113,11 @@ export interface Slot {
   options: SlotOption[];
 }
 
+/** Only plan this start (write-path revalidation): same result as filtering the day's slots. */
+interface SlotScope {
+  onlyStart?: number;
+}
+
 /** The chain to plan: explicit lines, or the single service as a chain of one. */
 export function chainLines(input: AvailabilityInput): readonly ServiceLine[] {
   if (input.lines) return input.lines;
@@ -129,6 +128,12 @@ export function chainLines(input: AvailabilityInput): readonly ServiceLine[] {
 
 /** Longest window one availability call may cover (keeps request cost bounded). */
 export const MAX_AVAILABILITY_DAYS = 31;
+
+/**
+ * How far the earliest-slot scan looks for a chain (security review M1): two windows instead of
+ * the whole booking window. Each scanned day costs tz work even when the budget is spent.
+ */
+export const MAX_CHAIN_EARLIEST_DAYS = 2 * MAX_AVAILABILITY_DAYS;
 
 const wallToInterval = (date: LocalDate, w: WallInterval, tz: string): Interval => ({
   start: boundaryInstant(date, w.startMinute, tz, "start"),
@@ -184,15 +189,17 @@ function compareCandidates(
   return a.s.staffId < b.s.staffId ? -1 : a.s.staffId > b.s.staffId ? 1 : 0;
 }
 
-function slotsForDate(input: AvailabilityInput, date: LocalDate, earliest: number): Slot[] {
-  const lines = chainLines(input);
-  if (lines.length === 0 || lines.length > MAX_SERVICE_LINES) return [];
-  const salonOpen = salonOpenIntervals(input, date);
-  if (salonOpen.length === 0) return [];
-  const day = dayBounds(date, input.timeZone);
+/** Staff who do any line and have free time that day, best "any staff" candidate first. */
+function rankStaff(
+  input: AvailabilityInput,
+  lines: readonly ServiceLine[],
+  date: LocalDate,
+  salonOpen: Interval[],
+  day: Interval,
+) {
   const eligible = new Set(lines.flatMap((l) => [...l.staffTerms.keys()]));
   // "Any staff" preference: least booked that day, then sort order (spec 06 G11).
-  const ranked = input.staff
+  return input.staff
     .filter((s) => eligible.has(s.staffId))
     .map((s) => ({
       s,
@@ -201,29 +208,72 @@ function slotsForDate(input: AvailabilityInput, date: LocalDate, earliest: numbe
     }))
     .filter((x) => x.free.length > 0)
     .sort(compareCandidates);
+}
+
+function slotsForDate(
+  input: AvailabilityInput,
+  date: LocalDate,
+  earliest: number,
+  budget: SearchBudget,
+  scope: SlotScope,
+): Slot[] {
+  const lines = chainLines(input);
+  if (lines.length === 0 || lines.length > MAX_SERVICE_LINES) return [];
+  // A chain request that spent its budget skips the remaining days outright.
+  if (lines.length > 1 && budget.remaining <= 0) {
+    budget.truncated = true;
+    return [];
+  }
+  const salonOpen = salonOpenIntervals(input, date);
+  if (salonOpen.length === 0) return [];
+  const day = dayBounds(date, input.timeZone);
+  const ranked = rankStaff(input, lines, date, salonOpen, day);
   const firstLine = lines[0] as ServiceLine;
   const firstStaff = ranked.filter((c) => firstLine.staffTerms.has(c.s.staffId));
   if (firstStaff.length === 0) return [];
 
-  const pool = input.resources?.units ?? [];
+  // Chains (security review M1): skip the day when some line cannot be placed on its own.
+  const plan = prepareChainDay({ pool: input.resources?.units ?? [], lines, ranked, day });
+  if (!plan.feasible) return [];
   const slots: Slot[] = [];
-  const empty: ChainClaims = { staff: [], units: [] };
-  for (let minute = 0; minute < 1440; minute += input.rules.slotGranularityMinutes) {
-    for (const start of instantsAt(date, minute, input.timeZone)) {
-      if (start < earliest) continue;
-      const options: SlotOption[] = [];
-      for (const c of firstStaff) {
-        const plan = planLines(pool, lines, ranked, 0, start, null, empty, c.s.staffId);
-        if (plan) options.push(toOption(plan));
-      }
-      if (options.length > 0) slots.push({ start, options });
-    }
+  for (const start of gridStarts(input, date, earliest, scope)) {
+    const options = planStart(plan, start, firstStaff, budget);
+    if (options.length > 0) slots.push({ start, options });
   }
   return slots;
 }
 
-/** Every bookable start in `[from, to]` (salon-local dates) with the staff who can take it. */
-export function computeSlots(input: AvailabilityInput): Slot[] {
+/** Grid starts of `date` from `earliest` on (just `scope.onlyStart` when set), in order. */
+function gridStarts(
+  input: AvailabilityInput,
+  date: LocalDate,
+  earliest: number,
+  scope: SlotScope,
+): number[] {
+  const out: number[] = [];
+  for (let minute = 0; minute < 1440; minute += input.rules.slotGranularityMinutes) {
+    for (const start of instantsAt(date, minute, input.timeZone)) {
+      if (start >= earliest && (scope.onlyStart === undefined || start === scope.onlyStart)) {
+        out.push(start);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Every bookable start in `[from, to]` (salon-local dates) with the staff who can take it.
+ * Chains spend from `budget` (pass one budget to every call of one request); when it runs out the
+ * slots found so far are returned and `budget.truncated` is set.
+ */
+export function computeSlots(
+  input: AvailabilityInput,
+  budget: SearchBudget = searchBudget(),
+): Slot[] {
+  return slotsInRange(input, budget, {});
+}
+
+function slotsInRange(input: AvailabilityInput, budget: SearchBudget, scope: SlotScope): Slot[] {
   // Check the span before allocating anything: callers pass request input (security review).
   if (!isLocalDate(input.from) || !isLocalDate(input.to)) throw new RangeError("invalid date");
   if (daysBetween(input.from, input.to) + 1 > MAX_AVAILABILITY_DAYS) {
@@ -241,7 +291,7 @@ export function computeSlots(input: AvailabilityInput): Slot[] {
     : input.now + rules.minLeadMinutes * MINUTE;
   return dates
     .filter((date) => date >= today && (overrides?.has("horizon") || date <= lastBookable))
-    .flatMap((date) => slotsForDate(input, date, earliest));
+    .flatMap((date) => slotsForDate(input, date, earliest, budget, scope));
 }
 
 /**
@@ -254,7 +304,9 @@ export function findSlot(
   staffId: string | null,
 ): Slot | null {
   const date = toLocal(start, input.timeZone).date;
-  const slot = computeSlots({ ...input, from: date, to: date }).find((s) => s.start === start);
+  const slot = slotsInRange({ ...input, from: date, to: date }, searchBudget(), {
+    onlyStart: start,
+  }).find((s) => s.start === start);
   if (!slot) return null;
   const options = staffId ? slot.options.filter((o) => o.staffId === staffId) : slot.options;
   return options.length > 0 ? { start, options } : null;
