@@ -25,10 +25,8 @@ import {
 } from "@gugu/contracts";
 import { Authenticated, Public, RequirePermission } from "../../../common/guards/auth-policy";
 import {
-  CurrentPrincipal,
   CurrentSalon,
   CurrentUser,
-  type Principal,
   type SalonContext,
   type UserPrincipal,
 } from "../../../common/guards/principal";
@@ -71,12 +69,12 @@ export class SalonsController {
   }
 
   @Post("salons/registrations")
-  @Public()
+  @Authenticated()
   @HttpCode(201)
   @ApiOperation({
     operationId: "salons.register",
     summary:
-      "Create an organisation and its first salon; the caller becomes owner (anonymous callers confirm by email).",
+      "Signed-in only: create an organisation and a salon with full details; the caller becomes owner (scripted setups; the app uses quick-start).",
   })
   @ApiResponse({
     status: 201,
@@ -87,10 +85,10 @@ export class SalonsController {
   @ApiResponse({ status: 429, description: "Rate limited.", standardSchema: problemSchema })
   async registerSalon(
     @Body({ schema: salonRegistrationInputSchema }) body: SalonRegistrationInput,
-    @CurrentPrincipal() principal: Principal,
+    @CurrentUser() user: UserPrincipal,
     @Req() req: Request,
   ): Promise<SalonRegistrationResult> {
-    return this.register.execute(body, principal, requestMeta(req));
+    return this.register.execute(body, user, requestMeta(req));
   }
 
   @Post("salons/quick-start")
@@ -108,16 +106,23 @@ export class SalonsController {
   })
   @ApiResponse({
     status: 409,
-    description: "A salon registered with this email waits for confirmation.",
+    description:
+      "A team invitation exists for this email (`salon.invitation_pending`) or an old-form salon waits for confirmation.",
     standardSchema: problemSchema,
   })
+  @ApiResponse({ status: 403, description: "Platform admin.", standardSchema: problemSchema })
+  @ApiResponse({ status: 422, description: "Disposable email.", standardSchema: problemSchema })
   @ApiResponse({ status: 429, description: "Rate limited.", standardSchema: problemSchema })
   async quickStartSalon(
     @Body({ schema: salonQuickStartInputSchema }) body: SalonQuickStartInput,
     @CurrentUser() user: UserPrincipal,
     @Req() req: Request,
   ): Promise<SalonQuickStartResult> {
-    return this.quickStart.execute(user, body.locale ?? "vi", requestMeta(req));
+    return this.quickStart.execute(
+      user,
+      { locale: body.locale ?? "vi", ignoreInvitations: body.ignoreInvitations ?? false },
+      requestMeta(req),
+    );
   }
 
   @Get("salons/:salonId")

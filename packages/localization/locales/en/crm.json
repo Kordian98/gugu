@@ -282,7 +282,11 @@
     "payroll_adjustment_not_found": "Entry not found.",
     "payroll_cost_not_found": "Cost not found.",
     "payroll_not_a_manager": "Only managers can be given access.",
-    "salon_pending_confirmation": "A salon registered with this email is waiting for your confirmation."
+    "salon_pending_confirmation": "A salon registered with this email is waiting for your confirmation.",
+    "salon_name_required": "Name your salon first.",
+    "salon_invitation_pending": "This email has an invitation to a salon.",
+    "salon_email_not_allowed": "Temporary email addresses can't create a salon. Please sign in with the email you use every day.",
+    "salon_quick_start_not_allowed": "Admin accounts don't create salons."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",
@@ -1367,7 +1371,21 @@
     "preparing": "Getting your salon ready…",
     "failedTitle": "We couldn't create your salon",
     "failedBody": "Check your connection and try again.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "emailNotAllowed": "Temporary email addresses can't create a salon. Please sign in with the email you use every day.",
+    "adminTitle": "GuGu admin account",
+    "adminBody": "Admin accounts don't have a salon of their own. Open the admin panel to continue.",
+    "adminCta": "Open the admin panel",
+    "invitedTitle": "You've been invited to a salon",
+    "invitedOne": "You've been invited to {{salon}}. Join?",
+    "invitedBody": "Join to see your appointments and work with the team.",
+    "role": "Role: {{role}}",
+    "join": "Join {{salon}}",
+    "joining": "Joining…",
+    "createOwn": "I own a salon, create a new one",
+    "formerTitle": "You're not in a salon",
+    "formerBody": "You're no longer part of your previous salon. If you own a salon, create it here.",
+    "joinFailed": "That didn't work. The invitation may have expired; ask the salon to send a new one."
   },
   "setupWizard": {
     "later": "Later",
@@ -1409,7 +1427,12 @@
         "spa": "Spa & massage",
         "lashes_brows": "Lashes & brows",
         "mixed": "A bit of everything"
-      }
+      },
+      "nameTooShort": "The salon name needs at least 2 characters.",
+      "nameTooLong": "The salon name can be at most 80 characters.",
+      "nameOk": "Lovely name!",
+      "previewLabel": "Shown on your salon's calendar",
+      "typeOptional": "Optional: pick one for matching service suggestions."
     },
     "hours": {
       "title": "When are you open?",

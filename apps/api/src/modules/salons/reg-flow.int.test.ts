@@ -9,8 +9,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   authSessionSchema,
   meResponseSchema,
+  myInvitationListSchema,
   onboardingSchema,
-  PLACEHOLDER_SALON_NAME,
   problemSchema,
   salonQuickStartResultSchema,
   setupStateSchema,
@@ -114,7 +114,8 @@ describe("email-only signup & guided setup (integration)", () => {
       },
     });
     expect(salon).toMatchObject({
-      name: PLACEHOLDER_SALON_NAME.vi,
+      // q103: no default name, ever; the first setup step names the salon.
+      name: "",
       status: "draft",
       timezone: "Asia/Ho_Chi_Minh",
       defaultLocale: "vi",
@@ -151,7 +152,7 @@ describe("email-only signup & guided setup (integration)", () => {
     expect(onboarding.setup).toMatchObject({
       currentStep: "business",
       wizardClosed: false,
-      remaining: ["business", "hours", "services", "team", "zalo"],
+      remaining: ["hours", "services", "team", "zalo"],
     });
   });
 
@@ -426,7 +427,7 @@ describe("email-only signup & guided setup (integration)", () => {
       })
       .expect(404);
     const salon = await prisma.salon.findUniqueOrThrow({ where: { id: salonId } });
-    expect(salon.name).toBe(PLACEHOLDER_SALON_NAME.vi);
+    expect(salon.name).toBe("");
     expect(await prisma.service.count({ where: { salonId } })).toBe(0);
 
     const staffId = await addSalonMember(prisma, salonId, "staff");
@@ -441,5 +442,270 @@ describe("email-only signup & guided setup (integration)", () => {
       .set("authorization", staff)
       .send({ step: "hours", event: "viewed" })
       .expect(403);
+  });
+
+  it("q103: the name is required first — nothing else works until it is saved, and no placeholder ever shows", async () => {
+    const s = await signUpWithCode(testEmail("unnamed"));
+    const { salonId } = salonQuickStartResultSchema.parse((await quickStart(s).expect(200)).body);
+    const base = `/salons/${salonId}/onboarding`;
+    const code = async (r: request.Test) => problemSchema.parse((await r).body).code;
+    // Looking at the name step is fine; skipping it or leaving the wizard is not.
+    await authed("post", `${base}/progress`, s)
+      .send({ step: "business", event: "viewed" })
+      .expect(200);
+    for (const body of [
+      { step: "business", event: "skipped" },
+      { step: "business", event: "left" },
+      { step: "hours", event: "viewed" },
+      { step: "done", event: "viewed" },
+    ]) {
+      expect(await code(authed("post", `${base}/progress`, s).send(body).expect(409))).toBe(
+        "salon.name_required",
+      );
+    }
+    expect(await code(authed("post", `${base}/dismiss-card`, s).expect(409))).toBe(
+      "salon.name_required",
+    );
+    expect(
+      await code(
+        authed("post", `${base}/starter-services`, s)
+          .send({
+            businessType: "nails",
+            items: [{ name: { vi: "X" }, price: 1000, durationMinutes: 30 }],
+          })
+          .expect(409),
+      ),
+    ).toBe("salon.name_required");
+    expect(
+      await code(
+        authed("post", `/salons/${salonId}/zalo/connection/start`, s)
+          .send({ locale: "vi" })
+          .expect(409),
+      ),
+    ).toBe("salon.name_required");
+    expect(
+      await code(
+        authed("post", `/salons/${salonId}/invitations`, s).send({ role: "staff" }).expect(409),
+      ),
+    ).toBe("salon.name_required");
+
+    // ADR-0018: no AI allowance before the first real setup step.
+    const cap = async () =>
+      (
+        (await authed("get", `/salons/${salonId}/entitlements`, s).expect(200)).body as {
+          entitlements: Record<string, unknown>;
+        }
+      ).entitlements["ai.monthly_cost_cap_vnd"];
+    expect(await cap()).toBe(0);
+
+    // Friendly validation: trimmed 2–80 characters.
+    await authed("patch", `${base}/business`, s).send({ name: " A " }).expect(400);
+    await authed("patch", `${base}/business`, s)
+      .send({ name: "x".repeat(81) })
+      .expect(400);
+    // The business type may be skipped; the name may not.
+    await authed("patch", `${base}/business`, s).send({ name: "  Tiệm Mây  " }).expect(204);
+    const named = await prisma.salon.findUniqueOrThrow({
+      where: { id: salonId },
+      include: { organization: true, setup: true },
+    });
+    expect(named.name).toBe("Tiệm Mây");
+    expect(named.organization.name).toBe("Tiệm Mây");
+    expect(named.setup).toMatchObject({ nameConfirmed: true, businessType: null });
+    expect(await cap()).toBe(20_000);
+    await authed("post", `${base}/progress`, s)
+      .send({ step: "hours", event: "viewed" })
+      .expect(200);
+
+    // The old placeholder never appears in what the app reads.
+    const dump = JSON.stringify([
+      (await authed("get", "/me", s).expect(200)).body,
+      (await authed("get", `/salons/${salonId}`, s).expect(200)).body,
+      (await authed("get", `/salons/${salonId}/settings`, s).expect(200)).body,
+    ]);
+    for (const placeholder of ["Salon của tôi", "Salon của bạn", "My salon"]) {
+      expect(dump).not.toContain(placeholder);
+    }
+  });
+
+  it("L2: progress and the card never create a setup row for older salons", async () => {
+    const legacy = await createSalonFixture(prisma, "Old Form Salon");
+    const auth = await bearerFor(app, legacy.ownerUserId);
+    const base = `/api/v1/salons/${legacy.salonId}/onboarding`;
+    await request(http(app))
+      .post(`${base}/progress`)
+      .set("authorization", auth)
+      .send({ step: "hours", event: "viewed" })
+      .expect(404);
+    await request(http(app)).post(`${base}/dismiss-card`).set("authorization", auth).expect(404);
+    expect(await prisma.salonSetup.count({ where: { salonId: legacy.salonId } })).toBe(0);
+    const onboarding = onboardingSchema.parse(
+      (await request(http(app)).get(base).set("authorization", auth).expect(200)).body,
+    );
+    expect(onboarding.setup).toBeNull();
+  });
+
+  it("platform admins and disposable emails get no salon", async () => {
+    const admin = await prisma.user.create({
+      data: {
+        email: testEmail("admin"),
+        emailVerifiedAt: new Date(),
+        platformRole: "support_admin",
+        profile: { create: {} },
+      },
+    });
+    const res = await request(http(app))
+      .post("/api/v1/salons/quick-start")
+      .set("authorization", await bearerFor(app, admin.id))
+      .send({})
+      .expect(403);
+    expect(problemSchema.parse(res.body).code).toBe("salon.quick_start_not_allowed");
+
+    const throwaway = await prisma.user.create({
+      data: {
+        email: `x${String(Date.now())}@mailinator.com`,
+        emailVerifiedAt: new Date(),
+        profile: { create: {} },
+      },
+    });
+    const refused = await request(http(app))
+      .post("/api/v1/salons/quick-start")
+      .set("authorization", await bearerFor(app, throwaway.id))
+      .send({})
+      .expect(422);
+    expect(problemSchema.parse(refused.body).code).toBe("salon.email_not_allowed");
+    expect(await prisma.salon.count({ where: { ownerUserId: throwaway.id } })).toBe(0);
+  });
+
+  it("q102: an invited email gets no salon of its own; it joins the inviter's salon", async () => {
+    // The inviter's salon (named, email-bound staff invitation).
+    const inviter = await signUpWithCode(testEmail("inviter"));
+    const { salonId: home } = salonQuickStartResultSchema.parse(
+      (await quickStart(inviter).expect(200)).body,
+    );
+    await authed("patch", `/salons/${home}/onboarding/business`, inviter)
+      .send({ name: "Salon Mời" })
+      .expect(204);
+    const invitee = testEmail("invited");
+    await authed("post", `/salons/${home}/invitations`, inviter)
+      .send({ role: "staff", email: invitee })
+      .expect(201);
+
+    // The invitee signs in on the generic screen first.
+    const s = await signUpWithCode(invitee);
+    const blocked = await quickStart(s).expect(409);
+    expect(problemSchema.parse(blocked.body).code).toBe("salon.invitation_pending");
+    expect(await prisma.salon.count({ where: { ownerUserId: s.userId } })).toBe(0);
+    const mine = myInvitationListSchema.parse(
+      (await authed("get", "/me/invitations", s).expect(200)).body,
+    );
+    expect(mine.items).toMatchObject([{ salonName: "Salon Mời", role: "staff" }]);
+    expect(mine.formerMember).toBe(false);
+    // Another user cannot accept it by id (email-bound).
+    const stranger = await signUpWithCode(testEmail("stranger"));
+    await authed("post", `/me/invitations/${mine.items[0]?.id ?? ""}/accept`, stranger).expect(403);
+
+    await authed("post", `/me/invitations/${mine.items[0]?.id ?? ""}/accept`, s).expect(200);
+    const me = meResponseSchema.parse((await authed("get", "/me", s).expect(200)).body);
+    expect(me.user.memberships).toMatchObject([{ salonId: home, role: "staff", status: "active" }]);
+    expect((await authed("get", "/me/invitations", s).expect(200)).body).toMatchObject({
+      items: [],
+    });
+  });
+
+  it("q102: 'I'm an owner' creates a salon; an untouched one is archived when an invite is accepted", async () => {
+    const inviter = await signUpWithCode(testEmail("inviter2"));
+    const { salonId: home } = salonQuickStartResultSchema.parse(
+      (await quickStart(inviter).expect(200)).body,
+    );
+    await authed("patch", `/salons/${home}/onboarding/business`, inviter)
+      .send({ name: "Salon Hai" })
+      .expect(204);
+    const invitee = testEmail("chooser");
+    await authed("post", `/salons/${home}/invitations`, inviter)
+      .send({ role: "receptionist", email: invitee })
+      .expect(201);
+    const s = await signUpWithCode(invitee);
+    // Explicit choice: create my own salon despite the invitation.
+    const own = salonQuickStartResultSchema.parse(
+      (
+        await authed("post", "/salons/quick-start", s)
+          .set("x-forwarded-for", runIp)
+          .send({ locale: "vi", ignoreInvitations: true })
+          .expect(200)
+      ).body,
+    );
+    expect(own.created).toBe(true);
+    // Then the invitation is accepted after all: the empty, never-named salon is archived.
+    const [inv] = myInvitationListSchema.parse(
+      (await authed("get", "/me/invitations", s).expect(200)).body,
+    ).items;
+    await authed("post", `/me/invitations/${inv?.id ?? ""}/accept`, s).expect(200);
+    const archived = await prisma.salon.findUniqueOrThrow({ where: { id: own.salonId } });
+    expect(archived.deletedAt).not.toBeNull();
+    expect(
+      await prisma.auditLog.count({
+        where: { action: "salon.archived_unused", salonId: own.salonId },
+      }),
+    ).toBe(1);
+    const me = meResponseSchema.parse((await authed("get", "/me", s).expect(200)).body);
+    expect(me.user.memberships.map((m) => m.salonId)).toEqual([home]);
+  });
+});
+
+describe("email-only signup abuse brakes (integration, own app with low limits)", () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  const saved = {
+    domain: process.env["QUICK_START_DOMAIN_DAILY_LIMIT"],
+    cap: process.env["QUICK_START_DAILY_CAP"],
+    proxy: process.env["TRUST_PROXY"],
+  };
+  const restore = (k: string, v: string | undefined) => {
+    if (v === undefined) Reflect.deleteProperty(process.env, k);
+    else process.env[k] = v;
+  };
+
+  beforeAll(async () => {
+    process.env["LOG_LEVEL"] = "silent";
+    process.env["TRUST_PROXY"] = "loopback";
+    process.env["QUICK_START_DOMAIN_DAILY_LIMIT"] = "1";
+    process.env["QUICK_START_DAILY_CAP"] = "3";
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    app = configureHttpApp(moduleRef.createNestApplication());
+    await app.init();
+    prisma = app.get(PrismaService);
+    await clearRateLimits(app);
+  });
+  afterAll(async () => {
+    await app.close();
+    restore("QUICK_START_DOMAIN_DAILY_LIMIT", saved.domain);
+    restore("QUICK_START_DAILY_CAP", saved.cap);
+    restore("TRUST_PROXY", saved.proxy);
+  });
+
+  const userWith = (email: string) =>
+    prisma.user.create({ data: { email, emailVerifiedAt: new Date(), profile: { create: {} } } });
+  const start = async (email: string) =>
+    request(http(app))
+      .post("/api/v1/salons/quick-start")
+      .set(
+        "x-forwarded-for",
+        `10.${String(Math.floor(Math.random() * 256))}.${String(Math.floor(Math.random() * 256))}.3`,
+      )
+      .set("authorization", await bearerFor(app, (await userWith(email)).id))
+      .send({});
+
+  it("throttles per email domain (big providers exempt) and stops at the global daily cap", async () => {
+    const tag = Date.now().toString(36);
+    const domain = `brake-${tag}.test`;
+    expect((await start(`a.${tag}@${domain}`)).status).toBe(200);
+    const second = await start(`b.${tag}@${domain}`);
+    expect(second.status).toBe(429);
+    expect(problemSchema.parse(second.body).code).toBe("common.rate_limited");
+    // gmail.com has no per-domain limit; the global cap (3) counts every created salon.
+    expect((await start(`c.${tag}@gmail.com`)).status).toBe(200);
+    expect((await start(`d.${tag}@gmail.com`)).status).toBe(200);
+    expect((await start(`e.${tag}@gmail.com`)).status).toBe(429);
   });
 });

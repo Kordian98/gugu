@@ -11,6 +11,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { SalonProvider } from "../data/SalonContext";
 import { useDemoMode } from "../data/useDemoMode";
 import { EmptyState } from "../ui/EmptyState";
+import { NameGate } from "./NameGate";
 import { QuickStart } from "./QuickStart";
 
 /**
@@ -70,5 +71,9 @@ export function BusinessGuard({ children }: { children: ReactNode }) {
       </View>
     );
   }
-  return <SalonProvider>{children}</SalonProvider>;
+  return (
+    <SalonProvider>
+      <NameGate>{children}</NameGate>
+    </SalonProvider>
+  );
 }

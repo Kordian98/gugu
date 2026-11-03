@@ -16,7 +16,9 @@ export interface AnalyticsEntry<N extends AnalyticsEventName> {
 }
 
 /**
- * Minimal server-side analytics (X14) until topic 12 builds the full pipeline. Events are validated
+ * Minimal server-side analytics (X14) until topic 12 builds the full pipeline. Events are
+ * pseudonymous with no direct identifiers: ids, enums and counts, the actor only as an HMAC with a
+ * dedicated secret (ANALYTICS_HASH_SECRET). Events are validated
  * against the typed catalogue (strict schemas, so an unexpected property is a bug, not data) and
  * stored in `analytics_events`. Recording never fails the caller's request.
  */
@@ -30,7 +32,7 @@ export class AnalyticsService {
   ) {}
 
   actorHash(userId: string): string {
-    return createHmac("sha256", this.config.env.AUTH_SECRET)
+    return createHmac("sha256", this.config.env.ANALYTICS_HASH_SECRET)
       .update(`analytics\u0000${userId}`)
       .digest("base64url");
   }

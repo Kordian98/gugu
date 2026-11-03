@@ -22,6 +22,8 @@ import {
   type EntitlementCache,
 } from "./entitlement-cache";
 
+const AI_CAP = "ai.monthly_cost_cap_vnd" as const;
+
 /**
  * Resolves what a salon may use (skill `entitlements`). Every backend entry point — HTTP guard,
  * jobs, agent tools, webhooks — goes through here; client-side gating is display only.
@@ -77,6 +79,11 @@ export class EntitlementService {
         now,
       ),
     };
+    // ADR-0018 (trial farming brake): a salon from the email-only signup gets its AI allowance only
+    // once it finished its first real setup step (named). Overrides set by an admin still apply.
+    if (salon?.setup && !salon.setup.nameConfirmed && !overrides.some((o) => o.key === AI_CAP)) {
+      result.entitlements[AI_CAP] = 0;
+    }
     // A salon without a subscription is about to get one (registration → startTrial); never cache
     // that state, and never cache past a trial end or the end of the free year.
     if (subscription) {
@@ -110,6 +117,7 @@ export class EntitlementService {
         where: { id: salonId },
         select: {
           status: true,
+          setup: { select: { nameConfirmed: true } },
           organization: {
             select: { foundingPartner: { select: { qualifiedAt: true, revokedAt: true } } },
           },

@@ -22,6 +22,7 @@ import { setupApi, useSetupMutation } from "../../data/setup";
 import { useZaloConnection } from "../../data/zalo";
 import { useBreakpoint } from "../../shell/useBreakpoint";
 import { EmptyState } from "../../ui/EmptyState";
+import { dismissSetup } from "./firstRun";
 import { CheckPop, Confetti } from "./parts/Celebrate";
 import { successHaptic } from "./parts/haptics";
 import { ProgressRing } from "./parts/ProgressRing";
@@ -76,10 +77,18 @@ export function SetupWizard() {
   const [cheer, setCheer] = useState<{ text: string; burst: number } | null>(null);
   const viewed = useRef<SetupStep | null>(null);
 
+  // q103: an unnamed salon always starts (and stays) on the name step.
+  const unnamed = setup !== null && !setup.nameConfirmed;
   // Resume once: a valid `?step=`, else where the owner left off (server-side), else the start.
   if (step === null && onboarding.data) {
     const fromParam = setupStepSchema.safeParse(params.step);
-    setStep(fromParam.success ? fromParam.data : (setup?.currentStep ?? "business"));
+    setStep(
+      unnamed
+        ? "business"
+        : fromParam.success
+          ? fromParam.data
+          : (setup?.currentStep ?? "business"),
+    );
     setCompleted(new Set(setup?.completed ?? []));
     setBusinessType(setup?.businessType ?? null);
   }
@@ -92,6 +101,8 @@ export function SetupWizard() {
   }, [step]);
 
   const toToday = () => {
+    // Older salons (no server-side setup state) remember "later" on this device instead.
+    if (!setup) dismissSetup(salon.salonId);
     router.replace(`/${locale}/business` as never);
   };
 
@@ -194,7 +205,7 @@ export function SetupWizard() {
           style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
         >
           <Logo height={28} variant={scheme === "dark" ? "onDark" : "color"} />
-          {step === "done" ? null : (
+          {step === "done" || unnamed ? null : (
             <CalmButton
               testID="crm-setup-later"
               size="sm"
@@ -265,10 +276,7 @@ export function SetupWizard() {
             eta={eta}
             onDone={(type) => {
               setBusinessType(type);
-              advance("business", "completed", "tiles");
-            }}
-            onSkip={() => {
-              advance("business", "skipped");
+              advance("business", "completed", type ? "tiles" : undefined);
             }}
           />
         ) : null}

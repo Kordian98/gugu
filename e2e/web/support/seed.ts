@@ -29,8 +29,6 @@ export const mail = (local: string, project: string): string =>
 /** Fixed seed values (per salon only the emails and the salon name differ). */
 export const SEED = {
   salonName: (area: string, project: string) => `Lotus E2E ${area} ${project}`,
-  ownerPhone: "0912 345 678",
-  street: "12 Lê Lợi",
   staff: {
     lan: { name: "Nguyễn Lan", color: "lilac" },
     mai: { name: "Trần Mai", color: "pink" },
@@ -119,26 +117,14 @@ export async function seedSalon(project: string, area: Area): Promise<SeededSalo
   const spec = AREA_SPEC[area];
   const ownerEmail = mail(`owner-${area}`, project);
   const owner = await ApiClient.signIn(ownerEmail, nextIp());
-  const cats = (await owner.call<{ items: (Item & { slug: string })[] }>("/public/categories"))
-    .items;
-  const prov = (await owner.call<{ items: Item[] }>("/public/locations?level=province")).items[0];
-  if (!prov) throw new Error("seed: no provinces in /public/locations");
-  const ward = (
-    await owner.call<{ items: Item[] }>(`/public/locations?level=ward&parentId=${prov.id}`)
-  ).items[0];
-  const nails = cats.find((c) => c.slug === "nails") ?? cats[0];
-  if (!ward || !nails) throw new Error("seed: missing ward/category reference data");
-
   const salonName = SEED.salonName(area, project);
-  const { salonId: S } = await owner.call<{ salonId: string }>("/salons/registrations", "POST", {
-    businessName: salonName,
-    categoryId: nails.id,
-    phone: SEED.ownerPhone,
-    provinceId: prov.id,
-    wardId: ward.id,
-    streetAddress: SEED.street,
-    locationsHint: "1",
+  // The app's own signup path (ADR-0018): quick start, then the mandatory name step.
+  const { salonId: S } = await owner.call<{ salonId: string }>("/salons/quick-start", "POST", {
     locale: spec.locale,
+  });
+  await owner.call(`/salons/${S}/onboarding/business`, "PATCH", {
+    name: salonName,
+    businessType: "nails",
   });
   // Open every day 08:00–22:00 so "today" always has room for the fixed booking times.
   const week = [1, 2, 3, 4, 5, 6, 7];
@@ -172,7 +158,10 @@ export async function seedSalon(project: string, area: Area): Promise<SeededSalo
     durationMinutes: SEED.services.cut.minutes,
     staffIds: [staffIds.mai],
   });
-  await owner.call(`/salons/${S}/go-live`, "POST", {});
+  // Finish the guided setup like an owner would ("done" goes live) and hide the Today card, so
+  // seeded salons look like completed ones (landing screenshots, every other spec).
+  await owner.call(`/salons/${S}/onboarding/progress`, "POST", { step: "done", event: "viewed" });
+  await owner.call(`/salons/${S}/onboarding/dismiss-card`, "POST", {});
 
   const today = vnDate();
   const serviceIds = { gel: gel.id, cut: cut.id };

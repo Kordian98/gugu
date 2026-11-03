@@ -137,8 +137,8 @@ Acceptance: a receptionist can find the next customer and check them in with **a
 
 **Path B:** pick from category templates. **Path C:** add manually.
 
-**Signup and wizard (owner 2026-11-04, ADR-0018; supersedes the old registration form).** An email is the only thing needed to start: email → magic link or 6-digit code → in. The salon is created on first entry as a draft with smart defaults (placeholder name, Asia/Ho_Chi_Minh, vi, default booking window, trial + free Basic year; no phone, address, licence or payment), idempotently. Then a full-screen, mobile-first guided setup, every step short, skippable and resumable (progress saved on the server):
-1. Salon name and business type (nails / hair / spa / lashes & brows / mixed) as big tiles.
+**Signup and wizard (owner 2026-11-04, ADR-0018; supersedes the old registration form).** An email is the only thing needed to start: email → magic link or 6-digit code → in. The salon is created on first entry as a draft with smart defaults (no name yet, Asia/Ho_Chi_Minh, vi, default booking window, trial + free Basic year; no phone, address, licence or payment), idempotently. Invited staff are offered "Join <salon>" instead and never get an empty salon (q102). Then a full-screen, mobile-first guided setup, every step short and resumable (progress saved on the server), skippable except the name:
+1. Salon name — mandatory, first, no default (q103); nothing else opens until it is saved — and an optional business type (nails / hair / spa / lashes & brows / mixed) as big tiles.
 2. Opening hours: presets ("9:00–21:00 every day" first) plus a quick tweak (days + one open/close time).
 3. Services three ways: Path A (AI import, the hero card), Path B (starter template for the business type, Vietnamese names, durations and price ranges, editable), Path C (manual). The list fills in live.
 4. Team: "Just me" or names (each gets the salon hours and every service); invites later under Team.

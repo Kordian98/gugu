@@ -7,6 +7,8 @@ import {
   type InvitationPreview,
   TEAM_ERRORS,
   SALON_SUSPENDED_ERROR,
+  type MyInvitation,
+  type MyInvitationList,
 } from "@gugu/contracts";
 import type { SalonContext, UserPrincipal } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
@@ -17,6 +19,10 @@ import { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { RateLimitService } from "../../../infrastructure/rate-limit/rate-limit.service";
 import { AuditService } from "../../audit/audit.facade";
+import {
+  archiveUnusedQuickStartSalons,
+  assertSalonNamed,
+} from "../../salon-settings/salon-settings.facade";
 import { EntitlementService } from "../../subscriptions/subscriptions.facade";
 import { renderInvitationEmail } from "./invitation-email";
 
@@ -50,6 +56,8 @@ export class InvitationService {
     raw: CreateInvitationInput,
   ): Promise<InvitationCreated> {
     const input = createInvitationInputSchema.parse(raw);
+    // Invitations name the salon (email, join screen): never before it has a name (q103).
+    await assertSalonNamed(this.prisma, ctx.salonId);
     if (input.role === "manager" && ctx.role !== "owner") {
       throw new AppError(403, COMMON_ERRORS.forbidden, "Only the owner can invite managers");
     }
@@ -172,9 +180,64 @@ export class InvitationService {
   }
 
   async accept(user: UserPrincipal, token: string): Promise<{ salonId: string }> {
+    return this.acceptWhere(user, { tokenHash: this.hash(token) }, false);
+  }
+
+  /**
+   * Team invitations addressed to the signed-in user's verified email (q102): the business area
+   * offers "Join <salon>" instead of creating an empty salon. `formerMember`: the user accepted an
+   * invitation before but belongs to no salon now.
+   */
+  async listMine(user: UserPrincipal): Promise<MyInvitationList> {
+    const account = await this.prisma.user.findUniqueOrThrow({
+      where: { id: user.userId },
+      select: { email: true, emailVerifiedAt: true },
+    });
+    const items =
+      account.email && account.emailVerifiedAt
+        ? await this.prisma.salonInvitation.findMany({
+            where: {
+              email: { equals: account.email, mode: "insensitive" },
+              acceptedAt: null,
+              revokedAt: null,
+              expiresAt: { gt: new Date() },
+              salon: { deletedAt: null },
+            },
+            include: { salon: { select: { name: true } } },
+            orderBy: { createdAt: "desc" },
+          })
+        : [];
+    const former = await this.prisma.salonInvitation.count({
+      where: { acceptedByUserId: user.userId },
+    });
+    return {
+      items: items.map((i) => ({
+        id: i.id,
+        salonName: i.salon.name,
+        role: i.role as MyInvitation["role"],
+        expiresAt: i.expiresAt.toISOString(),
+      })),
+      formerMember: former > 0,
+    };
+  }
+
+  /** Accept one of `listMine` by id: only invitations bound to this user's verified email. */
+  async acceptMine(user: UserPrincipal, invitationId: string): Promise<{ salonId: string }> {
+    return this.acceptWhere(user, { id: invitationId }, true);
+  }
+
+  private async acceptWhere(
+    user: UserPrincipal,
+    where: { tokenHash: string } | { id: string },
+    emailBoundOnly: boolean,
+  ): Promise<{ salonId: string }> {
     return this.prisma.$transaction(async (tx) => {
-      const inv = await tx.salonInvitation.findUnique({ where: { tokenHash: this.hash(token) } });
+      const inv = await tx.salonInvitation.findUnique({ where });
       const now = new Date();
+      if (emailBoundOnly && inv && !inv.email) {
+        // Without the link token only an email-bound invitation proves it is meant for this user.
+        throw new AppError(404, TEAM_ERRORS.invitationInvalid, "Invalid invitation");
+      }
       if (!inv || inv.revokedAt || inv.acceptedAt || inv.expiresAt <= now) {
         throw new AppError(400, TEAM_ERRORS.invitationInvalid, "Invalid or expired invitation");
       }
@@ -271,6 +334,9 @@ export class InvitationService {
         },
         tx,
       );
+      // q102 clean-up: an empty salon the bug created before (quick start, never named) is
+      // archived, so the invited salon is the user's only one.
+      await archiveUnusedQuickStartSalons(tx, user.userId, this.audit);
       return { salonId: inv.salonId };
     });
   }

@@ -1,20 +1,22 @@
 import { Injectable } from "@nestjs/common";
 import {
-  PLACEHOLDER_SALON_NAME,
-  type SetupBusinessInput,
+  SALON_ERRORS,
+  type SetupBusinessInputParsed,
   type SetupProgressInput,
   type SetupState,
 } from "@gugu/contracts";
 import type { SalonContext, UserPrincipal } from "../../../common/guards/principal";
 import type { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
+import { AppError } from "../../../common/problem/app-error";
+import { COMMON_ERRORS } from "../../../common/problem/error-codes";
 import { AnalyticsService } from "../../analytics/analytics.facade";
 import { AuditService } from "../../audit/audit.facade";
+import { EntitlementService } from "../../subscriptions/subscriptions.facade";
 import { BUSINESS_TYPE_CATEGORY, stepIndex, withStep, withoutStep } from "../domain/setup";
 import { SalonSettingsService } from "./salon-settings.service";
 
 type Tx = Prisma.TransactionClient;
-const PLACEHOLDERS: readonly string[] = Object.values(PLACEHOLDER_SALON_NAME);
 const secondsSince = (d: Date) => Math.max(0, Math.round((Date.now() - d.getTime()) / 1000));
 
 /**
@@ -29,48 +31,59 @@ export class SetupService {
     private readonly audit: AuditService,
     private readonly analytics: AnalyticsService,
     private readonly settings: SalonSettingsService,
+    private readonly entitlements: EntitlementService,
   ) {}
 
-  /** Setup row of a salon, created on first use (salons registered with the old form have none). */
+  /**
+   * The setup row of a salon from the email-only signup. Only quick start (and, for older salons,
+   * saving the business step) creates one: progress and the card are 404 without it (L2).
+   */
   private async row(tx: Tx, salonId: string) {
     const existing = await tx.salonSetup.findUnique({ where: { salonId } });
-    if (existing) return existing;
-    const salon = await tx.salon.findUniqueOrThrow({
-      where: { id: salonId },
-      select: { name: true },
-    });
-    return tx.salonSetup.upsert({
-      where: { salonId },
-      create: { salonId, nameConfirmed: !PLACEHOLDERS.includes(salon.name) },
-      update: {},
-    });
+    if (!existing) throw new AppError(404, COMMON_ERRORS.notFound, "No guided setup");
+    return existing;
+  }
+
+  /** q103: nothing but the name step works until the salon has a name. */
+  private assertNamed(setup: { nameConfirmed: boolean }): void {
+    if (!setup.nameConfirmed) {
+      throw new AppError(409, SALON_ERRORS.nameRequired, "Name the salon first");
+    }
   }
 
   async saveBusiness(
     ctx: SalonContext,
     user: UserPrincipal,
-    input: SetupBusinessInput,
+    input: SetupBusinessInputParsed,
   ): Promise<void> {
-    const slug = BUSINESS_TYPE_CATEGORY[input.businessType];
+    const slug = input.businessType ? BUSINESS_TYPE_CATEGORY[input.businessType] : null;
     const category = slug
       ? await this.prisma.serviceCategory.findUnique({ where: { slug }, select: { id: true } })
       : null;
     await this.prisma.$transaction(async (tx) => {
-      const setup = await this.row(tx, ctx.salonId);
+      // Older salons (old form, no row) get one here: the business step is a real setup step.
+      const setup = await tx.salonSetup.upsert({
+        where: { salonId: ctx.salonId },
+        create: { salonId: ctx.salonId },
+        update: {},
+      });
       const salon = await tx.salon.update({
         where: { id: ctx.salonId, organizationId: ctx.organizationId },
-        data: { name: input.name, primaryCategoryId: category?.id ?? null },
+        data: {
+          name: input.name,
+          ...(input.businessType ? { primaryCategoryId: category?.id ?? null } : {}),
+        },
         select: { organizationId: true },
       });
-      // A one-salon organisation still named like the placeholder takes the salon's name.
+      // The organisation created unnamed by quick start takes the salon's name.
       await tx.organization.updateMany({
-        where: { id: salon.organizationId, name: { in: [...PLACEHOLDERS] } },
+        where: { id: salon.organizationId, name: "" },
         data: { name: input.name },
       });
       await tx.salonSetup.update({
         where: { salonId: ctx.salonId },
         data: {
-          businessType: input.businessType,
+          businessType: input.businessType ?? setup.businessType,
           nameConfirmed: true,
           completedSteps: withStep(setup.completedSteps, "business"),
           skippedSteps: withoutStep(setup.skippedSteps, "business"),
@@ -83,7 +96,7 @@ export class SetupService {
           organizationId: ctx.organizationId,
           targetType: "salon",
           targetId: ctx.salonId,
-          metadata: { fields: "setup_business", businessType: input.businessType },
+          metadata: { fields: "setup_business", businessType: input.businessType ?? null },
         },
         tx,
       );
@@ -95,14 +108,16 @@ export class SetupService {
           props: {
             step: "business",
             step_index: stepIndex("business"),
-            method: "tiles",
-            business_type: input.businessType,
+            method: input.businessType ? "tiles" : null,
+            business_type: input.businessType ?? null,
             seconds_since_start: secondsSince(setup.startedAt),
           },
         },
         tx,
       );
     });
+    // The trial's AI allowance starts with the first real setup step (ADR-0018, M1).
+    await this.entitlements.invalidate(ctx.salonId);
   }
 
   async progress(
@@ -113,6 +128,8 @@ export class SetupService {
     const { step, event } = input;
     const { finishedNow, closed } = await this.prisma.$transaction(async (tx) => {
       const setup = await this.row(tx, ctx.salonId);
+      // Only looking at the name step works before the salon has a name (it can't be skipped).
+      if (!(step === "business" && event === "viewed")) this.assertNamed(setup);
       const now = new Date();
       const data: Prisma.SalonSetupUpdateInput = {};
       const base = { step, step_index: stepIndex(step) };
@@ -192,6 +209,7 @@ export class SetupService {
     const remaining = (await this.settings.onboarding(ctx)).setup?.remaining.length ?? 0;
     await this.prisma.$transaction(async (tx) => {
       const setup = await this.row(tx, ctx.salonId);
+      this.assertNamed(setup);
       if (setup.cardDismissedAt) return;
       await tx.salonSetup.update({
         where: { salonId: ctx.salonId },

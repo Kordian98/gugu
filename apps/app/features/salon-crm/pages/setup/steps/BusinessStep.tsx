@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { Image, View } from "react-native";
+import { Image, TextInput, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { BUSINESS_TYPES, type BusinessType, type SetupState } from "@gugu/contracts";
-import { useCalm } from "@gugu/design-system";
+import { Icon, Text, font, useCalm } from "@gugu/design-system";
+import { formatDateLong } from "@gugu/localization";
+
+import { useLocale } from "@/services/i18n/useLocale";
 
 import { setupApi, useSetupMutation } from "../../../data/setup";
 import { useErrorText } from "../../../ui/errors";
-import { ErrorBanner, Field, Input } from "../../../ui/form";
+import { ErrorBanner, Field } from "../../../ui/form";
+import { CheckPop } from "../parts/Celebrate";
 import { selectHaptic } from "../parts/haptics";
 import { ChoiceTile, StepFooter, StepFrame } from "../parts/StepFrame";
 
@@ -52,27 +56,79 @@ function TileArt({ type }: { type: BusinessType }) {
   );
 }
 
-/** Step (a): salon name and business type as big friendly tiles. */
+type NameIssue = "short" | "long" | null;
+const nameIssue = (raw: string): NameIssue => {
+  const n = raw.trim().length;
+  return n < 2 ? "short" : n > 80 ? "long" : null;
+};
+
+/** Live preview: the name as it will sit on top of the salon's calendar. */
+function CalendarHeaderPreview({ name }: { name: string }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  const locale = useLocale();
+  return (
+    <View
+      testID="crm-setup-name-preview"
+      accessibilityLabel={t("setupWizard.business.previewLabel")}
+      style={{
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: c.line,
+        backgroundColor: c.surface,
+        padding: 14,
+        gap: 8,
+      }}
+    >
+      <Text size={12} color={c.muted}>
+        {t("setupWizard.business.previewLabel")}
+      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Icon name="calendar" size={18} color={c.accent} />
+        <Text role="uiSemiBold" size={17} color={c.ink} style={{ flex: 1 }} numberOfLines={1}>
+          {name.trim() || t("setupWizard.business.namePlaceholder")}
+        </Text>
+        <Text size={13} color={c.body}>
+          {formatDateLong(new Date(), locale)}
+        </Text>
+      </View>
+      <View style={{ flexDirection: "row", gap: 6 }}>
+        {[0, 1, 2].map((i) => (
+          <View
+            key={i}
+            style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: c.surfaceMuted }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Step (a): the salon name — mandatory and not skippable (q103: no default name; nothing else opens
+ * before it) — with friendly inline validation (trimmed, 2–80), a live preview on the calendar
+ * header and a check pop when valid. The business-type tiles below are optional.
+ */
 export function BusinessStep({
   setup,
   currentName,
   eta,
   onDone,
-  onSkip,
 }: {
   setup: SetupState | null;
   currentName: string;
   eta: string;
-  onDone: (type: BusinessType) => void;
-  onSkip: () => void;
+  onDone: (type: BusinessType | null) => void;
 }) {
+  const { c } = useCalm();
   const { t } = useTranslation("crm");
   const errorText = useErrorText();
-  // The quick-start placeholder is not a name the owner chose: start empty.
   const [name, setName] = useState(setup && !setup.nameConfirmed ? "" : currentName);
+  const [touched, setTouched] = useState(false);
   const [type, setType] = useState<BusinessType | null>(setup?.businessType ?? null);
   const save = useSetupMutation(setupApi.business, ["summary", "settings"]);
-  const ready = name.trim().length >= 2 && type !== null;
+  const issue = nameIssue(name);
+  const showIssue = issue !== null && (touched || name.trim().length > 0);
   return (
     <StepFrame
       title={t("setupWizard.business.title")}
@@ -81,10 +137,10 @@ export function BusinessStep({
       footer={
         <StepFooter
           label={t("setupWizard.next")}
-          disabled={!ready}
+          disabled={issue !== null}
           busy={save.isPending}
+          hint={issue === "short" && !showIssue ? t("setupWizard.business.nameTooShort") : null}
           onPress={() => {
-            if (!type) return;
             save.mutate(
               { name: name.trim(), businessType: type },
               {
@@ -94,21 +150,59 @@ export function BusinessStep({
               },
             );
           }}
-          onSkip={onSkip}
         />
       }
     >
       <ErrorBanner text={errorText(save.error)} />
-      <Field label={t("setupWizard.business.nameLabel")}>
-        <Input
-          testID="crm-setup-salon-name"
-          label={t("setupWizard.business.nameLabel")}
-          placeholder={t("setupWizard.business.namePlaceholder")}
-          value={name}
-          onChangeText={setName}
-        />
-      </Field>
-      <Field label={t("setupWizard.business.typeLabel")}>
+      <View style={{ gap: 8 }}>
+        <Text role="uiMedium" size={14} color={c.body}>
+          {t("setupWizard.business.nameLabel")}
+        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <TextInput
+            testID="crm-setup-salon-name"
+            accessibilityLabel={t("setupWizard.business.nameLabel")}
+            placeholder={t("setupWizard.business.namePlaceholder")}
+            placeholderTextColor={c.muted}
+            value={name}
+            onChangeText={setName}
+            onBlur={() => {
+              setTouched(true);
+            }}
+            autoFocus
+            maxLength={100}
+            style={{
+              flex: 1,
+              minHeight: 60,
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: showIssue ? c.attention : issue === null ? c.accentBg : c.line,
+              backgroundColor: c.surface,
+              paddingHorizontal: 16,
+              fontSize: 22,
+              fontFamily: font.uiSemiBold,
+              color: c.ink,
+            }}
+          />
+          {issue === null ? <CheckPop size={36} testID="crm-setup-name-ok" /> : null}
+        </View>
+        {showIssue ? (
+          <Text testID="crm-setup-name-issue" size={13} color={c.attention}>
+            {issue === "short"
+              ? t("setupWizard.business.nameTooShort")
+              : t("setupWizard.business.nameTooLong")}
+          </Text>
+        ) : issue === null ? (
+          <Text size={13} color={c.accent}>
+            {t("setupWizard.business.nameOk")}
+          </Text>
+        ) : null}
+      </View>
+      <CalendarHeaderPreview name={name} />
+      <Field
+        label={t("setupWizard.business.typeLabel")}
+        hint={t("setupWizard.business.typeOptional")}
+      >
         <View
           accessibilityRole="radiogroup"
           accessibilityLabel={t("setupWizard.business.typeLabel")}
@@ -126,7 +220,7 @@ export function BusinessStep({
               art={<TileArt type={bt} />}
               onPress={() => {
                 selectHaptic();
-                setType(bt);
+                setType((cur) => (cur === bt ? null : bt));
               }}
             />
           ))}

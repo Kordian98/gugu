@@ -190,19 +190,23 @@ Owner request 2026-11-04: an email is enough to start; then a guided, delightful
 
 ### Flow
 1. `/{locale}/business/join` (also `/sign-up`): `SignInScreen mode="signUp"` — one email field → magic link or 6-digit code (auto-confirms at six digits). New and existing emails see the same screens (no enumeration); existing owners just land in their salon.
-2. `BusinessGuard`: a signed-in user with no salon membership renders `QuickStart`, which calls `POST /salons/quick-start` (idempotent), reloads `/me` and opens `/business/setup`.
+2. `BusinessGuard`: a signed-in user with no salon membership renders `QuickStart`: platform admins get "open the admin panel"; an email with team invitations gets "Anh/chị được mời vào <Salon>. Tham gia?" (accept by id, q102) with "Tôi là chủ salon, tạo salon mới" as the explicit alternative; otherwise `POST /salons/quick-start` (idempotent), reload `/me`, open `/business/setup`. Accepting an invitation archives the user's untouched (never named) quick-start salon. `NameGate` keeps every business route on the name step until the salon has a name (q103).
 3. `SetupWizard` (focused screen, no workspace chrome): (a) name + business-type tiles → (b) hours presets + quick tweak → (c) services: AI price-list import hero (graceful note when not configured / not in plan), starter template per business type (editable name, duration, price; range hint), or manual; the salon's list fills in live → (d) "just me" or names (each gets the salon's hours and every service) → (e) Zalo OA connect (optional, returns to the wizard) → (f) celebration + today's real calendar + "Thêm lịch hẹn đầu tiên" (`/business/calendar?new=1`). Every step is skippable; "Để sau" closes the wizard at that step.
 4. Progress is server-side (`salon_setups`); Today redirects an owner into the wizard until it is closed. After that, `today/FinishSetupCard` lists only the open items (`setup.remaining`, from real data; `zalo` hidden when the integration is disabled), each opening one step (`?step=x&single=1`, back to Today afterwards); dismissible for good. It never renders for salons without a setup row or with nothing left (completed salons, seeds, landing screenshots). Older salons (registered with the old form, no setup row) keep the old `SetupCard` checklist.
 5. A complete salon goes live automatically once the wizard is closed (`goLiveIfReady`).
 
 ### Rules
+- No default name (q103): quick start stores an empty name; step (a) is mandatory (trimmed 2–80, no skip, no "later"), with a live calendar-header preview and a check pop. Until then the API refuses setup steps, the Today card, template services, Zalo connect and invitations with 409 `salon.name_required`, and the trial's AI cap is 0. The step also names the unnamed organisation and, when a type is picked, sets `primary_category_id` (nails→nails, hair→hair, spa→spa, lashes_brows→lashes, mixed→none). The type is optional.
 - Business basics = name confirmed in the wizard, or phone + address (older salons). Phone/address are optional and edited in Settings.
-- Placeholder name `PLACEHOLDER_SALON_NAME` until step (a); the step also renames a one-salon organisation still carrying the placeholder, and sets `primary_category_id` (nails→nails, hair→hair, spa→spa, lashes_brows→lashes, mixed→none).
+- Abuse brakes and refusals of quick start: see ADR-0018 §2 (per user/IP/domain limits, global daily cap, disposable domains, admins, invitations).
+- Which salon opens: the one last picked on this device, else the most recently joined.
 - Starter services go through the catalogue (`CatalogService.create`: validation, staff auto-assignment, availability bump, audit); a row whose Vietnamese name already exists is skipped, so retries never duplicate.
 - Motion: progress ring, check pop, Lilac Glow confetti, haptics on native (`expo-haptics`); nothing animates with reduced motion. Tokens only, light and dark.
 
 ### Endpoints
-- `POST salons/quick-start` (authenticated; `{ locale }` → `{ salonId, created }`; 409 `salon.pending_confirmation`; 429 after 5 creations/user/day or 20/IP/h).
+- `POST salons/quick-start` (authenticated; `{ locale, ignoreInvitations? }` → `{ salonId, created }`; 403 `salon.quick_start_not_allowed` (admins), 409 `salon.invitation_pending` / `salon.pending_confirmation`, 422 `salon.email_not_allowed`, 429 (user, IP, domain, global cap)).
+- `GET me/invitations`, `POST me/invitations/:invitationId/accept` (authenticated; team module; email-bound invitations only).
+- `POST salons/registrations` is signed-in only (anonymous variant retired).
 - `PATCH salons/:id/onboarding/business` (`salon.profile.write`; `{ name, businessType }`).
 - `POST salons/:id/onboarding/progress` (`salon.settings.write`; `{ step, event: viewed|completed|skipped|left, method? }` → `SetupState`).
 - `POST salons/:id/onboarding/dismiss-card` (`salon.settings.write`).
@@ -211,7 +215,7 @@ Owner request 2026-11-04: an email is enough to start; then a guided, delightful
 - `POST salons/:id/zalo/connection/start` accepts `returnTo: settings|setup` (topic 09 contract, enum only).
 
 ### Analytics (signup funnel, server-side, no PII)
-Table `analytics_events` (salted `actor_hash`, ids/enums/counts only), catalogue `ANALYTICS_EVENTS` (`packages/contracts/src/analytics/events.ts`), writer `modules/analytics` (`AnalyticsService.record`). Events: `salon_quick_started` (locale), `setup_step_viewed` / `setup_step_completed` (method, business type, seconds since start) / `setup_step_skipped` / `setup_left` (step, step index), `setup_finished` (seconds, completed/skipped counts, went live), `setup_card_dismissed` (remaining count), `starter_services_added` (business type, count). Drop-off per step: distinct `salon_id` per `setup_step_viewed.step` vs `setup_step_completed.step`.
+Table `analytics_events` (pseudonymous, no direct identifiers: ids/enums/counts; `actor_hash` keyed with `ANALYTICS_HASH_SECRET`; purged after `ANALYTICS_RETENTION_MONTHS`, default 24), catalogue `ANALYTICS_EVENTS` (`packages/contracts/src/analytics/events.ts`), writer `modules/analytics` (`AnalyticsService.record`). Events: `salon_quick_started` (locale), `setup_step_viewed` / `setup_step_completed` (method, business type, seconds since start) / `setup_step_skipped` / `setup_left` (step, step index), `setup_finished` (seconds, completed/skipped counts, went live), `setup_card_dismissed` (remaining count), `starter_services_added` (business type, count). Drop-off per step: distinct `salon_id` per `setup_step_viewed.step` vs `setup_step_completed.step`.
 
 ### File map
 | Path | Purpose |

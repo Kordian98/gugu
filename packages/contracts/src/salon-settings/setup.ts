@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { serviceInputSchema } from "../catalog/catalog";
+import { salonNameSchema } from "../salon/registration";
 
 /**
  * Guided setup after the email-only signup (07 §3.7, owner 2026-11-04). Server-side wizard progress
@@ -38,7 +39,7 @@ export type SetupMethod = z.infer<typeof setupMethodSchema>;
 
 export const setupStateSchema = z.object({
   businessType: businessTypeSchema.nullable(),
-  /** False while the salon still carries the quick-start placeholder name. */
+  /** False until the owner saved a name (q103: required first; the app is gated on it). */
   nameConfirmed: z.boolean(),
   currentStep: setupStepSchema,
   completed: z.array(setupStepSchema),
@@ -48,18 +49,20 @@ export const setupStateSchema = z.object({
   finished: z.boolean(),
   cardDismissed: z.boolean(),
   /**
-   * What is still open, from real data (not from clicks): name, hours, services, a bookable team
-   * member, a connected Zalo OA. The app hides `zalo` when the integration is disabled.
+   * What is still open, from real data (not from clicks): hours, services, a bookable team member,
+   * a connected Zalo OA. Never the name (mandatory). The app hides `zalo` when it is disabled.
    */
   remaining: z.array(setupItemSchema),
 });
 export type SetupState = z.infer<typeof setupStateSchema>;
 
 export const setupBusinessInputSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  businessType: businessTypeSchema,
+  name: salonNameSchema,
+  /** Optional: the tiles can be skipped (q103 keeps only the name mandatory). */
+  businessType: businessTypeSchema.nullable().default(null),
 });
-export type SetupBusinessInput = z.infer<typeof setupBusinessInputSchema>;
+export type SetupBusinessInput = z.input<typeof setupBusinessInputSchema>;
+export type SetupBusinessInputParsed = z.infer<typeof setupBusinessInputSchema>;
 
 export const setupProgressInputSchema = z.object({
   step: setupStepSchema,

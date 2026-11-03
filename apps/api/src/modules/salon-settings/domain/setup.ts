@@ -26,7 +26,10 @@ export interface SetupFacts {
   zaloConnected: boolean;
 }
 
-/** What is still open, from real data (never from clicks), in wizard order. */
+/**
+ * What is still open, from real data (never from clicks), in wizard order. Never the name: it is the
+ * mandatory first step (q103), so the Today card can't offer it.
+ */
 export function setupRemaining(f: SetupFacts): SetupItem[] {
   const done: Record<SetupItem, boolean> = {
     business: f.businessDone,
@@ -35,7 +38,7 @@ export function setupRemaining(f: SetupFacts): SetupItem[] {
     team: f.bookableStaff > 0,
     zalo: f.zaloConnected,
   };
-  return SETUP_ITEMS.filter((i) => !done[i]);
+  return SETUP_ITEMS.filter((i) => i !== "business" && !done[i]);
 }
 
 export interface SetupRow {

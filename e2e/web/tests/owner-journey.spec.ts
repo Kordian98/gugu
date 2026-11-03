@@ -7,8 +7,8 @@
 // signup on a 390 px phone in English, leaves the wizard halfway and finishes one step from the
 // Today "finish setup" card.
 import { expect, test, type Page } from "@playwright/test";
-import { signUpWithCodeViaUi } from "../support/auth";
-import { WEB } from "../support/env";
+import { signInViaUi, signUpWithCodeViaUi } from "../support/auth";
+import { API, WEB } from "../support/env";
 import { t, type Locale } from "../support/i18n";
 import { expectNoMail } from "../support/mailpit";
 import { mail } from "../support/seed";
@@ -46,10 +46,28 @@ test.describe("owner journey @vi", () => {
       await expect(page.getByText(t(L, "crm:setupWizard.totalEta"))).toBeVisible();
     });
 
-    await test.step("(a) salon name and business type tiles", async () => {
+    await test.step("(a) the name is mandatory: no skip, no 'later', the app stays closed", async () => {
       const next = page.getByTestId("crm-setup-next");
       await expect(next).toHaveAttribute("aria-disabled", "true");
+      await expect(page.getByTestId("crm-setup-skip")).toHaveCount(0);
+      await expect(page.getByTestId("crm-setup-later")).toHaveCount(0);
+      // q103: no default name anywhere.
+      for (const placeholder of ["Salon của tôi", "Salon của bạn", "My salon"]) {
+        await expect(page.getByText(placeholder)).toHaveCount(0);
+      }
+      // The workspace does not open before the salon has a name.
+      await page.goto("/vi/business/calendar");
+      await expect(page).toHaveURL(/\/vi\/business\/setup/);
+      await expect(page.getByTestId("crm-nav-services")).toHaveCount(0);
+      // Friendly inline validation, then a live preview and a check pop.
+      await fillField(page.getByTestId("crm-setup-salon-name"), "M");
+      await expect(page.getByTestId("crm-setup-name-issue")).toHaveText(
+        t(L, "crm:setupWizard.business.nameTooShort"),
+      );
+      await expect(next).toHaveAttribute("aria-disabled", "true");
       await fillField(page.getByTestId("crm-setup-salon-name"), "Mây Nail & Spa E2E");
+      await expect(page.getByTestId("crm-setup-name-ok")).toBeVisible();
+      await expect(page.getByTestId("crm-setup-name-preview")).toContainText("Mây Nail & Spa E2E");
       await tap(page.getByTestId("crm-setup-type-nails"));
       await expect(page.getByTestId("crm-setup-type-nails")).toHaveAttribute(
         "aria-checked",
@@ -260,6 +278,56 @@ test.describe("owner journey @vi", () => {
       const messages = page.getByTestId("crm-booking-messages");
       await expect(messages.getByTestId("crm-booking-message")).toHaveCount(0);
       await expect(messages.getByTestId("crm-booking-messages-unreachable")).toBeVisible();
+    });
+
+    await test.step("q102: invited staff sign in on the generic screen first and still just join", async () => {
+      const staffEmail = mail("invitedstaff", info.project.name);
+      // The owner invites by email (email-bound invitation) with their own browser session.
+      const me = (await (await page.request.get(`${API}/me`)).json()) as {
+        user: { memberships: { salonId: string }[] };
+        csrfToken: string;
+      };
+      const salonId = me.user.memberships[0]?.salonId ?? "";
+      const invited = await page.request.post(`${API}/salons/${salonId}/invitations`, {
+        headers: { "x-csrf-token": me.csrfToken },
+        data: { role: "staff", email: staffEmail, locale: "vi" },
+      });
+      expect(invited.status()).toBe(201);
+
+      const ctx = await page
+        .context()
+        .browser()
+        ?.newContext({
+          baseURL: WEB,
+          locale: "vi-VN",
+          timezoneId: "Asia/Ho_Chi_Minh",
+          viewport: { width: 1440, height: 900 },
+        });
+      if (!ctx) throw new Error("no browser");
+      const staff = await ctx.newPage();
+      await signInViaUi(staff, staffEmail, L);
+      const card = staff.getByTestId("crm-invitations");
+      await expect(card).toBeVisible();
+      await expect(card).toContainText(
+        t(L, "crm:quickStart.invitedOne", { salon: "Mây Nail & Spa E2E" }),
+      );
+      await expect(staff.getByTestId("crm-quick-start-create-own")).toHaveText(
+        t(L, "crm:quickStart.createOwn"),
+      );
+      await tap(staff.getByTestId("crm-invitation-join"));
+      // Joined: the invitation screen is gone and the workspace opens in the inviter's salon.
+      await expect(staff.getByTestId("crm-invitations")).toHaveCount(0);
+      await expect(staff).toHaveURL(/\/vi\/business$/);
+      // Exactly the inviter's salon: no empty salon of their own.
+      await expect
+        .poll(async () => {
+          const res = (await (await staff.request.get(`${API}/me`)).json()) as {
+            user: { memberships: { salonId: string; role: string }[] };
+          };
+          return res.user.memberships.map((m) => `${m.salonId}:${m.role}`);
+        })
+        .toEqual([`${salonId}:staff`]);
+      await ctx.close();
     });
   });
 });

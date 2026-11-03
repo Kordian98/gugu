@@ -23,7 +23,7 @@ import {
   testEmail,
 } from "../../../test/factories/identity";
 import { http } from "../../../test/http-app";
-import { countMailsTo, extractMagicLink, waitForMail } from "../../../test/mailpit";
+import { extractMagicLink, waitForMail } from "../../../test/mailpit";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
@@ -119,99 +119,55 @@ describe("salons & tenancy (integration)", () => {
     expect(salonSummarySchema.parse(summary.body).myRole).toBe("owner");
   });
 
-  it("anonymous registration: pending until the emailed link is opened", async () => {
-    const email = testEmail("newowner");
-    await request(http(app))
-      .post("/api/v1/salons/registrations")
-      .set("x-forwarded-for", runIp)
-      .send(registration({ email: undefined }))
-      .expect(400);
+  it("anonymous registration is retired (ADR-0018): 401, nothing created", async () => {
+    const before = await prisma.salon.count();
     const res = await request(http(app))
       .post("/api/v1/salons/registrations")
       .set("x-forwarded-for", runIp)
-      .send(registration({ email, businessName: "Tiệm Mi Đẹp", locale: "en" }))
-      .expect(201);
-    const result = salonRegistrationResultSchema.parse(res.body);
-    expect(result.magicLinkStatus).toBe("sent");
-    const member = await prisma.salonMember.findFirstOrThrow({
-      where: { salonId: result.salonId },
-    });
-    expect(member.status).toBe("pending_verification");
-
-    const mail = await waitForMail(email);
-    expect(mail.subject).toBe("Confirm Tiệm Mi Đẹp in GuGu Studio");
-    const verified = await request(http(app))
-      .post("/api/v1/auth/magic-link/verify")
-      .set("x-forwarded-for", runIp)
-      .send({ token: extractMagicLink(mail).token, client: "native" })
-      .expect(200);
-    const session = authSessionSchema.parse(verified.body);
-    expect(session.redirectPath).toBe("/en/business");
-    expect(session.user.memberships).toMatchObject([
-      { salonId: result.salonId, role: "owner", status: "active" },
-    ]);
+      .send({ ...registration(), email: testEmail("anon") })
+      .expect(401);
+    expect(problemSchema.parse(res.body).status).toBe(401);
+    expect(await prisma.salon.count()).toBe(before);
   });
 
-  it("registration can't bypass per-email limits; each salon needs its own proof of intent", async () => {
-    // Another run's clearRateLimits (same Redis DB) can reset the per-email counter mid-test: then
-    // a 4th link goes out. Retry with a fresh address and client /24 only in that case; a missing
-    // limit fails every attempt.
-    let email = "";
-    let results: ReturnType<typeof salonRegistrationResultSchema.parse>[] = [];
-    let signIn = 0;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      email = testEmail("flood");
-      const ip = clientIp();
-      results = [];
-      for (let i = 0; i < 4; i++) {
-        const res = await request(http(app))
-          .post("/api/v1/salons/registrations")
-          .set("x-forwarded-for", ip)
-          .send(registration({ email, businessName: `Flood ${String(i)}` }))
-          .expect(201);
-        results.push(salonRegistrationResultSchema.parse(res.body));
-      }
-      // The same per-email counter blocks the public sign-in endpoint too.
-      signIn = (
-        await request(http(app))
-          .post("/api/v1/auth/magic-link")
-          .set("x-forwarded-for", ip)
-          .send({ email, locale: "vi" })
-      ).status;
-      if (results[3]?.magicLinkStatus === "rate_limited" && signIn === 429) break;
+  it("older pending salons still need an explicit decision; a plain sign-in never activates them", async () => {
+    // Pending owner memberships can no longer be created through the API; these rows stand in for
+    // salons registered anonymously before ADR-0018.
+    const email = testEmail("legacy");
+    const user = await prisma.user.create({ data: { email, profile: { create: {} } } });
+    const pending = [];
+    for (const name of ["Old 0", "Old 1"]) {
+      const f = await createSalonFixture(prisma, name);
+      await prisma.salonMember.updateMany({
+        where: { salonId: f.salonId, role: "owner" },
+        data: { userId: user.id, status: "pending_verification" },
+      });
+      pending.push(f.salonId);
     }
-    expect(
-      results.map((r) => r.magicLinkStatus),
-      `registrations for ${email}`,
-    ).toEqual(["sent", "sent", "sent", "rate_limited"]);
-    expect(signIn, `sign-in link for ${email} after 3 registration links`).toBe(429);
-    expect(await countMailsTo(email)).toBe(3);
-
-    // The newest registration email belongs to "Flood 2": it activates that salon only.
-    const mail = await waitForMail(email);
-    expect(mail.subject).toContain("Flood 2");
+    await request(http(app))
+      .post("/api/v1/auth/magic-link")
+      .set("x-forwarded-for", runIp)
+      .send({ email, locale: "vi", client: "native" })
+      .expect(202);
+    const signInMail = await waitForMail(email);
     const verified = await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
       .set("x-forwarded-for", runIp)
-      .send({ token: extractMagicLink(mail).token, client: "native" })
+      .send({ token: extractMagicLink(signInMail).token, client: "native" })
       .expect(200);
     const session = authSessionSchema.parse(verified.body);
-    const active = session.user.memberships.filter((m) => m.status === "active");
-    expect(active.map((m) => m.salonId)).toEqual([results[2]?.salonId]);
+    expect(session.user.memberships.every((m) => m.status === "pending_verification")).toBe(true);
     if (session.session.kind !== "native") throw new Error("expected native");
     const auth = `Bearer ${session.session.tokens.accessToken}`;
-
-    // The other three wait for an explicit decision.
+    const [confirmId, declineId] = [pending[0] ?? "", pending[1] ?? ""];
+    await request(http(app))
+      .get(`/api/v1/salons/${confirmId}`)
+      .set("authorization", auth)
+      .expect(404);
     const listed = pendingSalonListSchema.parse(
-      (
-        await request(http(app))
-          .get("/api/v1/me/pending-salons")
-          .set("authorization", auth)
-          .expect(200)
-      ).body,
+      (await request(http(app)).get("/api/v1/me/pending-salons").set("authorization", auth)).body,
     );
-    expect(listed.items.map((p) => p.salonName).sort()).toEqual(["Flood 0", "Flood 1", "Flood 3"]);
-    const [confirmId, declineId] = [results[0]?.salonId ?? "", results[1]?.salonId ?? ""];
+    expect(listed.items.map((p) => p.salonName).sort()).toEqual(["Old 0", "Old 1"]);
     await request(http(app))
       .post(`/api/v1/me/pending-salons/${confirmId}/confirm`)
       .set("authorization", auth)
@@ -228,53 +184,15 @@ describe("salons & tenancy (integration)", () => {
       .get(`/api/v1/salons/${declineId}`)
       .set("authorization", auth)
       .expect(404);
-    // Confirming twice, or a salon you have no pending membership for, is a 404.
-    await request(http(app))
-      .post(`/api/v1/me/pending-salons/${declineId}/confirm`)
-      .set("authorization", auth)
-      .expect(404);
     await request(http(app))
       .post(`/api/v1/me/pending-salons/${b.salonId}/confirm`)
       .set("authorization", auth)
       .expect(404);
-    const after = pendingSalonListSchema.parse(
-      (await request(http(app)).get("/api/v1/me/pending-salons").set("authorization", auth)).body,
-    );
-    expect(after.items.map((p) => p.salonName)).toEqual(["Flood 3"]);
-    const audit = await prisma.auditLog.findFirst({
-      where: { action: "salon.owner_declined", salonId: declineId },
-    });
-    expect(audit).not.toBeNull();
-  });
-
-  it("a plain sign-in never activates salons someone registered with your email", async () => {
-    const email = testEmail("victim");
-    const res = await request(http(app))
-      .post("/api/v1/salons/registrations")
-      .set("x-forwarded-for", runIp)
-      .send(registration({ email, businessName: "Attacker Salon" }))
-      .expect(201);
-    const { salonId } = salonRegistrationResultSchema.parse(res.body);
-    // Victim ignores that email and signs in normally.
-    await request(http(app))
-      .post("/api/v1/auth/magic-link")
-      .set("x-forwarded-for", runIp)
-      .send({ email, locale: "vi", client: "native" })
-      .expect(202);
-    const signInMail = await waitForMail(email);
-    expect(signInMail.subject).toBe("Link đăng nhập GuGu Studio của bạn");
-    const verified = await request(http(app))
-      .post("/api/v1/auth/magic-link/verify")
-      .set("x-forwarded-for", runIp)
-      .send({ token: extractMagicLink(signInMail).token, client: "native" })
-      .expect(200);
-    const session = authSessionSchema.parse(verified.body);
-    expect(session.user.memberships).toMatchObject([{ salonId, status: "pending_verification" }]);
-    if (session.session.kind !== "native") throw new Error("expected native");
-    await request(http(app))
-      .get(`/api/v1/salons/${salonId}`)
-      .set("authorization", `Bearer ${session.session.tokens.accessToken}`)
-      .expect(404);
+    expect(
+      await prisma.auditLog.count({
+        where: { action: "salon.owner_declined", salonId: declineId },
+      }),
+    ).toBe(1);
   });
 
   it("rejects bad phone numbers and unknown locations", async () => {

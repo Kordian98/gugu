@@ -282,7 +282,11 @@
     "payroll_adjustment_not_found": "Không tìm thấy khoản này.",
     "payroll_cost_not_found": "Không tìm thấy khoản chi phí.",
     "payroll_not_a_manager": "Chỉ cấp được cho quản lý.",
-    "salon_pending_confirmation": "Salon đăng ký bằng email này đang chờ anh/chị xác nhận."
+    "salon_pending_confirmation": "Salon đăng ký bằng email này đang chờ anh/chị xác nhận.",
+    "salon_name_required": "Anh/chị đặt tên salon trước nhé.",
+    "salon_invitation_pending": "Email này đang có lời mời vào một salon.",
+    "salon_email_not_allowed": "Email tạm thời không dùng được để tạo salon. Anh/chị đăng nhập lại bằng email thường dùng nhé.",
+    "salon_quick_start_not_allowed": "Tài khoản quản trị không tạo salon."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",
@@ -1367,7 +1371,21 @@
     "preparing": "Đang chuẩn bị salon của anh/chị…",
     "failedTitle": "Chưa tạo được salon",
     "failedBody": "Kiểm tra kết nối mạng rồi thử lại nhé.",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "emailNotAllowed": "Email tạm thời không dùng được để tạo salon. Anh/chị đăng nhập lại bằng email thường dùng nhé.",
+    "adminTitle": "Tài khoản quản trị GuGu",
+    "adminBody": "Tài khoản quản trị không có salon riêng. Mở trang quản trị để tiếp tục.",
+    "adminCta": "Mở trang quản trị",
+    "invitedTitle": "Anh/chị được mời vào salon",
+    "invitedOne": "Anh/chị được mời vào {{salon}}. Tham gia?",
+    "invitedBody": "Tham gia để xem lịch hẹn của mình và làm việc cùng cả nhóm.",
+    "role": "Vai trò: {{role}}",
+    "join": "Tham gia {{salon}}",
+    "joining": "Đang tham gia…",
+    "createOwn": "Tôi là chủ salon, tạo salon mới",
+    "formerTitle": "Anh/chị chưa thuộc salon nào",
+    "formerBody": "Anh/chị không còn trong salon trước đây. Nếu anh/chị là chủ salon, tạo salon mới ở đây.",
+    "joinFailed": "Chưa tham gia được. Lời mời có thể đã hết hạn, anh/chị nhờ salon gửi lại nhé."
   },
   "setupWizard": {
     "later": "Để sau",
@@ -1409,7 +1427,12 @@
         "spa": "Spa & massage",
         "lashes_brows": "Mi & chân mày",
         "mixed": "Nhiều dịch vụ"
-      }
+      },
+      "nameTooShort": "Tên salon cần ít nhất 2 ký tự.",
+      "nameTooLong": "Tên salon tối đa 80 ký tự.",
+      "nameOk": "Tên đẹp lắm!",
+      "previewLabel": "Hiện trên lịch của salon",
+      "typeOptional": "Không bắt buộc, chọn để có gợi ý dịch vụ phù hợp."
     },
     "hours": {
       "title": "Salon mở cửa lúc nào?",

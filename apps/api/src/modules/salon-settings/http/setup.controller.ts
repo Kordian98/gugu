@@ -3,7 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
   problemSchema,
   salonParamsSchema,
-  type SetupBusinessInput,
+  type SetupBusinessInputParsed,
   setupBusinessInputSchema,
   type SetupProgressInput,
   setupProgressInputSchema,
@@ -38,7 +38,7 @@ export class SetupController {
   @ApiResponse({ status: 400, description: "Invalid input.", standardSchema: problemSchema })
   async business(
     @Param({ schema: salonParamsSchema }) _p: SalonParams,
-    @Body({ schema: setupBusinessInputSchema }) body: SetupBusinessInput,
+    @Body({ schema: setupBusinessInputSchema }) body: SetupBusinessInputParsed,
     @CurrentSalon() salon: SalonContext,
     @CurrentUser() user: UserPrincipal,
   ): Promise<void> {

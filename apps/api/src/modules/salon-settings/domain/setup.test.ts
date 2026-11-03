@@ -10,8 +10,8 @@ const facts = {
 };
 
 describe("setup state", () => {
-  it("a fresh quick-start salon has everything open, in wizard order", () => {
-    expect(setupRemaining(facts)).toEqual(["business", "hours", "services", "team", "zalo"]);
+  it("a fresh quick-start salon has everything open, in wizard order, never the name", () => {
+    expect(setupRemaining(facts)).toEqual(["hours", "services", "team", "zalo"]);
   });
 
   it("remaining follows real data, not clicks", () => {

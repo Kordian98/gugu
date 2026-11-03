@@ -12,7 +12,8 @@ import { useSalonPlan } from "../data/plan";
 import { useCrmNav } from "../shell/useCrmNav";
 
 /**
- * Today: a quiet notice in the last 14 days before the Pro trial or the free Basic year ends (X25).
+ * Today: a quiet notice in the last 3 days of the Pro trial (q104) or the last 14 days of the free
+ * Basic year (X25).
  * Members without `subscription.read` never see it.
  */
 export function PlanNotice({ timeZone }: { timeZone: string }) {

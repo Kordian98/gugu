@@ -126,8 +126,11 @@ export type SalonEntitlements = z.infer<typeof salonEntitlementsSchema>;
 /** X25: every salon gets Basic free for this many months from registration. */
 export const FREE_BASIC_MONTHS = 12;
 
-/** Owners see a notice this many days before the trial or the free Basic year ends. */
+/** Owners see a notice this many days before the free Basic year ends. */
 export const PLAN_ENDING_NOTICE_DAYS = 14;
+
+/** …and this many days before the 14-day Pro trial ends (owner q104, 2026-11-04). */
+export const TRIAL_ENDING_NOTICE_DAYS = 3;
 
 /** Booking-fee waiver length for founding partners (R-FP1). */
 export const FOUNDING_WAIVER_MONTHS = 24;

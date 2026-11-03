@@ -8,6 +8,7 @@ import type { ZaloOaConnection } from "../../../infrastructure/prisma/generated/
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { RedisService } from "../../../infrastructure/redis/redis.service";
 import { AuditService } from "../../audit/audit.facade";
+import { assertSalonNamed } from "../../salon-settings/salon-settings.facade";
 import { EntitlementService } from "../../subscriptions/subscriptions.facade";
 import { ZALO_CLIENT, ZaloApiError, type ZaloClient } from "../client/zalo-client";
 import { s256 } from "../emulator/emulator-store";
@@ -91,6 +92,8 @@ export class ConnectionService {
     returnTo: "settings" | "setup" = "settings",
   ): Promise<{ authorizeUrl: string }> {
     this.assertEnabled();
+    // The OA shows the salon's name to customers: never before the salon has one (q103).
+    await assertSalonNamed(this.prisma, salonId);
     const state = randomBytes(24).toString("base64url");
     const verifier = randomBytes(48).toString("base64url");
     const payload: OAuthState = { salonId, userId, verifier, locale, returnTo };

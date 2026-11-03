@@ -4,6 +4,7 @@ import type { SalonContext, UserPrincipal } from "../../../common/guards/princip
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AnalyticsService } from "../../analytics/analytics.facade";
 import { CatalogService } from "../../catalog/catalog.facade";
+import { assertSalonNamed } from "../../salon-settings/salon-settings.facade";
 
 const nameKey = (n: string) => n.trim().toLocaleLowerCase("vi");
 
@@ -25,6 +26,7 @@ export class StarterServicesService {
     user: UserPrincipal,
     input: StarterServicesInputParsed,
   ): Promise<StarterServicesResult> {
+    await assertSalonNamed(this.prisma, ctx.salonId);
     const existing = await this.prisma.service.findMany({
       where: { salonId: ctx.salonId, deletedAt: null },
       select: { name: true },

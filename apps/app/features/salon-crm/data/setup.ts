@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type {
+  MyInvitationList,
   SalonQuickStartResult,
   SetupBusinessInput,
   SetupProgressInput,
@@ -13,9 +14,21 @@ import { apiFetch } from "@/services/auth/api";
 
 import { useSalon } from "./SalonContext";
 
-/** Email-only signup: the signed-in user's first salon (idempotent on the server). */
-export const quickStartSalon = (locale: "vi" | "en") =>
-  apiFetch<SalonQuickStartResult>("/salons/quick-start", { method: "POST", body: { locale } });
+/**
+ * Email-only signup: the signed-in user's first salon (idempotent on the server). Refused with 409
+ * `salon.invitation_pending` while the email has team invitations, unless the user explicitly
+ * chose "I own a salon" (`ignoreInvitations`, q102).
+ */
+export const quickStartSalon = (locale: "vi" | "en", ignoreInvitations = false) =>
+  apiFetch<SalonQuickStartResult>("/salons/quick-start", {
+    method: "POST",
+    body: { locale, ignoreInvitations },
+  });
+
+/** Team invitations bound to the signed-in email (q102). */
+export const myInvitations = () => apiFetch<MyInvitationList>("/me/invitations");
+export const acceptMyInvitation = (id: string) =>
+  apiFetch<{ salonId: string }>(`/me/invitations/${id}/accept`, { method: "POST" });
 
 export const setupApi = {
   business: (s: string, body: SetupBusinessInput) =>

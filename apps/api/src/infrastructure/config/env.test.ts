@@ -48,6 +48,7 @@ describe("parseEnv", () => {
         BOOKING_TOKEN_SECRET: "y".repeat(40),
         SUPPORT_EMAIL: "support@example.com",
         MFA_ENCRYPTION_KEY: "m".repeat(40),
+        ANALYTICS_HASH_SECRET: "a".repeat(40),
       }).AUTH_SECRET,
     ).toHaveLength(40);
   });
@@ -65,11 +66,26 @@ describe("parseEnv", () => {
       AUTH_SECRET: "x".repeat(40),
       BOOKING_TOKEN_SECRET: "y".repeat(40),
       MFA_ENCRYPTION_KEY: "m".repeat(40),
+      ANALYTICS_HASH_SECRET: "a".repeat(40),
     };
     expect(() => parseEnv(prod)).toThrow(/SUPPORT_EMAIL/);
     expect(parseEnv({ ...prod, SUPPORT_EMAIL: "help@example.com" }).SUPPORT_EMAIL).toBe(
       "help@example.com",
     );
+  });
+
+  it("refuses the built-in ANALYTICS_HASH_SECRET in production (ADR-0018)", () => {
+    expect(() =>
+      parseEnv({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgresql://u:p@db:5432/gugu",
+        REDIS_URL: "redis://cache:6379",
+        AUTH_SECRET: "x".repeat(40),
+        BOOKING_TOKEN_SECRET: "y".repeat(40),
+        MFA_ENCRYPTION_KEY: "m".repeat(40),
+        SUPPORT_EMAIL: "help@example.com",
+      }),
+    ).toThrow(/ANALYTICS_HASH_SECRET/);
   });
 
   it("refuses the built-in MFA_ENCRYPTION_KEY in production (topic 05 step 9)", () => {
@@ -93,6 +109,7 @@ describe("parseEnv", () => {
       BOOKING_TOKEN_SECRET: "y".repeat(40),
       SUPPORT_EMAIL: "support@example.com",
       MFA_ENCRYPTION_KEY: "m".repeat(40),
+      ANALYTICS_HASH_SECRET: "a".repeat(40),
     };
     expect(parseEnv(prod).ZALO_CLIENT).toBe("disabled");
     expect(() => parseEnv({ ...prod, ZALO_CLIENT: "emulated" })).toThrow(/ZALO_CLIENT/);
@@ -117,6 +134,7 @@ describe("parseEnv", () => {
       BOOKING_TOKEN_SECRET: "y".repeat(40),
       SUPPORT_EMAIL: "support@example.com",
       MFA_ENCRYPTION_KEY: "m".repeat(40),
+      ANALYTICS_HASH_SECRET: "a".repeat(40),
     };
     expect(parseEnv(base).BOOKING_MULTI_SERVICE).toBe(true);
     expect(parseEnv(prod).BOOKING_MULTI_SERVICE).toBe(true);

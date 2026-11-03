@@ -8,3 +8,5 @@ export {
   toDateColumn,
   toTimeColumn,
 } from "./domain/wall-clock";
+export { assertSalonNamed } from "./domain/salon-named";
+export { archiveUnusedQuickStartSalons } from "./domain/archive-unused";

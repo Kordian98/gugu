@@ -675,7 +675,20 @@ describe("privacy tools (integration)", () => {
       },
     });
 
+    // Analytics events (ADR-0018): older than ANALYTICS_RETENTION_MONTHS (24) go.
+    const ancient = new Date(now);
+    ancient.setUTCMonth(ancient.getUTCMonth() - 25);
+    const oldEvent = await prisma.analyticsEvent.create({
+      data: { name: "setup_left", salonId: a.salonId, props: {}, occurredAt: ancient },
+    });
+    const newEvent = await prisma.analyticsEvent.create({
+      data: { name: "setup_left", salonId: a.salonId, props: {}, occurredAt: old },
+    });
+
     const counts = await app.get(RetentionService).purge(now);
+    expect(counts.analyticsEvents).toBeGreaterThanOrEqual(1);
+    expect(await prisma.analyticsEvent.count({ where: { id: oldEvent.id } })).toBe(0);
+    expect(await prisma.analyticsEvent.count({ where: { id: newEvent.id } })).toBe(1);
     expect(counts.notificationDeliveries).toBeGreaterThanOrEqual(1);
     expect(await prisma.notificationDelivery.count({ where: { id: oldRow.id } })).toBe(0);
     expect(await prisma.notification.count({ where: { id: inbox.id } })).toBe(0);
