@@ -38,6 +38,8 @@ function fakeEntitlements(map: EntitlementMap): Partial<EntitlementService> {
       plan: "basic",
       status: "active",
       trialEndsAt: null,
+      suspended: false,
+      foundingPartner: null,
       entitlements: map,
     });
   return {

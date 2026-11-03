@@ -80,4 +80,7 @@ export class MemoryCostMeter extends AiCostMeter {
     this.log.push("release");
     return Promise.resolve();
   }
+  monthlyUsage(salonIds: readonly string[]): Promise<Map<string, number>> {
+    return Promise.resolve(new Map(salonIds.map((id) => [id, this.used])));
+  }
 }

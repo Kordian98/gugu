@@ -2,6 +2,7 @@ import { Global, Module } from "@nestjs/common";
 import { Clock } from "./application/clock";
 import { ENTITLEMENT_CACHE } from "./application/entitlement-cache";
 import { EntitlementService } from "./application/entitlement.service";
+import { SubscriptionAdminService } from "./application/subscription-admin.service";
 import { SubscriptionsFacade } from "./application/subscriptions.facade";
 import { EntitlementsController } from "./http/entitlements.controller";
 import { EntitlementGuard } from "./http/requires-entitlement";
@@ -20,9 +21,16 @@ import { RedisEntitlementCache } from "./infra/redis-entitlement-cache";
     Clock,
     EntitlementService,
     SubscriptionsFacade,
+    SubscriptionAdminService,
     EntitlementGuard,
     { provide: ENTITLEMENT_CACHE, useClass: RedisEntitlementCache },
   ],
-  exports: [EntitlementService, SubscriptionsFacade, EntitlementGuard],
+  exports: [
+    EntitlementService,
+    SubscriptionsFacade,
+    SubscriptionAdminService,
+    EntitlementGuard,
+    Clock,
+  ],
 })
 export class SubscriptionsModule {}

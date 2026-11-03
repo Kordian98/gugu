@@ -40,7 +40,8 @@ Only the API shell exists: no domain tables yet (the first migration creates ext
 | health | `apps/api/src/modules/health` | — | — | — (`GET /api/v1/health` readiness: DB + Redis, 200/503; `/health/live`) | implemented |
 | zalo (topic 09) | `apps/api/src/modules/zalo` | zalo_oa_connections, zalo_conversations, zalo_messages, zalo_webhook_events, zalo_send_logs, zalo_booking_links, zalo_staff_notifications | — (consumes `booking.created`, `booking.status_changed`, `booking.rescheduled` via the outbox relay: `ZaloBookingEventsHandler`) | `/api/v1/salons/:salonId/zalo/*`; see `docs/domains/zalo.md` |
 | assistant (topic 08) | `apps/api/src/modules/assistant` | assistant_conversations, assistant_messages, assistant_entity_tokens, assistant_tool_calls | — | `/api/v1/salons/:salonId/assistant` (status, SSE turns); see `docs/domains/ai-agent.md` |
-| subscriptions (topic 12) | `apps/api/src/modules/subscriptions` | plans, plan_prices, plan_entitlements, subscriptions, subscription_events, entitlement_overrides | — | `GET /api/v1/salons/:salonId/entitlements` | M12.1 implemented; see `docs/domains/monetization-admin.md` |
+| subscriptions (topic 12) | `apps/api/src/modules/subscriptions` | plans, plan_prices, plan_entitlements, subscriptions, subscription_events, entitlement_overrides, founding_partners | — | `GET /api/v1/salons/:salonId/entitlements` | M12.1 + admin operations (M12.6); see `docs/domains/monetization-admin.md` |
+| admin (topic 12) | `apps/api/src/modules/admin` | — (writes `salons.status/suspended_at` on suspension; everything else through subscriptions) | — | `/api/v1/admin/*` (platform roles only): salon directory/detail, usage overview | M12.6 panel; ADR-0010 |
 
 Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`), `logger` (nestjs-pino, `REDACT_PATHS`), `prisma` (`PrismaService`, lazy connect), `redis` (`RedisService`), `queue` (`QueueService`, `QUEUES`). Common (`apps/api/src/common`): `context` (RequestContext via AsyncLocalStorage, `x-request-id`), `problem` (`ProblemFilter`, `AppError`, `COMMON_ERRORS`), `validation` (global Zod pipe). Entrypoints: `main.ts` (HTTP), `worker.ts` (BullMQ), `bootstrap.ts` (prefix `/api`, URI versioning v1, Swagger).
 
@@ -50,7 +51,9 @@ Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`),
 | plans, plan_entitlements, plan_prices | no (reference data) | never deleted; `Restrict` | subscriptions | rows inserted by migration `20261102115055_add_subscriptions_entitlements` |
 | subscriptions | yes (`salon_id`, no FK until salons lands) | never deleted; `Restrict` | subscriptions | one current per salon |
 | subscription_events | yes | append-only | subscriptions | composite FK `(salon_id, subscription_id)` |
-| entitlement_overrides | yes | revoked via `revoked_at`, never deleted | subscriptions | |
+| entitlement_overrides | yes | revoked via `revoked_at`, never deleted | subscriptions | admin overrides always carry `expires_at` |
+| founding_partners | organisation (`organization_id` unique) | revoked via `revoked_at`, never deleted | subscriptions | X20; ADR-0010 |
+| salons (suspension columns) | — | — | admin writes `status = suspended`, `suspended_at`, `pre_suspension_status` | check `salons_suspension_consistent` |
 | zalo_oa_connections | yes (`salon_id` unique) | kept; disconnect wipes tokens | zalo | tokens AES-256-GCM (`ZALO_TOKEN_KEY`) |
 | zalo_conversations, zalo_messages | yes | `Restrict`; customer text = personal data (never to an LLM, X10) | zalo | one conversation per (OA, Zalo user) |
 | zalo_webhook_events | salon set when routed | purged after 30 days (daily job) | zalo | idempotent on `event_key` |
@@ -76,6 +79,7 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `zalo_oa_connections_one_live_per_oa` | partial unique index | `20261102143451_add_zalo` | `db:drift`; OAuth callback maps P2002 → `zalo=oa_in_use` |
 | `zalo_send_logs_valid`, `zalo_webhook_events_status_valid`, `zalo_oa_connections_tokens_when_connected` | check | `20261103120000_add_zalo` | `db:drift`; `zalo.int.test.ts` |
 | `zalo_oa_connections_release_minutes_valid` | check | `20261103140000_zalo_staff_mode` | `db:drift` |
+| `salons_suspension_consistent` | check | `20261103200000_add_platform_admin` | `db:drift`; `admin.int.test.ts` (suspend / unsuspend) |
 | `zalo_funnel_events_valid`, `zalo_funnel_events_no_update_delete` (+ function) | check, trigger | `20261103190000_add_zalo_funnel_events` | `db:drift`; `zalo.int.test.ts` (funnel stats) |
 
 ## Read-model registry

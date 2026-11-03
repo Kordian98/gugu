@@ -2,7 +2,7 @@
 
 Durable reference for booking attribution, commission, plans/entitlements, usage metering, feature flags, analytics/metrics, trust signals and the platform admin. Read this before changing any of them. The spec with rationale is `docs/tasks/12-monetization-admin.md`.
 
-Status: **M12.1 implemented** (plans, subscriptions, entitlements, trial). Everything else in this doc is still a skeleton.
+Status: **M12.1 implemented** (plans, subscriptions, entitlements, trial). **M12.6 platform admin panel implemented** (platform roles, audited admin API, salon directory/detail, manual plans/trials/paid-until, overrides, founding partners, suspension, usage overview; ADR-0010). Everything else in this doc is still a skeleton.
 
 ## Summary
 - Customers book for free and pay at the salon. GuGu never processes customer payments.
@@ -39,6 +39,8 @@ _TODO: entity list with key fields and relations once the Prisma schema exists (
 | CommissionLedgerEntry / Event | append-only commission bookkeeping | yes |
 | Plan / PlanEntitlement | commercial packaging | no |
 | Subscription / EntitlementOverride | salon's current plan and grants | yes |
+| FoundingPartner (`founding_partners`) | X20 flag per organisation: `qualified_at`, `source` (`paid_before_launch` \| `admin_grant`), `qualifying_subscription_id`, `revoked_at` | organisation |
+| Salon suspension (`salons.status = suspended`, `suspended_at`, `pre_suspension_status`) | platform admin suspension | yes |
 | UsageEvent / UsageCounter | metering | yes |
 | FeatureFlag | rollout control | no |
 | RiskSignal / SalonReliabilitySnapshot | trust | yes |
@@ -50,7 +52,7 @@ _TODO: sequence descriptions._
 - Booking created → attribution attached (in-transaction)
 - Booking completed → customer confirmation prompt → dispute window → commission confirmed
 - AI request → entitlement check → usage reserve → model call → commit actual tokens
-- Admin override → audit → cache invalidation
+- Admin override → audit → cache invalidation (implemented: `AdminActions.run`, see "Platform admin")
 
 ## Entitlement keys
 Registry: `ENTITLEMENT_KEYS` in `packages/contracts/src/subscriptions/entitlements.ts`. Values per plan: `PLAN_CATALOG` in `apps/api/src/modules/subscriptions/domain/plan-catalog.ts`, mirrored by rows inserted in migration `20261102115055_add_subscriptions_entitlements` (an integration test asserts they agree). Resolution: active override (newest wins) → plan of the current subscription → default (deny / 0). An expired, cancelled or missing subscription grants nothing.
@@ -79,15 +81,53 @@ _TODO: link each definition in `packages/domain/metrics` with its version._
 ## Feature flags
 _TODO: active flags, owners, removal dates._
 
-## Admin permissions
-_TODO: matrix of support_admin vs super_admin per action._
+## Platform admin (M12.6)
+GuGu staff only. A platform role is a column on the user (`users.platform_role`), never a salon membership. Default deny: every `/api/v1/admin/*` route has `@RequirePlatformPermission`; anonymous → 401, any salon role → 403 (generated matrix in `apps/api/src/modules/admin/admin.int.test.ts`).
+
+### Admin permissions
+| Action | Route | Permission | support_admin | super_admin | Step-up |
+|---|---|---|---|---|---|
+| Salon directory (search, filters, sort) | `GET /admin/salons` | `platform.directory.read` | yes | yes | — |
+| Salon detail (members, subscription, overrides, usage, recent audit) | `GET /admin/salons/:salonId` | `platform.directory.read` | yes | yes | — |
+| Usage overview (AI cost vs cap, Zalo templates, trials ending in 7 days) | `GET /admin/usage?month=` | `platform.usage.read` | yes | yes | — |
+| Assign/change paid plan (+ interval, paid-until, invoicing entity) | `POST /admin/salons/:salonId/subscription/plan` | `platform.subscriptions.write` | no | yes | — |
+| Extend trial (≤ 90 days ahead; re-opens an expired trial) | `POST …/subscription/trial` | `platform.subscriptions.write` | no | yes | — |
+| Set paid-until (past_due paid into the future → active) | `POST …/subscription/paid-until` | `platform.subscriptions.write` | no | yes | — |
+| Entitlement override (mandatory expiry ≤ 366 days) / revoke | `POST …/overrides`, `POST …/overrides/:id/revoke` | `platform.entitlements.write` | no | yes | create |
+| Founding partner grant / revoke | `POST …/founding-partner`, `POST …/founding-partner/revoke` | `platform.founding_partner.write` | no | yes | revoke |
+| Suspend / unsuspend | `POST …/suspend`, `POST …/unsuspend` | `platform.salons.suspend` | no | yes | yes |
+
+### Invariants
+- Every admin mutation body requires `reason` (5–500 chars, no personal data) and goes through `AdminActions.run`: one transaction = domain change + `audit_logs` row (`actor_type = platform_admin`, actor id, `metadata = { reason, platformRole, before, after }`). No audit row → no change (rollback tested). Entitlement cache invalidated after commit.
+- Step-up: high-risk actions (suspend, unsuspend, founding-partner revoke, override create) need a sign-in within `ADMIN_STEP_UP_MINUTES` (15) → else 403 `admin.step_up_required`. Limits in ADR-0010.
+- Suspension also blocks customer manage-link cancel/reschedule and invitation acceptance. Founding-partner changes are race-safe and clear the cache of every salon in the organisation. The panel shows only allow-listed audit metadata and hides removed members' emails.
+- Suspended salon: `EntitlementService` grants nothing (overrides included, `suspended: true` in the read model); the guard refuses every non-GET salon route with 403 `salon.suspended`; members keep reading.
+- Subscription changes are in place on the one current row; each writes `subscription_events` (`from_plan_code` / `to_plan_code`, actor `admin:<userId>`). No processor, nothing charged: "paid until" is what an admin records after an offline invoice.
+- Founding partner (R-FP3): set in the same transaction as the first paid `→ active` while `MARKETPLACE_LAUNCH_AT` (env; unset = not launched) is unset or in the future. Never re-set automatically after a revoke. Read model: `foundingPartner { since, waiverEndsAt }` (`waiverEndsAt` = launch + 24 months, null until the date is set).
+- Usage = AI hard-cap counter (`AiCostMeter.monthlyUsage`, Redis, current + previous month only) and `zalo_send_logs` (channel `template`, status `sent`). These are GuGu costs, not salon revenue (no `RevenueKind`).
+- Admin endpoints are not agent tools; nothing here is exposed to the product agent or the Admin Copilot.
+
+### Local dev: seed a platform admin
+```bash
+cd apps/api
+node --env-file=../../.env scripts/seed-platform-admin.mjs --email admin@gugu.local            # super_admin
+node --env-file=../../.env scripts/seed-platform-admin.mjs --email support@gugu.local --role support_admin
+```
+The script requires `NODE_ENV=development`, a loopback host and a local database name (`gugu`/`gugu_<suffix>`), records the OS user, creates the user if needed and writes an `admin.platform_role_granted` audit row. Sign in at `/vi/sign-in` with that email (magic link in Mailpit), then open `/vi/admin`.
+
+### UI
+`apps/app/app/[locale]/(admin)/admin/` → `index.tsx` (overview), `salons/index.tsx` (directory), `salons/[salonId].tsx` (detail + action sheets). Feature code in `apps/app/features/admin/`. Light/dark allowed (X18, shares `CrmThemeProvider`); strings in the `admin` namespace (vi/en). Buttons are hidden by `PLATFORM_ROLE_PERMISSIONS` for display only.
 
 ## File map
 - `apps/api/src/modules/subscriptions/`: `domain/` (plan catalogue, state machine, resolver), `application/` (`EntitlementService`, `SubscriptionsFacade`, `Clock`, cache port), `infra/` (Redis cache), `http/` (`EntitlementsController`, `@RequiresEntitlement`, `SALON_ACCESS` placeholder)
-- `packages/contracts/src/subscriptions/` (keys, read model, start-trial contract, error codes)
-- Planned: `apps/api/src/modules/{attribution,commission,usage,feature-flags,analytics,trust,admin}/`
+- `apps/api/src/modules/subscriptions/application/subscription-admin.service.ts`: admin operations (plan, trial, paid-until, overrides, founding partners), each returning before/after for the audit row
+- `apps/api/src/modules/admin/`: `application/admin-actions.ts` (audited runner, step-up, suspension), `application/admin-salons.queries.ts` (directory/detail), `application/admin-usage.queries.ts` (usage overview), `http/admin.controller.ts`, `admin.int.test.ts`
+- `apps/api/scripts/seed-platform-admin.mjs` (local dev)
+- `packages/contracts/src/subscriptions/` (keys, read model, start-trial contract, error codes), `packages/contracts/src/admin/admin.ts` (admin API contracts, `ADMIN_ERRORS`)
+- `apps/app/features/admin/`, `apps/app/app/[locale]/(admin)/`, `packages/localization/locales/{vi,en}/admin.json`
+- Planned: `apps/api/src/modules/{attribution,commission,usage,feature-flags,analytics,trust}/`
 - `packages/analytics/`, `packages/domain/{entitlements,usage,metrics}/`
-- `apps/app/app/[locale]/(admin)/`
 
 ## ADRs
+- ADR-0010 platform admin actions (roles on the user, audited runner, step-up, suspension).
 _TODO: attribution model & window · entitlement keys vs plan names · in-house analytics on Postgres · append-only commission ledger (dormant) · hard AI cost cap._

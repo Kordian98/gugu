@@ -6,6 +6,7 @@ import {
   type InvitationCreated,
   type InvitationPreview,
   TEAM_ERRORS,
+  SALON_SUSPENDED_ERROR,
 } from "@gugu/contracts";
 import type { SalonContext, UserPrincipal } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
@@ -200,6 +201,13 @@ export class InvitationService {
       // Seats are re-checked under the same per-salon lock as invitation creation; this invitation
       // already holds a seat, so it is excluded from the count.
       await this.lockSeats(tx, inv.salonId);
+      // A suspended salon is read-only (topic 12 M12.6): nobody joins it. FOR SHARE blocks a
+      // concurrent suspend until this accept commits, so the check cannot go stale.
+      const [target] = await tx.$queryRaw<{ status: string }[]>`
+        SELECT status::text AS status FROM salons WHERE id = ${inv.salonId}::uuid FOR SHARE`;
+      if (target?.status === "suspended") {
+        throw new AppError(403, SALON_SUSPENDED_ERROR, "Salon is suspended");
+      }
       await this.assertSeat(tx, inv.salonId, inv.id);
       // Single use even under concurrent accepts: only one update matches acceptedAt = null.
       const claimed = await tx.salonInvitation.updateMany({

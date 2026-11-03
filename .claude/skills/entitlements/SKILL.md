@@ -63,7 +63,7 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 5. Tests: 50 parallel reserves never exceed the limit, a duplicate idempotencyKey counts once, and release restores the quota.
 
 ## Procedure: grant a salon access manually (admin)
-Use `EntitlementOverride` via the admin UI or API with `reason` and an optional `expiresAt`. This is audit logged, and the cache invalidates within 60 s.
+Use the admin panel (`/vi/admin/salons/<id>` → "Add override") or `POST /api/v1/admin/salons/:salonId/overrides` with `key`, `value`, `expiresAt` (mandatory, ≤ 366 days) and `reason`. It goes through `AdminActions.run` (audit row with before/after in the same transaction) and the cache is invalidated at once. Super_admin only (`platform.entitlements.write`). A suspended salon resolves to nothing, overrides included.
 
 ## Metered usage keys (current)
 | Usage key | Limit key | Unit | Notes |
@@ -80,7 +80,7 @@ Each usage event stores `unitCost`, `costCurrency` and `fxRateToVnd` for margin 
 ## Booking source and acquisition class
 Plan rules and commission eligibility use the `BookingSource` → `gugu_acquired | salon_acquired` mapping owned by topic 12 (`docs/tasks/12-monetization-admin.md` §3.1a, code in `packages/domain/attribution`). `gugu_acquired`: `marketplace`, `promoted_listing`, `gugu_campaign`, `zalo_mini_app` (GuGu discovery). Everything else (`salon_profile`, `direct_link`, `qr_code`, `social_media`, `zalo_oa`, `zalo_link`, `zalo_chat`, `phone`, `walk_in`, `staff_created`, `repeat_customer`, `ai_agent`) is `salon_acquired`. Import the enum; never redefine it.
 
-## Founding partners (spec §3.2a; not implemented yet)
+## Founding partners (spec §3.2a; flag implemented in M12.6, waiver not yet)
 - `founding_partner` is not an entitlement key or a plan. It is a status on the organisation/salon, set once when the first **paid** subscription (`basic`, `pro` or `ultra`, never `trial`) becomes `active` before `MARKETPLACE_LAUNCH_AT` (config; `null` = not launched yet). Set it in the same transaction as that transition.
 - Waiver window: `[MARKETPLACE_LAUNCH_AT, +24 months)`. It is computed, not stored, and evaluated at the booking's completion time in UTC.
 - Any booking-fee or commission code MUST call `FoundingPartnerPolicy.waiverFor(salonId, at)` first. Inside the window, the fee is 0 and the ledger entry is written as `waived` with reason `founding_partner`. It beats rules, plans and overrides.

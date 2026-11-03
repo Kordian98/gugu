@@ -11,6 +11,7 @@ import { QueueModule } from "./infrastructure/queue/queue.module";
 import { RedisModule } from "./infrastructure/redis/redis.module";
 import { MailModule } from "./infrastructure/mail/mail.module";
 import { RateLimitModule } from "./infrastructure/rate-limit/rate-limit.module";
+import { AdminModule } from "./modules/admin/admin.facade";
 import { AiImportModule } from "./modules/ai-import/ai-import.facade";
 import { AssistantModule } from "./modules/assistant/assistant.facade";
 import { AuditModule } from "./modules/audit/audit.facade";
@@ -59,6 +60,7 @@ export const INFRASTRUCTURE_MODULES = [
     AiImportModule,
     AssistantModule,
     ZaloModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },

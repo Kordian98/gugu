@@ -22,6 +22,8 @@ export interface SalonContext {
   organizationId: string;
   role: SalonRole;
   permissions: ReadonlySet<SalonPermission>;
+  /** Suspended by platform admin: the guard rejects every write (`salon.suspended`). */
+  suspended?: boolean;
 }
 
 export interface AuthenticatedRequestState {

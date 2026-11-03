@@ -175,10 +175,11 @@ export class PublicBookingController {
     return { booking: await this.queries.publicView(ctx, bookingId), manageToken };
   }
 
-  private async manage(token: string) {
+  private async manage(token: string, write = false) {
     const found = await this.queries.resolveManageToken(token);
     if (!found) throw new AppError(404, COMMON_ERRORS.notFound, "Link invalid or expired");
     const ctx = await this.contexts.forSalon(found.salonId);
+    if (write) await this.contexts.assertWritable(found.salonId);
     const actor: BookingActor = {
       kind: "customer",
       userId: null,
@@ -229,7 +230,7 @@ export class PublicBookingController {
     @Req() req: Request,
   ): Promise<PublicBooking> {
     await this.limit("manageLinkPerIp", requestMeta(req).ipPrefix);
-    const { ctx, actor, bookingId } = await this.manage(p.token);
+    const { ctx, actor, bookingId } = await this.manage(p.token, true);
     await this.lifecycle.transition(
       ctx,
       actor,
@@ -266,7 +267,7 @@ export class PublicBookingController {
     @Req() req: Request,
   ): Promise<PublicBookingCreated> {
     await this.limit("manageLinkPerIp", requestMeta(req).ipPrefix);
-    const { ctx, actor, bookingId } = await this.manage(p.token);
+    const { ctx, actor, bookingId } = await this.manage(p.token, true);
     const result = await this.lifecycle.reschedule(
       ctx,
       actor,

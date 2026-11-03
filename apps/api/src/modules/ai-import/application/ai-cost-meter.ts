@@ -29,6 +29,18 @@ export abstract class AiCostMeter {
   abstract reserve(salonId: string, amountVnd: number): Promise<CostReservation>;
   abstract commit(reservation: CostReservation, actualVnd: number): Promise<void>;
   abstract release(reservation: CostReservation): Promise<void>;
+  /**
+   * Metered spend per salon for one calendar month (`YYYY-MM`, Asia/Ho_Chi_Minh), for platform
+   * admin reporting. Salons without spend are 0. Counters live ~40 days, so only the current and
+   * the previous month are meaningful.
+   */
+  abstract monthlyUsage(salonIds: readonly string[], month: string): Promise<Map<string, number>>;
+}
+
+/** Calendar month (`YYYY-MM`) of `at` in Asia/Ho_Chi_Minh (UTC+7, no DST): the cap period. */
+export function aiCostMonth(at: Date): string {
+  const local = new Date(at.getTime() + 7 * 3600_000);
+  return `${String(local.getUTCFullYear())}-${String(local.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 const MONTH_TTL_SECONDS = 40 * 24 * 3600;
@@ -108,6 +120,14 @@ export class RedisAiCostMeter extends AiCostMeter {
     await this.settle(r, 0);
   }
 
+  async monthlyUsage(salonIds: readonly string[], month: string): Promise<Map<string, number>> {
+    const result = new Map<string, number>();
+    if (salonIds.length === 0) return result;
+    const values = await this.redis.client.mget(...salonIds.map((id) => this.key(id, month)));
+    salonIds.forEach((id, i) => result.set(id, Math.max(0, Number(values[i] ?? 0))));
+    return result;
+  }
+
   private async settle(r: CostReservation, amount: number) {
     await this.redis.client.eval(
       SETTLE,
@@ -126,8 +146,10 @@ export class RedisAiCostMeter extends AiCostMeter {
 
   /** Calendar month in Asia/Ho_Chi_Minh (UTC+7, no DST). */
   protected monthKey(salonId: string): string {
-    const local = new Date(this.now().getTime() + 7 * 3600_000);
-    const month = `${String(local.getUTCFullYear())}-${String(local.getUTCMonth() + 1).padStart(2, "0")}`;
+    return this.key(salonId, aiCostMonth(this.now()));
+  }
+
+  private key(salonId: string, month: string): string {
     return `ai:cost:v1:${salonId}:${month}`;
   }
 

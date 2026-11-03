@@ -3,6 +3,7 @@ import {
   type BooleanEntitlementKey,
   type EntitlementKey,
   type EntitlementValue,
+  FOUNDING_WAIVER_MONTHS,
   type LimitEntitlementKey,
   type LimitValue,
   planCodeSchema,
@@ -10,6 +11,7 @@ import {
   SUBSCRIPTION_ERRORS,
 } from "@gugu/contracts";
 import { AppError } from "../../../common/problem/app-error";
+import { AppConfig } from "../../../infrastructure/config/app-config";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { resolveEntitlements } from "../domain/resolve-entitlements";
 import { effectiveStatus, isCurrent } from "../domain/subscription-status";
@@ -30,13 +32,42 @@ export class EntitlementService {
     private readonly prisma: PrismaService,
     private readonly clock: Clock,
     @Inject(ENTITLEMENT_CACHE) private readonly cache: EntitlementCache,
+    private readonly config?: AppConfig,
   ) {}
 
   async forSalon(salonId: string): Promise<SalonEntitlements> {
     const cached = await this.cache.get(salonId);
     if (cached) return cached;
     const now = this.clock.now();
-    const [subscription, overrides] = await Promise.all([
+    const [subscription, overrides, salon] = await this.load(salonId, now);
+    const status = subscription ? effectiveStatus(subscription, now) : "none";
+    // A suspended salon gets nothing, overrides included (platform admin suspension, M12.6).
+    const suspended = salon?.status === "suspended";
+    const granting = subscription !== null && status !== "none" && isCurrent(status) && !suspended;
+    const result: SalonEntitlements = {
+      salonId,
+      plan: subscription ? planCodeSchema.parse(subscription.plan.code) : null,
+      status,
+      trialEndsAt: subscription?.trialEndsAt?.toISOString() ?? null,
+      suspended,
+      foundingPartner: this.foundingPartner(salon?.organization.foundingPartner ?? null),
+      entitlements: resolveEntitlements(
+        granting ? subscription.plan.entitlements : null,
+        suspended ? [] : overrides,
+        now,
+      ),
+    };
+    // A salon without a subscription is about to get one (registration → startTrial); never cache
+    // that state, and never cache a trial beyond its end.
+    if (subscription) {
+      const ttl = cacheTtl(subscription.trialEndsAt, now);
+      if (ttl > 0) await this.cache.set(salonId, result, ttl);
+    }
+    return result;
+  }
+
+  private load(salonId: string, now: Date) {
+    return Promise.all([
       // The newest subscription is the current one if any is current (at most one, and a new one
       // is only created after the previous ended); otherwise it tells us why access ended.
       this.prisma.subscription.findFirst({
@@ -48,30 +79,16 @@ export class EntitlementService {
         where: { salonId, revokedAt: null, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
         select: { key: true, value: true, expiresAt: true, revokedAt: true, createdAt: true },
       }),
+      this.prisma.salon.findUnique({
+        where: { id: salonId },
+        select: {
+          status: true,
+          organization: {
+            select: { foundingPartner: { select: { qualifiedAt: true, revokedAt: true } } },
+          },
+        },
+      }),
     ]);
-    const status = subscription ? effectiveStatus(subscription, now) : "none";
-    const granting = subscription !== null && status !== "none" && isCurrent(status);
-    const result: SalonEntitlements = {
-      salonId,
-      plan: subscription ? planCodeSchema.parse(subscription.plan.code) : null,
-      status,
-      trialEndsAt: subscription?.trialEndsAt?.toISOString() ?? null,
-      entitlements: resolveEntitlements(
-        granting ? subscription.plan.entitlements : null,
-        overrides,
-        now,
-      ),
-    };
-    // A salon without a subscription is about to get one (registration → startTrial); never cache
-    // that state, and never cache a trial beyond its end.
-    if (subscription) {
-      const untilTrialEnd = subscription.trialEndsAt
-        ? Math.floor((subscription.trialEndsAt.getTime() - now.getTime()) / 1000)
-        : Number.POSITIVE_INFINITY;
-      const ttl = Math.min(ENTITLEMENT_CACHE_TTL_SECONDS, untilTrialEnd);
-      if (ttl > 0) await this.cache.set(salonId, result, ttl);
-    }
-    return result;
   }
 
   async get<K extends EntitlementKey>(salonId: string, key: K): Promise<EntitlementValue<K>> {
@@ -100,8 +117,32 @@ export class EntitlementService {
     }
   }
 
-  /** Call after any change to a salon's subscription or overrides. */
+  private foundingPartner(
+    row: { qualifiedAt: Date; revokedAt: Date | null } | null,
+  ): SalonEntitlements["foundingPartner"] {
+    if (!row || row.revokedAt) return null;
+    return { since: row.qualifiedAt.toISOString(), waiverEndsAt: this.waiverEnd() };
+  }
+
+  /** R-FP4: computed, never stored, so it follows the launch date until launch. */
+  private waiverEnd(): string | null {
+    const launch = this.config?.marketplaceLaunchAt;
+    if (!launch) return null;
+    const end = new Date(launch);
+    end.setUTCMonth(end.getUTCMonth() + FOUNDING_WAIVER_MONTHS);
+    return end.toISOString();
+  }
+
+  /** Call after any change to a salon's subscription, overrides, suspension or founding flag. */
   async invalidate(salonId: string): Promise<void> {
     await this.cache.delete(salonId);
   }
+}
+
+/** Seconds to cache: ≤ the TTL and never beyond a trial's end. */
+function cacheTtl(trialEndsAt: Date | null, now: Date): number {
+  const untilTrialEnd = trialEndsAt
+    ? Math.floor((trialEndsAt.getTime() - now.getTime()) / 1000)
+    : Number.POSITIVE_INFINITY;
+  return Math.min(ENTITLEMENT_CACHE_TTL_SECONDS, untilTrialEnd);
 }

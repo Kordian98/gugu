@@ -127,6 +127,9 @@ model SubscriptionEvent {
   subscriptionId String              @map("subscription_id") @db.Uuid
   fromStatus     SubscriptionStatus? @map("from_status")
   toStatus       SubscriptionStatus  @map("to_status")
+  /// Plan codes when the plan changed (admin plan assignment, M12.6); null for status-only events.
+  fromPlanCode   String?             @map("from_plan_code")
+  toPlanCode     String?             @map("to_plan_code")
   /// `user:<id>` | `system` | `admin:<id>` (topic 05 actor model).
   actor          String
   reason         String?
@@ -155,6 +158,30 @@ model EntitlementOverride {
   @@unique([salonId, id])
   @@index([salonId, key])
   @@map("entitlement_overrides")
+}
+
+enum FoundingPartnerSource {
+  paid_before_launch
+  admin_grant
+
+  @@map("founding_partner_source")
+}
+
+/// Founding partner (X19/X20, spec 12 §3.2a): stored per organisation, so every salon of the
+/// organisation inherits it. Never removed automatically; only a super_admin revokes it (reason +
+/// audit). Re-granting after a revoke updates the same row; the audit log keeps the history.
+model FoundingPartner {
+  id                       String                @id @default(uuid(7)) @db.Uuid
+  organizationId           String                @unique @map("organization_id") @db.Uuid
+  qualifiedAt              DateTime              @map("qualified_at") @db.Timestamptz(6)
+  source                   FoundingPartnerSource
+  qualifyingSubscriptionId String?               @map("qualifying_subscription_id") @db.Uuid
+  revokedAt                DateTime?             @map("revoked_at") @db.Timestamptz(6)
+  createdAt                DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization             Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@map("founding_partners")
 }
 
 // ─── Identity & users (module auth; spec 04 §3.2, spec 05 §3.1–3.2) ─────────────────────────────
@@ -458,9 +485,10 @@ model Organization {
   createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  owner   User                 @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
-  salons  Salon[]
-  members OrganizationMember[]
+  owner           User                 @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  salons          Salon[]
+  members         OrganizationMember[]
+  foundingPartner FoundingPartner?
 
   @@map("organizations")
 }
@@ -494,21 +522,25 @@ enum SalonStatus {
 
 /// One salon = one bookable location = the tenant (`salon_id` row scope).
 model Salon {
-  id                String      @id @default(uuid(7)) @db.Uuid
-  organizationId    String      @map("organization_id") @db.Uuid
-  slug              String      @unique @db.Citext
-  name              String
-  status            SalonStatus @default(draft)
-  verifiedAt        DateTime?   @map("verified_at") @db.Timestamptz(6)
-  timezone          String      @default("Asia/Ho_Chi_Minh")
-  defaultLocale     Locale      @default(vi) @map("default_locale")
-  currency          String      @default("VND") @db.Char(3)
-  ownerUserId       String      @map("owner_user_id") @db.Uuid
-  phoneE164         String?     @map("phone_e164")
-  primaryCategoryId String?     @map("primary_category_id") @db.Uuid
-  deletedAt         DateTime?   @map("deleted_at") @db.Timestamptz(6)
-  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  organizationId      String       @map("organization_id") @db.Uuid
+  slug                String       @unique @db.Citext
+  name                String
+  status              SalonStatus  @default(draft)
+  verifiedAt          DateTime?    @map("verified_at") @db.Timestamptz(6)
+  timezone            String       @default("Asia/Ho_Chi_Minh")
+  defaultLocale       Locale       @default(vi) @map("default_locale")
+  currency            String       @default("VND") @db.Char(3)
+  ownerUserId         String       @map("owner_user_id") @db.Uuid
+  phoneE164           String?      @map("phone_e164")
+  primaryCategoryId   String?      @map("primary_category_id") @db.Uuid
+  deletedAt           DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  /// Set by platform admin suspension (topic 12 M12.6); status is `suspended` meanwhile.
+  suspendedAt         DateTime?    @map("suspended_at") @db.Timestamptz(6)
+  /// Status to restore on unsuspend (draft | pending_review | active).
+  preSuspensionStatus SalonStatus? @map("pre_suspension_status")
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   owner                  User                    @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
