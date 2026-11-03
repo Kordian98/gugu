@@ -18,7 +18,8 @@
       "reviews": "Reviews",
       "insights": "Insights & reports",
       "settings": "Settings",
-      "zalo": "Zalo"
+      "zalo": "Zalo",
+      "payroll": "Payroll"
     },
     "today": "Today",
     "more": "More",
@@ -193,6 +194,9 @@
     "setupCta": "Set up services",
     "zalo": {
       "title": "Zalo messages"
+    },
+    "payroll": {
+      "title": "Pay & commission"
     }
   },
   "guard": {
@@ -269,7 +273,15 @@
     "privacy_export_in_progress": "An export is already being created. Please wait.",
     "privacy_export_unavailable": "The export is not ready yet or has expired.",
     "privacy_export_not_found": "Export not found.",
-    "customers_not_found": "Client not found."
+    "customers_not_found": "Client not found.",
+    "payroll_month_closed": "This month's payroll is closed. Reopen it to make changes.",
+    "payroll_month_not_closed": "Close the payroll first.",
+    "payroll_month_in_future": "This month has not started yet.",
+    "payroll_staff_not_found": "Team member not found.",
+    "payroll_invalid_override": "A service does not belong to this salon.",
+    "payroll_adjustment_not_found": "Entry not found.",
+    "payroll_cost_not_found": "Cost not found.",
+    "payroll_not_a_manager": "Only managers can be given access."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",
@@ -745,7 +757,19 @@
       "revenue_estimated": "Estimated revenue",
       "revenue_offline_recorded": "Recorded at the salon",
       "margin_estimated": "Estimated gross margin",
-      "appointments_upcoming": "Upcoming appointments"
+      "appointments_upcoming": "Upcoming appointments",
+      "profit_revenue_earned": "So far",
+      "profit_revenue_earned_recorded": "Recorded at salon",
+      "profit_revenue_upcoming": "Upcoming",
+      "profit_no_show_allowance": "Possible no-shows",
+      "profit_revenue_total": "Month revenue",
+      "profit_service_costs": "Service costs",
+      "profit_payroll": "Team pay",
+      "profit_other_costs": "Other costs",
+      "profit_net": "Est. net profit",
+      "profit_gross_margin": "Gross margin",
+      "profit_net_margin": "Net margin",
+      "profit_month_progress": "Month progress"
     },
     "vsPrevious": "vs previous period",
     "noPrevious": "No data for the previous period",
@@ -762,7 +786,21 @@
     "forbiddenBody": "The salon owner can grant report access in Team.",
     "marginHint": "Service price minus internal cost, over completed appointments whose services have a cost.",
     "fromNow": "From now on, independent of the period",
-    "range": "{{from}} – {{to}} (appointments starting in the period)"
+    "range": "{{from}} – {{to}} (appointments starting in the period)",
+    "definitions": {
+      "profit_revenue_earned": "Completed appointments this month: the amount recorded at the salon where entered, otherwise the booked price. An estimate, not a payment.",
+      "profit_revenue_earned_recorded": "The part of revenue so far that comes from amounts recorded at the salon.",
+      "profit_revenue_upcoming": "Pending, confirmed and checked-in appointments from now to month end, at their booked prices.",
+      "profit_no_show_allowance": "Assumption: upcoming revenue × the salon's no-show rate over the last 90 days (needs at least 20 finished appointments).",
+      "profit_revenue_total": "So far + upcoming − possible no-shows.",
+      "profit_service_costs": "Material cost entered per service, variant and add-on, for done and upcoming appointments. Services without a cost count as 0đ.",
+      "profit_payroll": "One total for the team: full-month base pay + commission earned + upcoming commission + bonuses − deductions. Before tax and insurance.",
+      "profit_other_costs": "Costs the owner entered: rent, utilities, products, marketing…",
+      "profit_net": "Month revenue − service costs − pay − other costs. An estimate before tax.",
+      "profit_gross_margin": "(Month revenue − service costs) ÷ month revenue.",
+      "profit_net_margin": "Estimated net profit ÷ month revenue.",
+      "profit_month_progress": "Days elapsed (including today) ÷ days in the month."
+    }
   },
   "today": {
     "unassignedServices": "{{count}} services have no team member assigned — clients and Zalo can't book them.",
@@ -821,5 +859,228 @@
       "lead_time": "Too short notice",
       "horizon": "Beyond the booking window"
     }
+  },
+  "payroll": {
+    "subtitle": "Base pay, commission and adjustments per person, by month.",
+    "estimateNote": "These are estimates before tax and social insurance. GuGu does not calculate income tax or social insurance and moves no money.",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "status": {
+      "open": "Open",
+      "closed": "Closed"
+    },
+    "closedOn": "Closed on {{date}}",
+    "columns": {
+      "person": "Team member",
+      "base": "Base pay",
+      "commission": "Commission",
+      "adjustments": "Bonus / deduction / advance",
+      "total": "To pay",
+      "paid": "Paid"
+    },
+    "baseType": {
+      "none": "No base pay",
+      "monthly": "Monthly",
+      "daily": "Per working day",
+      "hourly": "Hourly"
+    },
+    "baseDetail": {
+      "monthly": "{{days}}/{{dim}} days",
+      "daily": "{{count}} working days",
+      "hourly": "{{hours}} h",
+      "none": "Commission only"
+    },
+    "noPay": "Pay not set",
+    "removed": "Left",
+    "projected": "+{{amount}} upcoming",
+    "totals": "Total",
+    "close": "Close payroll",
+    "closeTitle": "Close payroll for {{month}}?",
+    "closeBody": "The figures are saved and will not change. You can reopen the month if needed.",
+    "closeEarly": "The month is not over: commission on appointments from now to month end will not be included.",
+    "reopen": "Reopen payroll",
+    "reopenTitle": "Reopen payroll for {{month}}?",
+    "reopenBody": "Figures are recalculated from current appointments. The reason is written to the log.",
+    "reopenReason": "Reason for reopening",
+    "exportCsv": "Download CSV",
+    "exportXlsx": "Download Excel",
+    "markPaid": "Mark as paid",
+    "paidDate": "Pay date",
+    "paidOn": "Paid {{date}}",
+    "unmarkPaid": "Remove mark",
+    "paidHint": "Bookkeeping only; GuGu moves no money.",
+    "paidNeedsClose": "Close the payroll first, then mark people as paid.",
+    "detailTitle": "{{name}} · {{month}}",
+    "adjustments": {
+      "title": "Bonuses, deductions, advances",
+      "add": "Add",
+      "kind": {
+        "bonus": "Bonus",
+        "deduction": "Deduction",
+        "advance": "Advance"
+      },
+      "amount": "Amount",
+      "reason": "Reason",
+      "reasonHint": "Required. Only people managing payroll see it.",
+      "empty": "Nothing added yet.",
+      "remove": "Remove",
+      "lockedHint": "Payroll is closed; nothing can be added."
+    },
+    "lines": {
+      "title": "Commission per service",
+      "empty": "No services this month yet.",
+      "earned": "Done",
+      "projected": "Upcoming",
+      "rateFixed": "{{amount}} each",
+      "ratePercent": "{{percent}}% of {{base}}",
+      "noRate": "Commission not set"
+    },
+    "emptyTitle": "No team members yet",
+    "emptyBody": "Add people under Team, then set pay for each of them.",
+    "forbiddenTitle": "Only the salon owner can see payroll",
+    "forbiddenBody": "The owner can let managers see payroll under Pay settings.",
+    "loadError": "Could not load payroll.",
+    "retry": "Try again",
+    "setPay": "Set pay",
+    "settings": {
+      "title": "Pay settings",
+      "commissionBase": "Commission is calculated on",
+      "bases": {
+        "price_after_discount": "Price after discount",
+        "price_minus_cost": "Price minus service cost"
+      },
+      "basesHint": {
+        "price_after_discount": "The service price; if the salon recorded a lower amount, that amount.",
+        "price_minus_cost": "Price after discount minus the material cost entered for the service."
+      },
+      "baseFrom": "Applies from the 1st of the month you are viewing.",
+      "managerAccess": "Managers can see payroll",
+      "managerAccessHint": "Pay is personal. Only switch this on for people you trust.",
+      "noManagers": "The salon has no managers."
+    },
+    "pay": {
+      "button": "Pay",
+      "title": "Pay & commission",
+      "baseType": "Base pay",
+      "amount": {
+        "monthly": "Monthly salary",
+        "daily": "Pay per working day",
+        "hourly": "Pay per hour"
+      },
+      "amountHint": {
+        "monthly": "Pro-rated by days employed when someone joins or leaves mid-month.",
+        "daily": "A working day is a day with hours in the work schedule.",
+        "hourly": "Counted from the hours in the work schedule."
+      },
+      "commission": "Default commission (%)",
+      "commissionHint": "On every completed service of this person.",
+      "effectiveFrom": "Applies from",
+      "effectiveHint": "Earlier months keep their figures.",
+      "overrides": "Commission for specific services",
+      "addOverride": "Add service",
+      "service": "Service",
+      "variant": "Variant",
+      "allVariants": "All variants",
+      "rateKind": {
+        "percent": "Percent",
+        "fixed": "Amount per service"
+      },
+      "removeOverride": "Remove",
+      "history": "History",
+      "historyItem": "From {{date}}",
+      "current": "Current",
+      "none": "Pay is not set for this person.",
+      "summary": "{{base}} · commission {{percent}}%"
+    },
+    "export": {
+      "title": "Payroll",
+      "name": "Team member",
+      "baseType": "Base pay type",
+      "workingDays": "Working days",
+      "base": "Base pay",
+      "commission": "Commission",
+      "bonus": "Bonus",
+      "deduction": "Deduction",
+      "advance": "Advance",
+      "total": "To pay",
+      "paidOn": "Paid on",
+      "totals": "Total",
+      "note": "Estimates before personal income tax and social insurance, for bookkeeping only."
+    },
+    "services": "Services: {{count}}"
+  },
+  "profit": {
+    "tabs": {
+      "overview": "Overview",
+      "month": "This month"
+    },
+    "title": "Estimated profit · {{month}}",
+    "progress": "{{elapsed}} of {{days}} days",
+    "cols": {
+      "actual": "So far",
+      "projected": "Projected",
+      "total": "Month"
+    },
+    "rows": {
+      "revenue": "Revenue",
+      "noShow": "Possible no-shows",
+      "serviceCosts": "Service costs",
+      "commission": "Commission",
+      "basePay": "Base pay (full month)",
+      "adjustments": "Bonuses − deductions",
+      "otherCosts": "Other costs",
+      "gross": "Gross profit",
+      "net": "Estimated net profit"
+    },
+    "recordedPart": "Of which {{amount}} recorded at the salon",
+    "assumption": "Assumption: {{rate}} of upcoming appointments may not show up (the salon's rate over the last 90 days).",
+    "noAssumption": "Not enough history to estimate no-shows, so none are subtracted.",
+    "missingCost": "{{count}} services have no cost entered and count as 0đ.",
+    "closedPayroll": "Pay comes from the closed payroll.",
+    "note": "An estimate before tax, not accounting.",
+    "definition": "Definition",
+    "costs": {
+      "title": "Other costs this month",
+      "add": "Add cost",
+      "name": "Name",
+      "amount": "Amount",
+      "category": {
+        "rent": "Rent",
+        "utilities": "Utilities",
+        "products": "Products",
+        "marketing": "Marketing",
+        "other": "Other"
+      },
+      "recurring": "Repeats every month",
+      "oneOff": "This month only",
+      "monthly": "Monthly",
+      "empty": "No costs yet. Add rent, utilities… for a closer estimate.",
+      "remove": "Remove from this month on",
+      "editHint": "Changes apply from the month you are viewing; earlier months stay the same.",
+      "newTitle": "New cost",
+      "editTitle": "Edit cost"
+    },
+    "card": {
+      "title": "This month",
+      "earned": "So far",
+      "upcoming": "Upcoming",
+      "net": "Est. profit",
+      "open": "Details"
+    },
+    "forbiddenTitle": "Only the salon owner can see the profit estimate",
+    "forbiddenBody": "The profit estimate includes the team's total pay."
+  },
+  "myEarnings": {
+    "title": "My earnings this month (estimate)",
+    "base": "Base pay",
+    "commissionEarned": "Commission earned",
+    "commissionProjected": "Upcoming commission",
+    "adjustments": "Bonus / deduction / advance",
+    "total": "Estimate at month end",
+    "note": "Before tax and insurance. Only you see this.",
+    "noPay": "The owner has not set your pay yet.",
+    "paid": "Paid on {{date}}",
+    "closed": "Payroll closed",
+    "services": "Services: {{count}}"
   }
 }
