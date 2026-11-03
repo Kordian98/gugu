@@ -27,3 +27,4 @@ export * from "./assistant/assistant";
 export * from "./salon-crm/customers";
 export * from "./salon-crm/insights";
 export * from "./notifications/notifications";
+export * from "./salon-crm/payroll";
