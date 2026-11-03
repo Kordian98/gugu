@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import { type MailAttachment, MailService } from "../../../infrastructure/mail/mail.service";
+import { MailService } from "../../../infrastructure/mail/mail.service";
 
 /**
  * Channel provider port (spec 11 R17). Domain services never call a provider directly: the send
- * worker hands a rendered message to the provider of the delivery's channel. `zalo_template` is
- * implemented by the `zalo` module (it owns ZBS Template Message sends and their log); this module
- * only reads its outcome. SMS stays a mock behind this port (X12) and is not wired in this milestone.
+ * worker hands a rendered message to the provider of the delivery's channel. Customer messages are
+ * not sent here at all: `zalo_template` belongs to the `zalo` module (salon's own OA) and GuGu
+ * never emails customers (X26). SMS stays a mock behind this port (X12) and is not wired.
  */
 export interface ChannelProvider<M> {
   readonly channel: string;
@@ -18,8 +18,6 @@ export interface EmailMessage {
   text: string;
   html: string;
   fromName: string;
-  replyTo: string | null;
-  attachments: MailAttachment[];
   /** Deterministic per delivery (idempotency key), so a retried send carries the same id. */
   messageId: string;
 }
@@ -31,7 +29,7 @@ export class PermanentChannelError extends Error {
   }
 }
 
-/** Email over the shared MailService (Mailpit locally; SES/other later, topic 13). */
+/** Team email over the shared MailService (Mailpit locally; SES/other later, topic 13). */
 @Injectable()
 export class EmailChannel implements ChannelProvider<EmailMessage> {
   readonly channel = "email";
@@ -46,8 +44,6 @@ export class EmailChannel implements ChannelProvider<EmailMessage> {
         text: m.text,
         html: m.html,
         fromName: m.fromName,
-        replyTo: m.replyTo,
-        attachments: m.attachments,
         messageId: m.messageId,
         // RFC 3834: automated message — no out-of-office loops.
         headers: { "Auto-Submitted": "auto-generated", "X-Auto-Response-Suppress": "All" },

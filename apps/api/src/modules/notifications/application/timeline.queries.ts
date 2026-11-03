@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { BookingMessage, BookingMessages } from "@gugu/contracts";
+import type { BookingMessage, BookingMessages, ZaloReach } from "@gugu/contracts";
 import type { SalonContext } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
 import { COMMON_ERRORS } from "../../../common/problem/error-codes";
@@ -10,8 +10,9 @@ const notFound = () => new AppError(404, COMMON_ERRORS.notFound, "Booking not fo
 
 /**
  * "Messages sent" timeline of one booking for the CRM drawer (spec 11 §9 `notifications.bookingLog`):
- * customer emails from `notification_deliveries` merged with the booking's Zalo sends (module
- * `zalo`). Channel, status, reason and times only — no address, no content. Same booking scope as
+ * the booking's Zalo sends (module `zalo`) — the only messages a salon's customer ever gets (X26) —
+ * plus whether the salon's OA can reach the customer now (`zaloReach`), so staff know when to call.
+ * Channel, status, reason and times only — no address, no content. Same booking scope as
  * the booking itself: `bookings.read`, or `bookings.read.own` for the member's own bookings
  * (another salon's booking or someone else's for own-scope staff → 404).
  */
@@ -48,47 +49,29 @@ export class TimelineQueries {
           ? { OR: [{ staffId: staffOnly }, { services: { some: { staffId: staffOnly } } }] }
           : {}),
       },
-      select: { id: true, customerEmail: true },
+      select: { id: true },
     });
     if (!booking) throw notFound();
-    const [emails, zalo] = await Promise.all([
-      this.prisma.notificationDelivery.findMany({
-        where: { salonId: salon.salonId, bookingId, audience: "customer" },
-        orderBy: { createdAt: "asc" },
-        take: 100,
-      }),
+    const [sends, messaging, route] = await Promise.all([
       this.zalo.forBooking(salon.salonId, bookingId),
+      this.zalo.customerMessaging(salon.salonId),
+      this.zalo.route(salon.salonId, bookingId),
     ]);
-    const items: BookingMessage[] = [
-      ...emails.map((d) => {
-        const offset = (d.meta as { offsetMinutes?: unknown } | null)?.offsetMinutes;
-        return {
-          id: d.id,
-          channel: "email" as const,
-          kind: d.event,
-          offsetMinutes: typeof offset === "number" ? offset : null,
-          status: d.status,
-          reason: d.reason,
-          fallback: d.fallbackOf !== null,
-          scheduledFor: d.scheduledFor?.toISOString() ?? null,
-          sentAt: d.sentAt?.toISOString() ?? null,
-          createdAt: d.createdAt.toISOString(),
-        };
-      }),
-      ...zalo.map((z) => ({
-        id: z.id,
-        channel: z.channel === "template" ? ("zalo_template" as const) : ("zalo_chat" as const),
-        kind: z.purpose,
-        offsetMinutes:
-          z.purpose === "reminder_24h" ? 1440 : z.purpose === "reminder_2h" ? 120 : null,
-        status: z.status,
-        reason: z.errorCode,
-        fallback: false,
-        scheduledFor: null,
-        sentAt: z.sentAt?.toISOString() ?? null,
-        createdAt: z.createdAt.toISOString(),
-      })),
-    ].sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0));
-    return { items, hasEmail: booking.customerEmail !== null };
+    const items: BookingMessage[] = sends.map((z) => ({
+      id: z.id,
+      channel: z.channel === "template" ? "zalo_template" : "zalo_chat",
+      kind: z.purpose,
+      offsetMinutes: z.purpose === "reminder_24h" ? 1440 : z.purpose === "reminder_2h" ? 120 : null,
+      status: z.status,
+      reason: z.errorCode,
+      sentAt: z.sentAt?.toISOString() ?? null,
+      createdAt: z.createdAt.toISOString(),
+    }));
+    const zaloReach: ZaloReach = !messaging.connected
+      ? "not_connected"
+      : route.usable
+        ? "reachable"
+        : "not_linked";
+    return { items, zaloReach };
   }
 }

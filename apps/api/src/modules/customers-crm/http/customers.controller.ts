@@ -80,7 +80,7 @@ export class CustomersController {
   })
   async create(
     @Param({ schema: salonParamsSchema }) _p: { salonId: string },
-    @Body({ schema: customerInputSchema }) body: { displayName: string; phone: string | null },
+    @Body({ schema: customerInputSchema }) body: z.infer<typeof customerInputSchema>,
     @CurrentSalon() salon: SalonContext,
   ): Promise<{ id: string }> {
     return this.customers.create(salon, body);
@@ -110,7 +110,10 @@ export class CustomersController {
   @Patch(":customerId")
   @RequirePermission("customers.read")
   @HttpCode(204)
-  @ApiOperation({ operationId: "customers.update", summary: "Name, tags, marketing consent." })
+  @ApiOperation({
+    operationId: "customers.update",
+    summary: "Name, tags, marketing consent, stored email (never used for sending).",
+  })
   @ApiResponse({ status: 204, description: "Updated." })
   async update(
     @Param({ schema: customerParamsSchema }) p: P,

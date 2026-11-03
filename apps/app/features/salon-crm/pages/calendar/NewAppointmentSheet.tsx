@@ -118,7 +118,6 @@ export function NewAppointmentSheet({
     : undefined;
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [walkIn, setWalkIn] = useState(false);
   const [serviceId, setServiceId] = useState<string | null>(
     again?.id ?? (active.length === 1 ? (active[0]?.id ?? null) : null),
@@ -259,21 +258,18 @@ export function NewAppointmentSheet({
   };
 
   const digits = q.replace(/\D/g, "");
-  const emailValue = email.trim();
-  const emailInvalid = emailValue !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
   const contact = client
-    ? { name: client.name, phone: client.phone, email: emailValue || null }
+    ? { name: client.name, phone: client.phone }
     : {
         name: name.trim() || (digits.length < 3 ? q.trim() : ""),
         phone: phone.trim() || (digits.length >= 8 ? q.trim() : ""),
-        email: emailValue || null,
       };
   const ready = Boolean(
     service &&
     chosenSlot &&
     nextServices &&
     (!manualMode || (staffId && overrideReason.trim().length >= 3)) &&
-    (walkIn || (contact.name && contact.phone.replace(/\D/g, "").length >= 8 && !emailInvalid)),
+    (walkIn || (contact.name && contact.phone.replace(/\D/g, "").length >= 8)),
   );
 
   const submit = (overrides: RuleOverride[] = []) => {
@@ -439,22 +435,6 @@ export function NewAppointmentSheet({
               </Field>
             </View>
           </>
-        )}
-        {walkIn ? null : (
-          <Field
-            label={t("calendar.newClientEmail")}
-            hint={t("calendar.newClientEmailHint")}
-            error={emailInvalid ? t("calendar.newClientEmailInvalid") : null}
-          >
-            <Input
-              testID="crm-client-email"
-              label={t("calendar.newClientEmail")}
-              keyboardType="email-address"
-              value={email}
-              invalid={emailInvalid}
-              onChangeText={setEmail}
-            />
-          </Field>
         )}
       </Section>
 

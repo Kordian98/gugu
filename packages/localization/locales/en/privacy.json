@@ -2,14 +2,13 @@
   "export": {
     "title": "Client data held by {{salon}}",
     "generatedAt": "Exported at: {{at}}",
-    "intro": "This document lists the data the salon keeps about the client in GuGu Studio: profile, bookings, internal notes, the Zalo conversation and the log of messages sent.",
+    "intro": "This document lists the data the salon keeps about the client in GuGu Studio: profile, bookings, internal notes and the Zalo conversation.",
     "disclaimer": "GuGu Studio is designed to support salons in answering personal-data requests. This is not legal advice.",
     "sections": {
       "client": "Client profile",
       "bookings": "Bookings",
       "notes": "Salon notes",
-      "zalo": "Zalo conversation",
-      "notifications": "Messages sent"
+      "zalo": "Zalo conversation"
     },
     "fields": {
       "name": "Name",
@@ -27,10 +26,7 @@
       "note": "Client's note",
       "cancellation": "Cancellation reason",
       "payment": "Paid at the salon",
-      "history": "Status history",
-      "channel": "Channel",
-      "event": "Event",
-      "sentAt": "Sent"
+      "history": "Status history"
     },
     "consentChannels": {
       "zalo": "Zalo",

@@ -214,7 +214,6 @@ export class SalonExportService {
           bookings: one.bookings,
           notes: one.notes,
           zalo: one.zalo,
-          notificationDeliveries: one.notificationDeliveries,
         });
       }
       cursor = page.at(-1)?.id;
@@ -229,12 +228,11 @@ export class SalonExportService {
         starts_at: Date;
         customer_name: string | null;
         customer_phone_e164: string | null;
-        customer_email: string | null;
         total_price_minor: bigint;
       }[]
     >`
       SELECT b.id, b.reference_code, b.status::text AS status, b.starts_at, b.customer_name,
-             b.customer_phone_e164, b.customer_email::text AS customer_email, b.total_price_minor
+             b.customer_phone_e164, b.total_price_minor
       FROM bookings b
       WHERE b.salon_id = ${salonId}::uuid
         AND (b.customer_phone_e164 IS NULL OR NOT EXISTS (
@@ -255,7 +253,6 @@ export class SalonExportService {
           startsAt: b.starts_at.toISOString(),
           customerName: b.customer_name,
           customerPhone: b.customer_phone_e164,
-          customerEmail: b.customer_email,
           totalPriceMinor: Number(b.total_price_minor),
         })),
       },

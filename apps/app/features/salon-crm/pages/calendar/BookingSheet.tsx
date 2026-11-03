@@ -137,11 +137,6 @@ export function BookingSheet({
                 {booking.customer.phone}
               </Text>
             ) : null}
-            {booking.customer.email ? (
-              <Text testID="crm-booking-email" size={13} color={c.body}>
-                {booking.customer.email}
-              </Text>
-            ) : null}
           </View>
         ) : (
           <Text size={15} color={c.ink}>

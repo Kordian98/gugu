@@ -70,14 +70,8 @@ export const envSchema = z
     WEB_ORIGINS: z.string().default("http://localhost:8097"),
     SMTP_URL: z.url({ protocol: /^smtps?$/ }).default("smtp://127.0.0.1:11025"),
     MAIL_FROM: z.string().default("GuGu <no-reply@gugu.local>"),
-    /** Indicative cost of one email in VND for the per-salon send log (q33; SES ≈ 0.1 USD/1000). */
+    /** Indicative cost of one team email in VND for the per-salon send log (q33; SES ≈ 0.1 USD/1000). */
     NOTIFY_EMAIL_COST_VND: z.coerce.number().int().min(0).default(3),
-    /** Abuse caps on customer emails (addresses are typed by staff, unverified): per salon per day… */
-    NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY: z.coerce.number().int().min(1).default(500),
-    /** …and per recipient address per salon per day. */
-    NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY: z.coerce.number().int().min(1).default(10),
-    /** …and per canonical address across all salons per day. */
-    NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY_ALL_SALONS: z.coerce.number().int().min(1).default(20),
     /** Comma-separated OAuth client IDs; empty = provider disabled (Apple/Google sign-in, R5). */
     GOOGLE_CLIENT_IDS: z.string().default(""),
     APPLE_CLIENT_IDS: z.string().default(""),

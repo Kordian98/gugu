@@ -513,9 +513,6 @@
     "clientSearch": "Tìm theo số điện thoại hoặc tên",
     "newClientName": "Tên khách",
     "newClientPhone": "Số điện thoại",
-    "newClientEmail": "Email (không bắt buộc)",
-    "newClientEmailHint": "Để gửi xác nhận và nhắc lịch qua email khi khách không nhận được tin Zalo.",
-    "newClientEmailInvalid": "Email chưa đúng định dạng.",
     "service": "Dịch vụ",
     "staff": "Nhân viên",
     "time": "Thời gian",
@@ -599,7 +596,7 @@
     },
     "reasonText": "Ghi chú lý do",
     "reasonPlaceholder": "Không bắt buộc",
-    "cancelNotice": "Khách sẽ được báo khi có kênh thông báo (Zalo/email).",
+    "cancelNotice": "Nếu khách đã nhắn với Zalo OA của salon, khách sẽ nhận tin báo hủy qua Zalo. Nếu không, anh/chị nhớ gọi báo khách nhé.",
     "correctReason": "Lý do sửa trạng thái",
     "amountTitle": "Số tiền khách đã trả tại salon",
     "amountHint": "Không bắt buộc. Chỉ để salon theo dõi, GuGu không xử lý thanh toán.",
@@ -738,7 +735,11 @@
     "upcoming": "Lịch sắp tới",
     "history": "Lịch sử",
     "noUpcoming": "Chưa có lịch hẹn sắp tới.",
-    "noHistory": "Chưa có lượt ghé nào."
+    "noHistory": "Chưa có lượt ghé nào.",
+    "email": "Email (không bắt buộc)",
+    "emailHint": "Chỉ để lưu thông tin. GuGu không gửi email cho khách.",
+    "emailInvalid": "Email chưa đúng định dạng.",
+    "emailSaved": "Đã lưu email."
   },
   "insights": {
     "subtitle": "Số liệu từ lịch hẹn của salon. Doanh thu là ước tính, không phải tiền đã thu.",

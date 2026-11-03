@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { QueueService } from "../../../infrastructure/queue/queue.service";
 import { QUEUES } from "../../../infrastructure/queue/queues";
 import { NotifyClock } from "./notify-clock";
@@ -7,7 +7,7 @@ import { NotifyClock } from "./notify-clock";
 export const NOTIFY_JOBS = {
   /** Send one delivery; `jobId` = the delivery's idempotency key. */
   send: "notify.send",
-  /** Every 10 minutes: rebuild missing reminders, re-enqueue lost jobs (guards against Redis loss). */
+  /** Every 10 minutes: re-enqueue lost team email jobs (guards against Redis loss). */
   reconcile: "notify.reconcile",
 } as const;
 
@@ -31,8 +31,6 @@ export interface EnqueueRow {
  */
 @Injectable()
 export class DeliveryQueue {
-  private readonly logger = new Logger(DeliveryQueue.name);
-
   constructor(
     private readonly queues: QueueService,
     private readonly clock: NotifyClock,
@@ -52,14 +50,5 @@ export class DeliveryQueue {
         },
       })),
     );
-  }
-
-  /** Best effort: a job that is running or gone is left alone (the worker re-checks anyway). */
-  async remove(idempotencyKey: string): Promise<void> {
-    try {
-      await this.queues.queue(QUEUES.notify).remove(idempotencyKey);
-    } catch (error) {
-      this.logger.debug({ err: (error as Error).message }, "notify job remove skipped");
-    }
   }
 }

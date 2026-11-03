@@ -3,6 +3,13 @@ import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 
 export type ZaloSendOutcome = "queued" | "sent" | "failed" | "rejected";
 
+/** What the salon's OA sends to customers on its own (connection + reminder switches). */
+export interface ZaloCustomerMessaging {
+  connected: boolean;
+  reminder24h: boolean;
+  reminder2h: boolean;
+}
+
 export interface ZaloRoute {
   /** Connected OA and the booking is (or can be) linked to exactly one conversation. */
   usable: boolean;
@@ -22,8 +29,8 @@ export interface ZaloBookingSend {
 
 /**
  * Read-only view of Zalo delivery for the notifications module (topic 11): is there a usable Zalo
- * route to this booking's customer, what happened to a given Zalo send, and the booking's Zalo
- * send log for the CRM timeline. Email is only the fallback, so it must know what Zalo did.
+ * route to this booking's customer, what the OA sends on its own, and the booking's Zalo send log
+ * for the CRM timeline. The salon's OA is the only way GuGu reaches a salon's customers (X26).
  * Mirrors the linking rule of BookingUpdatesService/RemindersService (link, or exactly one
  * conversation with the booking's phone). Never returns message text, Zalo user ids or phones.
  */
@@ -59,22 +66,18 @@ export class ZaloDeliveryQueries {
       : none;
   }
 
-  /** The salon has a connected OA (Zalo goes first, email is the fallback). */
-  async connected(salonId: string): Promise<boolean> {
+  /** Connected OA and its reminder switches (reminders off when not connected). */
+  async customerMessaging(salonId: string): Promise<ZaloCustomerMessaging> {
     const conn = await this.prisma.zaloOaConnection.findUnique({
       where: { salonId },
-      select: { status: true },
+      select: { status: true, reminder24h: true, reminder2h: true },
     });
-    return conn?.status === "connected";
-  }
-
-  /** Outcome of one Zalo send by its dedup key, or null when Zalo never logged it. */
-  async outcome(salonId: string, dedupKey: string): Promise<ZaloSendOutcome | null> {
-    const log = await this.prisma.zaloSendLog.findFirst({
-      where: { salonId, dedupKey },
-      select: { status: true },
-    });
-    return log?.status ?? null;
+    const connected = conn?.status === "connected";
+    return {
+      connected,
+      reminder24h: connected && conn.reminder24h,
+      reminder2h: connected && conn.reminder2h,
+    };
   }
 
   /** Customer-facing Zalo sends about one booking (bot replies excluded). */

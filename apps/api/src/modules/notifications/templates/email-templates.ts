@@ -1,35 +1,16 @@
 import { z } from "zod";
-import type { CustomerNotificationEvent, Locale, TeamNotificationEvent } from "@gugu/contracts";
+import type { Locale, TeamNotificationEvent } from "@gugu/contracts";
 import { createI18n } from "@gugu/localization";
-import { customerDef, teamDef } from "../domain/catalog";
+import { teamDef } from "../domain/catalog";
 
 /**
- * Email templates (topic 11 R21): copy lives in `packages/localization/locales/<locale>/
- * notifications.json`; this file only lays it out. Variables are validated with Zod before
- * rendering. Customer emails speak as the salon and never mention GuGu; they carry no links to a
- * booking surface (owner, 2026-11-03), only the salon's phone. Never put verification codes,
- * internal notes, cancellation reasons typed by staff or another customer's data in here.
+ * Team email templates (topic 11 R21): copy lives in `packages/localization/locales/<locale>/
+ * notifications.json` (`email.team.*`); this file only lays it out. Variables are validated with
+ * Zod before rendering. There are no customer email templates: GuGu never emails a salon's
+ * customers (X26). Never put verification codes, internal notes or customer phones in here.
  */
 
-/** Variables of every customer email. `when` is already formatted in the salon's timezone. */
-export const customerEmailVarsSchema = z
-  .object({
-    salon: z.string().min(1).max(200),
-    customerName: z.string().max(120).nullable(),
-    service: z.string().min(1).max(300),
-    when: z.string().min(1).max(120),
-    staff: z.string().max(120).nullable(),
-    code: z.string().min(1).max(20),
-    price: z.string().min(1).max(60),
-    address: z.string().max(400).nullable(),
-    phone: z.string().max(32).nullable(),
-    /** The salon set a reply-to address: invite replies. */
-    canReply: z.boolean(),
-  })
-  .strict();
-export type CustomerEmailVars = z.infer<typeof customerEmailVarsSchema>;
-
-/** Variables of every team email. Customer phone and notes are never included. */
+/** Variables of every team email. `when` is already formatted in the salon's timezone. */
 export const teamEmailVarsSchema = z
   .object({
     salon: z.string().min(1).max(200),
@@ -44,7 +25,6 @@ export const teamEmailVarsSchema = z
 export type TeamEmailVars = z.infer<typeof teamEmailVarsSchema>;
 
 /** Placeholders each template string may use (checked by the template coverage test). */
-export const CUSTOMER_PLACEHOLDERS = ["salon", "service", "when", "code", "name"] as const;
 export const TEAM_PLACEHOLDERS = ["salon", "service", "when", "code"] as const;
 
 export interface RenderedEmail {
@@ -65,7 +45,6 @@ const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
 interface Row {
   label: string;
   value: string;
-  href?: string;
 }
 
 function layout(input: {
@@ -82,11 +61,7 @@ function layout(input: {
   const rows = input.rows
     .map(
       (r) =>
-        `<tr><td style="padding:6px 12px 6px 0;color:#6B6470;font-size:14px;white-space:nowrap;vertical-align:top">${escapeHtml(r.label)}</td><td style="padding:6px 0;font-size:15px;color:#25202A">${
-          r.href
-            ? `<a href="${escapeHtml(r.href)}" style="color:#25202A">${escapeHtml(r.value)}</a>`
-            : escapeHtml(r.value)
-        }</td></tr>`,
+        `<tr><td style="padding:6px 12px 6px 0;color:#6B6470;font-size:14px;white-space:nowrap;vertical-align:top">${escapeHtml(r.label)}</td><td style="padding:6px 0;font-size:15px;color:#25202A">${escapeHtml(r.value)}</td></tr>`,
     )
     .join("");
   const p = (s: string) =>
@@ -119,55 +94,6 @@ function text(heading: string, paragraphs: string[], rows: Row[], after: string[
     "--",
     footer,
   ].join("\n");
-}
-
-export function renderCustomerEmail(
-  event: CustomerNotificationEvent,
-  locale: Locale,
-  raw: CustomerEmailVars,
-): RenderedEmail {
-  const v = customerEmailVarsSchema.parse(raw);
-  const { t } = createI18n(locale);
-  const key = customerDef(event).templateKey;
-  const vars = { salon: oneLine(v.salon), service: oneLine(v.service), when: v.when, code: v.code };
-  const k = (part: string) => t(`notifications:email.${key}.${part}`, vars);
-  const greeting = v.customerName
-    ? t("notifications:email.greeting", { name: oneLine(v.customerName) })
-    : t("notifications:email.greetingNoName");
-  const L = (l: string) => t(`notifications:email.labels.${l}`);
-  const rows: Row[] = [
-    { label: L("service"), value: v.service },
-    { label: L("when"), value: v.when },
-    ...(v.staff ? [{ label: L("staff"), value: v.staff }] : []),
-    { label: L("code"), value: v.code },
-    ...(event === "booking.cancelled_by_salon" ? [] : [{ label: L("price"), value: v.price }]),
-    ...(v.address ? [{ label: L("address"), value: v.address }] : []),
-    ...(v.phone ? [{ label: L("phone"), value: v.phone, href: `tel:${v.phone}` }] : []),
-  ];
-  const after = [
-    ...(event === "booking.cancelled_by_salon" ? [] : [t("notifications:email.payAtSalon")]),
-    v.canReply
-      ? t("notifications:email.contactReply", vars)
-      : t("notifications:email.contact", vars),
-    ...(customerDef(event).ics === "publish" ? [t("notifications:email.calendarHint")] : []),
-  ];
-  const footer = t("notifications:email.footer", vars);
-  const heading = k("heading");
-  const paragraphs = [greeting, k("intro")];
-  return {
-    subject: oneLine(k("subject")),
-    text: text(heading, paragraphs, rows, after, footer),
-    html: layout({
-      locale,
-      brand: v.salon,
-      preheader: k("preheader"),
-      heading,
-      paragraphs,
-      rows,
-      after,
-      footer,
-    }),
-  };
 }
 
 export function renderTeamEmail(

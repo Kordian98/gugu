@@ -2,14 +2,13 @@
   "export": {
     "title": "Dữ liệu khách hàng do {{salon}} lưu trữ",
     "generatedAt": "Xuất lúc: {{at}}",
-    "intro": "Tài liệu này liệt kê dữ liệu mà salon lưu về khách hàng trong GuGu Studio: hồ sơ, lịch hẹn, ghi chú nội bộ, hội thoại Zalo và nhật ký tin nhắn đã gửi.",
+    "intro": "Tài liệu này liệt kê dữ liệu mà salon lưu về khách hàng trong GuGu Studio: hồ sơ, lịch hẹn, ghi chú nội bộ và hội thoại Zalo.",
     "disclaimer": "GuGu Studio được thiết kế để hỗ trợ salon trả lời yêu cầu về dữ liệu cá nhân. Đây không phải tư vấn pháp lý.",
     "sections": {
       "client": "Hồ sơ khách",
       "bookings": "Lịch hẹn",
       "notes": "Ghi chú của salon",
-      "zalo": "Hội thoại Zalo",
-      "notifications": "Tin nhắn đã gửi"
+      "zalo": "Hội thoại Zalo"
     },
     "fields": {
       "name": "Tên",
@@ -27,10 +26,7 @@
       "note": "Ghi chú của khách",
       "cancellation": "Lý do huỷ",
       "payment": "Thanh toán tại salon",
-      "history": "Lịch sử trạng thái",
-      "channel": "Kênh",
-      "event": "Sự kiện",
-      "sentAt": "Gửi lúc"
+      "history": "Lịch sử trạng thái"
     },
     "consentChannels": {
       "zalo": "Zalo",

@@ -221,7 +221,6 @@ export class SalonBookingsController {
           ? {
               name: body.customer.name,
               phoneE164: normalizedPhone(body.customer.phone),
-              email: body.customer.email ?? null,
             }
           : null,
         note: body.note ?? null,

@@ -8,13 +8,13 @@ import type { JobProcessor } from "./processor";
 
 const sendPayload = z.object({ deliveryId: z.uuid() });
 
-/** Reconciliation interval (missing reminders, lost jobs). */
+/** Reconciliation interval (lost team email jobs). */
 export const NOTIFY_RECONCILE_EVERY_MS = 600_000;
 
 /**
  * `notify` queue (topic 11): one `notify.send` job per delivery (job id = idempotency key; 6
- * attempts, exponential backoff) and the `notify.reconcile` schedule. A send that must wait (Zalo
- * not final yet, job ran early) is moved back to delayed instead of failing.
+ * attempts, exponential backoff) and the `notify.reconcile` schedule. A send that must wait (job
+ * ran early) is moved back to delayed instead of failing. Team emails only (X26).
  */
 @Injectable()
 export class NotifyProcessor implements JobProcessor, OnApplicationBootstrap {
