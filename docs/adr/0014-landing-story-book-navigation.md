@@ -21,40 +21,41 @@ beat took 3.9–6.3 s to settle. The design-system skill also forbids scroll-jac
 A first rework made scroll position drive the story continuously (Apple product pages) with a gentle
 directional settle. The owner then asked for a different model: "mega robust, like a book".
 
-## Decision
+## Decision (final, owner 2026-11-04, after three iterations on :8094)
 
-1. **Arrive is scroll-driven.** The track is one "door segment" (2.2 screens) plus the pinned stage.
-   Its scroll position scrubs journey time 0 → page 1 = Front desk "before" (doors, walk-in and the
-   stressed reception in one segment) with a 70 ms smoother; scrolling up reverses it to the hero. The book
-   docks on Front desk; Arrive is not a page you step through (owner correction, 2026-11-04).
-2. **Everything after is a book of explicit page turns** (`flow/book.ts`): Next/Prev, HUD chapters,
-   keys (→ ↓ PgDn Space / ← ↑ PgUp Shift+Space while the story is in view and focus is not in a
-   field), one touch swipe = one page while docked. A turn plays the existing GSAP timeline from one
-   composed page to the next at the original pacing (`PAGES[i].dur`). It never stops half-way. Next during
-   a turn fast-forwards the turn (≤ 0.45 s) and queues at most one page. Prev reverses. Chapter jumps keep
-   the old distance-based duration (`clamp(Δt·14, 1.2, 6) s`).
-3. **Wheels and trackpads never turn pages.** Past the dock they scroll the page natively past the story.
-4. **The dock catches gestures from the other side.** A wheel stream or touch that starts above the dock
-   cannot cross it, and neither can one that starts below. A flick at the hero therefore lands exactly on
-   page 1, and a flick up from the sections below lands on the book at the page the visitor left. An
-   upward gesture that starts at the dock on a later page first turns the book back to page 1. The
-   scrollbar is free.
-5. **Media gate:** a turn waits (≤ 2.5 s) until the walk it plays through has ≥ 50 % of its frames, and
-   walks chain-preload in the background.
-6. **Signposting:** counter "n / 9", per-page HUD bars filling with journey time, a first-view hint
-   (keys on fine pointers, swipe on touch), a Prev button, and a Next label that crossfades and morphs
-   its width the moment a turn starts (start the tour · next · see the after · finish journey).
-   "Finish journey" and "Skip" scroll to the first section after the story.
-7. **Reduced motion** uses the same book with no door segment, and a turn is a 0.5 s crossfade through the
-   canvas colour. Before this, reduced motion fell back to `StoryStatic`.
-8. **Stage height** = the scroller's `clientHeight` (CSS var `--sv`), not vh/svh/dvh, because the page
-   scrolls inside the RN Web ScrollView, which is the visible height on iOS too.
+1. **Static hero above the stage.** The hero is a static block (`flow/StaticHero.tsx`): the same copy and
+   arched door window as the stage at journey time 0, with the doors closed. It is never animated.
+2. **Intro once per visit.** The first small scroll at the hero commits to the intro: ≥ 60 px of wheel
+   (one notch), a ≥ 36 px swipe, Start, or a key. The page then jumps invisibly to the identical stage, and
+   the doors + walk-in to Front desk page 1 play at the original pace (7 s). Scroll and swipe input is
+   ignored while it plays (no skip, no double trigger). Below the threshold nothing happens. A visitor who
+   reaches the stage another way (scrollbar, or coming from below after a nav link) gets the intro once the
+   scroll rests there.
+3. **Nothing reverses.** After the intro, scrolling is plain page scrolling. Up shows the static hero.
+   Down returns to the book on the page the visitor left, already rendered, then continues past it. The
+   dock catches a gesture that started on the other side, so a flick never skips the book. Page 1 has no
+   Prev.
+4. **Book pages** (`flow/book.ts`, `PAGES` in `timelines.ts`): Front desk before · after · treatment room
+   ×3 · office · Insights · switching, counted "n / 8". They turn only by Next/Prev, HUD chapters (Front
+   desk, Treatment room, Back office, Switch; Arrive is gone), keys while the hero or story is in view, or
+   one swipe per page. A turn plays the existing timeline at the original pacing and never stops
+   half-way. Next during a turn fast-forwards it (≤ 0.45 s) and queues at most one page. Chapter jumps
+   keep the old distance-based duration.
+5. **No before/after divider.** The handle and drag were removed. Before → after is the original sweep
+   (photo split + gradient line + scene content), played by Next ("Xem sau khi dùng"), a key or a swipe.
+6. **Signposting:** counter, per-page HUD bars filling with journey time (Front desk's first bar fills
+   during the intro), first-view hints (hero: "scroll or Start"; Front desk: "Next or →"), Prev, and a
+   Next label that crossfades the moment a turn starts. "Finish journey" and "Skip" scroll to the first
+   section after the story. The static hero's Start becomes "Continue the journey".
+7. **Reduced motion:** the intro and every turn are 0.5 s crossfades.
+8. **Sizing:** the stage and static hero are one scroller viewport high (`--sv` = `clientHeight`), because
+   the page scrolls inside the RN Web ScrollView.
 
 ## Consequences
 
 - No gesture is swallowed except the remainder of a flick at the dock, which is intended.
-- Touch: on a docked page a vertical swipe turns a page, so you leave the story on mobile through
-  "Finish journey", "Skip", or a swipe up on the last page.
+- Touch: on a docked page a vertical swipe turns a page. On mobile you leave the story through "Finish
+  journey", "Skip", a swipe up on the last page, or a swipe down on Front desk page 1 (up to the hero).
 - One page sequence (`PAGES` in `timelines.ts`) is the single source for HUD, counter, keys and swipes.
-- Not verified on a physical iPhone or iPad: the momentum clamp at the dock writes `scrollTop` during
-  iOS momentum.
+- The nav (top of the page) scrolls away the moment the intro jumps to the stage.
+- Not verified on a physical iPhone or iPad: the dock clamp writes `scrollTop` during iOS momentum.

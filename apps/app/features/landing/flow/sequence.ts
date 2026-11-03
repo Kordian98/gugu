@@ -14,7 +14,7 @@ export const SEGMENTS: Segment[] = ["w1", "w2", "w3"];
 export const FRAMES = 90;
 
 const pad = (n: number) => String(n).padStart(3, "0");
-const frameUrl = (seg: Segment, mobile: boolean, i: number) =>
+export const frameUrl = (seg: Segment, mobile: boolean, i: number) =>
   `/studio/walk/${seg}/${mobile ? "m" : "d"}/${pad(i + 1)}.webp`;
 
 type Track = { imgs: (HTMLImageElement | null)[]; started: boolean };

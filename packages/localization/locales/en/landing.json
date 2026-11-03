@@ -231,8 +231,7 @@
       "g2l": "double bookings",
       "g3n": "−25%",
       "g3l": "no-shows*",
-      "src": "* Reminders and no-shows: Robotham et al., BMJ Open 2016 (clinics). Names are fictional; figures are illustrative.",
-      "drag": "Drag to compare before and after"
+      "src": "* Reminders and no-shows: Robotham et al., BMJ Open 2016 (clinics). Names are fictional; figures are illustrative."
     },
     "ba": {
       "eyebrow": "Before and after",
@@ -429,7 +428,6 @@
       "note": "Illustrative photos, not customers."
     },
     "hud": {
-      "c0": "Arrive",
       "c1": "Front desk",
       "c2": "Treatment room",
       "c3": "Back office",
@@ -445,7 +443,8 @@
       "hintKeys": "Press Next or use the → key",
       "hintTouch": "Swipe or tap Next to go on",
       "hintStartKeys": "Scroll or press Start to walk in",
-      "hintStartTouch": "Swipe up or tap Start to walk in"
+      "hintStartTouch": "Swipe up or tap Start to walk in",
+      "resume": "Continue the journey"
     },
     "calc": {
       "t": "What fewer no-shows are worth",

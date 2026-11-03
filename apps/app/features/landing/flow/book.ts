@@ -2,21 +2,23 @@ import { gsap } from "gsap";
 
 /**
  * The story as a BOOK (web, owner 2026-11-04). Only the NAVIGATION is book-like; the animations (walk
- * frames, door portal, before/after sweep, reveals, counters) are the same timeline as before.
+ * frames, door portal, before → after sweep, reveals, counters) are the same timeline as before.
  *
- * - Page 0 → 1 (hero → the doors open and we walk in) stays SCROLL-DRIVEN: the pinned track is one
- *   "door segment" long; its scroll position scrubs journey time 0 → pages[1].t. Scrolling up from page 1
- *   closes the doors again.
- * - From page 1 on, the story moves only by explicit turns: Next/Prev, HUD chapters, keys (→ ↓ PgDn Space /
- *   ← ↑ PgUp Shift+Space while the story is in view) and one touch swipe = one page. A turn plays the
- *   existing timeline from one page's composed state to the next at the original pacing and cannot stop
- *   half-way; Next during a turn fast-forwards it (≤ 0.45 s) and queues at most one more page; Prev
- *   reverses it. Reduced motion: no door scrub, a turn is a short crossfade.
- * - Wheels and trackpads never turn pages: below the dock they scroll the page past the story natively.
- * - The DOCK (door segment end = page 1, story fully pinned) catches every gesture that started on the
- *   other side of it: a fast flick at the hero lands exactly on page 1 (never further), a flick up from the
- *   sections below lands on the book at the page the visitor left. A new upward gesture from the dock on a
- *   later page first turns the book back to page 1 (quickly), the next one closes the doors.
+ * Layout: a STATIC hero block (doors closed, journey time 0) sits above the story stage (one viewport).
+ *
+ * - Intro, once per visit: the first small scroll at the hero (≥ INTRO_WHEEL px of wheel, ≥ INTRO_TOUCH px
+ *   of swipe, Start, a key, or arriving at the stage any other way) jumps invisibly from the static hero to
+ *   the identical stage and plays the doors + walk-in to Front desk page 1 at its normal pace. Scroll and
+ *   swipe input is ignored while it plays (no skip, no double trigger). Below the threshold nothing happens.
+ * - After that, scrolling is plain page scrolling: up shows the static hero (no animation, nothing
+ *   reverses), down returns to the book on the page the visitor left, then past it to the sections below.
+ *   The dock (stage fully in view) catches a gesture that started on the other side of it, so a flick
+ *   never skips the book.
+ * - Pages turn only by Next/Prev, HUD chapters, keys (→ ↓ PgDn Space / ← ↑ PgUp Shift+Space while the
+ *   story is in view) and one touch swipe per page. A turn plays the timeline from one composed page to
+ *   the next at the original pacing and cannot stop half-way; Next during a turn fast-forwards it
+ *   (≤ 0.45 s) and queues at most one page; Prev reverses it. Page 1 has no Prev (nothing replays).
+ * - Reduced motion: the intro and every turn are short crossfades.
  */
 
 export type Page = {
@@ -30,10 +32,12 @@ export type BookApi = {
   destroy: () => void;
   next: () => void;
   prev: () => void;
-  /** Smooth jump to page i (the chapter jump: duration grows with distance). */
+  /** Smooth jump to page i ≥ 1 (the chapter jump: duration grows with distance). */
   goTo: (i: number) => void;
   /** Smoothly scrolls to the first section after the story. */
   exit: () => void;
+  /** Static hero "Start": plays the intro the first time, afterwards scrolls back to the book. */
+  start: () => void;
   page: () => number;
   /** A turn or a programmatic scroll is running. */
   busy: () => boolean;
@@ -41,64 +45,65 @@ export type BookApi = {
 
 type Opts = {
   scroller: HTMLElement;
+  /** The static hero block above the stage. */
+  hero: HTMLElement;
   track: HTMLElement;
   stage: HTMLElement;
   pages: readonly Page[];
-  /** Scroll length of the door segment, in screens (0 with reduced motion). */
-  doorLen: number;
   reduce: boolean;
   /** Renders journey time (timeline, walk frame, portal, HUD fills). */
   render: (time: number) => void;
   /** Called the moment a turn starts (labels change right away) and when it has settled. */
   onPage: (page: number, settled: boolean) => void;
+  /** Called once when the intro has played. */
+  onIntroDone: () => void;
   /** Resolves when the media for a turn through [from, to] is ready (walk frames) or after a timeout. */
   ready: (from: number, to: number) => Promise<void>;
   exitTo: () => Element | null;
 };
 
+/** Small-scroll threshold that commits to the intro (one wheel notch / a short swipe is enough). */
+const INTRO_WHEEL = 60;
+const INTRO_TOUCH = 36;
+
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 export function book(o: Opts): BookApi {
-  const { scroller, track, stage, pages } = o;
+  const { scroller, hero, track, stage, pages } = o;
   const last = pages.length - 1;
-  const doorT = pages[1]?.t ?? 0;
   const clock = { t: 0 };
-  let page = 0; // the page we are on, or turning TO
+  let page = 0;
   let turn: gsap.core.Animation | null = null;
   let queued: 1 | -1 | 0 = 0;
   let token = 0;
+  let intro: "todo" | "playing" | "done" = "todo";
   let vh = scroller.clientHeight || window.innerHeight;
-  let top = 0;
   let dockY = 0;
 
   const measure = () => {
     vh = scroller.clientHeight || window.innerHeight;
-    // The stage is exactly one visible scroller viewport (no vh/svh/dvh mismatch: the page scrolls inside
-    // the RN Web ScrollView, so its clientHeight is the visible height on iOS too).
+    // Stage and static hero are exactly one visible scroller viewport (no vh/svh/dvh mismatch: the page
+    // scrolls inside the RN Web ScrollView, so its clientHeight is the visible height on iOS too).
     track.closest<HTMLElement>(".fl")?.style.setProperty("--sv", `${String(vh)}px`);
-    track.style.height = `${String(Math.round((1 + o.doorLen) * vh))}px`;
-    top =
+    dockY =
       track.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-    dockY = top + Math.round(o.doorLen * vh);
   };
   const y = () => scroller.scrollTop;
+  const atDock = () => Math.abs(y() - dockY) < 3;
+  const inHero = () => y() < dockY - 2;
 
-  // ---- programmatic page scroll (door segment via Next, dock, exit); any user input interrupts it ----
+  // ---- programmatic page scroll (dock, exit); interruptible by user input ----
   let scrollTw: gsap.core.Tween | null = null;
   const stopScroll = () => {
     scrollTw?.kill();
     scrollTw = null;
   };
-  const scrollToY = (to: number, dur: number, ease = "sine.inOut", done?: () => void) => {
+  const scrollToY = (to: number, dur: number, ease = "sine.inOut") => {
     stopScroll();
     const max = scroller.scrollHeight - scroller.clientHeight;
     const target = clamp(to, 0, max);
     const proxy = { y: y() };
-    if (Math.abs(target - proxy.y) < 1) {
-      scroller.scrollTop = target;
-      done?.();
-      return;
-    }
+    if (Math.abs(target - proxy.y) < 1) return;
     scrollTw = gsap.to(proxy, {
       y: target,
       duration: dur,
@@ -108,12 +113,13 @@ export function book(o: Opts): BookApi {
       },
       onComplete: () => {
         scrollTw = null;
-        done?.();
       },
     });
   };
   const scrollDur = (dy: number) => clamp(0.5 + 1.1 * Math.sqrt(Math.abs(dy) / vh), 0.6, 2.4);
-  const atDock = () => Math.abs(y() - dockY) < 3;
+  const dock = () => {
+    if (!atDock()) scrollToY(dockY, scrollDur(dockY - y()));
+  };
   const exit = () => {
     const el = o.exitTo();
     const to = el
@@ -122,36 +128,18 @@ export function book(o: Opts): BookApi {
     scrollToY(to, scrollDur(to - y()));
   };
 
-  // ---- the displayed time: scroll-scrubbed in the door segment, turn-driven in the book ----
-  let shown = Number.NaN;
-  let lastNow = 0;
-  const scrollMode = () => !turn && page <= 1 && o.doorLen > 0;
-  const tick = () => {
-    const now = performance.now();
-    const dt = lastNow ? Math.min(64, now - lastNow) : 16;
-    lastNow = now;
-    if (scrollMode()) {
-      const k = clamp((y() - top) / Math.max(1, dockY - top), 0, 1);
-      const target = k * doorT;
-      // Short smoothing (τ ≈ 70 ms) so mouse-wheel notches glide; converges in a few frames.
-      clock.t += (target - clock.t) * (1 - Math.exp(-dt / 70));
-      if (Math.abs(target - clock.t) < 1e-4) clock.t = target;
-      const p = k >= 0.999 ? 1 : 0;
-      if (p !== page && !scrollTw) {
-        page = p;
-        o.onPage(page, true);
-      }
-    }
-    if (clock.t !== shown) {
-      shown = clock.t;
-      o.render(clock.t);
-    }
+  const draw = () => {
+    o.render(clock.t);
   };
 
-  // ---- turning pages (from page 1 on) ----
+  // ---- turning pages ----
   let after: (() => void) | null = null;
   const finish = () => {
     turn = null;
+    if (intro === "playing") {
+      intro = "done";
+      o.onIntroDone();
+    }
     o.onPage(page, true);
     const then = after;
     after = null;
@@ -167,14 +155,11 @@ export function book(o: Opts): BookApi {
   const play = (to: number, dur: number, ease = "sine.inOut") => {
     const my = ++token;
     turn?.kill();
-    stopScroll();
     const from = clock.t;
     const target = pages[to]?.t ?? 0;
     page = to;
     o.onPage(page, false);
-    // Keep the book docked while it turns.
-    if (!atDock() && o.doorLen > 0) scrollToY(dockY, scrollDur(dockY - y()));
-    if (o.doorLen === 0 && Math.abs(y() - top) > 3) scrollToY(top, scrollDur(top - y()));
+    dock();
     // Placeholder keeps `turn` non-null while media loads, so presses queue instead of stacking.
     turn = gsap.delayedCall(9999, () => undefined);
     void o.ready(from, target).then(() => {
@@ -185,12 +170,13 @@ export function book(o: Opts): BookApi {
         tl.to(stage, { "--fade": 1, duration: 0.18, ease: "power1.in" });
         tl.add(() => {
           clock.t = target;
+          draw();
         });
         tl.to(stage, { "--fade": 0, duration: 0.3, ease: "power1.out" });
         turn = tl;
         return;
       }
-      turn = gsap.to(clock, { t: target, duration: dur, ease, onComplete: finish });
+      turn = gsap.to(clock, { t: target, duration: dur, ease, onUpdate: draw, onComplete: finish });
     });
   };
   /** Adjacent forward = the page's own pacing; back = quicker; jumps grow with distance (as before). */
@@ -205,35 +191,25 @@ export function book(o: Opts): BookApi {
     const rem = turn.duration() - turn.time();
     if (rem > 0.45) turn.timeScale((turn.timeScale() * rem) / 0.45);
   };
-  /** Page 0 → 1 by button/key: scroll the door segment open at the original pace. */
-  const openDoors = (then?: () => void) => {
-    if (o.doorLen === 0) {
-      play(1, pages[1]?.dur ?? 3);
-      if (then) after = then;
-      return;
-    }
-    page = 1;
-    o.onPage(1, false);
-    const k = clamp((y() - top) / Math.max(1, dockY - top), 0, 1);
-    scrollToY(dockY, Math.max(0.6, (pages[1]?.dur ?? 3) * (1 - k)), "sine.inOut", then);
-  };
-  const closeDoors = () => {
-    page = 0;
-    o.onPage(0, false);
-    if (o.doorLen === 0) {
-      play(0, durFor(0, true));
-      return;
-    }
-    scrollToY(top, clamp((pages[1]?.dur ?? 3) * 0.55, 0.8, 2.4));
+  /** The intro: jump from the static hero to the identical stage (time 0), play doors + walk-in. */
+  const playIntro = (then?: () => void) => {
+    if (intro !== "todo") return;
+    intro = "playing";
+    stopScroll();
+    scroller.scrollTop = dockY;
+    clock.t = 0;
+    draw();
+    play(1, pages[1]?.dur ?? 7);
+    if (then) after = then;
   };
   function next() {
+    if (intro === "todo") {
+      playIntro();
+      return;
+    }
     if (turn) {
       if (queued === 0) queued = 1;
       fastForward();
-      return;
-    }
-    if (page === 0 || (page === 1 && !atDock() && o.doorLen > 0)) {
-      openDoors();
       return;
     }
     if (page >= last) {
@@ -243,102 +219,110 @@ export function book(o: Opts): BookApi {
     play(page + 1, durFor(page + 1, true));
   }
   function prev() {
+    if (intro !== "done") return;
     if (turn) {
       queued = 0;
       if (page > 1 && clock.t < (pages[page]?.t ?? 0)) play(page - 1, durFor(page - 1, true));
       else fastForward();
       return;
     }
-    if (page <= 0) return;
-    if (page === 1) {
-      closeDoors();
-      return;
-    }
+    if (page <= 1) return; // nothing replays: the hero is reached by scrolling up
     play(page - 1, durFor(page - 1, true));
   }
   const goTo = (i: number) => {
-    const to = clamp(i, 0, last);
+    const to = clamp(i, 1, last);
     queued = 0;
-    after = null;
-    if (to === 0) {
-      if (page <= 1 && !turn) closeDoors();
-      else {
-        play(1, durFor(1, false));
-        after = closeDoors;
-      }
+    if (intro === "todo") {
+      playIntro(to > 1 ? () => { play(to, durFor(to, to === 2)); } : undefined);
       return;
     }
-    if (page === 0 || (scrollMode() && !atDock())) {
-      // From the hero: open the doors by scroll first, then turn on to the chapter.
-      openDoors(
-        to > 1
-          ? () => {
-              play(to, durFor(to, to === 2));
-            }
-          : undefined,
-      );
+    if (intro === "playing") {
+      after = to > 1 ? () => { play(to, durFor(to, to === 2)); } : null;
       return;
     }
     if (to === page && !turn) {
-      if (!atDock()) scrollToY(dockY, scrollDur(dockY - y()));
+      dock();
       return;
     }
     play(to, durFor(to, Math.abs(to - page) === 1 && !turn));
   };
+  const start = () => {
+    if (intro === "todo") playIntro();
+    else dock();
+  };
 
-  // ---- the dock catches gestures that started on the other side of it ----
-  let side: -1 | 0 | 1 = 0;
+  // ---- wheel: small scroll at the hero commits to the intro; afterwards native, with a dock catch ----
   let lastWheel = 0;
+  let acc = 0;
+  let side: -1 | 0 | 1 = 0;
   let caught = false;
   const sideNow = (): -1 | 0 | 1 => (y() < dockY - 2 ? -1 : y() > dockY + 2 ? 1 : 0);
   const newGesture = () => {
     side = sideNow();
     caught = false;
-  };
-  const rewind = () => {
-    // Upward from the dock on a later page: turn back to page 1 first (quick), doors stay open.
-    if (!turn) play(1, clamp(Math.abs(clock.t - doorT) * 5, 0.6, 1.4));
+    acc = 0;
   };
   const onWheel = (e: WheelEvent) => {
     const now = performance.now();
     if (now - lastWheel > 220) newGesture();
     lastWheel = now;
-    stopScroll();
-    if (o.doorLen === 0 || Math.abs(e.deltaY) < 0.5) return;
-    const to = y() + e.deltaY;
-    const crossDown = side < 0 && to > dockY;
-    const crossUp = side > 0 && to < dockY;
-    const leaveUp = side === 0 && e.deltaY < 0 && (page > 1 || turn !== null);
-    if (caught || crossDown || crossUp || leaveUp) {
-      e.preventDefault();
-      if (!caught) {
-        caught = true;
-        scroller.scrollTop = dockY;
-        if (leaveUp) rewind();
+    if (intro === "playing") {
+      e.preventDefault(); // ignored while the intro plays
+      return;
+    }
+    if (intro === "todo" && (inHero() || atDock())) {
+      e.preventDefault(); // the hero does not move until the intro commits
+      if (e.deltaY > 0 || atDock()) {
+        acc += Math.abs(e.deltaY);
+        if (acc >= INTRO_WHEEL) {
+          caught = true;
+          playIntro();
+        }
       }
+      return;
+    }
+    stopScroll();
+    if (caught) {
+      e.preventDefault();
+      return;
+    }
+    const to = y() + e.deltaY;
+    if ((side < 0 && to > dockY) || (side > 0 && to < dockY)) {
+      e.preventDefault();
+      caught = true;
+      scroller.scrollTop = dockY;
     }
   };
+  let settleTimer = 0;
   const onScroll = () => {
-    if (o.doorLen === 0 || scrollTw) return;
-    // Touch momentum and other native scrolls: clamp at the dock when crossing it.
-    if ((side < 0 && y() > dockY) || (side > 0 && y() < dockY)) scroller.scrollTop = dockY;
-    else if (side === 0 && y() < dockY - 2 && (page > 1 || turn !== null)) {
-      scroller.scrollTop = dockY;
-      rewind();
+    if (scrollTw) return;
+    if (intro === "todo") {
+      // Arrived at the stage another way (scrollbar, from below after a nav link): once the scroll rests
+      // there, dock and play the intro. Scrolls that only pass through (e.g. to Pricing) are left alone.
+      window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        if (intro === "todo" && Math.abs(y() - dockY) < vh * 0.3) playIntro();
+      }, 180);
+      return;
     }
+    if (intro === "playing" && !atDock()) {
+      scroller.scrollTop = dockY;
+      return;
+    }
+    if (intro === "done" && ((side < 0 && y() > dockY) || (side > 0 && y() < dockY)))
+      scroller.scrollTop = dockY; // touch momentum crossing the dock
   };
   const onPointerDown = (e: PointerEvent) => {
     // The scrollbar (pointer on the scroller itself) may go anywhere.
     if (e.target === scroller) side = 0;
-    stopScroll();
+    if (intro !== "playing") stopScroll();
   };
 
-  // ---- keyboard (only while the story is in view and focus is not elsewhere) ----
-  const inView = () => {
-    const r = stage.getBoundingClientRect();
+  // ---- keyboard (while the hero or the story is in view and focus is not elsewhere) ----
+  const visible = (el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
     const s = scroller.getBoundingClientRect();
-    const vis = Math.min(r.bottom, s.bottom) - Math.max(r.top, s.top);
-    return vis > r.height * 0.5;
+    return Math.min(r.bottom, s.bottom) - Math.max(r.top, s.top) > r.height * 0.5;
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
@@ -349,25 +333,57 @@ export function book(o: Opts): BookApi {
     const space = k === " " || k === "Spacebar";
     if (space && /^(BUTTON|A)$/.test(tag)) return; // Space presses the focused button
     const focusOk =
-      !el || el === document.body || el === scroller || track.contains(el) || tag === "HTML";
+      !el ||
+      el === document.body ||
+      el === scroller ||
+      track.contains(el) ||
+      hero.contains(el) ||
+      tag === "HTML";
     const fwd =
       k === "ArrowRight" || k === "ArrowDown" || k === "PageDown" || (space && !e.shiftKey);
     const back = k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp" || (space && e.shiftKey);
     if (!fwd && !back) return;
-    if (focusOk && inView()) {
+    if (!focusOk) return;
+    if (intro === "playing") {
+      e.preventDefault();
+      if (fwd) next(); // explicit: fast-forward + queue, like the Next button
+      return;
+    }
+    if (intro === "todo" && visible(hero)) {
+      e.preventDefault();
+      if (fwd) playIntro();
+      return;
+    }
+    if (visible(stage)) {
+      // Up at the first page = plain scroll up to the hero (nothing replays).
+      if (back && page <= 1 && !turn && (k === "ArrowUp" || k === "PageUp")) {
+        e.preventDefault();
+        scrollToY(0, scrollDur(y()));
+        return;
+      }
       e.preventDefault();
       if (fwd) next();
       else prev();
       return;
     }
-    if (k === "ArrowLeft" || k === "ArrowRight" || !focusOk) return;
-    // Below the story: keyboard page scrolling (the inner scroller does not get it natively).
+    if (k === "ArrowLeft" || k === "ArrowRight") return;
+    // Hero (after the intro) or below the story: keyboard page scrolling (the inner scroller does not get
+    // it natively). Down from the hero docks the book.
     e.preventDefault();
+    if (fwd && inHero()) {
+      dock();
+      return;
+    }
     const d = (k.startsWith("Arrow") ? 0.2 : 0.85) * vh * (fwd ? 1 : -1);
-    scrollToY(Math.max(dockY, y() + d), k.startsWith("Arrow") ? 0.25 : 0.5, "power2.out");
+    const to = y() + d;
+    scrollToY(
+      !fwd && y() > dockY && to < dockY ? dockY : to,
+      k.startsWith("Arrow") ? 0.25 : 0.5,
+      "power2.out",
+    );
   };
 
-  // ---- touch: one swipe = one page while the book is docked (doors: native scroll) ----
+  // ---- touch: hero swipe commits to the intro; one swipe = one page while the book is docked ----
   let sx = 0;
   let sy = 0;
   let claim = false;
@@ -375,13 +391,15 @@ export function book(o: Opts): BookApi {
   let skip = false;
   const onTouchStart = (e: TouchEvent) => {
     newGesture();
-    stopScroll();
+    if (intro !== "playing") stopScroll();
     const p = e.touches[0];
     const tgt = e.target as HTMLElement | null;
+    const inStory = stage.contains(tgt) && atDock();
+    const heroTodo = intro === "todo" && (inHero() || atDock());
     skip =
       e.touches.length > 1 ||
-      !(atDock() || o.doorLen === 0) ||
-      Boolean(tgt?.closest("input,select,textarea,.sp-knob,.calc,a,.no-swipe"));
+      (!inStory && !heroTodo && intro !== "playing") ||
+      Boolean(tgt?.closest("input,select,textarea,.calc,a,.no-swipe"));
     sx = p?.clientX ?? 0;
     sy = p?.clientY ?? 0;
     claim = false;
@@ -392,13 +410,25 @@ export function book(o: Opts): BookApi {
     const p = e.touches[0];
     const dx = (p?.clientX ?? sx) - sx;
     const dy = (p?.clientY ?? sy) - sy;
+    if (intro === "playing") {
+      e.preventDefault(); // ignored while the intro plays
+      return;
+    }
+    if (intro === "todo") {
+      e.preventDefault();
+      if (!fired && -dy >= INTRO_TOUCH && Math.abs(dy) > Math.abs(dx)) {
+        fired = true;
+        playIntro();
+      }
+      return;
+    }
     if (!claim && Math.hypot(dx, dy) > 8) {
       const horiz = Math.abs(dx) > Math.abs(dy);
-      // Native scroll for: swiping down on page 0/1 (doors close / nothing above), swiping up on the last
-      // page when no turn is running (scrolls on past the story).
-      const nativeDown = !horiz && dy > 0 && page <= 1 && !turn && o.doorLen > 0;
+      // Native scroll for: swiping down on the first page (up to the hero, nothing replays) and swiping up
+      // on the last page (on past the story), when no turn is running.
+      const nativeDown = !horiz && dy > 0 && page <= 1 && !turn;
       const nativeUp = !horiz && dy < 0 && page >= last && !turn;
-      if (nativeDown || nativeUp || (page === 0 && o.doorLen > 0)) {
+      if (nativeDown || nativeUp) {
         skip = true;
         return;
       }
@@ -414,42 +444,41 @@ export function book(o: Opts): BookApi {
   };
 
   measure();
-  clock.t = scrollMode() ? clamp((y() - top) / Math.max(1, dockY - top), 0, 1) * doorT : 0;
   o.onPage(0, true);
-  tick();
+  draw();
   const ro = new ResizeObserver(() => {
     measure();
-    if (page > 1 && !turn) scroller.scrollTop = Math.max(y(), 0);
-    shown = Number.NaN;
+    if (intro !== "todo" && !atDock() && Math.abs(y() - dockY) < vh * 0.25)
+      scroller.scrollTop = dockY;
+    draw();
   });
   ro.observe(scroller);
-  gsap.ticker.add(tick);
   window.addEventListener("keydown", onKey);
   scroller.addEventListener("wheel", onWheel, { passive: false });
   scroller.addEventListener("scroll", onScroll, { passive: true });
   scroller.addEventListener("pointerdown", onPointerDown, { passive: true });
   scroller.addEventListener("touchstart", onTouchStart, { passive: true });
-  stage.addEventListener("touchmove", onTouchMove, { passive: false });
+  scroller.addEventListener("touchmove", onTouchMove, { passive: false });
 
   return {
     destroy: () => {
       token++;
+      window.clearTimeout(settleTimer);
       turn?.kill();
       stopScroll();
       ro.disconnect();
-      gsap.ticker.remove(tick);
       window.removeEventListener("keydown", onKey);
       scroller.removeEventListener("wheel", onWheel);
       scroller.removeEventListener("scroll", onScroll);
       scroller.removeEventListener("pointerdown", onPointerDown);
       scroller.removeEventListener("touchstart", onTouchStart);
-      stage.removeEventListener("touchmove", onTouchMove);
-      track.style.height = "";
+      scroller.removeEventListener("touchmove", onTouchMove);
     },
     next,
     prev,
     goTo,
     exit,
+    start,
     page: () => page,
     busy: () => turn !== null || scrollTw !== null,
   };

@@ -231,8 +231,7 @@
       "g2l": "lịch bị trùng",
       "g3n": "−25%",
       "g3l": "khách không đến*",
-      "src": "* Nhắc lịch và tỷ lệ không đến: Robotham và cộng sự, BMJ Open 2016 (phòng khám). Tên là hư cấu; số liệu chỉ là ví dụ minh hoạ.",
-      "drag": "Kéo để so sánh trước và sau"
+      "src": "* Nhắc lịch và tỷ lệ không đến: Robotham và cộng sự, BMJ Open 2016 (phòng khám). Tên là hư cấu; số liệu chỉ là ví dụ minh hoạ."
     },
     "ba": {
       "eyebrow": "Trước và sau",
@@ -429,7 +428,6 @@
       "note": "Ảnh minh hoạ, không phải khách hàng."
     },
     "hud": {
-      "c0": "Đến nơi",
       "c1": "Quầy lễ tân",
       "c2": "Phòng dịch vụ",
       "c3": "Văn phòng",
@@ -445,7 +443,8 @@
       "hintKeys": "Nhấn Tiếp theo hoặc dùng phím →",
       "hintTouch": "Vuốt hoặc nhấn Tiếp theo để đi tiếp",
       "hintStartKeys": "Cuộn hoặc nhấn Bắt đầu để bước vào",
-      "hintStartTouch": "Vuốt lên hoặc nhấn Bắt đầu để bước vào"
+      "hintStartTouch": "Vuốt lên hoặc nhấn Bắt đầu để bước vào",
+      "resume": "Tiếp tục hành trình"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",

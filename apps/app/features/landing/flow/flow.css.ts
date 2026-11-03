@@ -20,7 +20,14 @@ export const FLOW_CSS = `
 .lyr{position:absolute;will-change:transform,opacity}
 
 /* journey: ONE sticky full-screen stage (hero door portal → walk → desk → rooms) */
-.jr{position:relative;height:320vh}
+.jr{position:relative;height:100vh;height:var(--sv,100svh)}
+/* static hero above the stage: identical to the stage at time 0, never animated */
+.jr-static{position:relative;height:100vh;height:var(--sv,100svh);width:100%;overflow:hidden;background:${color.canvas}}
+.jr-static .jr-hero{will-change:auto}
+.jr-static .jr-media{will-change:auto}
+.jr-static:not(.done) .l-resume,.jr-static.done .l-start{display:none}
+.jr-static.done .hud-hint{opacity:0}
+.jr-hud-static{padding:8px}
 .jr-stage{position:sticky;top:0;height:100vh;height:100svh;height:var(--sv,100svh);width:100%;overflow:hidden;contain:layout paint;background:${color.canvas};--fade:0}
 /* reduced motion: page turns fade through the canvas colour */
 .jr-stage::after{content:"";position:absolute;inset:0;background:${color.canvas};opacity:var(--fade);pointer-events:none;z-index:5}
@@ -98,8 +105,6 @@ export const FLOW_CSS = `
 .sp-h>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:58% 40%}
 .sp-veil{position:absolute;inset:0;background:rgba(253,250,247,.78);opacity:0;will-change:opacity}
 .sp-line{position:absolute;top:0;bottom:0;left:var(--x);width:2px;margin-left:-1px;background:linear-gradient(#A68CF6,#F08DB4);opacity:0}
-.sp-knob{position:absolute;top:50%;left:clamp(34px,var(--x),calc(100% - 34px));width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:#fff;color:${color.ink};display:flex;align-items:center;justify-content:center;gap:2px;font-size:13px;box-shadow:0 12px 30px rgba(42,20,38,.25);cursor:ew-resize;pointer-events:auto;touch-action:none;opacity:0;z-index:3;border:0}
-.sp-knob::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(169,139,235,.5);animation:hudPulse 2.2s ease-out infinite}
 .sp-ui{position:absolute;left:var(--g);right:var(--g);top:clamp(84px,11vh,124px);bottom:calc(var(--hud) + 30px);max-width:1360px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);column-gap:clamp(24px,4vw,64px);row-gap:clamp(8px,1.6vh,16px);align-content:center}
 .sp-ui>*{grid-column:1}
 .sp-ui .sp-row,.sp-ui .sp-app{grid-column:2;grid-row:1 / span 8;align-self:center}
@@ -131,8 +136,7 @@ export const FLOW_CSS = `
 .sp .pn-g{display:flex;flex-direction:column;gap:7px;max-width:440px}
 .sp .jr-foot{left:var(--g);right:var(--g);bottom:calc(var(--hud) + 6px)}
 @media (max-width:899px){
-  .sp-knob{width:44px;height:44px;margin:-22px 0 0 -22px;top:48%}
-  .sp-steps,.sp-rem,.sp-gains,.sp-ui-r .pn-calm{display:none}
+    .sp-steps,.sp-rem,.sp-gains,.sp-ui-r .pn-calm{display:none}
   .sp-app{gap:8px;max-width:none}
   .sp-booked{font-size:11px;padding:6px 9px;top:-10px}
   .sp .pn-g{gap:5px}
@@ -394,13 +398,15 @@ export const FLOW_CSS = `
 .hud-lbls>span.on{opacity:1;transform:none}
 .hud-count{font-family:${font.uiSemiBold};font-size:12.5px;font-variant-numeric:tabular-nums;color:${color.ink2};min-width:3.2em;text-align:right}
 .hud-prev{width:42px;height:42px;border-radius:50%;border:1px solid ${color.line};background:#fff;color:${color.ink};font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .25s}
-.jr-hud[data-page="0"] .hud-prev{opacity:0;pointer-events:none}
+.jr-hud[data-page="0"] .hud-prev,.jr-hud[data-page="1"] .hud-prev{opacity:0;pointer-events:none}
+.jr-stage .jr-hud[data-page="0"] .hud-count{visibility:hidden}
+.jr-stage .jr-hud[data-page="0"] .hud-hint{opacity:0}
 .hud-prev:hover{border-color:${color.lilac500}}
 .hud-s:focus-visible,.hud-next:focus-visible,.hud-prev:focus-visible,.jr-skip:focus-visible{outline:2px solid ${color.lilac500};outline-offset:3px}
 .hud-hint{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);white-space:nowrap;font-family:${font.uiMedium};font-size:12.5px;color:${color.ink};background:rgba(255,255,255,.9);padding:7px 12px;border-radius:99px;box-shadow:0 10px 30px rgba(42,20,38,.14);opacity:0;transition:opacity .4s ease;pointer-events:none}
 .jr-hud.hinted .hud-hint{opacity:1}
 .hud-hint .tc{display:none}
-.jr-hud[data-page="0"] .hud-hint .h1,.jr-hud:not([data-page="0"]) .hud-hint .h0{display:none}
+.jr-stage .hud-hint .h0{display:none}
 @media (pointer:coarse){.hud-hint .k{display:none}.hud-hint .tc{display:inline}}
 @keyframes hudNudge{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
 @keyframes hudPulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.18)}}
@@ -416,7 +422,7 @@ export const FLOW_CSS = `
   .jr-pain{bottom:104px}
   .jr-foot{bottom:70px}
 }
-@media (prefers-reduced-motion:reduce){.hud-next i,.hud-next::after,.sp-knob::after,.ft-chip i{animation:none}.hud-lbls,.hud-lbls>span{transition:opacity .2s}.hud-lbls>span{transform:none}}
+@media (prefers-reduced-motion:reduce){.hud-next i,.hud-next::after,.ft-chip i{animation:none}.hud-lbls,.hud-lbls>span{transition:opacity .2s}.hud-lbls>span{transform:none}}
 
 /* time-saved card */
 .sv{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;padding:14px 20px 14px 14px;width:min(540px,100%);box-sizing:border-box}

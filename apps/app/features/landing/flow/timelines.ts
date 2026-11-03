@@ -74,7 +74,7 @@ const PH = {
 const SWK = 1.6;
 const SW_END = PH.sw + 0.13 * SWK;
 
-/** The before/after divider sweep (journey time); dragging the handle scrubs the scroll through it. */
+/** The before → after sweep (journey time). */
 export const WIPE = [PH.wipe, PH.wipe + 0.055] as const;
 
 /**
@@ -107,6 +107,32 @@ function frameAt(t: number): [Segment, number] {
 }
 
 /**
+ * The door portal at k (0 = arched window in the hero column, 1 = full screen): clip of the frame and the
+ * media offset that keeps the doors centred. Shared by the stage and the static hero (identical at k = 0).
+ */
+export function portalStyle(k: number, mobile: boolean) {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const e = 1 - Math.pow(1 - k, 3);
+  const r = mobile
+    ? { t: H * 0.5, rt: W * 0.05, b: H * 0.1, l: W * 0.05 }
+    : { t: H * 0.15, rt: W * 0.05, b: H * 0.06, l: W * 0.53 };
+  const pw = W - r.l - r.rt;
+  const t = r.t * (1 - e);
+  const rt = r.rt * (1 - e);
+  const b = r.b * (1 - e);
+  const l = r.l * (1 - e);
+  const arch = (pw / 2) * (1 - e);
+  const corner = 26 * (1 - e);
+  const clip = `inset(${t.toFixed(1)}px ${rt.toFixed(1)}px ${b.toFixed(1)}px ${l.toFixed(1)}px round ${arch.toFixed(1)}px ${arch.toFixed(1)}px ${corner.toFixed(1)}px ${corner.toFixed(1)}px)`;
+  const cx = (r.l + (W - r.rt)) / 2 - W / 2;
+  // + a little extra so the shop sign above the doors sits fully inside the arch.
+  const cy = (r.t + (H - r.b)) / 2 - H / 2 + H * (mobile ? 0.27 : 0.1);
+  const transform = `translate3d(${(cx * (1 - e)).toFixed(1)}px,${(cy * (1 - e)).toFixed(1)}px,0)`;
+  return { clip, transform };
+}
+
+/**
  * The single-scene journey: arched door portal (hero) → full-bleed walk in → front desk drowning → calm
  * (same receptionist, matching 16:9 loops) → walk to the treatment area (features) → walk to the back
  * office (overview, stat, assistant). Canvas frame, loop playback and the portal clip are driven from the
@@ -126,30 +152,12 @@ export function buildJourney(
   const mobile = player.mobile;
   let lastClip = "";
   const portal = (k: number) => {
-    // k: 0 = arched window in the hero column, 1 = full screen.
     if (!frame || !media) return;
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    const e = 1 - Math.pow(1 - k, 3);
-    const r = mobile
-      ? { t: H * 0.5, rt: W * 0.05, b: H * 0.1, l: W * 0.05 }
-      : { t: H * 0.15, rt: W * 0.05, b: H * 0.06, l: W * 0.53 };
-    const pw = W - r.l - r.rt;
-    const t = r.t * (1 - e);
-    const rt = r.rt * (1 - e);
-    const b = r.b * (1 - e);
-    const l = r.l * (1 - e);
-    const arch = (pw / 2) * (1 - e);
-    const corner = 26 * (1 - e);
-    const clip = `inset(${t.toFixed(1)}px ${rt.toFixed(1)}px ${b.toFixed(1)}px ${l.toFixed(1)}px round ${arch.toFixed(1)}px ${arch.toFixed(1)}px ${corner.toFixed(1)}px ${corner.toFixed(1)}px)`;
-    if (clip !== lastClip) {
-      lastClip = clip;
-      frame.style.clipPath = clip;
-      // Keep the doors centred in the window while it grows.
-      const cx = (r.l + (W - r.rt)) / 2 - W / 2;
-      // + a little extra so the shop sign above the doors sits fully inside the arch.
-      const cy = (r.t + (H - r.b)) / 2 - H / 2 + H * (mobile ? 0.27 : 0.1);
-      media.style.transform = `translate3d(${(cx * (1 - e)).toFixed(1)}px,${(cy * (1 - e)).toFixed(1)}px,0)`;
+    const st = portalStyle(k, mobile);
+    if (st.clip !== lastClip) {
+      lastClip = st.clip;
+      frame.style.clipPath = st.clip;
+      media.style.transform = st.transform;
     }
   };
   // HUD: per-page fill follows the journey time (continuous while a page turns / the doors scrub).
@@ -248,12 +256,17 @@ export function buildJourney(
   // before → after: the divider sweeps across the WHOLE screen; left of it is still "before"
   // (photo + content), right of it is already "after". The handle can also be dragged.
   const W = PH.wipe;
-  // The handle is visible (and draggable) while the "before" scene rests, through the sweep, and in the
-  // "after" scene; the sweep is linear so it tracks the scroll (and the drag) one to one.
-  tl.to(q(".sp-line, .sp-knob"), { opacity: 1, duration: 0.008 }, 0.287);
-  if (spEl)
-    tl.fromTo(spEl, { "--x": "100%" }, { "--x": "0%", duration: WIPE[1] - W, ease: "none" }, W);
+  // before → after: the split sweeps across the whole screen (left of it "before", right "after") with
+  // its gradient line; it is a transition only (no handle, no drag: the scene content changes with it).
+  tl.to(q(".sp-line"), { opacity: 1, duration: 0.008 }, W - 0.004);
   tl.to(q(".sp-line"), { opacity: 0, duration: 0.01 }, W + 0.055);
+  if (spEl)
+    tl.fromTo(
+      spEl,
+      { "--x": "100%" },
+      { "--x": "0%", duration: WIPE[1] - W, ease: "power2.inOut" },
+      W,
+    );
   show(tl, q, ".sp-tag.a", W + 0.004, { y: -10, scale: 0.8 }, 0.02);
   show(tl, q, ".sp-ui-r .sp-head", W + 0.01, { y: 40 }, 0.03);
   show(tl, q, ".pn-calm", W + 0.02, { y: 20 }, 0.03);

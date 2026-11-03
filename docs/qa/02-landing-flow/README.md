@@ -16,17 +16,28 @@ The story stepped "one gesture = one transition" (`flow/chapters.ts`). These mad
 
 The HUD chapter jump felt good because it was a single long eased tween, with nothing fighting it.
 
-## Final model (owner, 2026-11-04): doors by scroll, then a book
+## Final model (owner, 2026-11-04): intro once, then a book
 
-- **Arrive (doors):** hero → doors open → walk-in → stressed front desk is one scroll-scrubbed segment. The book docks on Front desk page 1; scrolling up reverses to the hero.
-- **Page turns:** everything after moves only by Next/Prev, HUD chapters, keys (→ ↓ PgDn Space / ← ↑ PgUp Shift+Space while the story is in view), or one touch swipe per page.
-- **Turns:** each turn plays the existing animation at its original pacing and never stops half-way. Next during a turn fast-forwards it and queues at most one page.
-- **Wheel and trackpad:** they scroll past the story. The dock catches flicks: a fast flick at the hero lands exactly on Front desk page 1, and a flick up from below lands back on the book page you left.
-- **Label:** Next morphs immediately (start the tour → next → see the after → … → finish journey). A counter (n / 9), a first-view hint and Prev were added.
-- **Finish and Skip:** both scroll to the X25 band right after the story.
-- **Reduced motion:** the same book, with page turns as short crossfades.
+- **Static hero:** doors closed. The first small scroll (one wheel notch, a short swipe, Start or a key) plays the intro once: doors + walk-in to Front desk page 1. Input is ignored while it plays; below the threshold nothing happens.
+- **Scrolling:** after the intro it is plain page scrolling. Up shows the static hero, down returns to the book on the same page, then past it. Nothing reverses or replays. The dock catches flicks from either side.
+- **Pages:** 8 (Front desk before → switching), counted "n / 8". They turn by Next/Prev, the HUD chapters (Arrive removed), keys or one swipe per page. Turns play the original animations at their original pacing.
+- **Divider:** removed. Before → after is the original sweep, played by Next ("Xem sau khi dùng").
+- **Finish and Skip:** both go to the X25 band. The static hero's Start becomes "Tiếp tục hành trình".
+- **Reduced motion:** crossfades.
 
-## Metrics (Playwright, real input simulation; headless, so frame times are relative)
+### Once-per-visit run (Chromium desktop)
+
+| Step | Result |
+|---|---|
+| 30 px of wheel at the hero | nothing |
+| One wheel notch | intro starts; a 200 px/frame flick during it is ignored; lands on Front desk 1/8; 0 frames > 25 ms (859) |
+| Flick up / flick down | static hero / back on the same page |
+| Next on page 1 | label "Tiếp theo" at 120 ms, page 2/8 |
+| Swipe down at the dock | scrolls past; flick up from below catches at the book (same page) |
+| → ← HUD last, Finish | +1, −1, 8/8, next section |
+| Static hero "Tiếp tục hành trình" | back to the book on page 8 |
+
+## Earlier metrics (Playwright, real input simulation; headless, so frame times are relative)
 
 ### Before
 
