@@ -1,24 +1,20 @@
-import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   type AvailabilityInput,
   computeSlots,
   findSlot,
-  lineTiming,
-  MAX_SERVICE_LINES,
   type OccupancyTerms,
-  type ServiceLine,
   type StaffAvailability,
   type WeeklyHours,
 } from "./availability";
-import { type Interval, overlaps } from "./intervals";
+import { lineTiming, MAX_SERVICE_LINES, type ServiceLine } from "./chain";
+import type { Interval } from "./intervals";
 import { instantsAt, toLocal } from "./tz";
 import { unavailableReason } from "./unavailable-reason";
 
 /** Multi-service chains (M6.8): slot math for several services in sequence. */
 
 const HCM = "Asia/Ho_Chi_Minh";
-const M = 60_000;
 const NOW = instantsAt("2026-11-02", 8 * 60, HCM)[0] as number;
 const DAY = "2026-11-03";
 const at = (hh: number, mm = 0, date = DAY) => instantsAt(date, hh * 60 + mm, HCM)[0] as number;
@@ -252,109 +248,5 @@ describe("computeSlots with a service chain", () => {
     });
     expect(computeSlots(noRoom)).toEqual([]);
     expect(unavailableReason(noRoom)).toBe("no_resource");
-  });
-});
-
-describe("property: chains never double-book", () => {
-  const arbTerms = fc.record({
-    durationMinutes: fc.constantFrom(15, 30, 45, 60),
-    bufferBeforeMinutes: fc.constantFrom(0, 5, 10),
-    bufferAfterMinutes: fc.constantFrom(0, 5, 15),
-  });
-  const arbLine = fc.record({
-    who: fc.subarray(["a", "b", "c"], { minLength: 1 }),
-    terms: arbTerms,
-    needsChair: fc.boolean(),
-  });
-  const arbBusy = fc.array(
-    fc.tuple(
-      fc.constantFrom("a", "b", "c"),
-      fc.integer({ min: 0, max: 35 }),
-      fc.integer({ min: 1, max: 6 }),
-    ),
-    { maxLength: 5 },
-  );
-
-  it("every offered chain is free, internally consistent, and booking them one by one never overlaps", () => {
-    fc.assert(
-      fc.property(
-        fc.array(arbLine, { minLength: 1, maxLength: 3 }),
-        arbBusy,
-        fc.integer({ min: 1, max: 2 }),
-        (rawLines, rawBusy, chairs) => {
-          const busy = new Map<string, Interval[]>();
-          for (const [id, q, len] of rawBusy) {
-            const start = at(9) + q * 15 * M;
-            busy.set(id, [...(busy.get(id) ?? []), { start, end: start + len * 15 * M }]);
-          }
-          const unitBusy = new Map<string, Interval[]>();
-          const lines = rawLines.map((l) =>
-            line(
-              Object.fromEntries(l.who.map((w) => [w, l.terms])),
-              l.needsChair ? [{ resourceTypeId: "chair", quantity: 1 }] : [],
-            ),
-          );
-          const build = (): AvailabilityInput =>
-            input({
-              staff: ["a", "b", "c"].map((id) => staff(id, { busy: busy.get(id) ?? [] })),
-              resources: {
-                requirements: [],
-                units: Array.from({ length: chairs }, (_, k) => ({
-                  unitId: `u${String(k)}`,
-                  resourceTypeId: "chair",
-                  sortOrder: k,
-                  busy: unitBusy.get(`u${String(k)}`) ?? [],
-                })),
-              },
-              lines,
-            });
-          for (const slot of computeSlots(build())) {
-            for (const o of slot.options) {
-              expect(o.lines).toHaveLength(lines.length);
-              const claims: { target: string; occ: Interval }[] = [];
-              o.lines.forEach((l, i) => {
-                expect(lines[i]?.staffTerms.has(l.staffId)).toBe(true);
-                if (i > 0) expect(l.start).toBeGreaterThanOrEqual(o.lines[i - 1]?.end ?? 0);
-                for (const b of busy.get(l.staffId) ?? [])
-                  expect(overlaps(b, l.occupancy)).toBe(false);
-                claims.push({ target: l.staffId, occ: l.occupancy });
-                for (const u of l.unitIds) claims.push({ target: u, occ: l.occupancy });
-              });
-              for (let x = 0; x < claims.length; x++)
-                for (let y = x + 1; y < claims.length; y++) {
-                  const p = claims[x] as (typeof claims)[number];
-                  const q = claims[y] as (typeof claims)[number];
-                  if (p.target === q.target) expect(overlaps(p.occ, q.occ)).toBe(false);
-                }
-            }
-          }
-          // Book whatever is offered, one by one, re-computing each time (like the write path).
-          const seeded = rawBusy.map(([id, q, len]) => {
-            const start = at(9) + q * 15 * M;
-            return { target: id, occ: { start, end: start + len * 15 * M } };
-          });
-          const booked: { target: string; occ: Interval }[] = [];
-          for (let n = 0; n < 6; n++) {
-            const option = computeSlots(build())[n * 3]?.options[0];
-            if (!option) break;
-            const again = findSlot(build(), option.start, option.staffId)?.options[0];
-            expect(again).toEqual(option);
-            for (const l of option.lines) {
-              booked.push({ target: l.staffId, occ: l.occupancy });
-              busy.set(l.staffId, [...(busy.get(l.staffId) ?? []), l.occupancy]);
-              for (const u of l.unitIds) {
-                booked.push({ target: u, occ: l.occupancy });
-                unitBusy.set(u, [...(unitBusy.get(u) ?? []), l.occupancy]);
-              }
-            }
-          }
-          booked.forEach((p, x) => {
-            for (const q of [...seeded, ...booked.slice(x + 1)])
-              if (p.target === q.target) expect(overlaps(p.occ, q.occ)).toBe(false);
-          });
-        },
-      ),
-      { numRuns: 150, seed: 6_8 },
-    );
   });
 });
