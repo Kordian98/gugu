@@ -7,7 +7,7 @@ import { formatDateLong, formatTime, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { serviceLabel } from "../../data/bookings";
+import { customerLabel, serviceLabel } from "../../data/bookings";
 import { salonDate } from "../../data/dates";
 import { EmptyState } from "../../ui/EmptyState";
 
@@ -41,6 +41,7 @@ export function AgendaList({
 }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
+  const labels = { walkIn: t("booking.walkIn"), deleted: t("booking.deletedCustomer") };
   const locale = useLocale();
   if (!bookings.length) return <EmptyState compact icon="calendar" title={emptyTitle} />;
   const days = [...new Set(bookings.map((b) => salonDate(new Date(b.startsAt), tz)))].sort();
@@ -79,7 +80,7 @@ export function AgendaList({
                   <Text role="uiSemiBold" size={14} color={c.ink} style={{ width: 64 }}>
                     {formatTime(new Date(b.startsAt), locale, tz)}
                   </Text>
-                  <Avatar name={b.customer?.name ?? t("booking.walkIn")} size={32} />
+                  <Avatar name={customerLabel(b, labels)} size={32} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text
                       role="uiSemiBold"
@@ -88,7 +89,7 @@ export function AgendaList({
                       numberOfLines={1}
                       style={cancelled ? { textDecorationLine: "line-through" } : undefined}
                     >
-                      {b.customer?.name ?? t("booking.walkIn")}
+                      {customerLabel(b, labels)}
                     </Text>
                     <Text size={12} color={c.body} numberOfLines={1}>
                       {`${serviceLabel(b, locale)} · ${staff.find((s) => s.id === b.staffId)?.displayName ?? ""}`}

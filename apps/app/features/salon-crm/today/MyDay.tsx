@@ -8,6 +8,7 @@ import { formatDateLong, formatTime } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
+import { customerLabel } from "../data/bookings";
 import type { Workspace } from "../data/types";
 import { BookingSheet } from "../pages/calendar/BookingSheet";
 import { PageHeader } from "../shell/PageHeader";
@@ -36,6 +37,7 @@ export function MyDay({ ws, title, subtitle }: { ws: Workspace; title: string; s
   const done = day.filter((b) => DONE.has(b.status)).length;
   const left = day.filter((b) => ACTIVE.has(b.status)).length;
   const opened = day.find((b) => b.id === openId) ?? null;
+  const labels = { walkIn: t("myDay.walkIn"), deleted: t("booking.deletedCustomer") };
   const name = (b: SalonBooking) => (locale === "en" && b.service.name.en) || b.service.name.vi;
 
   return (
@@ -60,7 +62,7 @@ export function MyDay({ ws, title, subtitle }: { ws: Workspace; title: string; s
             {`${formatTime(new Date(next.startsAt), locale, ws.timeZone)} – ${formatTime(new Date(next.endsAt), locale, ws.timeZone)}`}
           </Text>
           <Text role="uiSemiBold" size={18} color={c.ink}>
-            {next.customer?.name ?? t("myDay.walkIn")}
+            {customerLabel(next, labels)}
           </Text>
           <Text size={14} color={c.body}>
             {name(next)}
@@ -127,7 +129,7 @@ export function MyDay({ ws, title, subtitle }: { ws: Workspace; title: string; s
               </Text>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text role="uiMedium" size={15} color={c.ink} numberOfLines={1}>
-                  {b.customer?.name ?? t("myDay.walkIn")}
+                  {customerLabel(b, labels)}
                 </Text>
                 <Text size={13} color={c.body} numberOfLines={1}>
                   {name(b)}

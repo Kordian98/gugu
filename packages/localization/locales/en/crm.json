@@ -586,7 +586,8 @@
     "cancelConfirm": "Cancel appointment",
     "rescheduleTitle": "Pick a new time",
     "sameStaff": "Same team member",
-    "resources": "Room / equipment"
+    "resources": "Room / equipment",
+    "deletedCustomer": "Deleted customer"
   },
   "wizard": {
     "later": "Later",
@@ -777,5 +778,16 @@
     "emptyTitle": "No appointments today",
     "emptyBody": "Your appointments will appear here.",
     "week": "See the whole week"
+  },
+  "override": {
+    "title": "Outside the booking rules — book anyway?",
+    "confirm": "Book anyway",
+    "body": "It still can't overlap other appointments. The reason is logged.",
+    "placeholder": "e.g. regular client asked to come early",
+    "codes": {
+      "hours": "Outside working hours",
+      "lead_time": "Too short notice",
+      "horizon": "Beyond the booking window"
+    }
   }
 }

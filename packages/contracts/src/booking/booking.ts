@@ -166,6 +166,7 @@ export const STAFF_ENTRY_SOURCE_VALUES = [
   "zalo_chat",
 ] as const;
 export const ruleOverrideSchema = z.enum(["hours", "lead_time", "horizon"]);
+export type RuleOverride = z.infer<typeof ruleOverrideSchema>;
 
 /** CRM: a salon member enters a booking (the entry is the confirmation — X9 class 2). */
 export const createSalonBookingInputSchema = z

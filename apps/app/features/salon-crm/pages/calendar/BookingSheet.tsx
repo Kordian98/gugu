@@ -110,8 +110,8 @@ export function BookingSheet({
       <Row icon="users" label={t("booking.client")}>
         {booking.customer ? (
           <View style={{ gap: 2 }}>
-            <Text role="uiSemiBold" size={15} color={c.ink}>
-              {booking.customer.name}
+            <Text testID="crm-booking-customer" role="uiSemiBold" size={15} color={c.ink}>
+              {booking.customerAnonymised ? t("booking.deletedCustomer") : booking.customer.name}
             </Text>
             {booking.customer.phone && !booking.customer.phone.includes("•") ? (
               <Pressable

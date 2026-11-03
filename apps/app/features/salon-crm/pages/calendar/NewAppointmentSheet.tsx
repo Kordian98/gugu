@@ -3,7 +3,13 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { Avatar, CalmButton, DatePicker, Icon, Pill, Text, useCalm } from "@gugu/design-system";
-import type { ClientSuggestion, EarliestSlots, Service, StaffMember } from "@gugu/contracts";
+import type {
+  ClientSuggestion,
+  EarliestSlots,
+  RuleOverride,
+  Service,
+  StaffMember,
+} from "@gugu/contracts";
 import { formatDateLong, formatTime, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -12,6 +18,7 @@ import {
   useAvailability,
   useClientLookup,
   useCreateBooking,
+  requiredOverrides,
   useEarliestSlots,
 } from "../../data/bookings";
 import { useSettings } from "../../data/catalog";
@@ -85,7 +92,7 @@ export function NewAppointmentSheet({
   const { t } = useTranslation("crm");
   const locale = useLocale();
   const errorText = useErrorText();
-  const { can, summary } = useSalon();
+  const { can } = useSalon();
   const [showAll, setShowAll] = useState(false);
   const fits = (s: Service) =>
     !prefill.durationMinutes ||
@@ -124,7 +131,7 @@ export function NewAppointmentSheet({
   const today = salonDate(new Date(), tz);
   const windowDays = settings.data?.booking.bookingWindowDays ?? 60;
   const maxDate = addDays(today, windowDays);
-  const canOverride = can("bookings.write") && summary?.myRole !== "staff";
+  const canOverride = can("bookings.override_rules");
   const [month, setMonth] = useState<{ first: string; last: string }>(() => monthOf(prefill.date));
   const beyondWindow = date > maxDate;
   // Outside the rules (q18): after hours / short notice / beyond the window, with a reason; audited
@@ -247,7 +254,7 @@ export function NewAppointmentSheet({
     (walkIn || (contact.name && contact.phone.replace(/\D/g, "").length >= 8)),
   );
 
-  const submit = () => {
+  const submit = (overrides: RuleOverride[] = []) => {
     if (!service || !chosenSlot) return;
     create.mutate(
       {
@@ -259,16 +266,18 @@ export function NewAppointmentSheet({
         source: walkIn ? "walk_in" : source,
         customer: walkIn ? null : contact,
         note: note.trim() || null,
-        overrides: manualMode
-          ? beyondWindow
-            ? ["hours", "lead_time", "horizon"]
-            : ["hours", "lead_time"]
-          : [],
-        ...(manualMode ? { overrideReason: overrideReason.trim() } : {}),
+        // Only the rules this time actually breaks are overridden (and audited, 06).
+        overrides,
+        ...(overrides.length ? { overrideReason: overrideReason.trim() } : {}),
       },
       {
         onSuccess: onClose,
-        onError: () => {
+        onError: (e) => {
+          const codes = requiredOverrides(e);
+          if (codes?.length && manualMode && overrides.length === 0 && canOverride) {
+            submit(codes);
+            return;
+          }
           setSlot(null);
           setSlotTouched(true);
           void availability.refetch();
