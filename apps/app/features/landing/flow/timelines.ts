@@ -105,15 +105,13 @@ function frameAt(t: number): [Segment, number] {
   return ["w3", lin(PH.w3[0], PH.w3[1])];
 }
 
-type Videos = { stress: HTMLVideoElement | null; calm: HTMLVideoElement | null };
-
 /**
  * The single-scene journey: arched door portal (hero) → full-bleed walk in → front desk drowning → calm
  * (same receptionist, matching 16:9 loops) → walk to the treatment area (features) → walk to the back
  * office (overview, stat, assistant). Canvas frame, loop playback and the portal clip are driven from the
  * smoothed timeline time; everything else is transform/opacity.
  */
-export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Videos) {
+export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: HTMLElement | null) {
   const tl = trackTimeline(root, 0.25);
   const frame = q(".jr-frame")[0] as HTMLElement | undefined;
   const media = q(".jr-media")[0] as HTMLElement | undefined;
@@ -126,7 +124,7 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Vid
     const H = window.innerHeight;
     const e = 1 - Math.pow(1 - k, 3);
     const r = mobile
-      ? { t: H * 0.58, rt: W * 0.05, b: H * 0.03, l: W * 0.05 }
+      ? { t: H * 0.5, rt: W * 0.05, b: H * 0.1, l: W * 0.05 }
       : { t: H * 0.15, rt: W * 0.05, b: H * 0.06, l: W * 0.53 };
     const pw = W - r.l - r.rt;
     const t = r.t * (1 - e);
@@ -141,18 +139,54 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Vid
       frame.style.clipPath = clip;
       // Keep the doors centred in the window while it grows.
       const cx = (r.l + (W - r.rt)) / 2 - W / 2;
-      const cy = (r.t + (H - r.b)) / 2 - H / 2;
+      // + a little extra so the shop sign above the doors sits fully inside the arch.
+      const cy = (r.t + (H - r.b)) / 2 - H / 2 + H * (mobile ? 0.27 : 0.1);
       media.style.transform = `translate3d(${(cx * (1 - e)).toFixed(1)}px,${(cy * (1 - e)).toFixed(1)}px,0)`;
     }
   };
-  const playing = { stress: false, calm: false };
-  const playIf = (vid: HTMLVideoElement | null, key: "stress" | "calm", on: boolean) => {
-    if (!vid || playing[key] === on) return;
-    playing[key] = on;
-    if (on) {
-      vid.preload = "auto";
-      void vid.play().catch(() => undefined);
-    } else vid.pause();
+  // HUD: per-chapter fill (transition progress into chapter i), active chapter, next-button label.
+  const fills = hud ? Array.from(hud.querySelectorAll<HTMLElement>(".hud-fill")) : [];
+  const steps = hud ? Array.from(hud.querySelectorAll<HTMLElement>(".hud-s")) : [];
+  let lastHud = "";
+  const syncHud = (t: number) => {
+    if (!hud) return;
+    const key = t.toFixed(3);
+    if (key === lastHud) return;
+    lastHud = key;
+    let active = 0;
+    STOPS.forEach((s0, i) => {
+      if (t >= s0 - 0.003) active = i;
+      const prev = STOPS[i - 1] ?? 0;
+      const f = i === 0 ? 1 : Math.max(0, Math.min(1, (t - prev) / (s0 - prev)));
+      const el = fills[i];
+      if (el) el.style.transform = `scaleX(${f.toFixed(3)})`;
+    });
+    steps.forEach((el, i) => el.classList.toggle("on", i === active));
+    hud.dataset["at"] = t < 0.003 ? "start" : t > 0.997 ? "end" : "mid";
+  };
+  // Counters (write text only when the shown value changes).
+  const counter = (sel: string, to: number, at: number, dur: number, digits = 0) => {
+    const el = q(sel)[0] as HTMLElement | undefined;
+    if (!el) return;
+    const v = { n: 0 };
+    let shown = "";
+    tl.fromTo(
+      v,
+      { n: 0 },
+      {
+        n: to,
+        duration: dur,
+        ease: "power1.out",
+        onUpdate: () => {
+          const s = v.n >= to - 0.001 ? String(to) : v.n.toFixed(digits);
+          if (s !== shown) {
+            shown = s;
+            el.textContent = s;
+          }
+        },
+      },
+      at,
+    );
   };
   const loaded = new Set<Segment>(["w1"]);
   tl.eventCallback("onUpdate", () => {
@@ -168,10 +202,10 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Vid
     }
     player.set(seg, p);
     portal(Math.max(0, Math.min(1, t / PH.portal[1])));
-    playIf(v.stress, "stress", t > PH.pain - 0.01 && t < PH.swap + 0.05);
-    playIf(v.calm, "calm", t > PH.swap - 0.01 && t < PH.calmOut + 0.02);
+    syncHud(t);
   });
   portal(0);
+  syncHud(0);
 
   // hero → doors
   tl.to(q(".jr-hero"), { opacity: 0, x: -60, duration: 0.03, ease: "power1.in" }, 0.004);
@@ -180,39 +214,46 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Vid
   tl.to(q(".jr-intro"), { opacity: 0, y: -40, duration: 0.02 }, 0.075);
   tl.to(q(".jr-shade"), { opacity: 0, duration: 0.02 }, 0.08);
 
-  // front desk: drowning
-  const vs = [v.stress].filter((x): x is HTMLVideoElement => x !== null);
-  const vc = [v.calm].filter((x): x is HTMLVideoElement => x !== null);
-  tl.to(vs, { opacity: 1, duration: 0.006, ease: "none" }, PH.pain - 0.004);
-  tl.to(q(".jr-light"), { opacity: 1, duration: 0.02 }, PH.pain);
-  show(tl, q, ".pn-a", PH.pain + 0.005);
-  show(tl, q, ".pn-sa", PH.pain + 0.03);
+  // front desk: drowning — the frame freezes and whitens (like the rooms), UI builds on top
+  tl.to(q(".jr-light"), { opacity: 1, duration: 0.03, ease: "sine.inOut" }, PH.pain);
+  show(tl, q, ".pn-a", PH.pain + 0.005, { y: 60 });
+  show(tl, q, ".pn-sa", PH.pain + 0.03, { y: 40, scale: 0.9 });
+  counter(".pn-num", 3, PH.pain + 0.03, 0.06, 1);
+  show(tl, q, ".pn-badge", PH.pain + 0.04, { y: -10, scale: 0.6 });
+  counter(".pn-count", 12, PH.pain + 0.045, 0.12);
   show(tl, q, ".jr-foot", PH.pain + 0.03, { y: 0 });
   stagger(tl, q, ".pn-n", PH.pain + 0.045, 0.022, { y: -26, scale: 0.94 });
   show(tl, q, ".pn-book", PH.pain + 0.09, { y: 40, rotate: -7 });
   tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.02 }, PH.pain + 0.13);
   tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.02 }, PH.pain + 0.15);
 
-  // same desk: calm
-  tl.to(vc, { opacity: 1, duration: 0.035, ease: "sine.inOut" }, PH.swap);
-  hide(tl, q, ".pn-n", PH.swap, { y: -14, scale: 0.96 });
+  // same desk: calm (the calm photo dissolves in on the same frozen, whitened frame)
+  tl.to(q(".jr-calm"), { opacity: 1, duration: 0.035, ease: "sine.inOut" }, PH.swap);
+  hide(tl, q, ".pn-n, .pn-badge", PH.swap, { y: -14, scale: 0.96 });
   hide(tl, q, ".pn-book", PH.swap, { y: 30 });
   hide(tl, q, ".pn-a", PH.swap + 0.004);
   hide(tl, q, ".pn-sa", PH.swap + 0.004);
-  show(tl, q, ".pn-b", PH.swap + 0.02);
+  show(tl, q, ".pn-b", PH.swap + 0.02, { y: 60 });
   show(tl, q, ".pn-sb", PH.swap + 0.03);
-  stagger(tl, q, ".pn-gi", PH.swap + 0.045, 0.016, { x: -24 });
+  q(".pn-gi").forEach((el, i) => {
+    tl.fromTo(
+      el,
+      { opacity: 0, x: -24, scale: 0.8 },
+      { opacity: 1, x: 0, scale: 1, duration: 0.03, ease: "back.out(2.2)" },
+      PH.swap + 0.045 + i * 0.016,
+    );
+  });
   hide(tl, q, ".pn-b", PH.calmOut - 0.014);
   hide(tl, q, ".pn-sb", PH.calmOut - 0.014);
   hide(tl, q, ".jr-foot", PH.calmOut - 0.014, { y: 0 });
   tl.to(q(".jr-light"), { opacity: 0, duration: 0.025 }, PH.calmOut - 0.01);
-  tl.to([...vs, ...vc], { opacity: 0, duration: 0.015, ease: "none" }, PH.calmOut + 0.006);
+  tl.to(q(".jr-calm"), { opacity: 0, duration: 0.02, ease: "none" }, PH.calmOut + 0.006);
 
   // walk to the treatment area → features
   show(tl, q, ".cap-deeper", PH.w2[0], { y: 0 });
   hide(tl, q, ".cap-deeper", PH.w2[1] - 0.03, { y: 0 });
   tl.to(q(".jr-veil"), { opacity: 1, duration: 0.03 }, PH.feat);
-  show(tl, q, ".ov-f .t", PH.feat + 0.012);
+  show(tl, q, ".ov-f .t", PH.feat + 0.012, { y: 60 });
   show(tl, q, ".ft-lap", PH.feat + 0.022, { x: 80, scale: 0.96 });
   stagger(tl, q, ".ft-i", PH.feat + 0.045, 0.014, { y: 26 });
   hide(tl, q, ".ov-f .t, .ft-lap, .ft-i", PH.featOut);
@@ -223,7 +264,7 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Vid
   hide(tl, q, ".cap-office", PH.w3[1] - 0.03, { y: 0 });
   tl.to(q(".jr-veil"), { opacity: 1, duration: 0.03 }, PH.office);
   show(tl, q, ".of-lap", PH.office + 0.015, { x: -80, scale: 0.96 });
-  show(tl, q, ".ov-o .t", PH.office + 0.025);
+  show(tl, q, ".ov-o .t", PH.office + 0.025, { y: 60 });
   stagger(tl, q, ".of-side .card", PH.office + 0.05, 0.022, { y: 26 }, 0.035);
   tl.to({}, { duration: 0.001 }, 0.999);
   return tl;

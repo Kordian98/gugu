@@ -217,7 +217,10 @@
       "g1": "4 lịch hẹn được tạo tự động",
       "g2": "Đã lên lịch nhắc cho ngày mai",
       "g3": "Không còn trùng lịch",
-      "note": "Ví dụ minh hoạ với tên hư cấu, không phải số liệu đo lường hay câu chuyện khách hàng."
+      "note": "Ví dụ minh hoạ với tên hư cấu, không phải số liệu đo lường hay câu chuyện khách hàng.",
+      "statNum": "3",
+      "statUnit": "giờ",
+      "unread": "tin nhắn mới"
     },
     "ba": {
       "eyebrow": "Trước và sau",
@@ -339,6 +342,18 @@
         "c": "Tạo dáng chân mày · 30 phút"
       },
       "note": "Ảnh minh hoạ, không phải khách hàng."
+    },
+    "hud": {
+      "c0": "Đến nơi",
+      "c1": "Quầy lễ tân",
+      "c2": "Nhẹ nhàng",
+      "c3": "Phòng làm",
+      "c4": "Văn phòng",
+      "next": "Tiếp theo",
+      "start": "Bắt đầu tham quan",
+      "cont": "Tiếp tục",
+      "skip": "Bỏ qua câu chuyện",
+      "label": "Các phần của câu chuyện"
     }
   }
 }

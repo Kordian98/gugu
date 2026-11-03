@@ -101,21 +101,24 @@ export function HeroCopy({
   desktop,
   width,
   stacked = false,
+  compact = false,
 }: {
   nav: LandingNavActions;
   desktop: boolean;
   width: number;
   /** Break all three headline beats onto their own lines (narrow column). */
   stacked?: boolean;
+  /** Phone door hero: smaller type, one CTA, no note (the arch needs the lower half). */
+  compact?: boolean;
 }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const size = desktop
     ? Math.min(92, Math.max(64, width * 0.054)) * (locale === "vi" ? 0.86 : 1)
-    : Math.min(50, width * 0.125) * (locale === "vi" ? 0.86 : 1);
+    : Math.min(compact ? 40 : 50, width * (compact ? 0.1 : 0.125)) * (locale === "vi" ? 0.86 : 1);
   const style = { fontFamily: font.display, fontSize: size, letterSpacing: -size * 0.035 };
   return (
-    <View style={{ gap: desktop ? 26 : 18 }}>
+    <View style={{ gap: desktop ? 26 : compact ? 12 : 18 }}>
       <View accessibilityRole="header">
         <Text role="display" size={size} lineHeight={size * 1.02}>
           <GradientText colors={G1} style={style}>
@@ -130,8 +133,8 @@ export function HeroCopy({
         </Text>
       </View>
       <Text
-        size={desktop ? 20 : 16.5}
-        lineHeight={desktop ? 30 : 25}
+        size={desktop ? 20 : compact ? 14.5 : 16.5}
+        lineHeight={desktop ? 30 : compact ? 21 : 25}
         color={color.ink2}
         style={{ maxWidth: 560 }}
       >
@@ -141,25 +144,29 @@ export function HeroCopy({
         <Button
           label={t("hero.trialCta")}
           onPress={nav.trial}
-          height={desktop ? 60 : 52}
+          height={desktop ? 60 : compact ? 48 : 52}
           fontSize={desktop ? 17 : 16}
           paddingX={32}
           trailingArrow
         />
-        <Button
-          variant="outline"
-          label={t("hero.howCta")}
-          onPress={() => {
-            nav.scrollTo("story");
-          }}
-          height={desktop ? 60 : 52}
-          fontSize={desktop ? 16.5 : 15.5}
-          paddingX={28}
-        />
+        {compact ? null : (
+          <Button
+            variant="outline"
+            label={t("hero.howCta")}
+            onPress={() => {
+              nav.scrollTo("story");
+            }}
+            height={desktop ? 60 : 52}
+            fontSize={desktop ? 16.5 : 15.5}
+            paddingX={28}
+          />
+        )}
       </View>
-      <Text size={13.5} color={color.muted}>
-        {t("hero.note")}
-      </Text>
+      {compact ? null : (
+        <Text size={13.5} color={color.muted}>
+          {t("hero.note")}
+        </Text>
+      )}
     </View>
   );
 }

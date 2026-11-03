@@ -7,6 +7,16 @@ import { gsap } from "gsap";
  * stutters. Past the last scene (or above the first) native scrolling takes over again. Keyboard and
  * scrollbar scrolling stay native (the scrubbed timeline still follows them).
  */
+export type Chapters = {
+  destroy: () => void;
+  /** Plays the transition to the next scene (or scrolls on past the last). */
+  next: () => void;
+  /** Plays the transition to scene i (duration scales with distance). */
+  goTo: (i: number) => void;
+  /** Smoothly scrolls past the story to `el`. */
+  skipTo: (el: Element | null) => void;
+};
+
 export function chapterScroller(
   scroller: HTMLElement,
   track: HTMLElement,
@@ -24,6 +34,20 @@ export function chapterScroller(
     const { top, len } = range();
     return (scroller.scrollTop - top) / len;
   };
+  const tweenTo = (y: number, dur: number) => {
+    busy = true;
+    tween?.kill();
+    tween = gsap.to(scroller, {
+      scrollTop: y,
+      duration: dur,
+      ease: "sine.inOut",
+      onComplete: () => {
+        setTimeout(() => {
+          busy = false;
+        }, 260);
+      },
+    });
+  };
   const go = (dir: 1 | -1): boolean => {
     const p = progress();
     if (p < -0.002 || p > 1.002) return false; // outside the journey: native scroll
@@ -39,19 +63,7 @@ export function chapterScroller(
     const from = dir > 0 ? i - 1 : i;
     const dur = durations[Math.max(0, Math.min(durations.length - 1, from))] ?? 2.5;
     const { top, len } = range();
-    busy = true;
-    tween?.kill();
-    tween = gsap.to(scroller, {
-      scrollTop: top + target * len,
-      duration: dur,
-      ease: "sine.inOut",
-      onComplete: () => {
-        // Short cool-down so the tail of a trackpad flick doesn't trigger the next scene.
-        setTimeout(() => {
-          busy = false;
-        }, 260);
-      },
-    });
+    tweenTo(top + target * len, dur);
     return true;
   };
 
@@ -89,10 +101,32 @@ export function chapterScroller(
   scroller.addEventListener("wheel", onWheel, { passive: false });
   scroller.addEventListener("touchstart", onTouchStart, { passive: true });
   scroller.addEventListener("touchmove", onTouchMove, { passive: false });
-  return () => {
-    tween?.kill();
-    scroller.removeEventListener("wheel", onWheel);
-    scroller.removeEventListener("touchstart", onTouchStart);
-    scroller.removeEventListener("touchmove", onTouchMove);
+  return {
+    destroy: () => {
+      tween?.kill();
+      scroller.removeEventListener("wheel", onWheel);
+      scroller.removeEventListener("touchstart", onTouchStart);
+      scroller.removeEventListener("touchmove", onTouchMove);
+    },
+    next: () => {
+      if (busy) return;
+      if (!go(1)) {
+        const { top, len } = range();
+        tweenTo(top + len + scroller.clientHeight * 0.02, 1.4);
+      }
+    },
+    goTo: (i: number) => {
+      const target = stops[Math.max(0, Math.min(stops.length - 1, i))] ?? 0;
+      const p = progress();
+      const { top, len } = range();
+      const span = Math.abs(target - p);
+      tweenTo(top + target * len, Math.min(6, Math.max(1.2, span * 14)));
+    },
+    skipTo: (el: Element | null) => {
+      if (!el) return;
+      const y =
+        el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+      tweenTo(y, 1.6);
+    },
   };
 }

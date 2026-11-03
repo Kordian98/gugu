@@ -1,4 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
+
+import type { Chapters } from "./chapters";
 import { gsap } from "gsap";
 import { useTranslation } from "react-i18next";
 
@@ -6,7 +8,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import { HeroCopy } from "../StudioHero";
 import type { LandingNavActions } from "../useLandingNav";
-import { LOOP, PHOTO } from "./media";
+import { PHOTO } from "./media";
 import { FeaturesPanel, OfficePanel } from "./Rooms";
 import { WalkPlayer } from "./sequence";
 import { chapterScroller } from "./chapters";
@@ -19,6 +21,9 @@ const Z = "Z";
 const PHONE = "☎";
 const CHECK = "✓";
 const SEP = " · ";
+const ZERO = "0";
+const DOWN = "\u2193";
+const HUD = ["c0", "c1", "c2", "c3", "c4"] as const;
 
 /**
  * The whole visit as ONE full-screen scene (web): a single sticky stage whose canvas walks in from the
@@ -40,10 +45,8 @@ export function Journey({
   const locale = useLocale();
   const track = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const vStress = useRef<HTMLVideoElement>(null);
-  const vCalm = useRef<HTMLVideoElement>(null);
-  // Rendered client-only (Flow mounts after hydration), so matchMedia is safe here.
-  const mobile = window.matchMedia("(max-width: 899px)").matches;
+  const hud = useRef<HTMLElement>(null);
+  const ch = useRef<Chapters | null>(null);
 
   useLayoutEffect(() => {
     const el = track.current;
@@ -66,16 +69,13 @@ export function Journey({
     onResize();
     window.addEventListener("resize", onResize);
     const ctx = gsap.context(() => {
-      buildJourney(el, gsap.utils.selector(el), player, {
-        stress: vStress.current,
-        calm: vCalm.current,
-      });
+      buildJourney(el, gsap.utils.selector(el), player, hud.current);
     }, el);
     const sc = scrollParent(el);
-    const stopChapters =
-      sc instanceof HTMLElement ? chapterScroller(sc, el, STOPS, DURATIONS) : () => undefined;
+    ch.current = sc instanceof HTMLElement ? chapterScroller(sc, el, STOPS, DURATIONS) : null;
     return () => {
-      stopChapters();
+      ch.current?.destroy();
+      ch.current = null;
       ctx.revert();
       io.disconnect();
       window.removeEventListener("resize", onResize);
@@ -87,32 +87,13 @@ export function Journey({
     <div className="jr" ref={track}>
       <div className="jr-stage">
         <div className="jr-hero">
-          <HeroCopy nav={nav} desktop={desktop} width={width} stacked={desktop} />
+          <HeroCopy nav={nav} desktop={desktop} width={width} stacked={desktop} compact={!desktop} />
         </div>
         <div className="jr-frame">
           <div className="jr-media">
             <img className="jr-poster" src={PHOTO.exterior} alt="" decoding="async" />
             <canvas ref={canvas} aria-hidden />
-            <video
-              ref={vStress}
-              className="jr-v"
-              src={mobile ? LOOP.stressM : LOOP.stress}
-              poster={mobile ? undefined : PHOTO.stress169}
-              muted
-              loop
-              playsInline
-              preload="none"
-            />
-            <video
-              ref={vCalm}
-              className="jr-v"
-              src={mobile ? LOOP.calmM : LOOP.calm}
-              poster={mobile ? undefined : PHOTO.calm169}
-              muted
-              loop
-              playsInline
-              preload="none"
-            />
+            <img className="jr-calm" src={PHOTO.calm169} alt="" decoding="async" />
           </div>
           <div className="jr-shade" />
           <div className="jr-light" />
@@ -138,7 +119,10 @@ export function Journey({
             <div className="jr-stack">
               <div className="pn-sa pn-stat">
                 <span className="pre">{t("flow.pain.pre")}</span>
-                <span className="big">{t("flow.pain.stat")}</span>
+                <span className="big">
+                  <b className="pn-num">{t("flow.pain.statNum")}</b>
+                  <small>{t("flow.pain.statUnit")}</small>
+                </span>
                 <p>{t("flow.pain.statLabel")}</p>
               </div>
               <div className="pn-sb">
@@ -156,6 +140,10 @@ export function Journey({
           </div>
 
           <div className="lyr pn-notes">
+            <div className="pn-badge">
+              <b className="pn-count">{ZERO}</b>
+              {t("flow.pain.unread")}
+            </div>
             {NOTES.map((k) => (
               <div key={k} className="pn-n">
                 <i>{Z}</i>
@@ -190,6 +178,47 @@ export function Journey({
           <FeaturesPanel />
           <OfficePanel />
         </div>
+
+        <nav className="jr-hud" ref={hud} aria-label={t("flow.hud.label")}>
+          <div className="hud-steps">
+            {HUD.map((k, i) => (
+              <button
+                key={k}
+                type="button"
+                className="hud-s"
+                onClick={() => {
+                  ch.current?.goTo(i);
+                }}
+              >
+                <span className="hud-bar">
+                  <span className="hud-fill" />
+                </span>
+                <em>{t(`flow.hud.${k}`)}</em>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="hud-next"
+            onClick={() => {
+              ch.current?.next();
+            }}
+          >
+            <span className="l-start">{t("flow.hud.start")}</span>
+            <span className="l-next">{t("flow.hud.next")}</span>
+            <span className="l-cont">{t("flow.hud.cont")}</span>
+            <i>{DOWN}</i>
+          </button>
+        </nav>
+        <button
+          type="button"
+          className="jr-skip"
+          onClick={() => {
+            ch.current?.skipTo(document.getElementById("fl-biz"));
+          }}
+        >
+          {t("flow.hud.skip")}
+        </button>
       </div>
     </div>
   );

@@ -137,7 +137,7 @@ export function Businesses() {
     });
   };
   return (
-    <section className="bz">
+    <section className="bz" id="fl-biz">
       <div className="bz-head">
         <div>
           <div className="fl-eye rv">{t("flow.biz.eyebrow")}</div>

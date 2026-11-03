@@ -29,10 +29,9 @@ function useTrack(
       build(trackTimeline(el, 0.3), gsap.utils.selector(el));
     }, el);
     const sc = scrollParent(el);
-    const stop =
-      sc instanceof HTMLElement ? chapterScroller(sc, el, BA_STOPS, BA_DURATIONS) : () => undefined;
+    const ch = sc instanceof HTMLElement ? chapterScroller(sc, el, BA_STOPS, BA_DURATIONS) : null;
     return () => {
-      stop();
+      ch?.destroy();
       ctx.revert();
     };
   }, [build, dep]);

@@ -2,7 +2,7 @@
 
 Every fal.ai call for the hero and homepage prototype, generated from `scripts/runs.jsonl` by `scripts/prompts_md.py`. FLUX 3 edit and Kling v4 expose no seed parameter, so the fal request ID plus the exact prompt and reference files are the reproducibility record. Costs are estimates from the fal model pages (2K FLUX tier and BiRefNet price not verified; check the fal dashboard for the actual bill).
 
-**Calls:** 105 · **Estimated spend:** $5.93
+**Calls:** 110 · **Estimated spend:** $5.93
 
 | # | Name | Endpoint | Request ID | Refs | Output | Est. $ |
 |---|---|---|---|---|---|---|
@@ -111,6 +111,11 @@ Every fal.ai call for the hero and homepage prototype, generated from `scripts/r
 | 103 | loop-calm-brand | `alibaba/wan-3.0-prime/image-to-video` | `01a19ff3-3d67-7032-86b3-c6899f8344a2` |  |  | 0.000 |
 | 104 | walk3-brand (failed: input >20 MB, not billed) | `alibaba/wan-3.0-prime/image-to-video` | `01a19ff1-e6b3-76b0-afb7-eab50b69786c` |  |  | 0.000 |
 | 105 | walk2-brand (failed: input >20 MB, not billed) | `alibaba/wan-3.0-prime/image-to-video` | `01a19ff3-3da4-76f3-8841-f04bb4b7870d` |  |  | 0.000 |
+| 106 | walk2-brand | `alibaba/wan-3.0-prime/image-to-video` | `01a1a00c-c491-7fe2-bb61-2cee943c91ae` |  |  | 0.000 |
+| 107 | walk3-brand | `alibaba/wan-3.0-prime/image-to-video` | `01a1a00c-c492-7b32-b4e3-af6fdcc244c9` |  |  | 0.000 |
+| 108 | walk1-brand-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a00c-c493-73d0-acd8-267ac6e5ea1d` |  |  | 0.000 |
+| 109 | walk2-brand-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a00e-f665-72d2-a584-55e67f8810f7` |  |  | 0.000 |
+| 110 | walk3-brand-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a00e-f666-73e0-a25f-9c5a99758ec4` |  |  | 0.000 |
 
 ## Prompts and settings
 
@@ -797,3 +802,43 @@ Locked-off loop on brand-calm.
 ### 105. walk2-brand (failed: input >20 MB, not billed)
 - Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T12:55:00+00:00
 - Settings: `{}`
+
+### 106. walk2-brand
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T13:40:00+00:00
+- Settings: `{}`
+
+```
+Reception (calm, branded) -> treatment area (branded). 6 s. Via REST with the project FAL_KEY.
+```
+
+### 107. walk3-brand
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T13:40:00+00:00
+- Settings: `{}`
+
+```
+Treatment -> back office; owner visible through the door from the start. 6 s.
+```
+
+### 108. walk1-brand-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T13:40:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 109. walk2-brand-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T13:40:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 110. walk3-brand-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T13:40:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```

@@ -217,7 +217,10 @@
       "g1": "4 bookings created automatically",
       "g2": "Reminders scheduled for tomorrow",
       "g3": "No double bookings",
-      "note": "Illustrative example with fictional names, not a measurement or a customer story."
+      "note": "Illustrative example with fictional names, not a measurement or a customer story.",
+      "statNum": "3",
+      "statUnit": "h",
+      "unread": "new messages"
     },
     "ba": {
       "eyebrow": "Before and after",
@@ -339,6 +342,18 @@
         "c": "Brow shaping · 30 min"
       },
       "note": "Illustrative photos, not customers."
+    },
+    "hud": {
+      "c0": "Arrive",
+      "c1": "Front desk",
+      "c2": "Calm",
+      "c3": "Treatment room",
+      "c4": "Back office",
+      "next": "Next",
+      "start": "Start the tour",
+      "cont": "Continue",
+      "skip": "Skip the story",
+      "label": "Story chapters"
     }
   }
 }
