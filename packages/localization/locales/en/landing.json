@@ -485,6 +485,21 @@
       "sub": "Then {{price}}/month. Basic includes AI setup from a photo of your price list; the AI assistant starts at Pro.",
       "cta": "Start free",
       "plans": "See the plans"
+    },
+    "payroll": {
+      "eyebrow": "Back office · Pay & commissions",
+      "title": "Pay and commissions that add up themselves, service by service.",
+      "p1": "Monthly, daily or hourly base pay, plus a commission % or a fixed amount per service",
+      "p2": "Commission is earned when a service is completed; when two people share one appointment, each earns on their own service",
+      "p3": "Monthly payroll with bonuses and deductions; close the month and export to Excel",
+      "p4": "The owner's “This month”: earned so far, still to come from bookings, payroll, costs, estimated net profit and margins",
+      "p5": "Staff only see their own earnings",
+      "note": "Estimates before tax and insurance.",
+      "payRow": "Pay and commissions",
+      "margin": "margin {{pct}}",
+      "s1": "Nguyễn Linh",
+      "s2": "Trần Mai",
+      "s3": "Lê Tuấn"
     }
   }
 }

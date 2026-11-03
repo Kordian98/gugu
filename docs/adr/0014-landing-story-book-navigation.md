@@ -36,7 +36,7 @@ directional settle. The owner then asked for a different model: "mega robust, li
    dock catches a gesture that started on the other side, so a flick never skips the book. Page 1 has no
    Prev.
 4. **Book pages** (`flow/book.ts`, `PAGES` in `timelines.ts`): Front desk before · after · treatment room
-   ×3 · office · Insights · switching, counted "n / 8". They turn only by Next/Prev, HUD chapters (Front
+   ×3 · office · Insights · pay & commissions · switching, counted "n / 9". They turn only by Next/Prev, HUD chapters (Front
    desk, Treatment room, Back office, Switch; Arrive is gone), keys while the hero or story is in view, or
    one swipe per page. A turn plays the existing timeline at the original pacing and never stops
    half-way. Next during a turn fast-forwards it (≤ 0.45 s) and queues at most one page. Chapter jumps

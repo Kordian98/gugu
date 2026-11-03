@@ -20,7 +20,7 @@ The HUD chapter jump felt good because it was a single long eased tween, with no
 
 - **Static hero:** doors closed. The first small scroll (one wheel notch, a short swipe, Start or a key) plays the intro once: doors + walk-in to Front desk page 1. Input is ignored while it plays; below the threshold nothing happens.
 - **Scrolling:** after the intro it is plain page scrolling. Up shows the static hero, down returns to the book on the same page, then past it. Nothing reverses or replays. The dock catches flicks from either side.
-- **Pages:** 8 (Front desk before → switching), counted "n / 8". They turn by Next/Prev, the HUD chapters (Arrive removed), keys or one swipe per page. Turns play the original animations at their original pacing.
+- **Pages:** 9 (Front desk before → switching; the back office has overview, Insights and pay & commissions), counted "n / 9". They turn by Next/Prev, the HUD chapters (Arrive removed), keys or one swipe per page. Turns play the original animations at their original pacing.
 - **Divider:** removed. Before → after is the original sweep, played by Next ("Xem sau khi dùng").
 - **Finish and Skip:** both go to the X25 band. The static hero's Start becomes "Tiếp tục hành trình".
 - **Reduced motion:** crossfades.
@@ -80,13 +80,27 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **Front desk before:** `after-p2-*.webp`.
 - **Hero with the hint:** `after-p0-*.webp`.
 - **X25 band:** `after-free-year-*.webp`.
+- **Pay & commissions:** `after-payroll-vi-{1440,1280,390}.webp`.
+- **Static hero:** `after-static-hero-vi-1440.webp`. **Review fixes:** `after-review-*.webp`.
+
+## Design review fixes (after `f7c8e5b`)
+
+- Next has an `aria-label` for the current label. Its label spans and arrow are `aria-hidden`, and Prev is disabled on page 1.
+- Every non-current page panel is `inert`. A visually hidden polite live region (`flow.hud.pageSr`) updates on settle, and the visible counter is `aria-hidden`. Focus moves to the X25 heading after Finish/Skip.
+- The phone HUD has two rows, so chapter buttons are 81×44 with visually hidden names. Prev, Skip and links are ≥ 44 px.
+- A stray `}` in `flow.css.ts` was breaking every later mobile rule (HUD layout, Insights centring, swipes). It is removed.
+- Small text on photos is plum ink (`ink2`), and the front-desk veil is 0.86. Headings use `text-wrap: balance`, paragraphs `pretty`.
+- Layout fixes: the citation sits above the first-view hint, the calendar callout points at the 10:00 booking, and the number/h3 spacing is fixed. Insights and payroll fit 390×844.
+- Reduced motion: no shimmer, and exit/dock scrolls jump.
+- New tokens: `motion`, `danger*`, `zalo`, `paper*`, `sheet*`, `gradient.glowSoft` + `cssGradient`. Raw hex in the landing feature dropped from 108 on main to 48.
+- Insights and payroll figures go through `Intl` / `formatVND`. 99,000 VND comes from one constant via `{{price}}`. The Basic card CTA says "Bắt đầu miễn phí".
 
 ## Copy changes needing vi review (`i18n:vi-review`)
 
 - **`flow.hud`:** `c2` (Phòng làm → Phòng dịch vụ), `c4` (Chuyển từ sổ/app cũ), `finish` (Kết thúc hành trình), `prev`, `page`, `hintKeys`, `hintTouch`.
 - **`flow.features`:** `chip` (14:00 → 10:00, to match the visible booking), `callAppt`, `callSvc`. The `r4*` keys were removed (three facts only).
 - **`flow.switch`:** `title`, `sub`, `st1`–`st4`, `oNb`, `oXl`, `oApp`. The copy says photo or screenshot only (the AI import has no text paste) and makes no client-import claim.
-- **New sections:** `flow.insights.*` and `flow.free.*`.
+- **New sections:** `flow.insights.*`, `flow.free.*`, `flow.payroll.*` (pay & commissions page), `flow.hud.resume`, `flow.hud.pageSr`, `pricing.basicCta`.
 - **`pricing`:** `trial`, `basicFree`, `basicThen`, `basic.items`.
 - **Reminders:** `features.reminders.title` and `story.reminders.sub` now say Zalo only (q85/q86).
 - **Trial (q96):** `hero.note`, `cta.title`, `cta.body` and `pricing.trial` lead with the free Basic year and mention the 14-day Pro trial second.

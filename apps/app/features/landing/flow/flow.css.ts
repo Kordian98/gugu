@@ -142,6 +142,7 @@ export const FLOW_CSS = `
 @media (max-width:899px){
     .sp-steps,.sp-rem,.sp-gains,.sp-ui-r .pn-calm{display:none}
   .sp-app{gap:8px;max-width:none}
+  .sp-app .sv{display:none}
   .sp-booked{font-size:11px;padding:6px 9px;top:-10px}
   .sp .pn-g{gap:5px}
   .sp-ui{left:16px;right:16px;top:58px;bottom:calc(var(--hud) + 34px);display:flex;flex-direction:column;gap:7px;justify-content:flex-start}
@@ -202,7 +203,8 @@ export const FLOW_CSS = `
   .tr-shot.cal{--ar:1.2}.tr-shot.appt{--ar:1.7}.tr-shot.svc{--ar:1.5}
   .tr-call{font-size:12px;padding:8px 11px;max-width:80%}
   .tr-shot.cal .tr-call{right:27%;top:56%;max-width:68%}
-  .tr-shot.appt .tr-call{left:12px}
+  .tr-shot.appt .tr-call{left:12px;right:auto;top:auto;bottom:-14px}
+  .tr-shot.appt .tr-call::before{left:22px;top:-5px}
   .tr-fact{padding:16px 18px;border-radius:18px}
   .tr-n{font-size:52px}
   .tr-fact h3{font-size:17px;margin:6px 0 4px}
@@ -297,7 +299,7 @@ export const FLOW_CSS = `
   .sw-steps .ok{flex-basis:18px;height:18px;font-size:10px}
   .sw-ai{margin:8px 10px;padding:8px 10px}
   .sw-bar{padding:7px 12px}
-  .ov-s .sw-row:nth-child(n+5){display:none}
+  .ov-s .sw-row:nth-child(n+4){display:none}
   .sw-status{height:32px}.sw-status span{white-space:normal;line-height:1.3}
   .sw-rows{margin:0 10px 10px}
 }
@@ -350,6 +352,38 @@ export const FLOW_CSS = `
   .in-rev{grid-column:1/3}
   .in-fun b{font-size:16px}
 }
+/* back office · pay & commissions (CRM-styled, illustrative) */
+.ov-p .t{grid-column:1/6;grid-row:1 / 3;align-self:center}
+.ov-p .t .fl-h{font-size:clamp(28px,2.9vw,48px)}
+.ov-p .t,.ov-p .in-list li,.py-win,.py-row,.py-tr,.py-actions{opacity:0;will-change:transform,opacity}
+.py-note{font-family:${font.ui};font-size:12.5px;color:${color.ink2};margin:12px 0 0}
+.py-win{grid-column:7/13;grid-row:1 / 3;align-self:center;padding:0;overflow:hidden}
+.py-body{padding:14px;display:flex;flex-direction:column;gap:12px}
+.py-row{display:flex;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid ${color.lineSoft};font-family:${font.ui};font-size:13.5px;color:${color.ink2}}
+.py-row b{margin-left:auto;font-family:${font.uiSemiBold};color:${color.ink};font-variant-numeric:tabular-nums}
+.py-net{border-bottom:0;padding-top:10px}
+.py-net span{font-family:${font.uiSemiBold};color:${color.ink}}
+.py-net b{font-size:clamp(18px,1.6vw,24px)}
+.py-net em{font-style:normal;font-family:${font.uiMedium};font-size:12px;color:${color.lilac700};background:${color.lilac100};padding:3px 8px;border-radius:99px}
+.py-tr{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid ${color.lineSoft};font-family:${font.ui};font-size:12.5px;color:${color.ink2};font-variant-numeric:tabular-nums}
+.py-tr b{font-family:${font.uiSemiBold};color:${color.ink}}
+.py-th{font-family:${font.uiMedium};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${color.body}}
+.py-actions{display:flex;gap:8px;justify-content:flex-end;padding-top:10px}
+.py-chip{font-family:${font.uiSemiBold};font-size:12px;padding:7px 12px;border-radius:99px;border:1px solid ${color.line};color:${color.ink}}
+.py-chip.dark{background:${color.ink};color:${color.white};border-color:${color.ink}}
+@media (max-width:899px){
+  .ov-p{justify-content:flex-start}
+  .ov-p .t .fl-h{font-size:clamp(22px,6.2vw,27px);margin-bottom:0}
+  .ov-p .in-list li:nth-child(n+3){display:none}
+  .py-table{display:none}
+  .py-net span{font-size:12.5px}
+  .py-note{font-size:11px;margin-top:6px}
+  .py-body{padding:10px;gap:8px}
+  .py-row{padding:5px 0;font-size:12.5px}
+  .py-tr{font-size:11px;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:4px}
+  .py-th{font-size:9.5px}
+}
+@media (max-width:899px) and (max-height:860px){.py-table .py-tr:nth-child(4),.py-actions{display:none}}
 /* X25 band right after the story: Basic free for the first year */
 .fy{padding:clamp(72px,12vh,140px) var(--g);background:linear-gradient(180deg,${color.canvas},${color.lilac100})}
 .fy-in{max-width:980px;margin:0 auto;text-align:center}

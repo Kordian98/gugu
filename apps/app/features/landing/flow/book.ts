@@ -274,6 +274,7 @@ export function book(o: Opts): BookApi {
 
   // ---- wheel: small scroll at the hero commits to the intro; afterwards native, with a dock catch ----
   let lastWheel = 0;
+  let lastTouch = 0;
   let acc = 0;
   let side: -1 | 0 | 1 = 0;
   let caught = false;
@@ -330,8 +331,12 @@ export function book(o: Opts): BookApi {
       scroller.scrollTop = dockY;
       return;
     }
-    if (intro === "done" && ((side < 0 && y() > dockY) || (side > 0 && y() < dockY)))
-      scroller.scrollTop = dockY; // touch momentum crossing the dock
+    // Touch momentum / a wheel stream crossing the dock — only while that gesture is live, so links and
+    // programmatic scrolls (logo → top, nav anchors) are never pulled back.
+    const now = performance.now();
+    const live = now - lastWheel < 300 || now - lastTouch < 2000;
+    if (intro === "done" && live && ((side < 0 && y() > dockY) || (side > 0 && y() < dockY)))
+      scroller.scrollTop = dockY;
   };
   const onPointerDown = (e: PointerEvent) => {
     // The scrollbar (pointer on the scroller itself) may go anywhere.
@@ -412,6 +417,7 @@ export function book(o: Opts): BookApi {
   let skip = false;
   const onTouchStart = (e: TouchEvent) => {
     newGesture();
+    lastTouch = performance.now();
     if (intro !== "playing") stopScroll();
     const p = e.touches[0];
     const tgt = e.target as HTMLElement | null;
@@ -427,6 +433,7 @@ export function book(o: Opts): BookApi {
     fired = false;
   };
   const onTouchMove = (e: TouchEvent) => {
+    lastTouch = performance.now();
     if (skip) return;
     const p = e.touches[0];
     const dx = (p?.clientX ?? sx) - sx;

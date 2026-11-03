@@ -38,11 +38,13 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 
 ## Studio landing (web story)
 `apps/app/features/landing/flow/`: one pinned photoreal stage, one GSAP timeline (`timelines.ts`, paused), driven by `book.ts` (ADR 0014).
-- **Navigation:** a static hero (`StaticHero.tsx`) sits above the stage. The first small scroll plays the intro once (doors + walk-in to Front desk). After that, scrolling is plain page scrolling (nothing reverses) and the story is a book of 8 pages: Next/Prev, HUD chapters, keys, one swipe per page. The dock catches flicks. Reduced motion uses crossfades.
-- **Pages:** front desk before · after · treatment room ×3 (one fact + one cropped CRM screen + a callout each) · office · Insights · switching (old system → GuGu Studio, 1.6× slower).
+- **Navigation:** a static hero (`StaticHero.tsx`) sits above the stage. The first small scroll plays the intro once (doors + walk-in to Front desk). After that, scrolling is plain page scrolling (nothing reverses) and the story is a book of 9 pages: Next/Prev, HUD chapters, keys, one swipe per page. The dock catches flicks. Reduced motion uses crossfades.
+- **Pages:** front desk before · after · treatment room ×3 (one fact + one cropped CRM screen + a callout each) · office · Insights · pay & commissions (payroll, ADR-0016) · switching (old system → GuGu Studio, 1.6× slower).
 - **After the story:** `FreeYear` band (X25: Basic free for the first year, then 99,000 VND/month), where Finish and Skip land.
 - **Stage height** = scroller `clientHeight` via `--sv` (no vh/svh/dvh mismatch inside the RN Web ScrollView).
 - **QA and metrics:** `docs/qa/02-landing-flow/README.md`.
+
+**Tokens added (02-LANDING-FLOW):** `motion` (fast 120 · base 200 · slow 320 · deliberate 500 ms, ease out/inOut), `color.danger`/`dangerInk`/`dangerTint`, `zalo`, `paper`/`paperLine`, `sheet`/`sheetLine`, `gradient.glowSoft` + `cssGradient()`.
 
 ## Decisions
 - ADR 0014: landing story navigates as a book after scroll-driven doors.

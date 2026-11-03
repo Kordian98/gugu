@@ -10,6 +10,7 @@ import { screen } from "../screens";
 import type { LandingNavActions } from "../useLandingNav";
 import { PHOTO } from "./media";
 import { InsightsPanel } from "./Insights";
+import { PayrollPanel } from "./Payroll";
 import { FeaturesPanel, OfficePanel, SwitchPanel } from "./Rooms";
 import { WalkPlayer, frameUrl, type Segment } from "./sequence";
 import { book, type BookApi } from "./book";
@@ -55,13 +56,14 @@ const HUD = [
   },
   {
     k: "c3",
-    stops: [6, 7],
+    stops: [6, 7, 8],
     bars: [
       [5, 6],
       [6, 7],
+      [7, 8],
     ],
   },
-  { k: "c4", stops: [8], bars: [[7, 8]] },
+  { k: "c4", stops: [9], bars: [[8, 9]] },
 ] as const;
 /** Next-button label per page: start the tour, see the after, finish, otherwise "Next". */
 const LABELS = ["start", "next", "after", "finish"] as const;
@@ -141,7 +143,8 @@ export function Journey({
       [".ov-f", [3, 4, 5]],
       [".ov-o", [6]],
       [".ov-i", [7]],
-      [".ov-s", [8]],
+      [".ov-p", [8]],
+      [".ov-s", [9]],
     ];
     const chapterOf = (page: number) =>
       HUD.find((c) => (c.stops as readonly number[]).includes(page));
@@ -453,6 +456,7 @@ export function Journey({
             <FeaturesPanel />
             <OfficePanel />
             <InsightsPanel />
+            <PayrollPanel />
             <SwitchPanel />
           </div>
 

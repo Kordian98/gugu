@@ -70,7 +70,10 @@ const PH = {
   /** Back office, second page: Insights. */
   ins: 0.985,
   insOut: 1.068,
-  sw: 1.083,
+  /** Back office, third page: pay, commissions, payroll, "This month". */
+  pay: 1.075,
+  payOut: 1.158,
+  sw: 1.173,
 } as const;
 /** Switching plays 1.6× slower than the original cut (owner, 2026-11-04). */
 const SWK = 1.6;
@@ -94,6 +97,7 @@ export const PAGES: readonly Page[] = [
   { t: PH.facts[2] + 0.045, dur: 1.5 },
   { t: PH.office + 0.088, dur: 6.0 },
   { t: PH.ins + 0.07, dur: 3.2 },
+  { t: PH.pay + 0.07, dur: 3.2 },
   { t: SW_END, dur: 5.8 },
 ];
 
@@ -411,6 +415,16 @@ export function buildJourney(
   });
   stagger(tl, q, ".in-step", IN + 0.05, 0.006, { y: 12, scale: 0.9 }, 0.016);
   hide(tl, q, ".ov-i .t, .in-win", PH.insOut);
+
+  // back office, third page: pay & commissions (rows of "This month", then the payroll table)
+  const PY = PH.pay;
+  show(tl, q, ".ov-p .t", PY, { y: 50 }, 0.025);
+  stagger(tl, q, ".ov-p .in-list li", PY + 0.012, 0.007, { x: -20 }, 0.02);
+  show(tl, q, ".py-win", PY + 0.006, { x: 40, scale: 0.96 }, 0.025);
+  stagger(tl, q, ".py-row", PY + 0.02, 0.006, { y: 12 }, 0.016);
+  stagger(tl, q, ".py-tr", PY + 0.04, 0.006, { y: 12 }, 0.016);
+  show(tl, q, ".py-actions", PY + 0.058, { y: 8 }, 0.012);
+  hide(tl, q, ".ov-p .t, .py-win", PH.payOut);
 
   // switching (still in the office): the old system (notebook, spreadsheet, another app) flows into
   // GuGu Studio — the AI reads the price list and fills the services screen, then the remaining steps.
