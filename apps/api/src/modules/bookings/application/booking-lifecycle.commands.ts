@@ -22,7 +22,7 @@ import {
   resolveSelection,
   type SalonBookingContext,
 } from "../infra/booking-inputs";
-import { chainInput, staffOnBooking } from "./booking-chain";
+import { chainInput, ownsEveryLine } from "./booking-chain";
 import { OutboxRelay } from "../../../infrastructure/outbox/outbox.relay";
 import { AvailabilityCache } from "../infra/availability-cache";
 import { BookingSecrets, MANAGE_TOKEN_TTL_AFTER_END_MS } from "../infra/booking-secrets";
@@ -72,9 +72,14 @@ function snapshotTerms(line: {
 const transitionActor = (actor: BookingActor): TransitionActor =>
   actor.kind === "salon_member" ? "salon" : actor.kind;
 
-/** Staff limited to their own calendar never see other bookings (404, not 403). */
+/**
+ * Writes by staff limited to their own calendar (security review, M6.8): they may change a
+ * booking only when they do **every** line of it — a chain with another staff member's line is
+ * theirs to read (`staffOnBooking`) but not to cancel, move or transition. Anything else is 404,
+ * like another staff member's booking.
+ */
 const ownScope = (actor: BookingActor): Prisma.BookingWhereInput =>
-  actor.kind === "salon_member" && actor.ownStaffId ? staffOnBooking(actor.ownStaffId) : {};
+  actor.kind === "salon_member" && actor.ownStaffId ? ownsEveryLine(actor.ownStaffId) : {};
 
 const actorId = (actor: BookingActor): string | null =>
   actor.kind === "system" ? null : actor.userId;

@@ -927,7 +927,12 @@ describe("notifications by email (integration)", () => {
         (await http().get(api("/notifications/inbox")).set("authorization", staffA)).body,
       );
     expect((await read()).unread).toBe(1);
+    // Like a reschedule: the booking and its service line move to Mai (lines carry staff, M6.8).
     await prisma.booking.update({ where: { id: bookingId }, data: { staffId: s.staffIds[1] } });
+    await prisma.bookingService.updateMany({
+      where: { bookingId },
+      data: { staffId: s.staffIds[1] },
+    });
     const after = await read();
     expect(after.unread).toBe(0);
     expect(after.items).toEqual([]);

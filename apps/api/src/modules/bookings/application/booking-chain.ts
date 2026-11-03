@@ -66,9 +66,18 @@ export function chainInput(
   return selections.map((selection, i) => ({ selection, staffIds: candidates[i] ?? [] }));
 }
 
-/** Bookings where `staffId` does any service of the chain (M6.8). */
+/** Reads: bookings where `staffId` does any service of the chain (M6.8). Never for writes. */
 export const staffOnBooking = (staffId: string): Prisma.BookingWhereInput => ({
   OR: [{ staffId }, { services: { some: { staffId } } }],
+});
+
+/**
+ * Own-calendar writes: `staffId` does every line (first-line staff and all booking_services).
+ * Reads use the wider `staffOnBooking`.
+ */
+export const ownsEveryLine = (staffId: string): Prisma.BookingWhereInput => ({
+  staffId,
+  services: { every: { staffId } },
 });
 
 /** API view of the engine's plan for a slot (one entry per line). */
