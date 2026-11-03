@@ -55,9 +55,21 @@ export const AUDIT_ACTIONS = [
   "admin.entitlement_override_revoked",
   "admin.founding_partner_granted",
   "admin.founding_partner_revoked",
+  // Platform-admin second factor (topic 05 step 9, ADR-0011). Metadata: method / counts only.
+  "admin.mfa_enrolled",
+  "admin.mfa_reset",
+  "admin.mfa_step_up",
+  "admin.mfa_step_up_failed",
+  "admin.mfa_recovery_codes_regenerated",
   /** Written by scripts/seed-platform-admin.mjs (local dev) until topic 05 ships role management. */
   "admin.platform_role_granted",
   "notifications.settings_updated",
+  // Privacy tools (topic 05 step 8). Metadata: counts and formats only, never client data.
+  "privacy.client_exported",
+  "privacy.client_erased",
+  "privacy.salon_export_requested",
+  "privacy.salon_export_downloaded",
+  "privacy.retention_purged",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

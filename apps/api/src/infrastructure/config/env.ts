@@ -8,6 +8,7 @@ const DEV_AUTH_SECRET = "dev-only-insecure-auth-secret-do-not-use-in-prod";
 const DEV_BOOKING_TOKEN_SECRET = "dev-only-insecure-booking-token-secret-not-for-prod";
 const DEV_ZALO_TOKEN_KEY = "dev-only-insecure-zalo-token-key-do-not-use-in-prod";
 const DEV_ZALO_OA_SECRET_KEY = "dev-only-zalo-emulator-oa-secret-key";
+const DEV_MFA_ENCRYPTION_KEY = "dev-only-insecure-admin-mfa-key-do-not-use-in-prod";
 
 export const envSchema = z
   .object({
@@ -30,6 +31,18 @@ export const envSchema = z
      * topic 06). Separate from AUTH_SECRET so either can rotate alone. ≥ 32 chars.
      */
     BOOKING_TOKEN_SECRET: z.string().min(32).default(DEV_BOOKING_TOKEN_SECRET),
+    /**
+     * Seals platform-admin TOTP secrets at rest (AES-256-GCM, key derived with SHA-256; topic 05
+     * step 9). Separate from AUTH_SECRET so a leaked HMAC key does not reveal second factors.
+     * ≥ 32 chars; the default only works outside production.
+     */
+    MFA_ENCRYPTION_KEY: z.string().min(32).default(DEV_MFA_ENCRYPTION_KEY),
+    /**
+     * Per-user limits on the platform admin API (`/api/v1/admin/*`), per minute: all requests and
+     * writes only. Integration tests raise them (vitest.integration.config.ts).
+     */
+    ADMIN_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(240),
+    ADMIN_WRITE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(30),
     /** Public web app origin; magic links point here (`/{locale}/auth/verify?token=…`). */
     WEB_APP_URL: z.url().default("http://localhost:8097"),
     /**
@@ -112,6 +125,10 @@ export const envSchema = z
   .refine(
     (env) => env.NODE_ENV !== "production" || env.BOOKING_TOKEN_SECRET !== DEV_BOOKING_TOKEN_SECRET,
     { path: ["BOOKING_TOKEN_SECRET"], message: "must be set in production" },
+  )
+  .refine(
+    (env) => env.NODE_ENV !== "production" || env.MFA_ENCRYPTION_KEY !== DEV_MFA_ENCRYPTION_KEY,
+    { path: ["MFA_ENCRYPTION_KEY"], message: "must be set in production" },
   )
   .refine((env) => env.NODE_ENV !== "production" || env.ZALO_CLIENT !== "emulated", {
     path: ["ZALO_CLIENT"],

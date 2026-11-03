@@ -22,6 +22,7 @@ import {
   bearerFor,
   createSalonFixture,
   type SalonFixture,
+  steppedUpBearerFor,
   testEmail,
 } from "../../../test/factories/identity";
 import { http } from "../../../test/http-app";
@@ -40,7 +41,6 @@ import {
 } from "../subscriptions/subscriptions.facade";
 
 const DAY = 86_400_000;
-const MIN = 60_000;
 
 class MovableClock extends Clock {
   offsetMs = 0;
@@ -60,6 +60,8 @@ describe("platform admin (integration)", () => {
   const tag = `adm${Date.now().toString(36)}`;
   const fixtures: SalonFixture[] = [];
   let superAdmin: string;
+  /** Same super admin, enrolled but on a session that never stepped up. */
+  let superAdminNotElevated: string;
   let supportAdmin: string;
   let superAdminId: string;
   let adminRoutes: RouteInfo[];
@@ -78,7 +80,7 @@ describe("platform admin (integration)", () => {
         profile: { create: {} },
       },
     });
-    return { id: user.id, bearer: await bearerFor(app, user.id) };
+    return { id: user.id, bearer: await steppedUpBearerFor(app, user.id) };
   };
   const auditCount = (salonId: string) =>
     prisma.auditLog.count({ where: { salonId, actorType: "platform_admin" } });
@@ -100,6 +102,7 @@ describe("platform admin (integration)", () => {
     const sa = await platformUser("super_admin");
     superAdmin = sa.bearer;
     superAdminId = sa.id;
+    superAdminNotElevated = await bearerFor(app, sa.id);
     supportAdmin = (await platformUser("support_admin")).bearer;
     adminRoutes = listRoutes(
       app.get(DiscoveryService),
@@ -144,6 +147,10 @@ describe("platform admin (integration)", () => {
       "admin/salons/:salonId/overrides/:overrideId/revoke": {},
       "admin/salons/:salonId/founding-partner": {},
       "admin/salons/:salonId/founding-partner/revoke": {},
+      "admin/mfa/totp/enrol": {},
+      "admin/mfa/totp/confirm": { code: "123456" },
+      "admin/mfa/step-up": { code: "123456" },
+      "admin/mfa/recovery-codes": { code: "123456" },
     };
     const body = bodies[route.path];
     if (!body) throw new Error(`add a valid body for ${route.method} ${route.path}`);
@@ -200,7 +207,8 @@ describe("platform admin (integration)", () => {
     it("support_admin reads but cannot change anything commercial (R-AD4)", async () => {
       const s = await newSalon("Support");
       const support = PLATFORM_ROLE_PERMISSIONS.support_admin;
-      for (const route of adminRoutes) {
+      // `admin/mfa/*` is self-service for every platform role (admin-mfa.int.test.ts).
+      for (const route of adminRoutes.filter((r) => r.path.startsWith("admin/salons"))) {
         if (route.policy?.kind !== "platform") continue;
         const allowed = support.has(route.policy.permission);
         if (route.method === "GET") {
@@ -235,7 +243,9 @@ describe("platform admin (integration)", () => {
       const s = await newSalon("NoReason");
       await facade.startTrial({ salonId: s.salonId });
       const before = await prisma.subscription.findFirstOrThrow({ where: { salonId: s.salonId } });
-      const mutations = adminRoutes.filter((r) => r.method !== "GET");
+      const mutations = adminRoutes.filter(
+        (r) => r.method !== "GET" && r.path.startsWith("admin/salons"),
+      );
       expect(mutations.length).toBeGreaterThanOrEqual(9);
       for (const route of mutations) {
         const { path, body } = validBody(route, "0190f000-0000-7000-8000-0000000000aa");
@@ -553,14 +563,13 @@ describe("platform admin (integration)", () => {
       await facade.startTrial({ salonId: s.salonId });
       const owner = await bearerFor(app, s.ownerUserId);
 
-      clock.offsetMs = 16 * MIN; // the admin signed in more than 15 minutes ago
-      const stale = await post(`salons/${s.salonId}/suspend`, superAdmin, {
+      // No step-up on this session (TOTP, ADR-0011).
+      const stale = await post(`salons/${s.salonId}/suspend`, superAdminNotElevated, {
         reason: "Fraud report",
       });
       expect(stale.status).toBe(403);
       expect(problemSchema.parse(stale.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
       expect(await auditCount(s.salonId)).toBe(0);
-      clock.offsetMs = 0;
 
       await post(`salons/${s.salonId}/suspend`, superAdmin, { reason: "Fraud report" }).expect(200);
       const ents = await entitlements.forSalon(s.salonId);
@@ -622,12 +631,12 @@ describe("platform admin (integration)", () => {
       });
       expect(problemSchema.parse(dup.body).code).toBe(ADMIN_ERRORS.foundingPartnerExists);
 
-      clock.offsetMs = 20 * MIN;
-      const stale = await post(`salons/${s.salonId}/founding-partner/revoke`, superAdmin, {
-        reason: "Granted by mistake",
-      });
+      const stale = await post(
+        `salons/${s.salonId}/founding-partner/revoke`,
+        superAdminNotElevated,
+        { reason: "Granted by mistake" },
+      );
       expect(problemSchema.parse(stale.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
-      clock.offsetMs = 0;
       await post(`salons/${s.salonId}/founding-partner/revoke`, superAdmin, {
         reason: "Granted by mistake",
       }).expect(200);

@@ -22,6 +22,9 @@ process.env["DATABASE_URL"] = testDb;
 const redis = new URL(process.env["REDIS_URL"] ?? "redis://127.0.0.1:16379");
 redis.pathname = `/${process.env["TEST_REDIS_DB"] ?? "15"}`;
 process.env["REDIS_URL"] = redis.toString();
+// Suites drive the admin API far faster than a person; admin-rate-limit.int.test.ts lowers these.
+process.env["ADMIN_RATE_LIMIT_PER_MINUTE"] ??= "100000";
+process.env["ADMIN_WRITE_RATE_LIMIT_PER_MINUTE"] ??= "100000";
 // Zalo emulator state (faults, outbox, OAuth codes) gets its own namespace per test run.
 process.env["ZALO_EMULATOR_NAMESPACE"] = `test-${String(process.pid)}-${String(Date.now())}`;
 

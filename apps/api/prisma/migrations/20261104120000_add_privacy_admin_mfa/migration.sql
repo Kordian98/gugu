@@ -8,9 +8,11 @@ ALTER TABLE "sessions" ADD COLUMN     "step_up_until" TIMESTAMPTZ(6);
 CREATE TABLE "admin_mfa_factors" (
     "id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
-    "secret_ciphertext" TEXT NOT NULL,
+    "secret_ciphertext" TEXT,
     "confirmed_at" TIMESTAMPTZ(6),
     "last_used_step" BIGINT,
+    "pending_secret_ciphertext" TEXT,
+    "pending_created_at" TIMESTAMPTZ(6),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
@@ -93,7 +95,9 @@ ALTER TABLE "privacy_exports" ADD CONSTRAINT "privacy_exports_content_valid" CHE
 
 -- Recovery-code redemption and TOTP replay protection are single-row updates; codes are HMACs.
 ALTER TABLE "admin_mfa_factors" ADD CONSTRAINT "admin_mfa_factors_step_valid" CHECK (
-  "last_used_step" IS NULL OR "last_used_step" > 0
+  ("last_used_step" IS NULL OR "last_used_step" > 0)
+  AND (("secret_ciphertext" IS NULL) = ("confirmed_at" IS NULL))
+  AND (("pending_secret_ciphertext" IS NULL) = ("pending_created_at" IS NULL))
 );
 
 -- booking_status_history stays append-only, with one narrow exception for privacy erasure

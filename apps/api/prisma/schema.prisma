@@ -346,18 +346,22 @@ model Session {
   @@map("sessions")
 }
 
-/// Platform-admin TOTP factor (topic 05 step 9, ADR-0011). One per user. The secret is sealed with
-/// AES-256-GCM (MFA_ENCRYPTION_KEY) and never returned after enrolment. `last_used_step` blocks
-/// replay of a code within its 30-second step.
+/// Platform-admin TOTP factor (topic 05 step 9, ADR-0011). One per user. Secrets are sealed with
+/// AES-256-GCM (MFA_ENCRYPTION_KEY, user id as associated data) and never returned after
+/// enrolment. A (re-)enrolment lives in `pending_*` until its first code is confirmed, so the active
+/// factor keeps working meanwhile. `last_used_step` blocks replay of a code within its window.
 model AdminMfaFactor {
-  id               String    @id @default(uuid(7)) @db.Uuid
-  userId           String    @unique @map("user_id") @db.Uuid
-  secretCiphertext String    @map("secret_ciphertext")
-  /// Null while the enrolment waits for its first code (then it is not a factor yet).
-  confirmedAt      DateTime? @map("confirmed_at") @db.Timestamptz(6)
-  lastUsedStep     BigInt?   @map("last_used_step")
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                      String    @id @default(uuid(7)) @db.Uuid
+  userId                  String    @unique @map("user_id") @db.Uuid
+  /// Active secret; null until the first enrolment is confirmed.
+  secretCiphertext        String?   @map("secret_ciphertext")
+  confirmedAt             DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  lastUsedStep            BigInt?   @map("last_used_step")
+  pendingSecretCiphertext String?   @map("pending_secret_ciphertext")
+  /// A pending enrolment expires 15 minutes after this.
+  pendingCreatedAt        DateTime? @map("pending_created_at") @db.Timestamptz(6)
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 

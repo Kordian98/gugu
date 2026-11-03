@@ -1,7 +1,9 @@
 import type { INestApplication } from "@nestjs/common";
 import type { SalonRole } from "@gugu/domain";
-import type { PrismaService } from "../../src/infrastructure/prisma/prisma.service";
-import { SessionService } from "../../src/modules/auth/auth.facade";
+import { SealedBox } from "../../src/common/crypto/sealed-box";
+import { AppConfig } from "../../src/infrastructure/config/app-config";
+import { PrismaService } from "../../src/infrastructure/prisma/prisma.service";
+import { generateTotpSecret, SessionService } from "../../src/modules/auth/auth.facade";
 
 /** Unique fixture email (never a real address). */
 export const testEmail = (tag = "user"): string =>
@@ -72,5 +74,49 @@ export async function bearerFor(app: INestApplication, userId: string): Promise<
     userAgent: "vitest",
   });
   if (session.kind !== "native") throw new Error("expected native session");
+  return `Bearer ${session.tokens.accessToken}`;
+}
+
+/**
+ * Platform-admin second factor for tests (topic 05 step 9): writes a confirmed TOTP factor straight
+ * to the database and returns its base32 secret, so a test can compute codes with `totp(secret, t)`.
+ */
+export async function enrolAdminMfa(app: INestApplication, userId: string): Promise<string> {
+  const secret = generateTotpSecret();
+  const sealed = new SealedBox(app.get(AppConfig).env.MFA_ENCRYPTION_KEY).seal(secret, userId);
+  await app.get(PrismaService).adminMfaFactor.upsert({
+    where: { userId },
+    create: { userId, secretCiphertext: sealed, confirmedAt: new Date() },
+    update: {
+      secretCiphertext: sealed,
+      confirmedAt: new Date(),
+      lastUsedStep: null,
+      pendingSecretCiphertext: null,
+      pendingCreatedAt: null,
+    },
+  });
+  return secret;
+}
+
+/**
+ * A bearer for an admin with an enrolled factor whose session is already stepped up (as after
+ * `POST /admin/mfa/step-up`), for tests that are about the admin action itself.
+ */
+export async function steppedUpBearerFor(
+  app: INestApplication,
+  userId: string,
+  minutes = 10,
+): Promise<string> {
+  const exists = await app.get(PrismaService).adminMfaFactor.findUnique({ where: { userId } });
+  if (!exists?.confirmedAt) await enrolAdminMfa(app, userId);
+  const session = await app.get(SessionService).create(userId, "native", {
+    ipPrefix: null,
+    userAgent: "vitest",
+  });
+  if (session.kind !== "native") throw new Error("expected native session");
+  await app.get(PrismaService).session.update({
+    where: { id: session.sessionId },
+    data: { stepUpUntil: new Date(Date.now() + minutes * 60_000) },
+  });
   return `Bearer ${session.tokens.accessToken}`;
 }
