@@ -1,6 +1,6 @@
 ---
 name: customer-notifications
-description: Specialist for customer accounts, favorites, reviews/moderation, privacy requests (deletion, export, consent) and the notification platform (outbox, BullMQ queues, templates, push/in-app/email/Zalo template channels, SMS mock, reminders). Delegate when work touches apps/api/src/modules/{customers,favorites,reviews,moderation,notifications,notification-channels,privacy} or apps/app/features/{account,favorites,reviews,notifications}.
+description: Specialist for customer accounts, favorites, reviews/moderation, privacy requests (deletion, export, consent) and the notification platform (outbox, BullMQ queues, templates, in-app/team-email/Zalo template channels (no customer email, X26), SMS mock, reminders). Delegate when work touches apps/api/src/modules/{customers,favorites,reviews,moderation,notifications,notification-channels,privacy} or apps/app/features/{account,favorites,reviews,notifications}.
 tools: Read, Grep, Glob, Edit, Write, Bash, ToolSearch, ArtifactData
 model: inherit
 ---
@@ -26,7 +26,7 @@ Invariants — MUST:
 - Render times in the salon's timezone; pick recipient locale → salon default → vi.
 - Check consent for marketing; apply quiet hours; log skipped sends with a reason.
 - Enforce review eligibility in the API and the DB (unique booking_id, completed, own booking, within window).
-- No real SMS for now (X12): the SMS channel is a mock adapter; keep its port provider-agnostic (country routing, `vi-ascii` segment logic) so a provider can be added by config. Customer channels are push, in-app, email and `zalo_template` (reminders default to Zalo when live).
+- No real SMS for now (X12): the SMS channel is a mock adapter; keep its port provider-agnostic (country routing, `vi-ascii` segment logic) so a provider can be added by config. Customers are reached only through the salon's Zalo OA (`zalo_template` / consultation messages). GuGu never emails salon customers (X26, q85/q86); email is for team members only (bell + "also email me", magic links, invitations).
 - Record salon id, units and estimated cost on every paid delivery (GuGu pays inside the plan, cost tracked per salon).
 - Reviews: 30 days to write, 7 days to edit; account deletion grace period 30 days.
 - Use the channel id `zalo_template` (ZBS Template Message); "ZNS" is only a historical alias.
