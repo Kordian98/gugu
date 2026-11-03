@@ -6,10 +6,12 @@ import type { AdminMfaEnrolment } from "@gugu/contracts";
 import { CalmButton, Pill, Text, useCalm } from "@gugu/design-system";
 import { formatDateLong, formatTime } from "@gugu/localization";
 
+import { useAuth } from "@/services/auth/AuthProvider";
 import { copyText } from "@/services/files/share";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { ErrorBanner, Input } from "../salon-crm/ui/form";
+import { AdminTeamSection } from "./AdminTeamSection";
 import {
   useAdminMfa,
   useConfirmEnrolment,
@@ -22,13 +24,15 @@ import { KV, LoadError, Loading, Page, Section, useAdminErrorText } from "./ui";
 /**
  * Admin two-step verification (topic 05 step 9, ADR-0011): enrol a TOTP app, see recovery codes
  * once, confirm this session (step-up), regenerate codes, move to a new device. The secret is
- * shown only during enrolment; nothing here is persisted on the device.
+ * shown only during enrolment; nothing here is persisted on the device. Super admins also see the
+ * admin team and can reset another admin's two-step verification (q93).
  */
 export function SecurityScreen() {
   const { c } = useCalm();
   const { t } = useTranslation("admin");
   const locale = useLocale();
   const status = useAdminMfa();
+  const superAdmin = useAuth().user?.platformRole === "super_admin";
   const start = useStartEnrolment();
   const errorText = useAdminErrorText();
   const [enrolment, setEnrolment] = useState<AdminMfaEnrolment | null>(null);
@@ -129,6 +133,7 @@ export function SecurityScreen() {
           {replacing || !s.enrolled ? <ErrorBanner text={errorText(start.error)} /> : null}
         </Section>
       )}
+      {superAdmin && !codes && !enrolment ? <AdminTeamSection /> : null}
     </Page>
   );
 }

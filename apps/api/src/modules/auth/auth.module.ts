@@ -8,6 +8,7 @@ import { AdminMfaController } from "./http/admin-mfa.controller";
 import { AuthController } from "./http/auth.controller";
 import { MeController } from "./http/me.controller";
 import { IdTokenVerifier } from "./infra/id-token-verifier";
+import { AdminMfaResetService } from "./mfa/admin-mfa-reset.service";
 import { AdminMfaService } from "./mfa/admin-mfa.service";
 
 /**
@@ -24,7 +25,14 @@ import { AdminMfaService } from "./mfa/admin-mfa.service";
     SignInService,
     IdTokenVerifier,
     AdminMfaService,
+    AdminMfaResetService,
   ],
-  exports: [AccountsService, MagicLinkService, SessionService, AdminMfaService],
+  exports: [
+    AccountsService,
+    MagicLinkService,
+    SessionService,
+    AdminMfaService,
+    AdminMfaResetService,
+  ],
 })
 export class AuthModule {}

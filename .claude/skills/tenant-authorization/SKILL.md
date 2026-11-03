@@ -29,7 +29,8 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 - MUST NOT expose internal notes, tags, attribution/commission internals to public endpoints.
 - MUST NOT log verification codes, tokens, phone numbers, or note contents.
 - MUST emit an audit event for sensitive actions (list: spec R29).
-- MUST route every platform-admin write through `AdminActions.run`: it requires an enrolled TOTP factor, and `stepUp: true` (high-risk) requires a step-up on the current session (ADR-0011). Admin routes are rate-limited per user in the guard.
+- MUST route every platform-admin write through `AdminActions.run` (salon-scoped) or `AdminActions.runOnAdmin` (about another admin, e.g. the q93 2FA reset): both require a reason and an enrolled TOTP factor, and `stepUp: true` (high-risk) requires a step-up on the current session (ADR-0011). Admin routes are rate-limited per user in the guard.
+- MUST NOT add `@AllowWhileSuspended()` to a route without an owner decision: it is valid only on the routes in `SUSPENSION_WRITE_ALLOWLIST` (q92: client erasure, salon export start); the boot check refuses anything else.
 - MUST keep client privacy actions owner-only (`customers.export`, `customers.erase`) and extend `ClientPrivacyService.erase` / `loadClientScope` when a new table stores client personal data (ADR-0012).
 
 ## Procedure — new salon-scoped endpoint

@@ -61,6 +61,8 @@ export const AUDIT_ACTIONS = [
   "admin.mfa_step_up",
   "admin.mfa_step_up_failed",
   "admin.mfa_recovery_codes_regenerated",
+  /** q93: a super_admin reset ANOTHER admin's factor. Target = that user; metadata: reason, counts. */
+  "admin.mfa_reset_by_admin",
   /** Written by scripts/seed-platform-admin.mjs (local dev) until topic 05 ships role management. */
   "admin.platform_role_granted",
   "notifications.settings_updated",

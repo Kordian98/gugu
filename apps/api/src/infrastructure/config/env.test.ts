@@ -15,6 +15,14 @@ describe("parseEnv", () => {
     });
   });
 
+  it("AUDIT_RETENTION_MONTHS defaults to 24 and refuses less than 12 (q94)", () => {
+    expect(parseEnv(base).AUDIT_RETENTION_MONTHS).toBe(24);
+    expect(parseEnv({ ...base, AUDIT_RETENTION_MONTHS: "36" }).AUDIT_RETENTION_MONTHS).toBe(36);
+    expect(() => parseEnv({ ...base, AUDIT_RETENTION_MONTHS: "11" })).toThrow(
+      /AUDIT_RETENTION_MONTHS/,
+    );
+  });
+
   it("coerces numeric strings", () => {
     expect(parseEnv({ ...base, API_PORT: "3002" }).API_PORT).toBe(3002);
   });

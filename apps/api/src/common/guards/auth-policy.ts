@@ -29,3 +29,30 @@ export const RequirePermission = (permission: SalonPermission) =>
 
 export const RequirePlatformPermission = (permission: PlatformPermission) =>
   SetMetadata(AUTH_POLICY, { kind: "platform", permission } satisfies AuthPolicy);
+
+/**
+ * Suspension exception (owner answer q92, ADR-0012): while GuGu has suspended a salon, every
+ * salon write is refused with 403 `salon.suspended` — except the routes listed here, so the owner
+ * can still answer clients' privacy requests. Exactly these (method, path, permission) triples may
+ * carry `@AllowWhileSuspended()`; the boot check refuses to start when a route carries it without
+ * being listed, or when a listed route is missing or has a different permission. Not a bypass of
+ * anything else: membership, permission, CSRF and audit all apply as usual.
+ */
+export const SUSPENSION_WRITE_ALLOWLIST = [
+  {
+    method: "POST",
+    path: "salons/:salonId/customers/:customerId/erase",
+    permission: "customers.erase",
+  },
+  { method: "POST", path: "salons/:salonId/privacy/exports", permission: "customers.export" },
+] as const satisfies readonly { method: string; path: string; permission: SalonPermission }[];
+
+/** Permissions a suspension-exempt route may require (the guard checks this too). */
+export const SUSPENSION_EXEMPT_PERMISSIONS: ReadonlySet<SalonPermission> = new Set(
+  SUSPENSION_WRITE_ALLOWLIST.map((r) => r.permission),
+);
+
+export const ALLOW_WHILE_SUSPENDED = "gugu:allow-while-suspended";
+
+/** Marks one of the SUSPENSION_WRITE_ALLOWLIST routes; anywhere else the app does not boot. */
+export const AllowWhileSuspended = () => SetMetadata(ALLOW_WHILE_SUSPENDED, true);

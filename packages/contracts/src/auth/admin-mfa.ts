@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { adminReasonSchema } from "../admin/admin";
+import { uuidV7Schema } from "../common/ids";
 
 /**
  * Platform-admin second factor (topic 05 step 9, ADR-0011). TOTP (RFC 6238, SHA-1, 30 s, 6 digits)
@@ -16,6 +18,8 @@ export const ADMIN_MFA_ERRORS = {
   enrollmentNotStarted: "admin.mfa_enrollment_not_started",
   /** Wrong, expired or already used TOTP / recovery code. */
   codeInvalid: "admin.mfa_code_invalid",
+  /** q93: an admin cannot reset their own second factor through the team reset. */
+  resetSelfForbidden: "admin.mfa_reset_self_forbidden",
 } as const;
 
 /** Lifetime of a step-up elevation, bound to the session that verified the code. */
@@ -81,3 +85,34 @@ export const adminStepUpResultSchema = z.object({
   recoveryCodesRemaining: z.number().int().min(0),
 });
 export type AdminStepUpResult = z.infer<typeof adminStepUpResultSchema>;
+
+// ─── Admin team: second super_admin resets another admin's 2FA (owner answer q93) ──────────────
+
+/**
+ * One GuGu admin as seen by a super_admin on the security screen (`GET /admin/team`, permission
+ * `platform.mfa.reset`). Work email only; no secrets, no recovery codes.
+ */
+export const adminTeamMemberSchema = z.object({
+  userId: uuidV7Schema,
+  email: z.string().nullable(),
+  platformRole: z.enum(["support_admin", "super_admin"]),
+  isSelf: z.boolean(),
+  mfaEnrolled: z.boolean(),
+  mfaEnrolledAt: z.iso.datetime().nullable(),
+  recoveryCodesRemaining: z.number().int().min(0),
+  activeSessions: z.number().int().min(0),
+});
+export type AdminTeamMember = z.infer<typeof adminTeamMemberSchema>;
+
+export const adminTeamListSchema = z.object({ items: z.array(adminTeamMemberSchema) });
+export type AdminTeamList = z.infer<typeof adminTeamListSchema>;
+
+export const adminTeamParamsSchema = z.object({ userId: uuidV7Schema });
+
+/**
+ * `POST /admin/team/:userId/mfa/reset`: needs the acting super_admin's own step-up and a reason
+ * (5–500 chars). Revokes the target's factor, recovery codes, elevations and every session; the
+ * target signs in again and re-enrols before any admin write. Never one's own account.
+ */
+export const adminMfaResetInputSchema = z.object({ reason: adminReasonSchema });
+export type AdminMfaResetInput = z.infer<typeof adminMfaResetInputSchema>;

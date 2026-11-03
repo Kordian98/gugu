@@ -14,7 +14,22 @@ Customers never have a GuGu account (X21/X23); each client record belongs to one
 4. **Append-only status history keeps one narrow exception:** the trigger now allows exactly `reason_text → NULL` with every other column unchanged; all other updates and all deletes still fail (tested).
 5. **Assistant entity tokens are not touched:** they only map `staff|service|booking` tokens to ids (no client kind), booking tokens re-hydrate to the reference code, and deleting tokens would let the vault re-issue a number inside a live conversation.
 6. **Salon-wide export** is a `privacy` queue job: one queued/running per salon (partial unique index), 3 per day, gzipped JSON + CSV (formula-neutralised, UTF-8 BOM) stored in `privacy_exports`, downloadable only through the authenticated panel for 24 hours (no signed public link, nothing emailed), each download audited.
-7. **Retention** (`privacy.retention`, daily system job, time predicates only, batched): notification deliveries and bell items after 12 months, recipient hashes after 48 h, ended sessions after 30 days, magic links 1 day after expiry, idempotency keys after expiry, expired export content; stuck exports marked failed after 6 h. Audit logs are kept until the legal review sets a period.
+7. **Retention** (`privacy.retention`, daily system job, time predicates only, batched). Periods are working values to confirm in the legal review (q04); they are not a compliance claim:
+
+   | Data | Kept | Then |
+   |---|---|---|
+   | Notification deliveries, bell items | 12 months | deleted |
+   | Recipient hash on a delivery | 48 h | cleared |
+   | Ended sessions (+ refresh tokens) | 30 days after end | deleted |
+   | Magic links | 1 day after expiry | deleted |
+   | Idempotency keys | until expiry | deleted |
+   | Salon export content | 24 h after completion | cleared (row kept as `expired`) |
+   | Stuck exports (queued/running) | 6 h | marked failed |
+   | Zalo raw webhook events | 30 days | deleted (zalo module) |
+   | **Audit log** (amended 2026-11-04, owner answer q94) | `AUDIT_RETENTION_MONTHS`, default **24 months**, minimum 12 | deleted in batches of 5 000 |
+
+   The audit log stays append-only. Its trigger allows exactly one exception: a `DELETE` inside a transaction that set `gugu.audit_retention = on` (transaction-local, set only by the retention job) on a row older than 12 months. Every `UPDATE` fails, and so does any `DELETE` without the flag or on a younger row, whatever the env says (tested).
+8. **Suspension** (amended 2026-11-04, owner answer q92): while GuGu suspends a salon, the owner can still erase one client (`POST …/customers/:customerId/erase`) and start the salon-wide export (`POST …/privacy/exports`; download and the one-client export are GETs and were already open). Both stay owner-only and audited. This is a narrow allow-list (`SUSPENSION_WRITE_ALLOWLIST` + `@AllowWhileSuspended()`): the guard honours the decorator only for `customers.erase` / `customers.export`, and the boot check pins it to exactly those two (method, path, permission) triples. Every other salon write stays blocked (generated route matrix, stack-less and on the stack).
 
 ## Alternatives considered
 - Soft-delete the profile — keeps the personal data the client asked to remove.
@@ -24,6 +39,7 @@ Customers never have a GuGu account (X21/X23); each client record belongs to one
 
 ## Consequences
 - Bookings entered for the same person without a phone (walk-ins by name only) cannot be matched and are not anonymised.
-- A suspended salon can export one client (GET) but cannot erase or start a salon-wide export (writes are refused while suspended).
+- A suspended salon can still answer privacy requests: export one client, erase a client, run and download the salon-wide export (q92). Nothing else can be changed.
 - The account-deletion hook (`anonymiseCustomer`) still cancels before anonymising; worth aligning with topic 06.
-- Legal review (q04) must confirm the retention periods and the controller/processor split before launch.
+- Legal review (q04) must confirm the retention periods (including the 24-month audit log period, q94) and the controller/processor split before launch.
+- Audit entries older than the retention period are gone for good; an investigation that needs them must happen within the period (or a later legal-hold mechanism must pause the purge).

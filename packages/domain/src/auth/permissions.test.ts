@@ -93,6 +93,8 @@ describe("permission matrix", () => {
       "platform.roles.write",
       "platform.feature_flags.write",
       "platform.commission.write",
+      // q93: only a super_admin can reset another admin's second factor.
+      "platform.mfa.reset",
     ] as const) {
       expect(support.has(p)).toBe(false);
     }

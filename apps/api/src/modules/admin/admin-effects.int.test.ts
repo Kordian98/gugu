@@ -135,7 +135,7 @@ describe("platform admin side effects (integration)", () => {
   });
 
   describe("suspension", () => {
-    it("every non-GET salon route answers 403 salon.suspended to the owner; GETs stay open", async () => {
+    it("every non-GET salon route but the q92 allow-list answers 403 salon.suspended; GETs stay open", async () => {
       const s = await newSalon("SuspendMatrix");
       await facade.startTrial({ salonId: s.salonId });
       const owner = await bearerFor(app, s.ownerUserId);
@@ -147,15 +147,27 @@ describe("platform admin side effects (integration)", () => {
       const url = (r: RouteInfo) =>
         `/api/v1/${r.path.replace(":salonId", s.salonId).replace(/:[A-Za-z]+/g, PLACEHOLDER_ID)}`;
       const leaks: string[] = [];
+      const exempt: string[] = [];
       for (const r of writes) {
         const method = r.method.toLowerCase() as "post" | "patch" | "put" | "delete";
         const res = await request(http(app))[method](url(r)).set("authorization", owner).send({});
         const code = (res.body as { code?: string }).code;
-        if (res.status !== 403 || code !== SALON_SUSPENDED_ERROR) {
+        if (r.allowWhileSuspended) {
+          // q92: client erasure and the salon export start pass the suspension check.
+          expect({ route: r.path, code }).not.toEqual({
+            route: r.path,
+            code: SALON_SUSPENDED_ERROR,
+          });
+          exempt.push(`${r.method} ${r.path}`);
+        } else if (res.status !== 403 || code !== SALON_SUSPENDED_ERROR) {
           leaks.push(`${r.method} ${r.path} → ${String(res.status)} ${String(code)}`);
         }
       }
       expect(leaks, "salon writes not refused while suspended").toEqual([]);
+      expect(exempt.sort()).toEqual([
+        "POST salons/:salonId/customers/:customerId/erase",
+        "POST salons/:salonId/privacy/exports",
+      ]);
 
       const blockedReads: string[] = [];
       for (const r of salonRoutes.filter((x) => x.method === "GET")) {

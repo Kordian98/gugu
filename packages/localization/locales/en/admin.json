@@ -391,7 +391,8 @@
     "admin_mfa_fresh_sign_in_required": "To turn on two-step verification, sign out, sign in again and retry within 15 minutes.",
     "admin_mfa_enrollment_not_started": "The setup expired. Start again.",
     "admin_mfa_code_invalid": "Wrong or already used code. Try a new one.",
-    "common_rate_limited": "Too many attempts. Wait a moment and try again."
+    "common_rate_limited": "Too many attempts. Wait a moment and try again.",
+    "admin_mfa_reset_self_forbidden": "You cannot reset your own two-step verification. Ask another super admin."
   },
   "security": {
     "title": "Security",
@@ -422,6 +423,25 @@
     "copy": "Copy",
     "copied": "Copied",
     "bannerTitle": "Turn on two-step verification",
-    "bannerBody": "You cannot change anything in the admin panel until two-step verification is on."
+    "bannerBody": "You cannot change anything in the admin panel until two-step verification is on.",
+    "team": {
+      "title": "Admin team",
+      "body": "For an admin who lost both their phone and all recovery codes. Only super admins see this.",
+      "you": "You",
+      "roleSuper": "Super admin",
+      "roleSupport": "Support admin",
+      "on": "Two-step verification on",
+      "off": "Two-step verification off",
+      "details": "{{codes}} recovery codes left · {{sessions}} signed-in sessions",
+      "noEmail": "No email",
+      "reset": "Reset two-step verification",
+      "resetTitle": "Reset two-step verification for {{email}}",
+      "resetBody": "Removes their authenticator app and recovery codes and signs them out on every device. They must sign in again and set up two-step verification before they can change anything. Check who you are talking to first, e.g. on a video call.",
+      "resetAction": "Reset",
+      "resetting": "Resetting…",
+      "selfHint": "You cannot reset your own two-step verification here. Use a recovery code, or ask another super admin.",
+      "done": "Reset. They have been signed out everywhere.",
+      "empty": "No other admins."
+    }
   }
 }

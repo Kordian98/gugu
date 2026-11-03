@@ -44,6 +44,12 @@ export const envSchema = z
      */
     ADMIN_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(240),
     ADMIN_WRITE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(30),
+    /**
+     * Audit log retention in months (owner answer q94: 24, then delete; confirm in the legal
+     * review, q04). The daily `privacy.retention` job deletes older rows in batches. Minimum 12:
+     * the database trigger refuses to delete anything younger, whatever this says.
+     */
+    AUDIT_RETENTION_MONTHS: z.coerce.number().int().min(12).max(120).default(24),
     /** Public web app origin; magic links point here (`/{locale}/auth/verify?token=…`). */
     WEB_APP_URL: z.url().default("http://localhost:8097"),
     /**

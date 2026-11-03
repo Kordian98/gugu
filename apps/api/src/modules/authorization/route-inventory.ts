@@ -1,7 +1,12 @@
 import { RequestMethod } from "@nestjs/common";
 import { METHOD_METADATA, PATH_METADATA } from "@nestjs/common/constants";
 import type { DiscoveryService, MetadataScanner, Reflector } from "@nestjs/core";
-import { AUTH_POLICY, type AuthPolicy } from "../../common/guards/auth-policy";
+import {
+  ALLOW_WHILE_SUSPENDED,
+  AUTH_POLICY,
+  type AuthPolicy,
+  SUSPENSION_WRITE_ALLOWLIST,
+} from "../../common/guards/auth-policy";
 
 export interface RouteInfo {
   method: string;
@@ -10,6 +15,8 @@ export interface RouteInfo {
   controller: string;
   handler: string;
   policy: AuthPolicy | undefined;
+  /** Carries `@AllowWhileSuspended()` (q92): only SUSPENSION_WRITE_ALLOWLIST routes may. */
+  allowWhileSuspended: boolean;
 }
 
 const join = (...parts: string[]): string =>
@@ -40,6 +47,11 @@ export function listRoutes(
         handler as () => void,
         type,
       ]);
+      const allowWhileSuspended =
+        reflector.getAllAndOverride<boolean | undefined>(ALLOW_WHILE_SUSPENDED, [
+          handler as () => void,
+          type,
+        ]) === true;
       for (const b of [base].flat()) {
         for (const s of [sub].flat()) {
           routes.push({
@@ -48,6 +60,7 @@ export function listRoutes(
             controller: type.name,
             handler: name,
             policy,
+            allowWhileSuspended,
           });
         }
       }
@@ -65,6 +78,45 @@ export function policyViolations(routes: readonly RouteInfo[]): string[] {
       problems.push(`${where}: no auth policy (@Public/@Authenticated/@RequirePermission)`);
     else if (r.policy.kind === "salon" && !r.path.split("/").includes(":salonId")) {
       problems.push(`${where}: @RequirePermission needs a :salonId path parameter`);
+    }
+  }
+  return problems;
+}
+
+/**
+ * q92: `@AllowWhileSuspended()` sits on exactly the SUSPENSION_WRITE_ALLOWLIST routes — same
+ * method, path and permission, each exactly once. Anything else stops the app from starting.
+ */
+export function suspensionAllowlistViolations(routes: readonly RouteInfo[]): string[] {
+  const problems: string[] = [];
+  for (const r of routes) {
+    const where = `${r.method} /${r.path} (${r.controller}.${r.handler})`;
+    if (r.allowWhileSuspended) {
+      const listed = SUSPENSION_WRITE_ALLOWLIST.some(
+        (a) =>
+          a.method === r.method &&
+          a.path === r.path &&
+          r.policy?.kind === "salon" &&
+          r.policy.permission === a.permission,
+      );
+      if (!listed) {
+        problems.push(`${where}: @AllowWhileSuspended outside SUSPENSION_WRITE_ALLOWLIST`);
+      }
+    }
+  }
+  for (const a of SUSPENSION_WRITE_ALLOWLIST) {
+    const marked = routes.filter(
+      (r) =>
+        r.allowWhileSuspended &&
+        r.method === a.method &&
+        r.path === a.path &&
+        r.policy?.kind === "salon" &&
+        r.policy.permission === a.permission,
+    );
+    if (marked.length !== 1) {
+      problems.push(
+        `${a.method} /${a.path}: in SUSPENSION_WRITE_ALLOWLIST but ${String(marked.length)} routes carry @AllowWhileSuspended`,
+      );
     }
   }
   return problems;

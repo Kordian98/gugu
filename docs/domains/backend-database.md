@@ -81,7 +81,7 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `subscriptions_one_current_per_salon` | partial unique index | `20261102115055_add_subscriptions_entitlements` | `subscriptions.int.test.ts` (one current per salon; concurrent startTrial) |
 | `subscriptions_trial_ends_when_trialing` | check | `20261102115055_add_subscriptions_entitlements` | `db:drift` |
 | `plan_prices_amount_non_negative` | check | `20261102115055_add_subscriptions_entitlements` | `db:drift` |
-| `audit_logs_no_update_delete` (+ function `audit_logs_append_only`) | trigger | `20261102115341_add_identity_tenancy` | `auth.int.test.ts` (audit log is append-only); `db:drift` checks `triggers` |
+| `audit_logs_no_update_delete` (+ function `audit_logs_append_only`) | trigger | `20261102115341_add_identity_tenancy`; function replaced in `20261104160000_audit_log_retention` (q94: DELETE allowed only with transaction-local `gugu.audit_retention = on` on rows older than 12 months) | `auth.int.test.ts` (audit log is append-only); `privacy.int.test.ts` (q94 retention exception); `db:drift` checks `triggers` |
 | `locations_parent_by_level` | check | `20261102115341_add_identity_tenancy` | `db:drift` |
 | `salon_members_one_owner` | partial unique index | `20261102115341_add_identity_tenancy` | `db:drift` |
 | `magic_link_tokens_attempts_range` | check | `20261102115341_add_identity_tenancy` | `auth.int.test.ts` (code lock after 5 attempts) |

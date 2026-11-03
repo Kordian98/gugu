@@ -97,6 +97,7 @@ GuGu staff only. A platform role is a column on the user (`users.platform_role`)
 | Founding partner grant / revoke | `POST …/founding-partner`, `POST …/founding-partner/revoke` | `platform.founding_partner.write` | no | yes | revoke |
 | Suspend / unsuspend | `POST …/suspend`, `POST …/unsuspend` | `platform.salons.suspend` | no | yes | yes |
 | Own second factor (status, enrol, confirm, step-up, recovery codes) | `GET /admin/mfa`, `POST /admin/mfa/*` | `platform.mfa.self` | yes | yes | — |
+| Admin team list + reset ANOTHER admin's 2FA (q93; never oneself; reason required) | `GET /admin/team`, `POST /admin/team/:userId/mfa/reset` | `platform.mfa.reset` | no | yes | reset |
 
 Every write above also needs an enrolled TOTP factor (403 `admin.mfa_enrollment_required`). Step-up = a TOTP or recovery code verified on the current session within 10 minutes (ADR-0011). Per-user limits: 240 requests and 30 writes per minute on `/admin/*`.
 
