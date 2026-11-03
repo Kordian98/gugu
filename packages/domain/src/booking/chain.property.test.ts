@@ -4,11 +4,10 @@ import {
   type AvailabilityInput,
   computeSlots,
   findSlot,
-  type SlotOption,
   type StaffAvailability,
   type WeeklyHours,
 } from "./availability";
-import type { ServiceLine } from "./chain";
+import type { ServiceLine, SlotOption } from "./chain";
 import { type Interval, overlaps } from "./intervals";
 import { instantsAt } from "./tz";
 

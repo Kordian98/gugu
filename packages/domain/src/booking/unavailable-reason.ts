@@ -1,5 +1,5 @@
-import type { AvailabilityInput } from "./availability";
-import { chainLines, type ServiceLine } from "./chain";
+import { type AvailabilityInput, chainLines } from "./availability";
+import type { ServiceLine } from "./chain";
 import { addDays, toLocal } from "./tz";
 
 /** Some line requires a resource type with fewer active units than it needs. */

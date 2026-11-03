@@ -1,11 +1,11 @@
 import { intersect, type Interval, normalize, overlapLength, subtract } from "./intervals";
 import {
   type ChainClaims,
-  chainLines,
-  type LinePlan,
   MAX_SERVICE_LINES,
+  type OccupancyTerms,
   planLines,
   type ServiceLine,
+  type SlotOption,
   toOption,
 } from "./chain";
 import type { ResourceInput } from "./resources";
@@ -63,13 +63,6 @@ export interface StaffBreakRule extends WallInterval {
   date: LocalDate | null;
 }
 
-/** How long a booking occupies the staff member: buffers + appointment length. */
-export interface OccupancyTerms {
-  durationMinutes: number;
-  bufferBeforeMinutes: number;
-  bufferAfterMinutes: number;
-}
-
 export interface StaffAvailability {
   staffId: string;
   sortOrder: number;
@@ -120,24 +113,18 @@ export interface AvailabilityInput {
   overrides?: ReadonlySet<RuleOverride>;
 }
 
-export interface SlotOption {
-  /** Staff of the first line. */
-  staffId: string;
-  /** Appointment start (first line) and end (last line) — what the customer sees. */
-  start: number;
-  end: number;
-  /** Hull of every line's occupancy (single service: exactly its occupancy row). */
-  occupancy: Interval;
-  /** Every unit claimed by the chain (single service: its units). */
-  unitIds: string[];
-  /** One plan per service line, in order (single service: one). Write these to booking_occupancy. */
-  lines: LinePlan[];
-}
-
 export interface Slot {
   start: number;
   /** One option per first-line staff member who can start the whole chain, best candidate first. */
   options: SlotOption[];
+}
+
+/** The chain to plan: explicit lines, or the single service as a chain of one. */
+export function chainLines(input: AvailabilityInput): readonly ServiceLine[] {
+  if (input.lines) return input.lines;
+  const staffTerms = new Map<string, OccupancyTerms>();
+  for (const s of input.staff) if (s.terms) staffTerms.set(s.staffId, s.terms);
+  return [{ staffTerms, requirements: input.resources?.requirements ?? [] }];
 }
 
 /** Longest window one availability call may cover (keeps request cost bounded). */
@@ -218,6 +205,7 @@ function slotsForDate(input: AvailabilityInput, date: LocalDate, earliest: numbe
   const firstStaff = ranked.filter((c) => firstLine.staffTerms.has(c.s.staffId));
   if (firstStaff.length === 0) return [];
 
+  const pool = input.resources?.units ?? [];
   const slots: Slot[] = [];
   const empty: ChainClaims = { staff: [], units: [] };
   for (let minute = 0; minute < 1440; minute += input.rules.slotGranularityMinutes) {
@@ -225,7 +213,7 @@ function slotsForDate(input: AvailabilityInput, date: LocalDate, earliest: numbe
       if (start < earliest) continue;
       const options: SlotOption[] = [];
       for (const c of firstStaff) {
-        const plan = planLines(input, lines, ranked, 0, start, null, empty, c.s.staffId);
+        const plan = planLines(pool, lines, ranked, 0, start, null, empty, c.s.staffId);
         if (plan) options.push(toOption(plan));
       }
       if (options.length > 0) slots.push({ start, options });

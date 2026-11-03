@@ -1,11 +1,5 @@
-import type {
-  AvailabilityInput,
-  OccupancyTerms,
-  SlotOption,
-  StaffAvailability,
-} from "./availability";
 import { covers, type Interval, overlaps } from "./intervals";
-import { pickUnits, type ResourceRequirement } from "./resources";
+import { pickUnits, type ResourceRequirement, type ResourceUnitAvailability } from "./resources";
 
 /**
  * Multi-service chains (M6.8, spec 06 G12): one appointment with several services in sequence,
@@ -15,6 +9,13 @@ import { pickUnits, type ResourceRequirement } from "./resources";
  */
 
 const MINUTE = 60_000;
+
+/** How long a booking occupies the staff member: buffers + appointment length. */
+export interface OccupancyTerms {
+  durationMinutes: number;
+  bufferBeforeMinutes: number;
+  bufferAfterMinutes: number;
+}
 
 /**
  * One service of a multi-service appointment (M6.8). Lines run in order; each is done by one staff
@@ -40,6 +41,20 @@ export interface LinePlan {
   occupancy: Interval;
   /** Resource units claimed for the same interval (one occupancy row each). */
   unitIds: string[];
+}
+
+export interface SlotOption {
+  /** Staff of the first line. */
+  staffId: string;
+  /** Appointment start (first line) and end (last line) — what the customer sees. */
+  start: number;
+  end: number;
+  /** Hull of every line's occupancy (single service: exactly its occupancy row). */
+  occupancy: Interval;
+  /** Every unit claimed by the chain (single service: its units). */
+  unitIds: string[];
+  /** One plan per service line, in order (single service: one). Write these to booking_occupancy. */
+  lines: LinePlan[];
 }
 
 /**
@@ -75,16 +90,8 @@ export function lineTiming(
   };
 }
 
-/** The chain to plan: explicit lines, or the single service as a chain of one. */
-export function chainLines(input: AvailabilityInput): readonly ServiceLine[] {
-  if (input.lines) return input.lines;
-  const staffTerms = new Map<string, OccupancyTerms>();
-  for (const s of input.staff) if (s.terms) staffTerms.set(s.staffId, s.terms);
-  return [{ staffTerms, requirements: input.resources?.requirements ?? [] }];
-}
-
 export interface Candidate {
-  s: StaffAvailability;
+  s: { staffId: string };
   free: Interval[];
 }
 
@@ -96,12 +103,11 @@ export interface ChainClaims {
 
 /** Units for one line; units taken by earlier lines of the chain count as busy. */
 function unitsForLine(
-  input: AvailabilityInput,
+  pool: readonly ResourceUnitAvailability[],
   line: ServiceLine,
   claims: ChainClaims,
   occupancy: Interval,
 ): string[] | null {
-  const pool = input.resources?.units ?? [];
   const units =
     claims.units.length === 0
       ? pool
@@ -115,7 +121,8 @@ function unitsForLine(
 }
 
 export function planLines(
-  input: AvailabilityInput,
+  /** Every unit any line may claim, with its busy time. */
+  pool: readonly ResourceUnitAvailability[],
   lines: readonly ServiceLine[],
   /** Staff with free time that day, best "any staff" candidate first. */
   ranked: readonly Candidate[],
@@ -146,12 +153,12 @@ export function planLines(
     ) {
       continue;
     }
-    const unitIds = unitsForLine(input, line, claims, timing.occupancy);
+    const unitIds = unitsForLine(pool, line, claims, timing.occupancy);
     if (!unitIds) continue;
     const plan: LinePlan = { staffId, ...timing, unitIds };
     if (index === lines.length - 1) return [plan];
     const rest = planLines(
-      input,
+      pool,
       lines,
       ranked,
       index + 1,

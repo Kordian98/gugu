@@ -3,11 +3,10 @@ import {
   type AvailabilityInput,
   computeSlots,
   findSlot,
-  type OccupancyTerms,
   type StaffAvailability,
   type WeeklyHours,
 } from "./availability";
-import { lineTiming, MAX_SERVICE_LINES, type ServiceLine } from "./chain";
+import { lineTiming, MAX_SERVICE_LINES, type OccupancyTerms, type ServiceLine } from "./chain";
 import type { Interval } from "./intervals";
 import { instantsAt, toLocal } from "./tz";
 import { unavailableReason } from "./unavailable-reason";
