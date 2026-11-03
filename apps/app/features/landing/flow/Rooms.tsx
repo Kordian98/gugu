@@ -9,7 +9,7 @@ import { PHOTO } from "./media";
 
 const ROWS = ["r1", "r2", "r3", "r4"] as const;
 const SW_STEPS = ["st1", "st2", "st3"] as const;
-const SW_ROWS = ["1", "2", "3", "4"] as const;
+const SW_ROWS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] as const;
 const SPARK = "\u2726";
 const CROSS = "\u2715";
 const CHECK = "\u2713";
@@ -243,7 +243,7 @@ export function SwitchPanel() {
       <div className="sw-demo">
         <div className="plist sw-list">
           <div className="lbl">{t("flow.switch.from")}</div>
-          <p>{t("story.switch.list")}</p>
+          <p>{t("flow.switch.list")}</p>
           <span className="sw-scan" />
         </div>
         <div className="card sw-win">
@@ -266,24 +266,26 @@ export function SwitchPanel() {
               <span className="s2">{t("flow.switch.done")}</span>
             </div>
           </div>
-          {SW_ROWS.map((r) => (
-            <div key={r} className="sw-row">
-              <div className="sw-sk">
-                <span />
-                <span />
-              </div>
-              <div className="sw-val">
-                <div>
-                  <b>{t(`story.switch.s${r}`)}</b>
-                  <small>{t(`story.switch.d${r}`)}</small>
+          <div className="sw-rows">
+            {SW_ROWS.map((r) => (
+              <div key={r} className="sw-row">
+                <div className="sw-sk">
+                  <span />
+                  <span />
                 </div>
-                <em>{t(`story.switch.p${r}`)}</em>
-                <span className="sw-tog">
-                  <i />
-                </span>
+                <div className="sw-val">
+                  <div>
+                    <b>{t(`flow.switch.n${r}`)}</b>
+                    <small>{t(`flow.switch.d${r}`)}</small>
+                  </div>
+                  <em>{t(`flow.switch.p${r}`)}</em>
+                  <span className="sw-tog">
+                    <i />
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

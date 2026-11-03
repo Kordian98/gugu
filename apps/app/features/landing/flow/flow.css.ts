@@ -194,7 +194,7 @@ export const FLOW_CSS = `
 .sw-steps li b{flex:0 0 24px;height:24px;border-radius:50%;background:${color.lilac100};color:${color.lilac700};display:flex;align-items:center;justify-content:center;font-size:12px}
 .sw-demo{grid-column:6/13;grid-row:1 / 3;align-self:center;position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.35fr);gap:clamp(14px,2vw,28px);align-items:center}
 .ov-s .sw-list{padding:clamp(20px,2.4vw,40px);transform-origin:center}
-.ov-s .sw-list p{font-size:clamp(20px,1.9vw,34px);line-height:1.6;white-space:pre}
+.ov-s .sw-list p{font-size:clamp(16px,1.5vw,27px);line-height:1.5;white-space:pre}
 .ov-s .sw-list .lbl{font-size:13px}
 .sw-list{position:relative;overflow:hidden}
 .sw-scan{position:absolute;left:0;right:0;top:0;height:12%;background:linear-gradient(180deg,rgba(169,139,235,0),rgba(169,139,235,.45),rgba(169,139,235,0));opacity:0;pointer-events:none}
@@ -202,7 +202,7 @@ export const FLOW_CSS = `
 .sw-bar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid ${color.lineSoft};background:#FBF9FB}
 .sw-bar span{width:9px;height:9px;border-radius:50%;background:${color.lineSoft}}
 .sw-bar b{margin-left:8px;font-family:${font.uiSemiBold};font-size:13px}
-.sw-ai{margin:12px 14px;padding:12px 14px;border-radius:14px;background:${color.lilac100}}
+.sw-ai{margin:10px 14px;padding:10px 14px;border-radius:14px;background:${color.lilac100}}
 .sw-ai-h{display:flex;align-items:center;gap:8px;font-family:${font.uiSemiBold};font-size:13.5px;color:${color.lilac700}}
 .sw-ai-h i{font-style:normal}
 .sw-prog{height:6px;border-radius:6px;background:rgba(255,255,255,.8);margin:10px 0 8px;overflow:hidden}
@@ -210,24 +210,27 @@ export const FLOW_CSS = `
 .sw-status{position:relative;height:18px;font-family:${font.ui};font-size:12px;color:${color.ink2}}
 .sw-status span{position:absolute;left:0;top:0;white-space:nowrap}
 .sw-status .s2{opacity:0;font-family:${font.uiSemiBold};color:${color.lilac700}}
-.sw-row{position:relative;margin:0 14px 8px;border:1px solid ${color.lineSoft};border-radius:12px;height:52px}
-.sw-sk,.sw-val{position:absolute;inset:0;display:flex;align-items:center;gap:12px;padding:0 12px}
+.sw-rows{display:grid;grid-template-columns:1fr;gap:5px;margin:0 14px 14px}
+.sw-row{position:relative;border:1px solid ${color.lineSoft};border-radius:10px;height:clamp(34px,4.4vh,42px)}
+.sw-sk,.sw-val{position:absolute;inset:0;display:flex;align-items:center;gap:8px;padding:0 10px}
 .sw-sk span{display:block;height:9px;border-radius:5px;background:linear-gradient(90deg,#EFE8EE,#F7F2F6,#EFE8EE);background-size:200% 100%;animation:swShimmer 1.2s linear infinite}
 .sw-sk span:first-child{width:42%}.sw-sk span:last-child{width:22%;margin-left:auto}
 .sw-val{opacity:0}
-.sw-val div{display:flex;flex-direction:column;min-width:0}
-.sw-val b{font-family:${font.uiSemiBold};font-size:14px}
+.sw-val div{display:flex;align-items:baseline;gap:10px;min-width:0}
+.sw-val b{font-family:${font.uiSemiBold};font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sw-val small{font-family:${font.ui};font-size:11.5px;color:${color.muted}}
-.sw-val em{margin-left:auto;font-style:normal;font-family:${font.uiSemiBold};font-size:13.5px;font-variant-numeric:tabular-nums}
+.sw-val em{margin-left:auto;font-style:normal;font-family:${font.uiSemiBold};font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .sw-tog{flex:0 0 34px;height:20px;border-radius:99px;background:${color.lineSoft};position:relative}
 .sw-tog i{position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.sw-row:last-child{margin-bottom:14px}
+
 @keyframes swShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @media (max-width:899px){
   .sw-sub,.sw-list{display:none}
   .sw-demo{grid-template-columns:1fr}
   .sw-steps li{padding:7px 10px;font-size:12px}
-  .sw-row{height:auto;min-height:44px}
+  .sw-rows{grid-template-columns:1fr}
+  .sw-row:nth-child(n+6){display:none}
+  .sw-row{height:auto;min-height:40px}
   .sw-sk,.sw-val{position:relative;inset:auto;min-height:44px}
   .sw-sk{position:absolute;inset:0}
   .sw-val small{display:none}

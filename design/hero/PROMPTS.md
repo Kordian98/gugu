@@ -2,7 +2,7 @@
 
 Every fal.ai call for the hero and homepage prototype, generated from `scripts/runs.jsonl` by `scripts/prompts_md.py`. FLUX 3 edit and Kling v4 expose no seed parameter, so the fal request ID plus the exact prompt and reference files are the reproducibility record. Costs are estimates from the fal model pages (2K FLUX tier and BiRefNet price not verified; check the fal dashboard for the actual bill).
 
-**Calls:** 116 · **Estimated spend:** $5.93
+**Calls:** 125 · **Estimated spend:** $5.93
 
 | # | Name | Endpoint | Request ID | Refs | Output | Est. $ |
 |---|---|---|---|---|---|---|
@@ -122,6 +122,15 @@ Every fal.ai call for the hero and homepage prototype, generated from `scripts/r
 | 114 | exterior-brand2 | `fal-ai/nano-banana-pro/edit` | `01a1a025-9fe1-70c0-af84-4b37bb83bac7` |  |  | 0.000 |
 | 115 | walk1-brand2 | `alibaba/wan-3.0-prime/image-to-video` | `01a1a026-62b5-7580-970f-8feae1f4477b` |  |  | 0.000 |
 | 116 | walk1-brand2-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a027-cb74-74b0-8aac-00f02752c47e` |  |  | 0.000 |
+| 117 | exterior-cands | `fal-ai/nano-banana-pro/edit` | `01a1a037-6a55-7182-8a25-86bf9eb87c35` |  |  | 0.000 |
+| 118 | treatment-closed | `fal-ai/nano-banana-pro/edit` | `01a1a037-6a53-7a83-abfe-4e459e6d9ddd` |  |  | 0.000 |
+| 119 | walk3-final | `alibaba/wan-3.0-prime/image-to-video` | `01a1a03e-e2a1-7920-ac5a-bdc69f1821c8` |  |  | 0.000 |
+| 120 | walk3-final-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a040-977f-7703-97b2-2f91b5ee8a86` |  |  | 0.000 |
+| 121 | stress-fix | `fal-ai/nano-banana-pro/edit` | `01a1a04c-5da8-71c2-a1d9-b649cd08d86d` |  |  | 0.000 |
+| 122 | walk1-fix | `alibaba/wan-3.0-prime/image-to-video` | `01a1a04d-324c-7ec0-8afe-052c12ed2ca8` |  |  | 0.000 |
+| 123 | walk2-fix | `alibaba/wan-3.0-prime/image-to-video` | `01a1a04d-3252-7a40-bf05-8f37e7a330d0` |  |  | 0.000 |
+| 124 | walk1-fix-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a04e-9c3e-7810-8261-e1e1cd5b925c` |  |  | 0.000 |
+| 125 | walk2-fix-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a04e-9c3e-76b2-b93f-bebc08c04a75` |  |  | 0.000 |
 
 ## Prompts and settings
 
@@ -891,6 +900,78 @@ Exterior -> reception; nobody appears or disappears.
 
 ### 116. walk1-brand2-4k
 - Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T14:00:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 117. exterior-cands
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T14:40:00+00:00
+- Settings: `{}`
+
+```
+2 candidates: receptionist correctly behind the desk (cand0 used).
+```
+
+### 118. treatment-closed
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T14:40:00+00:00
+- Settings: `{}`
+
+```
+Treatment area with the back-office door closed.
+```
+
+### 119. walk3-final
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T14:40:00+00:00
+- Settings: `{}`
+
+```
+Closed door opens into the lilac office.
+```
+
+### 120. walk3-final-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T14:40:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 121. stress-fix
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T14:40:00+00:00
+- Settings: `{}`
+
+```
+Sharp natural faces for the two waiting customers.
+```
+
+### 122. walk1-fix
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T14:40:00+00:00
+- Settings: `{}`
+
+```
+Exterior -> reception, sharp faces.
+```
+
+### 123. walk2-fix
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T14:40:00+00:00
+- Settings: `{}`
+
+```
+Reception -> treatment, back-office door closed throughout.
+```
+
+### 124. walk1-fix-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T14:40:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 125. walk2-fix-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T14:40:00+00:00
 - Settings: `{}`
 
 ```

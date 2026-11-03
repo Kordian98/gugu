@@ -386,7 +386,7 @@ export function buildJourney(
     SW + 0.025,
   );
   q(".sw-row").forEach((row, i) => {
-    const at = SW + 0.03 + i * 0.012;
+    const at = SW + 0.03 + i * 0.0055;
     const sk = row.querySelector(".sw-sk");
     const val = row.querySelector(".sw-val");
     const knob = row.querySelector(".sw-tog i");
@@ -401,7 +401,7 @@ export function buildJourney(
       tl.to(tog, { backgroundColor: "#A98BEB", duration: 0.01 }, at + 0.03);
     }
   });
-  tl.to(q(".sw-status .s1"), { opacity: 0, duration: 0.01 }, SW + 0.085);
+  tl.to(q(".sw-status .s1"), { opacity: 0, duration: 0.01 }, SW + 0.09);
   tl.fromTo(
     q(".sw-status .s2"),
     { opacity: 0, y: 6 },
