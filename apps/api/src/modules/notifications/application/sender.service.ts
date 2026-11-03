@@ -210,7 +210,7 @@ export class SenderService {
                count(*) FILTER (WHERE salon_id = ${salonId}::uuid AND recipient_key = ${key}) AS addr_salon,
                count(*) FILTER (WHERE recipient_key = ${key}) AS addr_all
         FROM notification_deliveries
-        WHERE audience = 'customer' AND status IN ('queued', 'sent')
+        WHERE audience = 'customer' AND status IN ('queued', 'sent', 'delivered')
           AND reserved_at > ${since} AND id <> ${id}::uuid
           AND (salon_id = ${salonId}::uuid OR recipient_key = ${key})`;
       if (
