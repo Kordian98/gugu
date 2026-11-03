@@ -101,9 +101,21 @@ export const salonEntitlementsSchema = z.object({
   plan: planCodeSchema.nullable(),
   status: z.union([subscriptionStatusSchema, z.literal("none")]),
   trialEndsAt: z.iso.datetime().nullable(),
+  /** Suspended by GuGu staff: nothing is granted and the workspace is read-only (M12.6). */
+  suspended: z.boolean(),
+  /**
+   * Founding partner (X20, R-FP7): `since` = qualification time; `waiverEndsAt` = end of the
+   * 24-month booking-fee waiver, null until the marketplace launch date is set.
+   */
+  foundingPartner: z
+    .object({ since: z.iso.datetime(), waiverEndsAt: z.iso.datetime().nullable() })
+    .nullable(),
   entitlements: entitlementMapSchema,
 });
 export type SalonEntitlements = z.infer<typeof salonEntitlementsSchema>;
+
+/** Booking-fee waiver length for founding partners (R-FP1). */
+export const FOUNDING_WAIVER_MONTHS = 24;
 
 export const salonIdParamSchema = z.object({ salonId: uuidV7Schema });
 

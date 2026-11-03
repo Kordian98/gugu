@@ -52,7 +52,12 @@ export const SALON_PERMISSIONS = [
 ] as const;
 export type SalonPermission = (typeof SALON_PERMISSIONS)[number];
 
+/**
+ * Platform (GuGu staff) permissions. Platform roles are a column on the user, never a salon
+ * membership; a salon role grants none of these. Admin API: `/api/v1/admin/*` (topic 12 M12.6).
+ */
 export const PLATFORM_PERMISSIONS = [
+  /** Salon directory and detail (members, subscription, usage). */
   "platform.directory.read",
   "platform.moderation.write",
   "platform.salons.verify",
@@ -62,6 +67,14 @@ export const PLATFORM_PERMISSIONS = [
   "platform.feature_flags.write",
   "platform.commission.write",
   "platform.audit.read",
+  /** AI cost vs caps and messaging usage per salon. */
+  "platform.usage.read",
+  /** Plan assignment, trial extension, paid-until (manual billing). Money config: super only. */
+  "platform.subscriptions.write",
+  /** Per-salon entitlement overrides with an expiry. */
+  "platform.entitlements.write",
+  /** Grant or revoke the founding-partner flag (X20, spec 12 R-FP2: super_admin only). */
+  "platform.founding_partner.write",
 ] as const;
 export type PlatformPermission = (typeof PLATFORM_PERMISSIONS)[number];
 
@@ -131,8 +144,12 @@ export const PLATFORM_ROLE_PERMISSIONS: Readonly<
   Record<PlatformRole, ReadonlySet<PlatformPermission>>
 > = {
   super_admin: new Set(PLATFORM_PERMISSIONS),
+  // Spec 12 R-AD4: support reads everything except money configuration and changes nothing
+  // commercial (plans, overrides, founding partners, suspensions are super_admin only).
   support_admin: new Set([
     "platform.directory.read",
+    "platform.audit.read",
+    "platform.usage.read",
     "platform.moderation.write",
     "platform.salons.verify",
     "platform.impersonate.readonly",

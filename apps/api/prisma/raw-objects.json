@@ -28,6 +28,7 @@
     "booking_occupancy_no_unit_overlap",
     "resource_types_valid",
     "resources_valid",
+    "salons_suspension_consistent",
     "resource_units_valid",
     "service_resource_requirements_valid",
     "zalo_funnel_events_valid"

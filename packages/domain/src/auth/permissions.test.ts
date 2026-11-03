@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   OWNER_ONLY_PERMISSIONS,
+  PLATFORM_PERMISSIONS,
+  PLATFORM_ROLE_PERMISSIONS,
   ROLE_PERMISSIONS,
   SALON_PERMISSIONS,
   canAssignRole,
@@ -70,5 +72,30 @@ describe("permission matrix", () => {
     expect(canAssignRole("manager", "manager")).toBe(false);
     expect(canAssignRole("manager", "staff")).toBe(true);
     expect(canAssignRole("owner", "owner")).toBe(false);
+  });
+
+  it("platform roles: super_admin has everything, support_admin no commercial writes (R-AD4)", () => {
+    expect([...PLATFORM_ROLE_PERMISSIONS.super_admin].sort()).toEqual([...PLATFORM_PERMISSIONS].sort());
+    const support = PLATFORM_ROLE_PERMISSIONS.support_admin;
+    expect(support.has("platform.directory.read")).toBe(true);
+    expect(support.has("platform.usage.read")).toBe(true);
+    expect(support.has("platform.audit.read")).toBe(true);
+    for (const p of [
+      "platform.subscriptions.write",
+      "platform.entitlements.write",
+      "platform.founding_partner.write",
+      "platform.salons.suspend",
+      "platform.roles.write",
+      "platform.feature_flags.write",
+      "platform.commission.write",
+    ] as const) {
+      expect(support.has(p)).toBe(false);
+    }
+  });
+
+  it("salon roles never carry platform permissions", () => {
+    for (const perms of Object.values(ROLE_PERMISSIONS)) {
+      for (const p of perms) expect(p.startsWith("platform.")).toBe(false);
+    }
   });
 });

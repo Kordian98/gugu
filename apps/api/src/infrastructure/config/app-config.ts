@@ -19,6 +19,11 @@ export class AppConfig {
   get appleClientIds(): string[] {
     return splitList(this.env.APPLE_CLIENT_IDS);
   }
+
+  /** Marketplace launch date; null while not set (founding-partner window still open). */
+  get marketplaceLaunchAt(): Date | null {
+    return this.env.MARKETPLACE_LAUNCH_AT ? new Date(this.env.MARKETPLACE_LAUNCH_AT) : null;
+  }
 }
 
 function splitList(value: string): string[] {

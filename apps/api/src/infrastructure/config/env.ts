@@ -87,6 +87,11 @@ export const envSchema = z
     /** Indicative prices for the send log (VND). Override when real prices are known. */
     ZALO_PRICE_TEMPLATE_VND: z.coerce.number().int().min(0).default(200),
     ZALO_PRICE_CS_PAID_VND: z.coerce.number().int().min(0).default(55),
+    /**
+     * Marketplace launch (spec 12 R-FP1). Unset = not launched: a salon whose first paid plan
+     * becomes active before this moment becomes a founding partner (X20). ISO 8601 UTC.
+     */
+    MARKETPLACE_LAUNCH_AT: z.iso.datetime().optional(),
   })
   .transform((env) => ({
     ...env,
