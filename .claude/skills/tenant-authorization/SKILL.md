@@ -29,6 +29,8 @@ GuGu is multi-tenant: every salon is a tenant. Authorization lives in the backen
 - MUST NOT expose internal notes, tags, attribution/commission internals to public endpoints.
 - MUST NOT log verification codes, tokens, phone numbers, or note contents.
 - MUST emit an audit event for sensitive actions (list: spec R29).
+- MUST route every platform-admin write through `AdminActions.run`: it requires an enrolled TOTP factor, and `stepUp: true` (high-risk) requires a step-up on the current session (ADR-0011). Admin routes are rate-limited per user in the guard.
+- MUST keep client privacy actions owner-only (`customers.export`, `customers.erase`) and extend `ClientPrivacyService.erase` / `loadClientScope` when a new table stores client personal data (ADR-0012).
 
 ## Procedure — new salon-scoped endpoint
 1. Pick or add the permission in `packages/domain/src/auth/permissions.ts`; assign to roles per the matrix; add a matrix test case.
