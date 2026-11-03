@@ -88,11 +88,10 @@ describe("email-only signup & guided setup (integration)", () => {
       .set("cookie", s.cookie)
       .set("x-csrf-token", s.csrf)
       .send({ locale: "vi" });
-  const authed = (method: "get" | "post" | "patch" | "put", path: string, s: Web) =>
-    request(http(app))
-      [method](`/api/v1${path}`)
-      .set("cookie", s.cookie)
-      .set("x-csrf-token", s.csrf);
+  const authed = (method: "get" | "post" | "patch" | "put", path: string, s: Web) => {
+    const agent = request(http(app));
+    return agent[method](`/api/v1${path}`).set("cookie", s.cookie).set("x-csrf-token", s.csrf);
+  };
 
   it("email + code → quick start creates one draft salon with smart defaults, audited", async () => {
     const email = testEmail("signup");

@@ -78,6 +78,14 @@ _TODO: one row per catalog event (name, side, properties, owner, metrics using i
 
 | Event | Side | Owner | Feeds metric |
 |---|---|---|---|
+| `salon_quick_started` `{ locale }` | server (`analytics_events`, interim) | 07 | signup funnel |
+| `setup_step_viewed` `{ step, step_index }` | server (interim) | 07 | setup drop-off per step |
+| `setup_step_completed` `{ step, step_index, method, business_type, seconds_since_start }` | server (interim) | 07 | setup drop-off; share using AI import (07 §3.7) |
+| `setup_step_skipped`, `setup_left` `{ step, step_index }` | server (interim) | 07 | setup drop-off |
+| `setup_finished` `{ seconds_since_start, completed_count, skipped_count, went_live }` | server (interim) | 07 | time to first bookable state (07 §3.7) |
+| `setup_card_dismissed` `{ remaining_count }`, `starter_services_added` `{ business_type, count }` | server (interim) | 07 | — |
+
+_Interim store (ADR-0018): table `analytics_events` + catalogue `ANALYTICS_EVENTS` in `@gugu/contracts`, written by `modules/analytics`, until this topic builds `packages/analytics` and the partitioned pipeline._
 
 ## Metrics
 _TODO: link each definition in `packages/domain/metrics` with its version._

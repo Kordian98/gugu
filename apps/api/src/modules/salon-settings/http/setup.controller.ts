@@ -9,10 +9,6 @@ import {
   setupProgressInputSchema,
   type SetupState,
   setupStateSchema,
-  type StarterServicesInputParsed,
-  starterServicesInputSchema,
-  type StarterServicesResult,
-  starterServicesResultSchema,
 } from "@gugu/contracts";
 import { RequirePermission } from "../../../common/guards/auth-policy";
 import {
@@ -81,26 +77,5 @@ export class SetupController {
     @CurrentUser() user: UserPrincipal,
   ): Promise<void> {
     await this.setup.dismissCard(salon, user);
-  }
-
-  @Post("starter-services")
-  @RequirePermission("services.write")
-  @HttpCode(200)
-  @ApiOperation({
-    operationId: "salonSettings.addStarterServices",
-    summary: "Setup step (c): add reviewed services from a business-type template.",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Created.",
-    standardSchema: starterServicesResultSchema,
-  })
-  async starterServices(
-    @Param({ schema: salonParamsSchema }) _p: SalonParams,
-    @Body({ schema: starterServicesInputSchema }) body: StarterServicesInputParsed,
-    @CurrentSalon() salon: SalonContext,
-    @CurrentUser() user: UserPrincipal,
-  ): Promise<StarterServicesResult> {
-    return this.setup.addStarterServices(salon, user, body);
   }
 }

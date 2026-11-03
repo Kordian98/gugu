@@ -173,7 +173,7 @@ Without `--with-totp`, sign in at `/vi/sign-in` (Mailpit), open `/vi/admin/secur
 - `apps/api/src/modules/salons/`: registration, reference data, salon read models.
 - `apps/api/src/infrastructure/{mail,rate-limit}/`: SMTP transport, Valkey fixed-window limiter.
 - `apps/app/services/auth/`: `apiFetch`, `AuthProvider`, token stores (`token-store.native.ts` = SecureStore; web keeps only the CSRF token in memory).
-- `apps/app/features/auth/`, `apps/app/features/salon-join/`: sign-in, verify and join screens.
+- `apps/app/features/auth/`: sign-in, verify and the email-only signup (`SignInScreen mode="signUp"` on `/business/join`, ADR-0018; the old salon form `features/salon-join/` was removed).
 - Tests: `apps/api/src/modules/auth/admin-mfa.int.test.ts`, `auth/mfa/totp.test.ts`, `privacy/privacy.int.test.ts`, `privacy/domain/render-export.test.ts`, `authorization/admin-rate-limit.int.test.ts`, `jobs/worker-module.int.test.ts`, `apps/api/src/modules/{auth,salons}/*.int.test.ts` (stack), `apps/api/src/modules/authorization/{authorization,suspension-allowlist}.e2e.test.ts` (q92 generated route matrix), `authorization/route-inventory.test.ts`, `admin/admin-effects.int.test.ts` (suspension matrix on the stack), `apps/api/test/{auth-fakes,mailpit,rate-limits}.ts`, `apps/api/test/factories/identity.ts`.
 
 ## ADRs

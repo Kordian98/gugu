@@ -1,27 +1,16 @@
-import { forwardRef, Inject, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import {
   PLACEHOLDER_SALON_NAME,
   type SetupBusinessInput,
   type SetupProgressInput,
   type SetupState,
-  type StarterServicesInputParsed,
-  type StarterServicesResult,
 } from "@gugu/contracts";
 import type { SalonContext, UserPrincipal } from "../../../common/guards/principal";
 import type { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AnalyticsService } from "../../analytics/analytics.facade";
 import { AuditService } from "../../audit/audit.facade";
-import { CatalogService } from "../../catalog/catalog.facade";
-import {
-  BUSINESS_TYPE_CATEGORY,
-  type SetupFacts,
-  type SetupRow,
-  setupStateOf,
-  stepIndex,
-  withStep,
-  withoutStep,
-} from "../domain/setup";
+import { BUSINESS_TYPE_CATEGORY, stepIndex, withStep, withoutStep } from "../domain/setup";
 import { SalonSettingsService } from "./salon-settings.service";
 
 type Tx = Prisma.TransactionClient;
@@ -30,7 +19,7 @@ const secondsSince = (d: Date) => Math.max(0, Math.round((Date.now() - d.getTime
 
 /**
  * Guided setup after the email-only signup (07 §3.7, owner 2026-11-04): server-side wizard progress,
- * the business step (name + type), starter services and the Today card. Each step also emits a
+ * the business step (name + type) and the Today card. Each step also emits a
  * PII-free analytics event so the signup funnel's drop-off is visible (X14).
  */
 @Injectable()
@@ -39,8 +28,6 @@ export class SetupService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly analytics: AnalyticsService,
-    // forwardRef: the catalog module imports this module's facade at file level (cycle).
-    @Inject(forwardRef(() => CatalogService)) private readonly catalog: CatalogService,
     private readonly settings: SalonSettingsService,
   ) {}
 
@@ -221,45 +208,4 @@ export class SetupService {
       );
     });
   }
-
-  /**
-   * Template services (step c, path B) through the catalogue (validation, staff auto-assignment,
-   * availability bump, audit). A row whose Vietnamese name already exists is skipped, so a retry or
-   * a double tap never duplicates the list.
-   */
-  async addStarterServices(
-    ctx: SalonContext,
-    user: UserPrincipal,
-    input: StarterServicesInputParsed,
-  ): Promise<StarterServicesResult> {
-    const existing = await this.prisma.service.findMany({
-      where: { salonId: ctx.salonId, deletedAt: null },
-      select: { name: true },
-    });
-    const key = (n: string) => n.trim().toLocaleLowerCase("vi");
-    const taken = new Set(
-      existing.map((s) => key(((s.name ?? {}) as { vi?: string }).vi ?? "")).filter(Boolean),
-    );
-    let created = 0;
-    let skipped = 0;
-    for (const item of input.items) {
-      const k = key(item.name.vi);
-      if (taken.has(k)) {
-        skipped += 1;
-        continue;
-      }
-      await this.catalog.create(ctx, item);
-      taken.add(k);
-      created += 1;
-    }
-    await this.analytics.record({
-      name: "starter_services_added",
-      salonId: ctx.salonId,
-      actorUserId: user.userId,
-      props: { business_type: input.businessType, count: created },
-    });
-    return { created, skipped };
-  }
 }
-
-export type { SetupFacts, SetupRow };

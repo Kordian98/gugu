@@ -183,3 +183,48 @@ Own-scope and per-staff Insights are line-based: a booking is the member's when 
 - Per-day / hourly pay follow schedules; no clock-in.
 - Native XLSX download shares only the file name (no file-system module yet); CSV/XLSX download works on web.
 - Social insurance / PIT not computed (q98).
+
+## Email-only signup and guided setup (2026-11-04, ADR-0018)
+
+Owner request 2026-11-04: an email is enough to start; then a guided, delightful setup.
+
+### Flow
+1. `/{locale}/business/join` (also `/sign-up`): `SignInScreen mode="signUp"` — one email field → magic link or 6-digit code (auto-confirms at six digits). New and existing emails see the same screens (no enumeration); existing owners just land in their salon.
+2. `BusinessGuard`: a signed-in user with no salon membership renders `QuickStart`, which calls `POST /salons/quick-start` (idempotent), reloads `/me` and opens `/business/setup`.
+3. `SetupWizard` (focused screen, no workspace chrome): (a) name + business-type tiles → (b) hours presets + quick tweak → (c) services: AI price-list import hero (graceful note when not configured / not in plan), starter template per business type (editable name, duration, price; range hint), or manual; the salon's list fills in live → (d) "just me" or names (each gets the salon's hours and every service) → (e) Zalo OA connect (optional, returns to the wizard) → (f) celebration + today's real calendar + "Thêm lịch hẹn đầu tiên" (`/business/calendar?new=1`). Every step is skippable; "Để sau" closes the wizard at that step.
+4. Progress is server-side (`salon_setups`); Today redirects an owner into the wizard until it is closed. After that, `today/FinishSetupCard` lists only the open items (`setup.remaining`, from real data; `zalo` hidden when the integration is disabled), each opening one step (`?step=x&single=1`, back to Today afterwards); dismissible for good. It never renders for salons without a setup row or with nothing left (completed salons, seeds, landing screenshots). Older salons (registered with the old form, no setup row) keep the old `SetupCard` checklist.
+5. A complete salon goes live automatically once the wizard is closed (`goLiveIfReady`).
+
+### Rules
+- Business basics = name confirmed in the wizard, or phone + address (older salons). Phone/address are optional and edited in Settings.
+- Placeholder name `PLACEHOLDER_SALON_NAME` until step (a); the step also renames a one-salon organisation still carrying the placeholder, and sets `primary_category_id` (nails→nails, hair→hair, spa→spa, lashes_brows→lashes, mixed→none).
+- Starter services go through the catalogue (`CatalogService.create`: validation, staff auto-assignment, availability bump, audit); a row whose Vietnamese name already exists is skipped, so retries never duplicate.
+- Motion: progress ring, check pop, Lilac Glow confetti, haptics on native (`expo-haptics`); nothing animates with reduced motion. Tokens only, light and dark.
+
+### Endpoints
+- `POST salons/quick-start` (authenticated; `{ locale }` → `{ salonId, created }`; 409 `salon.pending_confirmation`; 429 after 5 creations/user/day or 20/IP/h).
+- `PATCH salons/:id/onboarding/business` (`salon.profile.write`; `{ name, businessType }`).
+- `POST salons/:id/onboarding/progress` (`salon.settings.write`; `{ step, event: viewed|completed|skipped|left, method? }` → `SetupState`).
+- `POST salons/:id/onboarding/dismiss-card` (`salon.settings.write`).
+- `POST salons/:id/onboarding/starter-services` (`services.write`; `{ businessType, items: ServiceInput[] ≤ 30 }` → `{ created, skipped }`).
+- `GET salons/:id/onboarding` now includes `setup: SetupState | null`.
+- `POST salons/:id/zalo/connection/start` accepts `returnTo: settings|setup` (topic 09 contract, enum only).
+
+### Analytics (signup funnel, server-side, no PII)
+Table `analytics_events` (salted `actor_hash`, ids/enums/counts only), catalogue `ANALYTICS_EVENTS` (`packages/contracts/src/analytics/events.ts`), writer `modules/analytics` (`AnalyticsService.record`). Events: `salon_quick_started` (locale), `setup_step_viewed` / `setup_step_completed` (method, business type, seconds since start) / `setup_step_skipped` / `setup_left` (step, step index), `setup_finished` (seconds, completed/skipped counts, went live), `setup_card_dismissed` (remaining count), `starter_services_added` (business type, count). Drop-off per step: distinct `salon_id` per `setup_step_viewed.step` vs `setup_step_completed.step`.
+
+### File map
+| Path | Purpose |
+|---|---|
+| `apps/api/src/modules/salons/application/quick-start-salon.command.ts` | Lazy draft salon with smart defaults, idempotent per user |
+| `apps/api/src/modules/salon-settings/application/setup.service.ts`, `http/setup.controller.ts`, `domain/setup.ts` | Wizard progress, business step, card; pure `setupRemaining` |
+| `apps/api/src/modules/salon-crm/application/starter-services.service.ts`, `http/starter-services.controller.ts` | Template services through the catalogue (in salon-crm so salon-settings never imports catalog: no module cycle) |
+| `apps/api/src/modules/analytics/` | Minimal analytics store (X14) |
+| `apps/api/src/modules/salons/reg-flow.int.test.ts` | Signup + setup integration tests (idempotency, existing owner, enumeration, limits, progress, isolation) |
+| `packages/contracts/src/salon-settings/setup.ts`, `src/analytics/events.ts` | Setup schemas, business types, analytics catalogue |
+| `packages/domain/src/onboarding/starter-services.ts` | Starter templates per business type (vi/en, VND ranges) |
+| `apps/app/features/auth/SignInScreen.tsx` | Sign-in and email-only signup |
+| `apps/app/features/salon-crm/shell/QuickStart.tsx` | Creates the salon on first entry |
+| `apps/app/features/salon-crm/pages/setup/` | `SetupWizard`, `steps/*`, `parts/` (ring, confetti/check pop, haptics, frame) |
+| `apps/app/features/salon-crm/today/FinishSetupCard.tsx` | Today card with the open items |
+| `e2e/web/tests/owner-journey.spec.ts` | Email → code → wizard → first appointment; 390 px en phone run |
