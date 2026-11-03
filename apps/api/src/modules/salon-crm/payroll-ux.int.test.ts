@@ -421,6 +421,10 @@ describe("payroll UX: bulk commission, own lines, employer cost (integration)", 
     const json = JSON.stringify(res.body);
     expect(json).not.toContain("180000");
     expect(json).not.toContain("120000");
+    // amount / percent would give the base back, so the percent is withheld under this policy.
+    for (const item of mine.items) {
+      if (item.rate?.kind === "percent") expect(item.rate.percent).toBeNull();
+    }
     // Back to the default policy and no cost, so the figures below are unchanged.
     await api()
       .put(url("payroll/settings/commission-base"))

@@ -8,7 +8,7 @@ import {
   type PayrollAdjustment,
   type PayrollMonth,
 } from "@gugu/contracts";
-import { type Month, monthOf, monthProgress, payrollLine, toLocal } from "@gugu/domain";
+import { type Month, monthOf, monthProgress, payrollLine, policyAt, toLocal } from "@gugu/domain";
 import type { SalonContext } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
 import type { Prisma } from "../../../infrastructure/prisma/generated/client";
@@ -104,6 +104,7 @@ export class PayrollService {
     });
     if (!profile) throw payrollError.staff();
     const all = await this.lines(ctx, month, profile.id);
+    const { policy } = await this.data.load(ctx.salonId, month, profile.id);
     return {
       month: all.month,
       items: all.items.map((l) => ({
@@ -112,7 +113,12 @@ export class PayrollService {
         date: l.date,
         service: l.service,
         state: l.state,
-        rate: l.rate,
+        // Under price_minus_cost, amount / percent = base and price - base = the service cost,
+        // which staff may not see: drop the percent from the self-view (security review).
+        rate:
+          l.rate?.kind === "percent" && policyAt(policy, l.date) === "price_minus_cost"
+            ? { kind: "percent" as const, percent: null, amount: null }
+            : l.rate,
         amount: l.amount,
       })),
     };
