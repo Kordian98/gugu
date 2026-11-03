@@ -367,3 +367,31 @@ export function hourRange(
     endHour: Math.min(24, Math.ceil(Math.max(...mins) / 60)),
   };
 }
+
+/**
+ * Columns for a member who may not read the team (`members.read`, staff role): the API returns
+ * only bookings they work on (own scope, 05), so their own staff profile is the one present in
+ * every booking. One column labelled with their own name; other people's lines of a shared
+ * multi-service booking stay hidden (not theirs). With no bookings there is no column (empty state).
+ */
+export function ownScopeColumns(bookings: SalonBooking[], label: string): StaffMember[] {
+  const sets = bookings
+    .filter((b) => !b.status.startsWith("cancelled"))
+    .map((b) => new Set([b.staffId, ...b.services.map((l) => l.staffId)]));
+  const [first, ...rest] = sets;
+  if (!first) return [];
+  const common = [...first].filter((id) => rest.every((s) => s.has(id))).sort();
+  const ids = common.length ? [common[0] as string] : [...new Set(sets.flatMap((s) => [...s]))];
+  return ids.map((id, i) => ({
+    id,
+    displayName: label,
+    color: "lilac",
+    isBookable: true,
+    sortOrder: i,
+    serviceIds: [],
+    member: null,
+    pendingInvitation: null,
+    schedule: { days: [] },
+    timeOff: [],
+  }));
+}

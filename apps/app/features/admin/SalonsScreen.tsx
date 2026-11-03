@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -28,6 +28,8 @@ const OPTIONS: Record<FilterId, readonly string[]> = {
   created: ["7", "30", "90"],
   bookings: ["1", "10", "100"],
 };
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 /** UI filters → `GET /admin/salons` query parameters. */
 function toApi(f: Filters, q: string): SalonFilters {
@@ -59,6 +61,15 @@ export function SalonsScreen() {
   const mobile = useBreakpoint() === "mobile";
   const [draft, setDraft] = useState("");
   const [q, setQ] = useState("");
+  // Search as you type: apply the draft once typing pauses (Enter / blur still apply at once).
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setQ(draft.trim());
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(id);
+    };
+  }, [draft]);
   const [filters, setFilters] = useState<Filters>({ sort: "created_desc" });
   // Phones: filters fold away behind one button so the list stays in view.
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -115,10 +126,10 @@ export function SalonsScreen() {
             value={draft}
             onChangeText={setDraft}
             onSubmitEditing={() => {
-              setQ(draft);
+              setQ(draft.trim());
             }}
             onBlur={() => {
-              setQ(draft);
+              setQ(draft.trim());
             }}
             placeholder={t("salons.search")}
             placeholderTextColor={c.muted}

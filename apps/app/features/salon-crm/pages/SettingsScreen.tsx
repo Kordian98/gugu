@@ -2,7 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmCard, Icon, Text, useCalm, type IconName } from "@gugu/design-system";
+import { CalmCard, checkableA11y, Icon, Text, type IconName, useCalm } from "@gugu/design-system";
 import { LOCALE_LABELS, LOCALES } from "@gugu/localization";
 
 import { NotificationsSection } from "@/features/notifications/NotificationsSection";
@@ -122,8 +122,7 @@ function Choice({
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
+      {...checkableA11y("radio", selected)}
       onPress={onPress}
       style={{
         height: 42,

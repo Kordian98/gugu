@@ -31,7 +31,7 @@ test.describe("smoke @en", () => {
     const lan = SEED.bookings.lanToday;
     await expect(
       page.getByRole("button", {
-        name: new RegExp(`^${lan.time} AM ${SEED.services.gel.en}, ${lan.name},`),
+        name: new RegExp(`^${lan.time} ${SEED.services.gel.en}, ${lan.name},`),
       }),
     ).toBeVisible();
   });

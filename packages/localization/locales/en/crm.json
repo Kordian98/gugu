@@ -486,6 +486,7 @@
     "newFor": "New appointment with {{name}}",
     "today": "Today",
     "noSlots": "No free times on this day. Try another day or team member.",
+    "truncated": "Results may be incomplete — try a shorter date range or pick a specific team member.",
     "anyStaff": "Anyone",
     "timeOff": "Time off",
     "all": "All",

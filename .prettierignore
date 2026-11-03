@@ -10,3 +10,5 @@ docs
 .claude
 *.md
 dist-web
+e2e/web/.e2e
+reports

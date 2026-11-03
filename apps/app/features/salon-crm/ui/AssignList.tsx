@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Avatar, Icon, Text, useCalm } from "@gugu/design-system";
+import { Avatar, checkableA11y, Icon, Text, useCalm } from "@gugu/design-system";
 
 import { BookabilityWarning } from "./BookabilityWarning";
 
@@ -93,8 +93,7 @@ export function AssignList({
             <Pressable
               key={i.id}
               testID={`${testID}-${i.id}`}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked }}
+              {...checkableA11y("checkbox", checked)}
               accessibilityLabel={i.label}
               onPress={() => {
                 onChange(checked ? selected.filter((x) => x !== i.id) : [...selected, i.id]);
