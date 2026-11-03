@@ -7,7 +7,8 @@ import type { QueueName } from "../infrastructure/queue/queues";
  */
 export interface JobProcessor {
   readonly queue: QueueName;
-  process(job: Job): Promise<unknown>;
+  /** `token` is the worker's lock token (needed to move a job back to delayed). */
+  process(job: Job, token?: string): Promise<unknown>;
 }
 
 export const JOB_PROCESSORS = Symbol("JOB_PROCESSORS");

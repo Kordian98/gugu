@@ -320,7 +320,9 @@ export class BookingQueries {
       ...core(b),
       source: b.source,
       customer:
-        b.customerName === null ? null : { name: b.customerName, phone: b.customerPhoneE164 },
+        b.customerName === null
+          ? null
+          : { name: b.customerName, phone: b.customerPhoneE164, email: b.customerEmail },
       identityVerified: b.identityVerified,
       customerAnonymised: b.customerAnonymisedAt !== null,
       note: b.customerNote,

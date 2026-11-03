@@ -31,7 +31,8 @@
     "salons_suspension_consistent",
     "resource_units_valid",
     "service_resource_requirements_valid",
-    "zalo_funnel_events_valid"
+    "zalo_funnel_events_valid",
+    "notification_deliveries_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",

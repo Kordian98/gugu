@@ -171,6 +171,8 @@ export class BookingLifecycleCommands {
           to: input.to,
           lateCancellation: result.lateCancellation,
           actorType: actor.kind,
+          actorId: actorId(actor),
+          version: booking.version + 1,
         },
       });
       const isCorrection =
@@ -342,6 +344,8 @@ export class BookingLifecycleCommands {
           fromStaffId: booking.staffId,
           toStaffId: option.staffId,
           actorType: actor.kind,
+          actorId: actor.kind === "salon_member" ? actor.userId : null,
+          version: booking.version + 1,
         },
       });
       await this.audit.record(

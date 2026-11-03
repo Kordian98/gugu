@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { CalmCard, Icon, Text, useCalm, type IconName } from "@gugu/design-system";
 import { LOCALE_LABELS, LOCALES } from "@gugu/localization";
 
+import { NotificationsSection } from "@/features/notifications/NotificationsSection";
 import { useLocale, useSwitchLocale } from "@/services/i18n/useLocale";
 
 import { useSettings } from "../data/catalog";
@@ -46,6 +47,7 @@ export function SettingsScreen() {
           <ProfileSection settings={settings.data} canEdit={can("salon.profile.write")} />
           <HoursSection settings={settings.data} canEdit={can("salon.settings.write")} />
           <BookingSection settings={settings.data} canEdit={can("salon.settings.write")} />
+          <NotificationsSection canEdit={can("salon.settings.write")} />
           <HolidaysSection settings={settings.data} canEdit={can("salon.settings.write")} />
           <PoliciesSection settings={settings.data} canEdit={can("salon.settings.write")} />
           {can("zalo.inbox.use") ? (

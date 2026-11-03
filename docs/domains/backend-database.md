@@ -42,6 +42,7 @@ Only the API shell exists: no domain tables yet (the first migration creates ext
 | assistant (topic 08) | `apps/api/src/modules/assistant` | assistant_conversations, assistant_messages, assistant_entity_tokens, assistant_tool_calls | — | `/api/v1/salons/:salonId/assistant` (status, SSE turns); see `docs/domains/ai-agent.md` |
 | subscriptions (topic 12) | `apps/api/src/modules/subscriptions` | plans, plan_prices, plan_entitlements, subscriptions, subscription_events, entitlement_overrides, founding_partners | — | `GET /api/v1/salons/:salonId/entitlements` | M12.1 + admin operations (M12.6); see `docs/domains/monetization-admin.md` |
 | admin (topic 12) | `apps/api/src/modules/admin` | — (writes `salons.status/suspended_at` on suspension; everything else through subscriptions) | — | `/api/v1/admin/*` (platform roles only): salon directory/detail, usage overview | M12.6 panel; ADR-0010 |
+| notifications (topic 11) | `apps/api/src/modules/notifications` | notification_settings, notification_deliveries, notifications, notification_member_prefs (+ `bookings.customer_email`, writes `salon_settings.reminder_offsets`) | `notifications.settings_updated` (consumes `booking.created`, `booking.status_changed`, `booking.rescheduled`, `zalo.handoff_requested`: `NotificationEventsHandler`) | `notifications.bookingLog`; `/api/v1/salons/:salonId/notifications/*`; see `docs/domains/customer-notifications.md` | email milestone implemented |
 
 Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`), `logger` (nestjs-pino, `REDACT_PATHS`), `prisma` (`PrismaService`, lazy connect), `redis` (`RedisService`), `queue` (`QueueService`, `QUEUES`). Common (`apps/api/src/common`): `context` (RequestContext via AsyncLocalStorage, `x-request-id`), `problem` (`ProblemFilter`, `AppError`, `COMMON_ERRORS`), `validation` (global Zod pipe). Entrypoints: `main.ts` (HTTP), `worker.ts` (BullMQ), `bootstrap.ts` (prefix `/api`, URI versioning v1, Swagger).
 
@@ -62,6 +63,9 @@ Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`),
 | zalo_booking_links | yes | `Restrict` | zalo | composite FK to bookings and conversations |
 | zalo_staff_notifications | yes | kept | zalo | |
 | zalo_funnel_events | yes | append-only (trigger), no PII | zalo | statistics: counts and steps only |
+| notification_settings | yes (`salon_id` unique, FK) | kept | notifications | events on/off JSON, reply-to |
+| notification_deliveries | yes (`salon_id`) | kept (send log + cost, R20: 12 months — purge not built) | notifications | unique `idempotency_key`; ids/codes only, no address or content |
+| notifications, notification_member_prefs | yes | kept | notifications | team bell items; per-member email switch |
 
 ## Raw SQL objects
 Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails if any is missing — Prisma itself is blind to them, ADR-0008).
@@ -81,6 +85,7 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `zalo_oa_connections_release_minutes_valid` | check | `20261103140000_zalo_staff_mode` | `db:drift` |
 | `salons_suspension_consistent` | check | `20261103200000_add_platform_admin` | `db:drift`; `admin.int.test.ts` (suspend / unsuspend) |
 | `zalo_funnel_events_valid`, `zalo_funnel_events_no_update_delete` (+ function) | check, trigger | `20261103190000_add_zalo_funnel_events` | `db:drift`; `zalo.int.test.ts` (funnel stats) |
+| `notification_deliveries_valid` | check | `20261104090000_add_notifications` | `db:drift`; `notifications.int.test.ts` |
 
 ## Read-model registry
 Base layer of the registries (X7): read models here → metric catalogue (07, `packages/domain/metrics`) → agent tools (08).
@@ -97,6 +102,7 @@ Base layer of the registries (X7): read models here → metric catalogue (07, `p
 | Queue | Processor | Idempotency key | Retry policy |
 |---|---|---|---|
 | `maintenance` | `jobs/maintenance.processor.ts` (`heartbeat`) | caller-supplied `jobId` | `DEFAULT_JOB_OPTIONS`: 5 attempts, exponential 1 s |
+| `notify` | `jobs/notify.processor.ts` (`notify.send`, scheduler `notify.reconcile` every 10 min) | delivery idempotency key (sha256) = `jobId`; unique in `notification_deliveries` | 6 attempts, exponential 5 s; last attempt marks the delivery failed; waits for Zalo via `moveToDelayed` |
 | `zalo` | `jobs/zalo.processor.ts` (`zalo.inbound`, `zalo.send`, schedulers `zalo.minute`, `zalo.refresh_tokens`, `zalo.purge_events`) | `in-<eventId>`, `send-<firstLogId>`; rows deduped by `event_key` / `dedup_key` | `DEFAULT_JOB_OPTIONS`; last attempt marks rows failed |
 
 ## Error codes

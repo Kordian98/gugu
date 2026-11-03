@@ -57,6 +57,7 @@ export const AUDIT_ACTIONS = [
   "admin.founding_partner_revoked",
   /** Written by scripts/seed-platform-admin.mjs (local dev) until topic 05 ships role management. */
   "admin.platform_role_granted",
+  "notifications.settings_updated",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

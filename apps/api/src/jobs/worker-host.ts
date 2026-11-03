@@ -23,7 +23,7 @@ export class WorkerHost implements OnApplicationBootstrap, OnModuleDestroy {
 
   onApplicationBootstrap(): void {
     for (const processor of this.processors) {
-      const worker = new Worker(processor.queue, (job) => processor.process(job), {
+      const worker = new Worker(processor.queue, (job, token) => processor.process(job, token), {
         connection: RedisService.connect(this.config.env.REDIS_URL),
         concurrency: 5,
       });

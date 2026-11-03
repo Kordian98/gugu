@@ -9,6 +9,8 @@ export const QUEUES = {
   zalo: "zalo",
   /** Transactional outbox relay and domain-event delivery (04-S5; infrastructure/outbox). */
   outbox: "outbox",
+  /** Notifications (topic 11): email sends, staff emails, delayed reminders, reconciliation. */
+  notify: "notify",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
