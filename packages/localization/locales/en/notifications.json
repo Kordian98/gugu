@@ -167,7 +167,8 @@
         "salon_booking_rescheduled": "Booking {{code}} rescheduled",
         "salon_booking_cancelled": "Booking {{code}} cancelled",
         "salon_zalo_handoff": "A customer is waiting on Zalo"
-      }
+      },
+      "close": "Close"
     }
   }
 }

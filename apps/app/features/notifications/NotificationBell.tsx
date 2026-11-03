@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Modal, Pressable, ScrollView, View, type ViewStyle } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
-import { Icon, Text, useCalm } from "@gugu/design-system";
+import { Icon, Text, alpha, color, useCalm } from "@gugu/design-system";
 import type { InboxItem } from "@gugu/contracts";
 import { formatDateTimeShort } from "@gugu/localization";
 
@@ -24,21 +25,28 @@ import {
  * The team member's bell (topic 11): bookings created, moved or cancelled by someone else and Zalo
  * customers waiting for a person, newest first, with an unread badge and the member's own
  * "also email me" switch. Tapping an item opens the calendar day or the Zalo conversation.
+ * Desktop: dropdown under the bell. Mobile (`sheet`): full-width panel in a modal.
  */
 export function NotificationBell({
   align = "right",
   iconColor,
+  sheet = false,
 }: {
   align?: "left" | "right";
   /** On the dark mobile header the icon uses the sidebar text colour. */
   iconColor?: string | undefined;
+  /** Mobile: open as a full-width sheet in a modal (the header has no room for a dropdown). */
+  sheet?: boolean;
 }) {
   const { c } = useCalm();
   const { t } = useTranslation("notifications");
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const inbox = useInbox();
-  const markRead = useMarkRead();
   const unread = inbox.data?.unread ?? 0;
+  const close = () => {
+    setOpen(false);
+  };
   return (
     <View>
       <Pressable
@@ -76,74 +84,102 @@ export function NotificationBell({
           </View>
         ) : null}
       </Pressable>
-      {open ? (
-        <View
-          testID="crm-bell-panel"
-          style={{
-            position: "absolute",
-            top: 46,
-            [align]: 0,
-            width: 320,
-            maxHeight: 460,
-            borderRadius: 14,
-            backgroundColor: c.surface,
-            borderWidth: 1,
-            borderColor: c.line,
-            shadowColor: c.shadow,
-            shadowOpacity: 0.12,
-            shadowRadius: 20,
-            shadowOffset: { width: 0, height: 8 },
-            overflow: "hidden",
-          }}
-        >
-          <View
+      {open && sheet ? (
+        <Modal transparent animationType="fade" onRequestClose={close}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t("panel.inbox.close")}
+            onPress={close}
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: 14,
-              borderBottomWidth: 1,
-              borderBottomColor: c.line,
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              backgroundColor: alpha(color.plum950, 0.45),
+            }}
+          />
+          <Panel onClose={close} style={{ marginTop: insets.top + 56, marginHorizontal: 12 }} />
+        </Modal>
+      ) : null}
+      {open && !sheet ? (
+        <Panel onClose={close} style={{ position: "absolute", top: 46, [align]: 0, width: 320 }} />
+      ) : null}
+    </View>
+  );
+}
+
+function Panel({ onClose, style }: { onClose: () => void; style: ViewStyle }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("notifications");
+  const inbox = useInbox();
+  const markRead = useMarkRead();
+  const unread = inbox.data?.unread ?? 0;
+  return (
+    <View
+      testID="crm-bell-panel"
+      style={[
+        {
+          maxHeight: 460,
+          borderRadius: 14,
+          backgroundColor: c.surface,
+          borderWidth: 1,
+          borderColor: c.line,
+          shadowColor: c.shadow,
+          shadowOpacity: 0.12,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 8 },
+          overflow: "hidden",
+        },
+        style,
+      ]}
+    >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: 14,
+          borderBottomWidth: 1,
+          borderBottomColor: c.line,
+        }}
+      >
+        <Text role="uiSemiBold" size={14} color={c.ink}>
+          {t("panel.inbox.title")}
+        </Text>
+        {unread > 0 ? (
+          <Pressable
+            testID="crm-bell-read-all"
+            accessibilityRole="button"
+            onPress={() => {
+              markRead.mutate(undefined);
             }}
           >
-            <Text role="uiSemiBold" size={14} color={c.ink}>
-              {t("panel.inbox.title")}
+            <Text size={13} color={c.accent}>
+              {t("panel.inbox.markAllRead")}
             </Text>
-            {unread > 0 ? (
-              <Pressable
-                testID="crm-bell-read-all"
-                accessibilityRole="button"
-                onPress={() => {
-                  markRead.mutate(undefined);
-                }}
-              >
-                <Text size={13} color={c.accent}>
-                  {t("panel.inbox.markAllRead")}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-          <ScrollView style={{ maxHeight: 340 }}>
-            {inbox.data?.items.length ? (
-              inbox.data.items.map((item) => (
-                <Item
-                  key={item.id}
-                  item={item}
-                  onOpen={() => {
-                    setOpen(false);
-                    if (!item.readAt) markRead.mutate([item.id]);
-                  }}
-                />
-              ))
-            ) : (
-              <Text size={13} color={c.body} style={{ padding: 14 }}>
-                {t("panel.inbox.empty")}
-              </Text>
-            )}
-          </ScrollView>
-          <EmailMe />
-        </View>
-      ) : null}
+          </Pressable>
+        ) : null}
+      </View>
+      <ScrollView style={{ maxHeight: 340 }}>
+        {inbox.data?.items.length ? (
+          inbox.data.items.map((item) => (
+            <Item
+              key={item.id}
+              item={item}
+              onOpen={() => {
+                onClose();
+                if (!item.readAt) markRead.mutate([item.id]);
+              }}
+            />
+          ))
+        ) : (
+          <Text size={13} color={c.body} style={{ padding: 14 }}>
+            {t("panel.inbox.empty")}
+          </Text>
+        )}
+      </ScrollView>
+      <EmailMe />
     </View>
   );
 }

@@ -5,7 +5,7 @@ description: Add or change a GuGu notification event end-to-end — event catalo
 
 # Add a notification event
 
-Paths below are the planned layout from `docs/tasks/11-customer-notifications.md`; confirm them against `docs/domains/customer-notifications.md` once code exists.
+Code exists (milestone `11-email`): catalog `apps/api/src/modules/notifications/domain/catalog.ts`, event ids `packages/contracts/src/notifications/notifications.ts`, templates `packages/localization/locales/{vi,en}/notifications.json` (keys use `_` for `.` in event ids), planner `application/planner.service.ts`, worker `application/sender.service.ts`, reminders `application/reminders.service.ts`. The current file map and channel plan are in `docs/domains/customer-notifications.md`; where this skill says "push" or "SMS", those channels are not wired yet.
 
 ## When to use
 - A new domain change should notify someone (customer, salon member, staff).
@@ -33,6 +33,9 @@ Paths below are the planned layout from `docs/tasks/11-customer-notifications.md
 6. **Scheduled variant (if any)** — enqueue delayed job in `notify.reminders` at the triggering change; on reschedule/cancel remove by key and re-enqueue; extend the nightly reconciliation to cover it.
 7. **Agent surface** — if salon owners may ask about it, expose stats via `notifications.deliveryStats` filters; don't add new write tools without confirmation flow.
 8. **Docs** — add the event row to `docs/domains/customer-notifications.md` (event table).
+
+## Customer channel plan (owner, 2026-11-03)
+Zalo first (module `zalo` sends from the salon's OA), email only as the fallback when the booking has an email and Zalo did not deliver (the worker reads the Zalo send log by dedup key), else nothing — logged as `skipped` with a reason. Customer emails speak as the salon, never advertise GuGu and carry no link to a booking surface. Customers only hear about changes the salon made (`actorType = salon_member`).
 
 ## Tests (required)
 - Unit: recipient resolution, policy/fallback plan, consent and quiet-hour skips.

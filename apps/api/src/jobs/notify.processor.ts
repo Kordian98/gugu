@@ -26,17 +26,15 @@ export class NotifyProcessor implements JobProcessor, OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.queues
-      .queue(QUEUES.notify)
-      .upsertJobScheduler(
-        NOTIFY_JOBS.reconcile,
-        { every: NOTIFY_RECONCILE_EVERY_MS },
-        {
-          name: NOTIFY_JOBS.reconcile,
-          data: {},
-          opts: { removeOnComplete: true, removeOnFail: 50 },
-        },
-      );
+    await this.queues.queue(QUEUES.notify).upsertJobScheduler(
+      NOTIFY_JOBS.reconcile,
+      { every: NOTIFY_RECONCILE_EVERY_MS },
+      {
+        name: NOTIFY_JOBS.reconcile,
+        data: {},
+        opts: { removeOnComplete: true, removeOnFail: 50 },
+      },
+    );
   }
 
   async process(job: Job, token?: string): Promise<unknown> {

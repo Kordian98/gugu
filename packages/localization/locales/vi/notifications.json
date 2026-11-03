@@ -167,7 +167,8 @@
         "salon_booking_rescheduled": "Lịch hẹn {{code}} đã đổi giờ",
         "salon_booking_cancelled": "Lịch hẹn {{code}} đã bị hủy",
         "salon_zalo_handoff": "Khách đang chờ trên Zalo"
-      }
+      },
+      "close": "Đóng"
     }
   }
 }

@@ -42,7 +42,7 @@ export function MobileHeader({ onMenu }: { onMenu: () => void }) {
         <Pill align="center" label={t("brandPill")} tone="brand" size={9} />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <NotificationBell iconColor={c.sidebarText} />
+        <NotificationBell iconColor={c.sidebarText} sheet />
         <Pressable
           testID="crm-theme-toggle-mobile"
           accessibilityRole="button"
