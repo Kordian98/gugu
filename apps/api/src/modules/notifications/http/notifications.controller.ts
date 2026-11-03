@@ -58,8 +58,15 @@ export class NotificationsController {
     description: "Settings.",
     standardSchema: notificationSettingsSchema,
   })
-  getSettings(@Param({ schema: salonParamsSchema }) p: SalonParams): Promise<NotificationSettings> {
-    return this.settings.get(p.salonId);
+  async getSettings(
+    @Param({ schema: salonParamsSchema }) p: SalonParams,
+    @CurrentSalon() salon: SalonContext,
+  ): Promise<NotificationSettings> {
+    const settings = await this.settings.get(p.salonId);
+    // The reply-to address is shown only to members who can change it (security review).
+    return salon.permissions.has("salon.settings.write")
+      ? settings
+      : { ...settings, replyToEmail: null };
   }
 
   @Put("notifications/settings")

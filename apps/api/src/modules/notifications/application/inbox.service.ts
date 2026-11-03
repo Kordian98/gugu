@@ -65,7 +65,7 @@ export class InboxService {
             select: { id: true, displayName: true },
           })
         : [],
-      this.prisma.notification.count({ where: { ...where, readAt: null } }),
+      this.unreadVisible(salon, userId),
     ]);
     const bookingById = new Map(bookings.map((b) => [b.id, b]));
     const convById = new Map(convs.map((c) => [c.id, c]));
@@ -101,6 +101,41 @@ export class InboxService {
       unread,
       nextCursor: rows.length > q.limit ? (page.at(-1)?.id ?? null) : null,
     };
+  }
+
+  /**
+   * Unread count over items the member may still see (security review: a count of items hidden
+   * by revoked access must not show on the badge). Bounded to the newest 500 unread items.
+   */
+  private async unreadVisible(salon: SalonContext, userId: string): Promise<number> {
+    const unread = await this.prisma.notification.findMany({
+      where: { salonId: salon.salonId, userId, readAt: null },
+      select: { event: true, bookingId: true },
+      orderBy: { id: "desc" },
+      take: 500,
+    });
+    if (unread.length === 0) return 0;
+    const ids = [...new Set(unread.flatMap((r) => (r.bookingId ? [r.bookingId] : [])))];
+    const staffOf = new Map(
+      (
+        await this.prisma.booking.findMany({
+          where: { salonId: salon.salonId, id: { in: ids } },
+          select: { id: true, staffId: true },
+        })
+      ).map((b) => [b.id, b.staffId]),
+    );
+    const own = await this.prisma.staffProfile.findFirst({
+      where: { salonId: salon.salonId, deletedAt: null, member: { userId } },
+      select: { id: true },
+    });
+    return unread.filter((r) => {
+      const event = r.event as (typeof TEAM_NOTIFICATION_EVENTS)[number];
+      if (!(TEAM_NOTIFICATION_EVENTS as readonly string[]).includes(event)) return false;
+      const rule = (CATALOG[event] as TeamEventDef).permission;
+      if (salon.permissions.has(rule.full)) return true;
+      const staffId = r.bookingId ? staffOf.get(r.bookingId) : undefined;
+      return Boolean(rule.own && salon.permissions.has(rule.own) && own && staffId === own.id);
+    }).length;
   }
 
   async markRead(salonId: string, userId: string, ids: string[] | undefined): Promise<number> {

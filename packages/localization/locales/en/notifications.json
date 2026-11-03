@@ -152,6 +152,7 @@
         "quota_exceeded": "Zalo message limit reached",
         "not_connected": "Zalo not connected",
         "user_unreachable": "Customer unreachable on Zalo",
+        "cap": "Daily email limit reached",
         "other": "Other reason"
       }
     },

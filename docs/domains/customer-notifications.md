@@ -19,7 +19,8 @@ Durable reference for customer accounts, favorites, reviews/moderation, privacy 
 
 ## Invariants
 - Notifications are produced only via the outbox (booking events from topic 06, `zalo.handoff_requested` from topic 09, `notifications.settings_updated`).
-- One delivery per idempotency key (BullMQ jobId + DB unique index); the send worker claims a delivery with a lease (`locked_until`), so a duplicate job or second worker gets `noop`.
+- One delivery per idempotency key (BullMQ jobId + DB unique index); the send worker claims a delivery with a lease (`locked_until`), so a duplicate job or second worker gets `noop`. SMTP has no idempotency: if a worker dies *after* the provider accepted the email but before recording it, the retry after the lease (2 min) sends again — at-least-once in that window only; both copies carry the same `Message-ID` (`<idempotency key>@<mail domain>`).
+- Abuse caps (customer addresses are typed by staff and unverified): at most `NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY` (500) customer emails per salon and `NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY` (10) per address per salon per 24 h; hits are `skipped/cap`. Bounce/complaint tracking per salon is for topic 13 with the real provider.
 - Customers get messages only for changes the salon made (`actorType = salon_member`); changes made in the Zalo chat were already answered there.
 - Customer emails speak as the salon (sender name = salon name, reply-to = salon's address), never mention GuGu and contain no link to a booking surface (owner, 2026-11-03) — only `tel:` for the salon phone. No staff-typed cancellation reason, no notes.
 - Reminder sends re-check booking status, version and start time in the worker; stale → `skipped/stale`.
@@ -77,10 +78,10 @@ Customer plan per event (planner): no email and no Zalo route → `skipped/no_co
 ## HTTP API (salon panel only)
 | Route | Permission | Notes |
 |---|---|---|
-| `GET /salons/:salonId/notifications/settings` | `salon.read` | events with effective on/off, offsets, reply-to, `zaloConnected` |
+| `GET /salons/:salonId/notifications/settings` | `salon.read` | events with effective on/off, offsets, `zaloConnected`; reply-to only for `salon.settings.write` |
 | `PUT /salons/:salonId/notifications/settings` | `salon.settings.write` | Zod: ≤ 3 unique offsets 30–10080 min, valid email; audited |
 | `GET /salons/:salonId/bookings/:bookingId/messages` | `schedules.read` + booking scope | `notifications.bookingLog`: channel, status, reason, times; no address/content; own-scope staff → 404 for others' bookings |
-| `GET /salons/:salonId/notifications/inbox` | `salon.read` | caller's own items, filtered by current access; `unread` count |
+| `GET /salons/:salonId/notifications/inbox` | `salon.read` | caller's own items, filtered by current access; `unread` counts only visible items |
 | `POST /salons/:salonId/notifications/inbox/read` | `salon.read` | own items only |
 | `GET/PUT /salons/:salonId/notifications/me` | `salon.read` | own "also email me" switch |
 

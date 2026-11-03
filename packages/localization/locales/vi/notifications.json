@@ -152,6 +152,7 @@
         "quota_exceeded": "Hết hạn mức tin Zalo",
         "not_connected": "Zalo chưa kết nối",
         "user_unreachable": "Không liên lạc được qua Zalo",
+        "cap": "Đã đạt giới hạn email trong ngày",
         "other": "Lý do khác"
       }
     },

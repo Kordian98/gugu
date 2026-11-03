@@ -202,6 +202,7 @@ export class SenderService {
     if (!b.customerEmail || b.customerAnonymisedAt || b.customerName === null) {
       return { kind: "skip", reason: "no_contact" };
     }
+    if (await this.overCap(d.salonId, b.customerEmail, now)) return { kind: "skip", reason: "cap" };
     const meta = (d.meta ?? {}) as {
       startsAt?: string;
       offsetMinutes?: number;
@@ -231,6 +232,27 @@ export class SenderService {
       fallback,
       message: this.customerMessage(d, event, b, replyTo, now),
     };
+  }
+
+  /**
+   * Abuse caps (security review): the customer address is typed by staff and never verified, so a
+   * salon member could script bookings to email arbitrary people in the salon's name from our
+   * domain. Customer emails are capped per salon and per address per 24 h; hits are logged as
+   * `skipped/cap`. The address itself is never stored in the log (it is joined from the booking).
+   */
+  private async overCap(salonId: string, email: string, now: Date): Promise<boolean> {
+    const since = new Date(now.getTime() - 86_400_000);
+    const perSalon = await this.prisma.notificationDelivery.count({
+      where: { salonId, audience: "customer", status: "sent", sentAt: { gt: since } },
+    });
+    if (perSalon >= this.config.env.NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY) return true;
+    const [row] = await this.prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT count(*) AS n
+      FROM notification_deliveries d
+      JOIN bookings b ON b.id = d.booking_id AND b.salon_id = d.salon_id
+      WHERE d.salon_id = ${salonId}::uuid AND d.audience = 'customer' AND d.status = 'sent'
+        AND d.sent_at > ${since} AND b.customer_email = ${email}::citext`;
+    return Number(row?.n ?? 0) >= this.config.env.NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY;
   }
 
   /**

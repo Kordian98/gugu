@@ -7,7 +7,7 @@ import type { Server } from "node:http";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   bookingMessagesSchema,
   inboxSchema,
@@ -32,7 +32,9 @@ import { BookingClock } from "../bookings/bookings.facade";
 import { NotificationEventsHandler } from "./application/notification-events.handler";
 import { NotifyClock } from "./application/notify-clock";
 import { RemindersService } from "./application/reminders.service";
-import { SenderService } from "./application/sender.service";
+import { EMAIL_PROVIDER, SenderService } from "./application/sender.service";
+import { PermanentChannelError } from "./channels/channel";
+import { AppConfig } from "../../infrastructure/config/app-config";
 import { NotificationsWorkerModule } from "./notifications.module";
 
 let now = new Date("2026-12-01T01:00:00Z"); // 08:00 in Ho Chi Minh City
@@ -40,6 +42,7 @@ const clock = { now: () => new Date(now) };
 const mailpit = `http://127.0.0.1:${process.env["MAILPIT_UI_PORT"] ?? "18025"}/api/v1`;
 
 interface FullMail {
+  messageId: string;
   subject: string;
   text: string;
   fromName: string;
@@ -55,6 +58,7 @@ async function mailTo(to: string, timeoutMs = 5_000): Promise<FullMail> {
     const id = ((await res.json()) as { messages: { ID: string }[] }).messages[0]?.ID;
     if (id) {
       const m = (await (await fetch(`${mailpit}/message/${id}`)).json()) as {
+        MessageID: string;
         Subject: string;
         Text: string;
         From: { Name: string };
@@ -62,6 +66,7 @@ async function mailTo(to: string, timeoutMs = 5_000): Promise<FullMail> {
         Attachments: { FileName: string; ContentType: string }[];
       };
       return {
+        messageId: m.MessageID,
         subject: m.Subject,
         text: m.Text,
         fromName: m.From.Name,
@@ -103,6 +108,10 @@ describe("notifications by email (integration)", () => {
     sender = app.get(SenderService);
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   afterAll(async () => {
     await app.get(QueueService).queue(QUEUES.notify).obliterate({ force: true });
     await app.close();
@@ -127,6 +136,8 @@ describe("notifications by email (integration)", () => {
         data: { salonMemberId: member.id },
       });
     }
+    // Team emails follow the member's own language.
+    await prisma.user.update({ where: { id: staffAId }, data: { preferredLocale: "en" } });
   });
 
   const http = () => request(app.getHttpServer() as Server);
@@ -228,7 +239,7 @@ describe("notifications by email (integration)", () => {
       event: "booking.confirmed",
       status: "sent",
       units: 1,
-      costEstimateVnd: 3,
+      costEstimateVnd: app.get(AppConfig).env.NOTIFY_EMAIL_COST_VND,
       salonId: s.salonId,
       fallbackOf: null,
     });
@@ -244,7 +255,9 @@ describe("notifications by email (integration)", () => {
     const inbox = await prisma.notification.findMany({ where: { salonId: s.salonId, bookingId } });
     expect(inbox.map((n) => n.userId).sort()).toEqual([receptionistId, staffAId].sort());
     const staffMail = await prisma.user.findUniqueOrThrow({ where: { id: staffAId } });
-    expect((await mailTo(staffMail.email ?? "")).subject).toMatch(/^Lịch hẹn mới /);
+    expect((await mailTo(staffMail.email ?? "")).subject).toMatch(/^New booking /); // staff A: en
+    const recMail = await prisma.user.findUniqueOrThrow({ where: { id: receptionistId } });
+    expect((await mailTo(recMail.email ?? "")).subject).toMatch(/^Lịch hẹn mới /);
     const ownerMail = await prisma.user.findUniqueOrThrow({ where: { id: s.ownerUserId } });
     expect(await countMailsTo(ownerMail.email ?? "")).toBe(0);
   });
@@ -271,7 +284,11 @@ describe("notifications by email (integration)", () => {
     const [a, b] = await Promise.all([sender.send(id, false), sender.send(id, false)]);
     expect([a.kind, b.kind].sort()).toEqual(["noop", "sent"]);
     expect((await sender.send(id, false)).kind).toBe("noop");
-    await mailTo(customer);
+    // Delivery is at-least-once across a crash *after* SMTP accepted (documented); a resend
+    // carries the same deterministic Message-ID so mail systems can recognise it.
+    expect((await mailTo(customer)).messageId).toBe(
+      `${confirmation[0]?.idempotencyKey ?? ""}@gugu.local`,
+    );
     expect(await countMailsTo(customer)).toBe(1);
   });
 
@@ -678,6 +695,143 @@ describe("notifications by email (integration)", () => {
     expect((await mailTo(customer)).subject).toContain("Nhắc lịch hẹn");
   });
 
+  it("retries transient provider errors, fails on the last attempt or a permanent error", async () => {
+    const provider = app.get<{ send: (m: unknown) => Promise<unknown> }>(EMAIL_PROVIDER);
+    const bookingId = await book(testEmail("flaky"));
+    await pump();
+    const row = (await deliveries(bookingId)).find((r) => r.event === "booking.confirmed");
+    const id = row?.id ?? "";
+    const spy = vi.spyOn(provider, "send").mockRejectedValue(new Error("ECONNRESET"));
+    await expect(sender.send(id, false)).rejects.toThrow("ECONNRESET");
+    expect(await prisma.notificationDelivery.findUnique({ where: { id } })).toMatchObject({
+      status: "queued",
+      lockedUntil: null,
+      attempts: 1,
+      units: 0,
+      costEstimateVnd: 0,
+    });
+    expect(await sender.send(id, true)).toEqual({ kind: "failed", reason: "provider_error" });
+
+    const other = await book(testEmail("bounce"), vnAt("2026-12-04", "12:00"));
+    await pump();
+    const bounce = (await deliveries(other)).find((r) => r.event === "booking.confirmed");
+    spy.mockRejectedValueOnce(new PermanentChannelError("smtp_550"));
+    expect(await sender.send(bounce?.id ?? "", false)).toEqual({
+      kind: "failed",
+      reason: "smtp_550",
+    });
+    expect(spy).toHaveBeenCalledTimes(3);
+
+    // A failure while deciding (e.g. Zalo lookup) releases the lease for the retry.
+    const third = await book(testEmail("decide"), vnAt("2026-12-04", "13:00"));
+    await pump();
+    const d3 = (await deliveries(third)).find((r) => r.event === "booking.confirmed");
+    vi.spyOn(prisma.booking, "findFirst").mockRejectedValueOnce(new Error("db down"));
+    await expect(sender.send(d3?.id ?? "", false)).rejects.toThrow("db down");
+    expect(
+      await prisma.notificationDelivery.findUnique({ where: { id: d3?.id ?? "" } }),
+    ).toMatchObject({ status: "queued", lockedUntil: null });
+  });
+
+  it("drops a reminder in the worker after a cancel or move the planner has not seen yet", async () => {
+    const customer = testEmail("unplanned");
+    const bookingId = await book(customer, vnAt("2026-12-04", "10:00"));
+    await pump();
+    await sendDue();
+    const before = await countMailsTo(customer);
+    const r2 = (await deliveries(bookingId)).find((r) => r.variant === "120m");
+    await http()
+      .post(api(`/bookings/${bookingId}/transitions`))
+      .set("authorization", owner)
+      .set("idempotency-key", key())
+      .send({ to: "cancelled_by_salon", reason: "x" })
+      .expect(200);
+    // No pump(): the reminder row is still scheduled; only the worker's own check stops it.
+    now = new Date(vnAt("2026-12-04", "08:00"));
+    expect(await sender.send(r2?.id ?? "", true)).toEqual({ kind: "skipped", reason: "stale" });
+
+    const moved = await book(customer, vnAt("2026-12-05", "10:00"));
+    await pump();
+    const m24 = (await deliveries(moved)).find((r) => r.variant === "1440m");
+    await http()
+      .post(api(`/bookings/${moved}/reschedule`))
+      .set("authorization", owner)
+      .set("idempotency-key", key())
+      .send({ startsAt: vnAt("2026-12-05", "15:00") })
+      .expect(200);
+    now = new Date(vnAt("2026-12-04", "10:00"));
+    expect(await sender.send(m24?.id ?? "", true)).toEqual({ kind: "skipped", reason: "stale" });
+    expect(await countMailsTo(customer)).toBe(before); // no reminder went out
+  });
+
+  it("caps customer emails per address per day and logs the skip", async () => {
+    const victim = testEmail("victim");
+    const cap = app.get(AppConfig).env.NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY;
+    let skipped = 0;
+    for (let i = 0; i <= cap; i++) {
+      const hour = String(9 + (i % 9)).padStart(2, "0");
+      const day = `2026-12-${String(5 + Math.floor(i / 9)).padStart(2, "0")}`;
+      const id = await book(victim, vnAt(day, `${hour}:00`), s.staffIds[i % 2]);
+      await pump();
+      await sendDue("customer");
+      const row = (await deliveries(id)).find((r) => r.event === "booking.confirmed");
+      if (row?.reason === "cap") skipped++;
+    }
+    expect(skipped).toBe(1);
+    expect(await countMailsTo(victim)).toBe(cap);
+  });
+
+  it("hides the reply-to from non-editors and keeps bell counts and reads per member", async () => {
+    await prisma.notificationSettings.create({
+      data: { salonId: s.salonId, replyToEmail: "hello@lotus.test" },
+    });
+    const receptionist = await bearerFor(app, receptionistId);
+    const asRec = notificationSettingsSchema.parse(
+      (await http().get(api("/notifications/settings")).set("authorization", receptionist)).body,
+    );
+    expect(asRec.replyToEmail).toBeNull();
+    const asOwner = notificationSettingsSchema.parse(
+      (await http().get(api("/notifications/settings")).set("authorization", owner)).body,
+    );
+    expect(asOwner.replyToEmail).toBe("hello@lotus.test");
+
+    // Staff A loses the booking (moved to Mai): the badge no longer counts it.
+    const bookingId = await book(testEmail("moved"), vnAt("2026-12-04", "10:00"), s.staffIds[0]);
+    await pump();
+    const staffA = await bearerFor(app, staffAId);
+    const read = async () =>
+      inboxSchema.parse(
+        (await http().get(api("/notifications/inbox")).set("authorization", staffA)).body,
+      );
+    expect((await read()).unread).toBe(1);
+    await prisma.booking.update({ where: { id: bookingId }, data: { staffId: s.staffIds[1] } });
+    const after = await read();
+    expect(after.unread).toBe(0);
+    expect(after.items).toEqual([]);
+
+    // Another salon's owner cannot mark this salon's items read (their own salon id is checked).
+    const other = await createBookableSalon(prisma);
+    const otherOwner = await bearerFor(app, other.ownerUserId);
+    const recItems = await prisma.notification.findMany({
+      where: { salonId: s.salonId, userId: receptionistId },
+    });
+    await http()
+      .post(`/api/v1/salons/${other.salonId}/notifications/inbox/read`)
+      .set("authorization", otherOwner)
+      .send({ ids: recItems.map((i) => i.id) })
+      .expect(204);
+    await http()
+      .post(api("/notifications/inbox/read"))
+      .set("authorization", otherOwner)
+      .send({})
+      .expect(404);
+    expect(
+      await prisma.notification.count({
+        where: { salonId: s.salonId, userId: receptionistId, readAt: null },
+      }),
+    ).toBe(recItems.length);
+  });
+
   it("keeps the delivery log per salon (cost tracked) and never leaks across salons", async () => {
     const other = await createBookableSalon(prisma);
     const bookingId = await book(testEmail("tenant"));
@@ -693,6 +847,14 @@ describe("notifications by email (integration)", () => {
       _sum: { units: true, costEstimateVnd: true },
     });
     expect(cost._sum.units).toBeGreaterThan(0);
-    expect(cost._sum.costEstimateVnd).toBe((cost._sum.units ?? 0) * 3);
+    expect(cost._sum.costEstimateVnd).toBe(
+      (cost._sum.units ?? 0) * app.get(AppConfig).env.NOTIFY_EMAIL_COST_VND,
+    );
+    const unpaid = await prisma.notificationDelivery.aggregate({
+      where: { salonId: s.salonId, status: { in: ["skipped", "failed", "scheduled"] } },
+      _sum: { units: true, costEstimateVnd: true },
+    });
+    expect(unpaid._sum.units ?? 0).toBe(0);
+    expect(unpaid._sum.costEstimateVnd ?? 0).toBe(0);
   });
 });

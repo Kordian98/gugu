@@ -88,6 +88,13 @@ describe("reminder planning (fake clock)", () => {
     expect(planReminders(startsAt, [1440, 120], new Date(startsAt.getTime() - HOUR))).toEqual([]);
   });
 
+  it("is exact across a DST change (Europe/Warsaw, 2026-03-29)", () => {
+    // 14:00 CEST on the change day = 12:00Z; 24 h earlier is 12:00Z the day before (13:00 CET).
+    const start = new Date("2026-03-29T12:00:00Z");
+    const [r] = planReminders(start, [1440], new Date("2026-03-01T00:00:00Z"));
+    expect(r?.sendAt.toISOString()).toBe("2026-03-28T12:00:00.000Z");
+  });
+
   it("dedupes offsets", () => {
     const now = new Date("2026-12-01T00:00:00Z");
     expect(planReminders(startsAt, [120, 120], now)).toHaveLength(1);

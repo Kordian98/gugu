@@ -63,6 +63,24 @@ describe("notification template coverage (every event × channel × locale)", ()
   }
 });
 
+describe("every email string uses only known variables", () => {
+  const strings = (o: unknown, path = ""): [string, string][] =>
+    typeof o === "string"
+      ? [[path, o]]
+      : Object.entries(o as Record<string, unknown>).flatMap(([k, v]) =>
+          strings(v, path ? `${path}.${k}` : k),
+        );
+  const allowed = new Set<string>([...CUSTOMER_PLACEHOLDERS, ...TEAM_PLACEHOLDERS, "date", "time"]);
+  for (const locale of LOCALE_VALUES_FOR_TEST) {
+    it(`${locale}: notifications.email.* and ics.*`, () => {
+      const ns = resources[locale].notifications;
+      for (const [path, s] of [...strings(ns.email, "email"), ...strings(ns.ics, "ics")]) {
+        for (const p of placeholders(s)) expect(allowed.has(p), `${path}: {{${p}}}`).toBe(true);
+      }
+    });
+  }
+});
+
 describe("customer email rendering", () => {
   for (const locale of LOCALE_VALUES_FOR_TEST) {
     for (const event of CUSTOMER_NOTIFICATION_EVENTS) {

@@ -60,5 +60,7 @@ describe("date and time formatters", () => {
     expect(formatDateLong(d, "en")).toBe("Wednesday, October 14, 2026");
     expect(formatDateTimeShort(d, "vi")).toBe("14/10 14:30");
     expect(formatDateTimeShort(d, "en")).toBe("Oct 14, 2:30 PM");
+    // DST zone: same instant, Warsaw summer time (UTC+2).
+    expect(formatDateTimeShort(d, "vi", "Europe/Warsaw")).toBe("14/10 9:30");
   });
 });
