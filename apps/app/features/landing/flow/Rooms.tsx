@@ -7,7 +7,13 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { screen, type ScreenName } from "../screens";
 import { PHOTO } from "./media";
 
-const FEATURES = ["f1", "f5", "f2", "f3", "f4", "f6", "f7", "f8"] as const;
+const ROWS = ["r1", "r2", "r3", "r4"] as const;
+const SW_STEPS = ["st1", "st2", "st3"] as const;
+const SW_ROWS = ["1", "2", "3", "4"] as const;
+const SPARK = "\u2726";
+const CROSS = "\u2715";
+const CHECK = "\u2713";
+const SEP = " \u00B7 ";
 const PIN = "\u25CF";
 const BIZ = ["nails", "hair", "barber", "spa", "lash", "brow"] as const;
 const CHEV_L = "‹";
@@ -29,7 +35,10 @@ function Laptop({ src, className }: { src: string; className?: string }) {
   );
 }
 
-/** Treatment area panel (inside the Journey stage): the calendar and daily tools of this room. */
+/**
+ * Treatment area panel (inside the Journey stage): pain → gain in facts and numbers, next to the real CRM
+ * screens of the seeded demo salon (calendar with a reserved resource, services, appointments).
+ */
 export function FeaturesPanel() {
   const { t } = useTranslation("landing");
   const shot = useShot();
@@ -38,6 +47,32 @@ export function FeaturesPanel() {
       <div className="t">
         <div className="fl-eye">{t("flow.features.eyebrow")}</div>
         <h2 className="fl-h">{t("flow.features.title")}</h2>
+      </div>
+      <div className="fx-rows">
+        {ROWS.map((k) => (
+          <div key={k} className="card fx">
+            <div className="fx-n">{t(`flow.features.${k}n`)}</div>
+            <div className="fx-b">
+              <h3>{t(`flow.features.${k}k`)}</h3>
+              <p className="fx-p">
+                <i>{CROSS}</i>
+                <span>
+                  <em>{t("flow.features.today")}</em>
+                  {t(`flow.features.${k}p`)}
+                </span>
+              </p>
+              <p className="fx-g">
+                <i>{CHECK}</i>
+                <span>{t(`flow.features.${k}g`)}</span>
+              </p>
+            </div>
+          </div>
+        ))}
+        <div className="fx-facts">
+          {t("flow.features.facts")}
+          {SEP}
+          {t("flow.features.eg")}
+        </div>
       </div>
       <div className="ft-lap">
         <div className="lap">
@@ -48,14 +83,14 @@ export function FeaturesPanel() {
           <i>{PIN}</i>
           {t("flow.features.chip")}
         </div>
-      </div>
-      <div className="ft-list">
-        {FEATURES.map((k) => (
-          <div key={k} className="card ft-i">
-            <h3>{t(`flow.features.${k}t`)}</h3>
-            <p>{t(`flow.features.${k}b`)}</p>
+        <div className="fx-shots">
+          <div className="card fx-shot">
+            <img src={shot("services")} alt="" decoding="async" loading="lazy" />
           </div>
-        ))}
+          <div className="card fx-shot">
+            <img src={shot("appointments")} alt="" decoding="async" loading="lazy" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -179,6 +214,50 @@ export function OfficePanel() {
       <div className="of-side">
         <EarningsCard />
         <AssistantCard />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Switching (inside the Journey stage, still in the back office): from a notebook or another app in
+ * minutes. A photographed price list turns into the GuGu Studio service menu via AI setup (every plan).
+ */
+export function SwitchPanel() {
+  const { t } = useTranslation("landing");
+  return (
+    <div className="ov ov-s">
+      <div className="t">
+        <div className="fl-eye">{t("flow.switch.eyebrow")}</div>
+        <h2 className="fl-h">{t("flow.switch.title")}</h2>
+        <p className="fl-sub sw-sub">{t("flow.switch.sub")}</p>
+        <ol className="sw-steps">
+          {SW_STEPS.map((k, i) => (
+            <li key={k}>
+              <b>{String(i + 1)}</b>
+              {t(`flow.switch.${k}`)}
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div className="sw-demo">
+        <div className="plist sw-list">
+          <div className="lbl">{t("flow.switch.from")}</div>
+          <p>{t("story.switch.list")}</p>
+        </div>
+        <div className="sw-ai">
+          <i>{SPARK}</i>
+          {t("flow.switch.ai")}
+        </div>
+        <div className="card svc sw-svc">
+          <div className="lbl">{t("flow.switch.to")}</div>
+          {SW_ROWS.map((r) => (
+            <div key={r} className="svc-row">
+              {t(`story.switch.s${r}`)}
+              <span>{[t(`story.switch.d${r}`), t(`story.switch.p${r}`)].join(SEP)}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

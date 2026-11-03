@@ -280,7 +280,12 @@
       "title": "Đang dùng ứng dụng khác hoặc sổ tay?\nChuyển sang trong vài phút.",
       "sub": "Chụp bảng giá hoặc danh sách dịch vụ ở hệ thống cũ. AI thiết lập dịch vụ cho bạn. Nhẹ nhàng, có trong mọi gói.",
       "from": "Bảng giá của bạn",
-      "to": "Dịch vụ của bạn trong GuGu Studio"
+      "to": "Dịch vụ của bạn trong GuGu Studio",
+      "st1": "Chụp bảng giá, hoặc ảnh màn hình ứng dụng cũ",
+      "st2": "AI tạo dịch vụ, thời lượng và giá",
+      "st3": "Bạn kiểm tra rồi bắt đầu; khách được thêm khi đặt lịch",
+      "ai": "Thiết lập bằng AI",
+      "walk": "Bắt đầu"
     },
     "walk": {
       "eyebrow": "Thứ Bảy · 9:12 · Quận 1",
@@ -317,7 +322,27 @@
       "f7b": "Tin nhắn tới Zalo OA của salon tự động thành lịch hẹn.",
       "f8t": "Phân tích",
       "f8b": "Doanh thu, tỷ lệ lấp đầy và khách không đến khi lịch hoàn thành.",
-      "chip": "Ghế 2 + đèn UV đã giữ · 14:00"
+      "chip": "Ghế 2 + đèn UV đã giữ · 14:00",
+      "today": "Hiện tại",
+      "with": "Với GuGu Studio",
+      "r1k": "Trùng lịch",
+      "r1n": "0",
+      "r1p": "Ví dụ 2–3 lần mỗi tháng khi hai người cùng ghi một cuốn sổ",
+      "r1g": "Mỗi dịch vụ giữ ghế, giường hoặc máy của nó, nên khung giờ đã đặt không thể bị đặt lần hai.",
+      "r2k": "Kênh đặt lịch",
+      "r2n": "1 danh sách",
+      "r2p": "Zalo, điện thoại và khách vãng lai ở 3 nơi khác nhau",
+      "r2g": "Mọi lịch hẹn vào một hàng chờ; cả đội thấy ngay lập tức.",
+      "r3k": "Bảng dịch vụ",
+      "r3n": "≈10 phút",
+      "r3p": "Giá và thời lượng chỉ nằm trong đầu một người",
+      "r3g": "Dịch vụ, tuỳ chọn, dịch vụ thêm và khoảng giá, thiết lập từ ảnh chụp bảng giá.",
+      "r4k": "Giờ làm của đội",
+      "r4n": "1 link",
+      "r4p": "“Chủ nhật ai làm?” trôi mất trong nhóm chat",
+      "r4g": "Giờ làm, giờ nghỉ và ai làm dịch vụ nào, cho từng người; mời nhân viên bằng một link.",
+      "facts": "Salon demo, tuần này: 40 lịch hẹn · 7 dịch vụ · 4 nhân viên, trong một lịch",
+      "eg": "Các vấn đề là ví dụ minh hoạ."
     },
     "office": {
       "eyebrow": "Phòng làm việc",
@@ -372,7 +397,8 @@
       "cont": "Tiếp tục",
       "skip": "Bỏ qua câu chuyện",
       "label": "Các phần của câu chuyện",
-      "after": "Xem sau khi dùng"
+      "after": "Xem sau khi dùng",
+      "c4": "Chuyển sang"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",

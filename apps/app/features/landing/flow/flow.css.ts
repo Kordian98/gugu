@@ -20,7 +20,7 @@ export const FLOW_CSS = `
 .lyr{position:absolute;will-change:transform,opacity}
 
 /* journey: ONE sticky full-screen stage (hero door portal → walk → desk → rooms) */
-.jr{position:relative;height:700vh}
+.jr{position:relative;height:780vh}
 .jr-stage{position:sticky;top:0;height:100vh;width:100%;overflow:hidden;contain:layout paint;background:${color.canvas}}
 .jr-hero{position:absolute;left:0;top:0;bottom:0;width:52vw;display:flex;align-items:center;padding:96px var(--g) 40px;box-sizing:border-box;z-index:3;will-change:transform,opacity}
 .jr-hero>*{flex:1 1 auto;min-width:0;width:100%}
@@ -64,7 +64,7 @@ export const FLOW_CSS = `
 .pn-gi i{flex:0 0 26px;height:26px;border-radius:50%;background:${color.lilac500};color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:13px}
 .jr-foot{position:absolute;left:var(--g);bottom:calc(2.6vh + 70px);font-family:${font.ui};font-size:11.5px;color:${color.muted};opacity:0}
 @media (max-width:899px){
-  .jr{height:650vh}
+  .jr{height:720vh}
   .jr-hero{width:100%;bottom:auto;height:52vh;align-items:flex-start;padding:100px 16px 12px}
   /* desk scene on phones: pings at the top, headline + number at the bottom above the HUD */
   .jr-pain{left:16px;right:16px;width:auto;top:auto;bottom:46px;justify-content:flex-end;gap:6px}
@@ -156,6 +156,50 @@ export const FLOW_CSS = `
 .ov-f .ft-i{padding:11px 13px}
 .ov-f .ft-i h3{font-size:clamp(12.5px,1vw,15px)}
 .ov-f .ft-i p{font-size:clamp(11px,.85vw,12.5px);line-height:1.4}
+/* treatment area: pain → gain in numbers, real CRM screens */
+.ov-f .t{grid-column:1/6}
+.fx-rows{grid-column:1/6;grid-row:2;display:flex;flex-direction:column;gap:10px;align-self:start}
+.fx{display:grid;grid-template-columns:clamp(74px,7vw,110px) 1fr;gap:14px;align-items:center;padding:12px 16px;opacity:0;will-change:transform,opacity}
+.fx-n{font-family:${font.display};font-size:clamp(24px,2.4vw,40px);line-height:1;letter-spacing:-.03em;background:linear-gradient(90deg,#A68CF6,#F08DB4);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center;opacity:0}
+.fx-b h3{font-family:${font.uiSemiBold};font-size:clamp(13px,1.05vw,15.5px);margin:0 0 4px}
+.fx-p,.fx-g{display:flex;gap:7px;align-items:flex-start;margin:0;font-family:${font.ui};font-size:clamp(11px,.86vw,12.5px);line-height:1.4}
+.fx-p{color:#9A3B44}.fx-p i{color:#C2414B}
+.fx-p em{font-style:normal;font-family:${font.uiSemiBold};margin-right:4px}
+.fx-g{color:${color.ink2};margin-top:3px;opacity:0}.fx-g i{color:${color.lilac500}}
+.fx-p i,.fx-g i{font-style:normal;flex:0 0 12px;font-size:11px;margin-top:2px}
+.fx-facts{font-family:${font.uiMedium};font-size:12px;color:${color.muted};padding:2px 4px;opacity:0}
+.fx-shots{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.fx-shot{padding:6px;opacity:0;overflow:hidden;max-height:clamp(110px,16vh,170px)}
+.fx-shot img{display:block;width:100%;border-radius:10px}
+.ov-f .ft-lap{grid-row:1 / 3;align-self:center}
+@media (max-width:899px){
+  .fx{grid-template-columns:64px 1fr;gap:10px;padding:9px 11px}
+  .fx-p{display:none}
+  .fx-n{font-size:22px}
+  .fx-shots,.fx-facts{display:none}
+  .ov-f .ft-lap{order:3}
+}
+
+/* switching (in the office) */
+.ov-s .t{grid-column:1/6;grid-row:1 / 3;align-self:center}
+.ov-s .t,.sw-steps li,.sw-list,.sw-ai,.sw-svc,.sw-svc .svc-row{opacity:0;will-change:transform,opacity}
+.sw-sub{font-size:clamp(14px,1.15vw,17px)!important;margin-top:6px}
+.sw-steps{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sw-steps li{display:flex;align-items:center;gap:10px;font-family:${font.uiMedium};font-size:clamp(12.5px,1vw,15px);background:#fff;border-radius:14px;padding:9px 12px;box-shadow:0 10px 26px rgba(42,20,38,.08)}
+.sw-steps li b{flex:0 0 24px;height:24px;border-radius:50%;background:${color.lilac100};color:${color.lilac700};display:flex;align-items:center;justify-content:center;font-size:12px}
+.sw-demo{grid-column:6/13;grid-row:1 / 3;align-self:center;display:grid;grid-template-columns:1fr auto 1.25fr;gap:clamp(12px,2vw,28px);align-items:center}
+.sw-ai{display:flex;flex-direction:column;align-items:center;gap:6px;font-family:${font.uiSemiBold};font-size:12px;color:${color.lilac700}}
+.sw-ai i{font-style:normal;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#A68CF6,#F08DB4);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 12px 30px rgba(166,140,246,.45);animation:hudNudge 1.8s ease-in-out infinite}
+@media (max-width:899px){
+  .ov-s{justify-content:center}
+  .sw-sub{display:none}
+  .sw-demo{grid-template-columns:1fr;gap:8px}
+  .sw-list{display:none}
+  .sw-ai{flex-direction:row}
+  .sw-ai i{width:36px;height:36px;font-size:16px}
+  .sw-svc .svc-row{padding:9px 12px;font-size:14px}
+}
+
 /* earnings calculator */
 .calc{pointer-events:auto;padding:16px 18px}
 .calc-t{font-family:${font.uiSemiBold};font-size:15px;margin-bottom:4px}

@@ -10,7 +10,7 @@ import { screen } from "../screens";
 import type { LandingNavActions } from "../useLandingNav";
 import { chapterScroller, type Chapters } from "./chapters";
 import { PHOTO } from "./media";
-import { FeaturesPanel, OfficePanel } from "./Rooms";
+import { FeaturesPanel, OfficePanel, SwitchPanel } from "./Rooms";
 import { WalkPlayer } from "./sequence";
 import { DURATIONS, STOPS, buildJourney, scrollParent } from "./timelines";
 
@@ -34,6 +34,7 @@ const HUD = [
   { k: "c1", stops: [1, 2] },
   { k: "c2", stops: [3] },
   { k: "c3", stops: [4] },
+  { k: "c4", stops: [5] },
 ] as const;
 const ARROWS = "\u25C0\u25B6";
 
@@ -303,6 +304,7 @@ export function Journey({
           <div className="wk-cap cap-office">{t("flow.walk.office")}</div>
           <FeaturesPanel />
           <OfficePanel />
+          <SwitchPanel />
         </div>
 
         <nav className="jr-hud" ref={hud} aria-label={t("flow.hud.label")}>

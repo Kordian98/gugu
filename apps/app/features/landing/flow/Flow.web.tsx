@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useTranslation } from "react-i18next";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
@@ -11,10 +10,6 @@ import { Journey } from "./Journey";
 import { Businesses } from "./Rooms";
 
 gsap.registerPlugin(ScrollTrigger);
-
-const ROWS = ["1", "2", "3", "4"] as const;
-const SEP = " · ";
-const ARROW = "→";
 
 /**
  * v4 landing flow (web): the hero's arched door grows into ONE full-screen scene that walks through one
@@ -31,7 +26,6 @@ export function Flow({
   desktop: boolean;
   width: number;
 }) {
-  const { t } = useTranslation("landing");
   const locale = useLocale();
   const root = useRef<HTMLDivElement>(null);
 
@@ -75,34 +69,6 @@ export function Flow({
       <Journey nav={nav} desktop={desktop} width={width} />
 
       <Businesses />
-
-      <section className="fl-sec">
-        <div className="fl-eye rv">{t("flow.switch.eyebrow")}</div>
-        <h2 className="fl-h rv">{t("flow.switch.title")}</h2>
-        <p className="fl-sub rv">{t("flow.switch.sub")}</p>
-        <div className="sw">
-          <div className="plist rv">
-            <div className="lbl">{t("flow.switch.from")}</div>
-            <p>{t("story.switch.list")}</p>
-          </div>
-          <div className="arrow rv" style={{ ["--d" as string]: "150ms" }}>
-            {ARROW}
-          </div>
-          <div className="card svc rv" style={{ ["--d" as string]: "250ms" }}>
-            <div className="lbl">{t("flow.switch.to")}</div>
-            {ROWS.map((r, i) => (
-              <div
-                key={r}
-                className="svc-row rv"
-                style={{ ["--d" as string]: `${String(350 + i * 120)}ms` }}
-              >
-                {t(`story.switch.s${r}`)}
-                <span>{[t(`story.switch.d${r}`), t(`story.switch.p${r}`)].join(SEP)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

@@ -78,22 +78,24 @@ const stagger = (
 
 /** Journey phases (fractions of the track). */
 const PH = {
-  portal: [0, 0.05],
-  w1: [0.05, 0.17],
-  desk: 0.17,
-  wipe: 0.34,
-  deskOut: 0.48,
-  w2: [0.5, 0.62],
-  feat: 0.62,
-  featOut: 0.745,
-  w3: [0.765, 0.875],
-  office: 0.875,
+  portal: [0, 0.045],
+  w1: [0.045, 0.153],
+  desk: 0.153,
+  wipe: 0.306,
+  deskOut: 0.432,
+  w2: [0.45, 0.558],
+  feat: 0.558,
+  featOut: 0.67,
+  w3: [0.688, 0.788],
+  office: 0.788,
+  officeOut: 0.885,
+  sw: 0.9,
 } as const;
 
-/** Scenes one gesture steps between: hero · before · after · treatment area · office. */
-export const STOPS = [0, 0.33, 0.455, 0.735, 1] as const;
-/** Seconds per transition: door + walk + "before" build, the before→after wipe, walk + features, walk + office. */
-export const DURATIONS = [7.0, 3.4, 6.2, 6.0] as const;
+/** Scenes one gesture steps between: hero · before · after · treatment area · office · switching. */
+export const STOPS = [0, 0.297, 0.41, 0.662, 0.876, 1] as const;
+/** Seconds per transition: door + walk + "before", before→after wipe, walk + features, walk + office, switching. */
+export const DURATIONS = [7.0, 3.4, 6.2, 6.0, 3.6] as const;
 
 /** Which walk frame to show at journey time t. */
 function frameAt(t: number): [Segment, number] {
@@ -209,7 +211,7 @@ export function buildJourney(
       loaded.add("w2");
       player.load("w2");
     }
-    if (t > 0.45 && !loaded.has("w3")) {
+    if (t > 0.4 && !loaded.has("w3")) {
       loaded.add("w3");
       player.load("w3");
     }
@@ -328,9 +330,32 @@ export function buildJourney(
   tl.to(q(".jr-veil"), { opacity: 1, duration: 0.03 }, PH.feat);
   show(tl, q, ".ov-f .t", PH.feat + 0.012, { y: 60 });
   show(tl, q, ".ft-lap", PH.feat + 0.022, { x: 80, scale: 0.96 });
-  stagger(tl, q, ".ft-i", PH.feat + 0.04, 0.009, { y: 26, scale: 0.92 }, 0.025);
-  show(tl, q, ".ft-chip", PH.feat + 0.1, { y: 14, scale: 0.7 });
-  hide(tl, q, ".ov-f .t, .ft-lap, .ft-i, .ft-chip", PH.featOut);
+  // pain → gain rows: the row lands, the pain line dims, the gain + number pop
+  q(".fx").forEach((el, i) => {
+    const at = PH.feat + 0.035 + i * 0.016;
+    tl.fromTo(
+      el,
+      { opacity: 0, x: -30 },
+      { opacity: 1, x: 0, duration: 0.025, ease: "power2.out" },
+      at,
+    );
+    const n = el.querySelector(".fx-n");
+    const g = el.querySelector(".fx-g");
+    const pn = el.querySelector(".fx-p");
+    if (n)
+      tl.fromTo(
+        n,
+        { opacity: 0, scale: 0.5 },
+        { opacity: 1, scale: 1, duration: 0.02, ease: "back.out(2.4)" },
+        at + 0.012,
+      );
+    if (g) tl.fromTo(g, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.018 }, at + 0.014);
+    if (pn) tl.to(pn, { opacity: 0.55, duration: 0.015 }, at + 0.02);
+  });
+  show(tl, q, ".fx-facts", PH.feat + 0.1, { y: 10 }, 0.02);
+  show(tl, q, ".ft-chip", PH.feat + 0.06, { y: 14, scale: 0.7 });
+  stagger(tl, q, ".fx-shot", PH.feat + 0.07, 0.014, { y: 30, scale: 0.9 }, 0.025);
+  hide(tl, q, ".ov-f .t, .ft-lap, .fx, .fx-facts, .ft-chip, .fx-shot", PH.featOut);
   tl.to(q(".jr-veil"), { opacity: 0, duration: 0.025 }, PH.featOut + 0.005);
 
   // walk to the back office → overview
@@ -339,7 +364,16 @@ export function buildJourney(
   tl.to(q(".jr-veil"), { opacity: 1, duration: 0.03 }, PH.office);
   show(tl, q, ".of-lap", PH.office + 0.015, { x: -80, scale: 0.96 });
   show(tl, q, ".ov-o .t", PH.office + 0.025, { y: 60 });
-  stagger(tl, q, ".of-side .card", PH.office + 0.05, 0.022, { y: 26 }, 0.035);
+  stagger(tl, q, ".of-side .card", PH.office + 0.045, 0.02, { y: 26 }, 0.03);
+  hide(tl, q, ".of-lap, .ov-o .t, .of-side .card", PH.officeOut);
+
+  // switching: still in the office — price list → AI → service menu
+  show(tl, q, ".ov-s .t", PH.sw, { y: 50 }, 0.025);
+  stagger(tl, q, ".sw-steps li", PH.sw + 0.012, 0.01, { x: -20 }, 0.02);
+  show(tl, q, ".sw-list", PH.sw + 0.01, { y: 30, rotate: -6 }, 0.025);
+  show(tl, q, ".sw-ai", PH.sw + 0.03, { scale: 0.5 }, 0.02);
+  show(tl, q, ".sw-svc", PH.sw + 0.04, { x: 40 }, 0.025);
+  stagger(tl, q, ".sw-svc .svc-row", PH.sw + 0.05, 0.01, { y: 14, scale: 0.95 }, 0.02);
   tl.to({}, { duration: 0.001 }, 0.999);
   return tl;
 }

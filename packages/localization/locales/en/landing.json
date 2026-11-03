@@ -280,7 +280,12 @@
       "title": "Already using another app or a notebook?\nSwitch in minutes.",
       "sub": "Snap your price list or your current system's service list. AI sets up your services. Effortless, in every plan.",
       "from": "Your price list",
-      "to": "Your services in GuGu Studio"
+      "to": "Your services in GuGu Studio",
+      "st1": "Snap your price list, or a screenshot from your old app",
+      "st2": "AI builds services, durations and prices",
+      "st3": "You check, then go live; clients get added as they book",
+      "ai": "AI setup",
+      "walk": "Getting started"
     },
     "walk": {
       "eyebrow": "Saturday · 9:12 · District 1",
@@ -317,7 +322,27 @@
       "f7b": "Messages to your salon's Zalo OA become bookings automatically.",
       "f8t": "Insights",
       "f8b": "Revenue, occupancy and no-shows as appointments complete.",
-      "chip": "Chair 2 + UV lamp reserved · 14:00"
+      "chip": "Chair 2 + UV lamp reserved · 14:00",
+      "today": "Today",
+      "with": "With GuGu Studio",
+      "r1k": "Double bookings",
+      "r1n": "0",
+      "r1p": "e.g. 2–3 a month when two people write in one notebook",
+      "r1g": "Each service reserves its chair, bed or device, so a taken slot can't be booked twice.",
+      "r2k": "Booking channels",
+      "r2n": "1 list",
+      "r2p": "Zalo, phone calls and walk-ins in 3 different places",
+      "r2g": "Every booking lands in one queue; the whole team sees it at once.",
+      "r3k": "Service menu",
+      "r3n": "≈10 min",
+      "r3p": "Prices and durations live in one person's head",
+      "r3g": "Services, options, add-ons and price ranges, set up from a photo of your price list.",
+      "r4k": "Team hours",
+      "r4n": "1 link",
+      "r4p": "“Who works on Sunday?” lost in the group chat",
+      "r4g": "Hours, breaks and who does which service, per person; invite staff with one link.",
+      "facts": "Demo salon, this week: 40 bookings · 7 services · 4 team members, in one calendar",
+      "eg": "Pains are illustrative examples."
     },
     "office": {
       "eyebrow": "Back office",
@@ -372,7 +397,8 @@
       "cont": "Continue",
       "skip": "Skip the story",
       "label": "Story chapters",
-      "after": "See the after"
+      "after": "See the after",
+      "c4": "Switch"
     },
     "calc": {
       "t": "What fewer no-shows are worth",
