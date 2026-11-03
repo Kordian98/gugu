@@ -26,6 +26,7 @@ export class MembershipService {
       select: {
         id: true,
         organizationId: true,
+        status: true,
         members: {
           where: { userId, status: "active" },
           select: { role: true, permissionsOverride: true },
@@ -60,6 +61,7 @@ export class MembershipService {
       organizationId: salon.organizationId,
       role: role ?? "staff",
       permissions,
+      suspended: salon.status === "suspended",
     };
   }
 }

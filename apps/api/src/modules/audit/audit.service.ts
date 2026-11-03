@@ -45,18 +45,39 @@ export const AUDIT_ACTIONS = [
   "zalo.settings_updated",
   "zalo.conversation_taken_over",
   "zalo.conversation_released",
+  // Platform admin (topic 12 M12.6): metadata = { reason, before, after }.
+  "admin.subscription_plan_assigned",
+  "admin.trial_extended",
+  "admin.paid_until_set",
+  "admin.salon_suspended",
+  "admin.salon_unsuspended",
+  "admin.entitlement_override_created",
+  "admin.entitlement_override_revoked",
+  "admin.founding_partner_granted",
+  "admin.founding_partner_revoked",
+  /** Written by scripts/seed-platform-admin.mjs (local dev) until topic 05 ships role management. */
+  "admin.platform_role_granted",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
+/** JSON metadata value (admin entries nest `before` / `after` snapshots). */
+export type AuditValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly AuditValue[]
+  | { readonly [key: string]: AuditValue };
+
 export interface AuditEntry {
   action: AuditAction;
-  actor?: { type: "anonymous" | "user" | "system"; id?: string | null };
+  actor?: { type: "anonymous" | "user" | "system" | "platform_admin"; id?: string | null };
   salonId?: string | null;
   organizationId?: string | null;
   targetType?: string;
   targetId?: string;
   /** Never secrets, tokens, codes or personal data (emails, phones, names, notes). */
-  metadata?: Record<string, string | number | boolean | null>;
+  metadata?: Record<string, AuditValue>;
   ipPrefix?: string | null;
   userAgent?: string | null;
 }
@@ -68,11 +89,11 @@ type Tx = Prisma.TransactionClient;
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Writes one entry; pass `tx` to commit it atomically with the audited change. */
-  async record(entry: AuditEntry, tx?: Tx): Promise<void> {
+  /** Writes one entry and returns its id; pass `tx` to commit it atomically with the change. */
+  async record(entry: AuditEntry, tx?: Tx): Promise<string> {
     const ctx = RequestContext.current();
     const actor = entry.actor ?? actorFromContext();
-    await (tx ?? this.prisma).auditLog.create({
+    const row = await (tx ?? this.prisma).auditLog.create({
       data: {
         action: entry.action,
         actorType: actor.type,
@@ -84,9 +105,11 @@ export class AuditService {
         requestId: ctx?.requestId ?? null,
         ipPrefix: entry.ipPrefix ?? null,
         userAgent: entry.userAgent?.slice(0, 256) ?? null,
-        metadata: entry.metadata ?? {},
+        metadata: (entry.metadata ?? {}) as Prisma.InputJsonObject,
       },
+      select: { id: true },
     });
+    return row.id;
   }
 }
 

@@ -1,7 +1,7 @@
 import { type CanActivate, type ExecutionContext, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { Request, Response } from "express";
-import { AUTH_ERRORS, uuidV7Schema } from "@gugu/contracts";
+import { AUTH_ERRORS, SALON_SUSPENDED_ERROR, uuidV7Schema } from "@gugu/contracts";
 import { PLATFORM_ROLE_PERMISSIONS } from "@gugu/domain";
 import { RequestContext } from "../../common/context/request-context";
 import { AUTH_POLICY, type AuthPolicy } from "../../common/guards/auth-policy";
@@ -78,6 +78,10 @@ export class AuthGuard implements CanActivate {
         if (ctx) ctx.salonId = salon.salonId;
         if (!salon.permissions.has(policy.permission)) {
           throw new AppError(403, COMMON_ERRORS.forbidden, "Permission required");
+        }
+        // Suspended by GuGu (topic 12 M12.6): members keep read access, every write is refused.
+        if (salon.suspended && !SAFE_METHODS.has(req.method)) {
+          throw new AppError(403, SALON_SUSPENDED_ERROR, "Salon is suspended");
         }
         return true;
       }
