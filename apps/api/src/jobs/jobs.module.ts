@@ -5,21 +5,24 @@ import {
   NotificationEventsHandler,
   NotificationsWorkerModule,
 } from "../modules/notifications/notifications.facade";
+import { PrivacyWorkerModule } from "../modules/privacy/privacy.facade";
 import { ZaloBookingEventsHandler, ZaloWorkerModule } from "../modules/zalo/zalo.facade";
 import { MaintenanceProcessor } from "./maintenance.processor";
 import { NotifyProcessor } from "./notify.processor";
 import { OutboxProcessor } from "./outbox.processor";
+import { PrivacyProcessor } from "./privacy.processor";
 import { JOB_PROCESSORS, type JobProcessor } from "./processor";
 import { WorkerHost } from "./worker-host";
 import { ZaloProcessor } from "./zalo.processor";
 
 @Module({
-  imports: [BookingsWorkerModule, ZaloWorkerModule, NotificationsWorkerModule],
+  imports: [BookingsWorkerModule, ZaloWorkerModule, NotificationsWorkerModule, PrivacyWorkerModule],
   providers: [
     MaintenanceProcessor,
     ZaloProcessor,
     OutboxProcessor,
     NotifyProcessor,
+    PrivacyProcessor,
     {
       // Outbox consumers (04-S5). Add a module's handler here; it must be idempotent.
       provide: DOMAIN_EVENT_HANDLERS,
@@ -28,7 +31,13 @@ import { ZaloProcessor } from "./zalo.processor";
     },
     {
       provide: JOB_PROCESSORS,
-      inject: [MaintenanceProcessor, ZaloProcessor, OutboxProcessor, NotifyProcessor],
+      inject: [
+        MaintenanceProcessor,
+        ZaloProcessor,
+        OutboxProcessor,
+        NotifyProcessor,
+        PrivacyProcessor,
+      ],
       useFactory: (...processors: JobProcessor[]) => processors,
     },
     WorkerHost,

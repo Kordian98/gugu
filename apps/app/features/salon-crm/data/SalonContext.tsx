@@ -16,6 +16,8 @@ export type SalonPermission =
   | "bookings.write"
   | "bookings.override_rules"
   | "customers.read"
+  | "customers.export"
+  | "customers.erase"
   | "zalo.inbox.use"
   | "integrations.zalo.manage"
   | "analytics.read";

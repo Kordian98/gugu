@@ -11,6 +11,8 @@ export const QUEUES = {
   outbox: "outbox",
   /** Notifications (topic 11): email sends, staff emails, delayed reminders, reconciliation. */
   notify: "notify",
+  /** Privacy (topic 05 step 8): salon-wide client data exports, daily retention purge. */
+  privacy: "privacy",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

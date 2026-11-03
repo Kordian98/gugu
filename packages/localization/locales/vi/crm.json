@@ -265,7 +265,11 @@
     "resource_not_found": "Không tìm thấy phòng/thiết bị.",
     "resource_type_not_found": "Không tìm thấy loại phòng/thiết bị.",
     "salon_suspended": "Salon đang bị GuGu tạm khóa. Bạn vẫn xem được dữ liệu nhưng không thể thay đổi. Vui lòng liên hệ bộ phận hỗ trợ GuGu.",
-    "booking_multi_service_disabled": "Salon chưa bật đặt nhiều dịch vụ trong một lịch hẹn."
+    "booking_multi_service_disabled": "Salon chưa bật đặt nhiều dịch vụ trong một lịch hẹn.",
+    "privacy_export_in_progress": "Một bản xuất đang được tạo. Vui lòng đợi.",
+    "privacy_export_unavailable": "Bản xuất chưa sẵn sàng hoặc đã hết hạn.",
+    "privacy_export_not_found": "Không tìm thấy bản xuất.",
+    "customers_not_found": "Không tìm thấy khách hàng."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",

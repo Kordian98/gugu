@@ -1,0 +1,90 @@
+{
+  "export": {
+    "title": "Client data held by {{salon}}",
+    "generatedAt": "Exported at: {{at}}",
+    "intro": "This document lists the data the salon keeps about the client in GuGu Studio: profile, bookings, internal notes, the Zalo conversation and the log of messages sent.",
+    "disclaimer": "GuGu Studio is designed to support salons in answering personal-data requests. This is not legal advice.",
+    "sections": {
+      "client": "Client profile",
+      "bookings": "Bookings",
+      "notes": "Salon notes",
+      "zalo": "Zalo conversation",
+      "notifications": "Messages sent"
+    },
+    "fields": {
+      "name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "tags": "Tags",
+      "consent": "Marketing consent",
+      "source": "Source",
+      "createdAt": "Created",
+      "reference": "Booking reference",
+      "status": "Status",
+      "time": "Time",
+      "services": "Services",
+      "total": "Total (estimated)",
+      "note": "Client's note",
+      "cancellation": "Cancellation reason",
+      "payment": "Paid at the salon",
+      "history": "Status history",
+      "channel": "Channel",
+      "event": "Event",
+      "sentAt": "Sent"
+    },
+    "consentChannels": {
+      "zalo": "Zalo",
+      "email": "Email",
+      "sms": "SMS"
+    },
+    "none": "None",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "client": {
+    "section": "Data and privacy",
+    "hint": "Owner only. Use when a client asks to see or delete their data. Every action is logged.",
+    "export": "Export client data",
+    "exportJson": "Download JSON",
+    "exportText": "Download readable copy",
+    "exportReady": "The export is ready.",
+    "erase": "Delete client data",
+    "eraseTitle": "Permanently delete this client's data?",
+    "eraseBody": "The profile, tags, internal notes and Zalo conversation content are deleted. Past bookings stay for your reports but show as “Deleted customer”, without name, phone or email. Upcoming bookings are cancelled. This cannot be undone.",
+    "eraseHint": "Export first if the client also wants a copy.",
+    "eraseConfirm": "Delete permanently",
+    "erased": "Client data deleted: {{bookings}} bookings anonymised, {{cancelled}} upcoming bookings cancelled."
+  },
+  "salon": {
+    "title": "Data and privacy",
+    "body": "Export all of your salon's client data (JSON and CSV). Files can be downloaded only here, for 24 hours; no link is sent by email.",
+    "request": "Create export",
+    "requested": "Creating the export. This page updates by itself.",
+    "empty": "No exports yet.",
+    "status": {
+      "queued": "Queued",
+      "running": "Creating",
+      "ready": "Ready",
+      "failed": "Failed",
+      "expired": "Expired"
+    },
+    "meta": "{{clients}} clients · {{bookings}} bookings",
+    "expires": "Available until {{at}}",
+    "downloadJson": "JSON",
+    "downloadCsv": "CSV",
+    "retentionTitle": "Retention",
+    "retention": "The notification send log is deleted after 12 months. Raw Zalo events are deleted after 30 days. Expired sessions and sign-in links are cleaned up automatically.",
+    "disclaimer": "GuGu Studio is designed to support salons in handling clients' personal-data requests. This is not legal advice."
+  },
+  "csv": {
+    "name": "Name",
+    "phone": "Phone",
+    "tags": "Tags",
+    "consentZalo": "Consent Zalo",
+    "consentEmail": "Consent Email",
+    "consentSms": "Consent SMS",
+    "visits": "Visits",
+    "lastVisit": "Last visit",
+    "createdAt": "Created"
+  }
+}

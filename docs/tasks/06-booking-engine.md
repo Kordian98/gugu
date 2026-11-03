@@ -242,7 +242,7 @@ Bookings are never deleted when a customer deletes their account: they stay for 
 5. **M6.5 Reschedule/cancel** — policy windows, corrections.
 6. **M6.6 Resources & capacity units.**
 7. **M6.7 Availability API + cache + perf benchmark.**
-8. **M6.8 Multi-service Phase B** (flagged, post-launch per q17), later Phase C. Built together on `booking/06-multi-service` (same or different staff per line; ADR-0011, domain doc "Multi-service bookings").
+8. **M6.8 Multi-service Phase B** (flagged, post-launch per q17), later Phase C. Built together on `booking/06-multi-service` (same or different staff per line; ADR-0013, domain doc "Multi-service bookings").
 9. **M6.9 Agent/Zalo draft flow** (with 08/09).
 
 ---

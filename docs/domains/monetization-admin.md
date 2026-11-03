@@ -90,16 +90,20 @@ GuGu staff only. A platform role is a column on the user (`users.platform_role`)
 | Salon directory (search, filters, sort) | `GET /admin/salons` | `platform.directory.read` | yes | yes | — |
 | Salon detail (members, subscription, overrides, usage, recent audit) | `GET /admin/salons/:salonId` | `platform.directory.read` | yes | yes | — |
 | Usage overview (AI cost vs cap, Zalo templates, trials ending in 7 days) | `GET /admin/usage?month=` | `platform.usage.read` | yes | yes | — |
-| Assign/change paid plan (+ interval, paid-until, invoicing entity) | `POST /admin/salons/:salonId/subscription/plan` | `platform.subscriptions.write` | no | yes | — |
+| Assign/change paid plan (+ interval, paid-until, invoicing entity) | `POST /admin/salons/:salonId/subscription/plan` | `platform.subscriptions.write` | no | yes | yes (can create a founding partner) |
 | Extend trial (≤ 90 days ahead; re-opens an expired trial) | `POST …/subscription/trial` | `platform.subscriptions.write` | no | yes | — |
 | Set paid-until (past_due paid into the future → active) | `POST …/subscription/paid-until` | `platform.subscriptions.write` | no | yes | — |
 | Entitlement override (mandatory expiry ≤ 366 days) / revoke | `POST …/overrides`, `POST …/overrides/:id/revoke` | `platform.entitlements.write` | no | yes | create |
 | Founding partner grant / revoke | `POST …/founding-partner`, `POST …/founding-partner/revoke` | `platform.founding_partner.write` | no | yes | revoke |
 | Suspend / unsuspend | `POST …/suspend`, `POST …/unsuspend` | `platform.salons.suspend` | no | yes | yes |
+| Own second factor (status, enrol, confirm, step-up, recovery codes) | `GET /admin/mfa`, `POST /admin/mfa/*` | `platform.mfa.self` | yes | yes | — |
+
+Every write above also needs an enrolled TOTP factor (403 `admin.mfa_enrollment_required`). Step-up = a TOTP or recovery code verified on the current session within 10 minutes (ADR-0011). Per-user limits: 240 requests and 30 writes per minute on `/admin/*`.
 
 ### Invariants
 - Every admin mutation body requires `reason` (5–500 chars, no personal data) and goes through `AdminActions.run`: one transaction = domain change + `audit_logs` row (`actor_type = platform_admin`, actor id, `metadata = { reason, platformRole, before, after }`). No audit row → no change (rollback tested). Entitlement cache invalidated after commit.
-- Step-up: high-risk actions (suspend, unsuspend, founding-partner revoke, override create) need a sign-in within `ADMIN_STEP_UP_MINUTES` (15) → else 403 `admin.step_up_required`. Limits in ADR-0010.
+- Step-up (ADR-0011, replaces ADR-0010's fresh sign-in): high-risk actions (suspend, unsuspend, founding-partner revoke, override create, plan assignment) need a TOTP/recovery code verified on this session within `ADMIN_STEP_UP_MINUTES` (10) → else 403 `admin.step_up_required`; the panel asks for the code inline and retries.
+- Entitlement cache TTL is capped at the earliest of the trial end and every active override's `expiresAt` (`cacheTtl`).
 - Suspension also blocks customer manage-link cancel/reschedule and invitation acceptance. Founding-partner changes are race-safe and clear the cache of every salon in the organisation. The panel shows only allow-listed audit metadata and hides removed members' emails.
 - Suspended salon: `EntitlementService` grants nothing (overrides included, `suspended: true` in the read model); the guard refuses every non-GET salon route with 403 `salon.suspended`; members keep reading.
 - Outside the guard (q89, 2026-11-04): the Zalo bot stops booking and answers once per conversation per 24 h with a neutral "contact the salon" notice; Zalo and email customer sends are skipped at send time (`salon_suspended`); the Zalo inbox stays readable. The salon summary (`GET /salons/:salonId`) carries `suspension { since, support { email, phone } }` (env `SUPPORT_EMAIL`, `SUPPORT_PHONE`) and the panel shows a banner on every page. Details: `docs/domains/zalo.md` → "Suspended salon".
@@ -114,7 +118,7 @@ cd apps/api
 node --env-file=../../.env scripts/seed-platform-admin.mjs --email admin@gugu.local            # super_admin
 node --env-file=../../.env scripts/seed-platform-admin.mjs --email support@gugu.local --role support_admin
 ```
-The script requires `NODE_ENV=development`, a loopback host and a local database name (`gugu`/`gugu_<suffix>`), records the OS user, creates the user if needed and writes an `admin.platform_role_granted` audit row. Sign in at `/vi/sign-in` with that email (magic link in Mailpit), then open `/vi/admin`.
+The script requires `NODE_ENV=development`, a loopback host and a local database name (`gugu`/`gugu_<suffix>`), records the OS user, creates the user if needed and writes an `admin.platform_role_granted` audit row. Sign in at `/vi/sign-in` with that email (magic link in Mailpit), then open `/vi/admin`. Admin writes need two-step verification: add `--with-totp` to enrol a factor and print its secret, then `node scripts/totp-code.mjs <secret>` gives the current code (local TOTP flow: `docs/domains/auth-security.md#local-totp-flow`).
 
 ### UI
 `apps/app/app/[locale]/(admin)/admin/` → `index.tsx` (overview), `salons/index.tsx` (directory), `salons/[salonId].tsx` (detail + action sheets). Feature code in `apps/app/features/admin/`. Light/dark allowed (X18, shares `CrmThemeProvider`); strings in the `admin` namespace (vi/en). Buttons are hidden by `PLATFORM_ROLE_PERMISSIONS` for display only.
@@ -131,4 +135,5 @@ The script requires `NODE_ENV=development`, a loopback host and a local database
 
 ## ADRs
 - ADR-0010 platform admin actions (roles on the user, audited runner, step-up, suspension).
+- ADR-0011 admin TOTP step-up (supersedes ADR-0010 decision 3).
 _TODO: attribution model & window · entitlement keys vs plan names · in-house analytics on Postgres · append-only commission ledger (dormant) · hard AI cost cap._

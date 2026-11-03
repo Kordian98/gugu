@@ -13,6 +13,7 @@ import { useSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
 import { BookingSection, PoliciesSection } from "./settings/BookingSection";
 import { HolidaysSection, HoursSection } from "./settings/HoursSection";
+import { PrivacySection } from "./settings/PrivacySection";
 import { ProfileSection } from "./settings/ProfileSection";
 import { ZaloSection } from "./settings/ZaloSection";
 import { PageHeader } from "../shell/PageHeader";
@@ -53,6 +54,7 @@ export function SettingsScreen() {
           {can("zalo.inbox.use") ? (
             <ZaloSection canManage={can("integrations.zalo.manage")} result={zalo} />
           ) : null}
+          {can("customers.export") ? <PrivacySection /> : null}
         </View>
       ) : settings.isPending && salonId ? (
         <ActivityIndicator color={c.accent} />

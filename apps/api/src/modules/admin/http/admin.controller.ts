@@ -63,7 +63,7 @@ const MutationResponses = () =>
     }),
     ApiResponse({
       status: 403,
-      description: "Not a platform admin, missing permission or step-up.",
+      description: "Not a platform admin, missing permission, no enrolled factor or step-up.",
       standardSchema: problemSchema,
     }),
     ApiResponse({ status: 404, description: "Salon not found.", standardSchema: problemSchema }),
@@ -135,7 +135,8 @@ export class AdminController {
   @RequirePlatformPermission("platform.subscriptions.write")
   @ApiOperation({
     operationId: "admin.assignPlan",
-    summary: "Assign or change the paid plan (manual billing); subscription becomes active.",
+    summary:
+      "Assign or change the paid plan (manual billing); subscription becomes active. Needs a step-up.",
   })
   @MutationResponses()
   assignPlan(
@@ -152,6 +153,9 @@ export class AdminController {
         salonId: p.salonId,
         reason,
         meta: requestMeta(req),
+        // Step-up (ADR-0011): a first paid activation can make the organisation a founding partner
+        // (X20, sticky 2-year fee waiver), so plan assignment is treated as high-risk.
+        stepUp: true,
       },
       (db, actor) => this.subscriptions.assignPlan(db, p.salonId, input, actor, reason),
     );
@@ -216,7 +220,7 @@ export class AdminController {
   @RequirePlatformPermission("platform.salons.suspend")
   @ApiOperation({
     operationId: "admin.suspendSalon",
-    summary: "Suspend a salon (read-only, nothing granted). Needs a recent sign-in.",
+    summary: "Suspend a salon (read-only, nothing granted). Needs a step-up.",
   })
   @MutationResponses()
   suspend(
@@ -243,7 +247,7 @@ export class AdminController {
   @RequirePlatformPermission("platform.salons.suspend")
   @ApiOperation({
     operationId: "admin.unsuspendSalon",
-    summary: "Lift a suspension and restore the previous status. Needs a recent sign-in.",
+    summary: "Lift a suspension and restore the previous status. Needs a step-up.",
   })
   @MutationResponses()
   unsuspend(
@@ -270,8 +274,7 @@ export class AdminController {
   @RequirePlatformPermission("platform.entitlements.write")
   @ApiOperation({
     operationId: "admin.createOverride",
-    summary:
-      "Grant or restrict one entitlement until an expiry (≤ 366 days). Needs a recent sign-in.",
+    summary: "Grant or restrict one entitlement until an expiry (≤ 366 days). Needs a step-up.",
   })
   @MutationResponses()
   createOverride(
@@ -348,7 +351,7 @@ export class AdminController {
   @RequirePlatformPermission("platform.founding_partner.write")
   @ApiOperation({
     operationId: "admin.revokeFoundingPartner",
-    summary: "Revoke the founding-partner flag (R-FP2). Needs a recent sign-in.",
+    summary: "Revoke the founding-partner flag (R-FP2). Needs a step-up.",
   })
   @MutationResponses()
   revokeFoundingPartner(

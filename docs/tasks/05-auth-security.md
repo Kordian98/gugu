@@ -1,6 +1,6 @@
 # 05 — Auth, multi-tenancy, permissions, security & privacy
 
-> **Status:** Step 3 implemented (milestones 1–5; see `docs/domains/auth-security.md#status`). **X21/X23 (2026-11-02): staff/owner auth only.** No customer accounts and no customer-facing booking surface on gugu.vn; customers never authenticate (§1, G22, G23). **Owner agent:** `.claude/agents/auth-security.md`. **Reviewer:** `.claude/agents/security-reviewer.md`. **Skill:** `.claude/skills/tenant-authorization/SKILL.md`. **Domain doc:** `docs/domains/auth-security.md`.
+> **Status:** Step 3 implemented (milestones 1–5); milestone 8 (privacy, salon side) and milestone 9 TOTP step-up implemented on `auth/05-privacy-totp` (ADR-0011, ADR-0012; passkeys and impersonation still open); see `docs/domains/auth-security.md#status`. **X21/X23 (2026-11-02): staff/owner auth only.** No customer accounts and no customer-facing booking surface on gugu.vn; customers never authenticate (§1, G22, G23). **Owner agent:** `.claude/agents/auth-security.md`. **Reviewer:** `.claude/agents/security-reviewer.md`. **Skill:** `.claude/skills/tenant-authorization/SKILL.md`. **Domain doc:** `docs/domains/auth-security.md`.
 > **Source:** master prompt §10 (auth part), §14, §24, plus the AI-agent (topic 08) and Zalo (topic 09) extras.
 
 ## 1. Scope
@@ -99,6 +99,7 @@ Legend: ✅ full, 🟡 own/assigned only, 👁 read-only, — none.
 | `customer:read` (CRM) | ✅ | ✅ | ✅ | 🟡 customers of own bookings (phone visible by default, q24; owner can hide) |
 | `customer:notes:write` | ✅ | ✅ | ✅ | 🟡 |
 | `customer:export` | ✅ | — | — | — |
+| `customer:erase` (delete a client's data on request) | ✅ | — | — | — |
 | `analytics:read` (revenue, KPIs) | ✅ | ✅ | — | 🟡 own performance |
 | `review:respond` | ✅ | ✅ | — | — |
 | `integration:zalo:manage` | ✅ | — | — | — |
@@ -242,8 +243,8 @@ Phone numbers are **not verified** in the near term. Bookings by phone-only gues
 5. Cross-tenant generated test suite.
 6. RLS policies + context extension + RLS tests.
 7. Zalo Login (hidden flag) and `zalo_template` verification channel with 09. **Later:** real SMS provider + sender-ID registration + phone OTP + pumping controls.
-8. Privacy: consents, export, deletion jobs; data inventory.
-9. Admin hardening (passkeys + TOTP backup, impersonation).
+8. Privacy: consents, export, deletion jobs; data inventory. _Implemented (salon side, q80): owner-only client export/erasure, salon-wide async export, retention purge (ADR-0012). Consent records table still open._
+9. Admin hardening (passkeys + TOTP backup, impersonation). _TOTP enrolment, recovery codes and session-bound step-up implemented (ADR-0011); passkeys and impersonation still open._
 10. Agent principal envelope (with 08); Zalo webhook verification & token encryption (with 09).
 
 ## 8. AI-first deliverables

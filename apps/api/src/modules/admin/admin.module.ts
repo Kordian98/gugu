@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AiImportModule } from "../ai-import/ai-import.facade";
+import { AuthModule } from "../auth/auth.facade";
 import { AdminActions } from "./application/admin-actions";
 import { AdminSalonsQueries } from "./application/admin-salons.queries";
 import { AdminUsageQueries } from "./application/admin-usage.queries";
@@ -11,7 +12,7 @@ import { AdminController } from "./http/admin.controller";
  * (subscriptions) through AdminActions, which adds the reason + audit row + cache invalidation.
  */
 @Module({
-  imports: [AiImportModule],
+  imports: [AiImportModule, AuthModule],
   controllers: [AdminController],
   providers: [AdminActions, AdminSalonsQueries, AdminUsageQueries],
 })

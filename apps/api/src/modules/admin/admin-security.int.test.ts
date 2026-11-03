@@ -12,7 +12,12 @@ import {
   problemSchema,
   SALON_SUSPENDED_ERROR,
 } from "@gugu/contracts";
-import { bearerFor, createSalonFixture, testEmail } from "../../../test/factories/identity";
+import {
+  bearerFor,
+  createSalonFixture,
+  steppedUpBearerFor,
+  testEmail,
+} from "../../../test/factories/identity";
 import { http } from "../../../test/http-app";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
@@ -20,7 +25,6 @@ import { configureHttpApp } from "../../bootstrap";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { Clock, EntitlementService } from "../subscriptions/subscriptions.facade";
 
-const MIN = 60_000;
 const DAY = 86_400_000;
 
 class MovableClock extends Clock {
@@ -35,6 +39,7 @@ describe("platform admin security follow-ups (integration)", () => {
   let prisma: PrismaService;
   let entitlements: EntitlementService;
   let admin: string;
+  let adminNotElevated: string;
   const clock = new MovableClock();
 
   const post = (path: string, body: object, bearer = admin) =>
@@ -60,7 +65,8 @@ describe("platform admin security follow-ups (integration)", () => {
         profile: { create: {} },
       },
     });
-    admin = await bearerFor(app, user.id);
+    admin = await steppedUpBearerFor(app, user.id, 60);
+    adminNotElevated = await bearerFor(app, user.id);
   });
 
   beforeEach(async () => {
@@ -159,15 +165,18 @@ describe("platform admin security follow-ups (integration)", () => {
     expect((await entitlements.forSalon(sibling.id)).foundingPartner).toBeNull();
   });
 
-  it("L5c: creating an override needs a recent sign-in", async () => {
+  it("L5c: creating an override needs a step-up (TOTP, ADR-0011)", async () => {
     const s = await createSalonFixture(prisma, "Sec Override");
-    clock.offsetMs = 16 * MIN;
-    const stale = await post(`admin/salons/${s.salonId}/overrides`, {
-      key: "ai.agent.enabled",
-      value: true,
-      expiresAt: new Date(Date.now() + 20 * DAY).toISOString(),
-      reason: "Pilot grant",
-    });
+    const stale = await post(
+      `admin/salons/${s.salonId}/overrides`,
+      {
+        key: "ai.agent.enabled",
+        value: true,
+        expiresAt: new Date(Date.now() + 20 * DAY).toISOString(),
+        reason: "Pilot grant",
+      },
+      adminNotElevated,
+    );
     expect(stale.status).toBe(403);
     expect(problemSchema.parse(stale.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
     expect(await prisma.entitlementOverride.count({ where: { salonId: s.salonId } })).toBe(0);

@@ -4,7 +4,8 @@
     "docTitle": "{{page}} · GuGu Admin",
     "nav": {
       "overview": "Overview",
-      "salons": "Salons"
+      "salons": "Salons",
+      "security": "Security"
     },
     "theme": {
       "light": "Light",
@@ -264,10 +265,10 @@
     "submit": "Save",
     "saving": "Saving…",
     "done": "Saved",
-    "stepUpTitle": "Sign in again to confirm",
-    "stepUpBody": "This action needs a sign-in from the last {{minutes}} minutes. Sign out, sign in again and repeat it.",
-    "stepUpAction": "Sign in again",
-    "highRisk": "High-risk action: needs a recent sign-in.",
+    "stepUpTitle": "Confirm with your authenticator code",
+    "stepUpBody": "High-risk actions need the 6-digit code from your authenticator app. Once confirmed, this session may do such actions for {{minutes}} minutes.",
+    "stepUpAction": "Confirm and continue",
+    "highRisk": "High-risk action: needs an authenticator code.",
     "assign": {
       "title": "Assign plan",
       "plan": "Plan",
@@ -323,7 +324,10 @@
       "d14": "+14 days"
     },
     "prevMonth": "Previous month",
-    "nextMonth": "Next month"
+    "nextMonth": "Next month",
+    "enrolTitle": "Two-step verification required",
+    "enrolBody": "Every change in the admin panel needs two-step verification (TOTP). Set it up first.",
+    "enrolAction": "Set it up"
   },
   "entitlementKey": {
     "crm_core": "CRM",
@@ -352,7 +356,11 @@
     "admin_entitlement_override_created": "Override added",
     "admin_entitlement_override_revoked": "Override revoked",
     "admin_founding_partner_granted": "Founding partner granted",
-    "admin_founding_partner_revoked": "Founding partner revoked"
+    "admin_founding_partner_revoked": "Founding partner revoked",
+    "privacy_client_exported": "Exported one client's data",
+    "privacy_client_erased": "Deleted one client's data",
+    "privacy_salon_export_requested": "Requested a salon data export",
+    "privacy_salon_export_downloaded": "Downloaded a salon data export"
   },
   "actor": {
     "platform_admin": "GuGu admin",
@@ -367,7 +375,7 @@
     "common_validation_failed": "Check the fields: a reason of at least 5 characters is required.",
     "common_forbidden": "Your platform role does not allow this.",
     "common_not_found": "Not found.",
-    "admin_step_up_required": "Sign in again to confirm this action.",
+    "admin_step_up_required": "Confirm with your authenticator code.",
     "admin_already_suspended": "The salon is already suspended.",
     "admin_not_suspended": "The salon is not suspended.",
     "admin_no_current_subscription": "The salon has no paid subscription to update.",
@@ -378,6 +386,42 @@
     "admin_founding_partner_exists": "Already a founding partner.",
     "admin_founding_partner_missing": "Not a founding partner.",
     "admin_usage_month_unavailable": "Usage is kept for the current and the previous month only.",
-    "subscription_invalid_transition": "This change is not allowed in the current subscription state."
+    "subscription_invalid_transition": "This change is not allowed in the current subscription state.",
+    "admin_mfa_enrollment_required": "Turn on two-step verification before making changes.",
+    "admin_mfa_fresh_sign_in_required": "To turn on two-step verification, sign out, sign in again and retry within 15 minutes.",
+    "admin_mfa_enrollment_not_started": "The setup expired. Start again.",
+    "admin_mfa_code_invalid": "Wrong or already used code. Try a new one.",
+    "common_rate_limited": "Too many attempts. Wait a moment and try again."
+  },
+  "security": {
+    "title": "Security",
+    "subtitle": "Two-step verification (TOTP) for your admin account",
+    "statusTitle": "Authenticator app",
+    "enrolled": "On since {{date}}",
+    "notEnrolled": "Off. Every change in the admin panel is blocked until you turn it on.",
+    "stepUpActive": "This session is confirmed until {{time}}",
+    "stepUpInactive": "This session is not confirmed. High-risk actions will ask for a code.",
+    "recoveryLeft": "{{count}} recovery codes left",
+    "start": "Turn on two-step verification",
+    "replace": "Move to a new device",
+    "replaceHint": "Confirm this session with your current code (or a recovery code) first.",
+    "step1": "1. Open your authenticator app (Google Authenticator, Microsoft Authenticator, 1Password…) and add an account with the key below. On a phone you can tap the link.",
+    "secretLabel": "Setup key",
+    "openApp": "Open in authenticator app",
+    "step2": "2. Enter the 6-digit code the app shows.",
+    "codeLabel": "6-digit code",
+    "confirm": "Confirm",
+    "recoveryTitle": "Recovery codes",
+    "recoveryBody": "Keep these codes somewhere safe. Each works once if you lose your phone. They are shown only now.",
+    "recoveryDone": "I saved the codes",
+    "regenerate": "New recovery codes",
+    "regenerateHint": "Enter a current code; the old recovery codes stop working.",
+    "useRecovery": "Use a recovery code",
+    "useTotp": "Use an app code",
+    "recoveryLabel": "Recovery code",
+    "copy": "Copy",
+    "copied": "Copied",
+    "bannerTitle": "Turn on two-step verification",
+    "bannerBody": "You cannot change anything in the admin panel until two-step verification is on."
   }
 }

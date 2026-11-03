@@ -82,6 +82,8 @@ describe("permission matrix", () => {
     expect(support.has("platform.directory.read")).toBe(true);
     expect(support.has("platform.usage.read")).toBe(true);
     expect(support.has("platform.audit.read")).toBe(true);
+    // Every admin must be able to enrol a second factor and step up (topic 05 step 9).
+    expect(support.has("platform.mfa.self")).toBe(true);
     for (const p of [
       "platform.subscriptions.write",
       "platform.entitlements.write",
@@ -93,6 +95,16 @@ describe("permission matrix", () => {
       "platform.commission.write",
     ] as const) {
       expect(support.has(p)).toBe(false);
+    }
+  });
+
+  it("privacy actions (client export, erase) are owner-only and never grantable", () => {
+    for (const p of ["customers.export", "customers.erase"] as const) {
+      expect(OWNER_ONLY_PERMISSIONS).toContain(p);
+      expect(ROLE_PERMISSIONS.owner.has(p)).toBe(true);
+      for (const role of ["manager", "receptionist", "staff"] as const) {
+        expect(effectiveSalonPermissions(role, { grant: [p] }).has(p)).toBe(false);
+      }
     }
   });
 

@@ -1,4 +1,4 @@
-# ADR 0011: Multi-service bookings as chains of lines with their own occupancy
+# ADR 0013: Multi-service bookings as chains of lines with their own occupancy
 
 - Status: proposed
 - Date: 2026-11-04

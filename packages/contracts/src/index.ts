@@ -6,6 +6,8 @@ export * from "./subscriptions/entitlements";
 export * from "./subscriptions/start-trial";
 export * from "./admin/admin";
 export * from "./auth/auth";
+export * from "./auth/admin-mfa";
+export * from "./privacy/privacy";
 export * from "./salon/registration";
 export * from "./salon/salon";
 export * from "./catalog/catalog";

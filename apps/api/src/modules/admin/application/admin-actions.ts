@@ -1,22 +1,13 @@
 import { Injectable } from "@nestjs/common";
-import {
-  ADMIN_ERRORS,
-  ADMIN_STEP_UP_MINUTES,
-  type AdminMutationResult,
-  adminReasonSchema,
-} from "@gugu/contracts";
+import { ADMIN_ERRORS, type AdminMutationResult, adminReasonSchema } from "@gugu/contracts";
 import type { UserPrincipal } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
 import { COMMON_ERRORS } from "../../../common/problem/error-codes";
 import type { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { type AuditAction, AuditService } from "../../audit/audit.facade";
-import type { RequestMeta } from "../../auth/auth.facade";
-import {
-  type AdminChange,
-  Clock,
-  EntitlementService,
-} from "../../subscriptions/subscriptions.facade";
+import { AdminMfaService, type RequestMeta } from "../../auth/auth.facade";
+import { type AdminChange, EntitlementService } from "../../subscriptions/subscriptions.facade";
 
 type Db = Prisma.TransactionClient;
 
@@ -26,7 +17,10 @@ export interface AdminActionParams {
   salonId: string;
   reason: string;
   meta: RequestMeta;
-  /** High-risk: require a sign-in within ADMIN_STEP_UP_MINUTES (step-up). */
+  /**
+   * High-risk: require a step-up — a TOTP/recovery code verified on this session within
+   * ADMIN_STEP_UP_MINUTES (topic 05 step 9, ADR-0011). Every write needs an enrolled factor.
+   */
   stepUp?: boolean;
 }
 
@@ -34,7 +28,8 @@ export interface AdminActionParams {
  * The only way the admin API changes anything (topic 12 M12.6, gate "every admin action has a
  * reason and an audit row"). In ONE transaction it checks the salon exists, applies the change and
  * writes the audit row (actor, platform role, reason, before, after). If the audit insert fails,
- * the change rolls back. After commit the salon's entitlement cache is invalidated.
+ * the change rolls back. After commit the salon's entitlement cache is invalidated. Before any of
+ * that, the admin must have an enrolled second factor, and high-risk actions an active step-up.
  */
 @Injectable()
 export class AdminActions {
@@ -42,7 +37,7 @@ export class AdminActions {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly entitlements: EntitlementService,
-    private readonly clock: Clock,
+    private readonly mfa: AdminMfaService,
   ) {}
 
   async run(
@@ -56,7 +51,7 @@ export class AdminActions {
         errors: [{ path: "reason", code: COMMON_ERRORS.validationFailed }],
       });
     }
-    if (params.stepUp) await this.assertFreshSignIn(params.admin);
+    await this.mfa.assertWriteAllowed(params.admin, { stepUp: params.stepUp === true });
     const actor = `admin:${params.admin.userId}`;
     let salonIds: string[] = [params.salonId];
     const auditId = await this.prisma.$transaction(async (tx) => {
@@ -90,21 +85,6 @@ export class AdminActions {
     // Founding-partner changes reach every salon of the organisation.
     await Promise.all(salonIds.map((id) => this.entitlements.invalidate(id)));
     return { auditId };
-  }
-
-  /**
-   * Step-up for destructive actions: the session must come from a sign-in within the last
-   * ADMIN_STEP_UP_MINUTES. Cheap stand-in until admin TOTP/passkeys (topic 05 step 9).
-   */
-  private async assertFreshSignIn(admin: UserPrincipal): Promise<void> {
-    const session = await this.prisma.session.findUnique({
-      where: { id: admin.sessionId },
-      select: { createdAt: true },
-    });
-    const ageMs = session ? this.clock.now().getTime() - session.createdAt.getTime() : Infinity;
-    if (ageMs > ADMIN_STEP_UP_MINUTES * 60_000) {
-      throw new AppError(403, ADMIN_ERRORS.stepUpRequired, "Sign in again to confirm");
-    }
   }
 }
 

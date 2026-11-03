@@ -2,13 +2,17 @@ import { type CanActivate, type ExecutionContext, Injectable } from "@nestjs/com
 import { Reflector } from "@nestjs/core";
 import type { Request, Response } from "express";
 import { AUTH_ERRORS, SALON_SUSPENDED_ERROR, uuidV7Schema } from "@gugu/contracts";
-import { PLATFORM_ROLE_PERMISSIONS } from "@gugu/domain";
+import { PLATFORM_ROLE_PERMISSIONS, type PlatformPermission } from "@gugu/domain";
 import { RequestContext } from "../../common/context/request-context";
 import { AUTH_POLICY, type AuthPolicy } from "../../common/guards/auth-policy";
 import type { AuthenticatedRequestState, Principal } from "../../common/guards/principal";
 import { AppError } from "../../common/problem/app-error";
 import { COMMON_ERRORS } from "../../common/problem/error-codes";
 import { AppConfig } from "../../infrastructure/config/app-config";
+import {
+  type RateLimitRule,
+  RateLimitService,
+} from "../../infrastructure/rate-limit/rate-limit.service";
 import {
   CSRF_HEADER,
   parseCookies,
@@ -20,6 +24,26 @@ import {
 import { MembershipService } from "./membership.service";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * Per-user limits on the platform admin API (`/api/v1/admin/*`, every `@RequirePlatformPermission`
+ * route). Generous for a person clicking through the panel (defaults 240 requests and 30 writes per
+ * minute, env ADMIN_RATE_LIMIT_PER_MINUTE / ADMIN_WRITE_RATE_LIMIT_PER_MINUTE), tight enough to
+ * stop a scripted stolen session from bulk-reading the directory or hammering writes.
+ */
+export function adminRateLimits(env: {
+  ADMIN_RATE_LIMIT_PER_MINUTE: number;
+  ADMIN_WRITE_RATE_LIMIT_PER_MINUTE: number;
+}): { all: RateLimitRule; writes: RateLimitRule } {
+  return {
+    all: { name: "admin.requests.user", limit: env.ADMIN_RATE_LIMIT_PER_MINUTE, windowSeconds: 60 },
+    writes: {
+      name: "admin.writes.user",
+      limit: env.ADMIN_WRITE_RATE_LIMIT_PER_MINUTE,
+      windowSeconds: 60,
+    },
+  };
+}
 
 /** Suspended by GuGu (topic 12 M12.6): members keep read access, every write is refused. */
 function assertWritable(salon: { suspended?: boolean }, method: string): void {
@@ -41,6 +65,7 @@ export class AuthGuard implements CanActivate {
     private readonly config: AppConfig,
     private readonly sessions: SessionService,
     private readonly memberships: MembershipService,
+    private readonly limits: RateLimitService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -66,14 +91,9 @@ export class AuthGuard implements CanActivate {
       case "authenticated":
         this.requireUser(principal);
         return true;
-      case "platform": {
-        const user = this.requireUser(principal);
-        const allowed = user.platformRole
-          ? PLATFORM_ROLE_PERMISSIONS[user.platformRole].has(policy.permission)
-          : false;
-        if (!allowed) throw new AppError(403, COMMON_ERRORS.forbidden, "Permission required");
+      case "platform":
+        await this.authorizePlatform(principal, policy.permission, req.method);
         return true;
-      }
       case "salon": {
         const user = this.requireUser(principal);
         const salonId = req.params["salonId"];
@@ -90,6 +110,22 @@ export class AuthGuard implements CanActivate {
         return true;
       }
     }
+  }
+
+  /** Platform role grants the permission (salon roles never do), then per-user admin rate limits. */
+  private async authorizePlatform(
+    principal: Principal,
+    permission: PlatformPermission,
+    method: string,
+  ): Promise<void> {
+    const user = this.requireUser(principal);
+    const allowed = user.platformRole
+      ? PLATFORM_ROLE_PERMISSIONS[user.platformRole].has(permission)
+      : false;
+    if (!allowed) throw new AppError(403, COMMON_ERRORS.forbidden, "Permission required");
+    const rules = adminRateLimits(this.config.env);
+    await this.limits.consume(rules.all, user.userId);
+    if (!SAFE_METHODS.has(method)) await this.limits.consume(rules.writes, user.userId);
   }
 
   private requireUser(principal: Principal) {

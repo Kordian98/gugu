@@ -1,25 +1,26 @@
 import { useState, type ReactNode } from "react";
 import { View } from "react-native";
-import { usePathname, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { ADMIN_ERRORS, ADMIN_STEP_UP_MINUTES } from "@gugu/contracts";
+import { ADMIN_ERRORS, ADMIN_MFA_ERRORS } from "@gugu/contracts";
 import { CalmButton, DatePicker, Pill, Text, useCalm } from "@gugu/design-system";
 
 import { ApiError } from "@/services/auth/api";
-import { useAuth } from "@/services/auth/AuthProvider";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { ErrorBanner, Field, Input, Sheet } from "../salon-crm/ui/form";
 import { type AdminAction, useAdminAction } from "./data";
 import { addDays } from "./format";
+import { StepUpPrompt } from "./StepUpPrompt";
 import { useAdminErrorText } from "./ui";
 
 const MIN_REASON = 5;
 
 /**
- * Editor for one admin write. Every action needs a reason (stored in the audit log). High-risk
- * actions need a recent sign-in: on `admin.step_up_required` the sheet offers to sign in again.
+ * Editor for one admin write. Every action needs a reason (stored in the audit log). Every write
+ * needs two-step verification; high-risk actions need a step-up: on `admin.step_up_required` the
+ * sheet asks for the authenticator code and retries (ADR-0011).
  */
 export function ActionSheet(props: ActionSheetProps) {
   // Mounted only while open, so the reason and the mutation state start fresh every time.
@@ -54,23 +55,18 @@ function OpenActionSheet({
   const [reason, setReason] = useState("");
   const action = useAdminAction(salonId);
   const errorText = useAdminErrorText();
-  const auth = useAuth();
   const router = useRouter();
   const locale = useLocale();
-  const pathname = usePathname();
 
   const trimmed = reason.trim();
   const request = trimmed.length >= MIN_REASON ? build(trimmed) : null;
-  const stepUp =
-    action.error instanceof ApiError && action.error.code === ADMIN_ERRORS.stepUpRequired;
+  const code = action.error instanceof ApiError ? action.error.code : null;
+  const stepUp = code === ADMIN_ERRORS.stepUpRequired;
+  const enrol = code === ADMIN_MFA_ERRORS.enrollmentRequired;
 
   const submit = () => {
     if (!request) return;
     action.mutate(request, { onSuccess: onClose });
-  };
-  const signInAgain = async () => {
-    await auth.signOut();
-    router.replace(`/${locale}/sign-in?next=${encodeURIComponent(pathname)}` as never);
   };
 
   return (
@@ -108,6 +104,8 @@ function OpenActionSheet({
         />
       </Field>
       {stepUp ? (
+        <StepUpPrompt testID={testID ? `${testID}-stepup` : undefined} onDone={submit} />
+      ) : enrol ? (
         <View
           style={{
             gap: 10,
@@ -119,16 +117,17 @@ function OpenActionSheet({
           }}
         >
           <Text role="uiSemiBold" size={14} color={c.ink}>
-            {t("actions.stepUpTitle")}
+            {t("actions.enrolTitle")}
           </Text>
           <Text size={13} color={c.body}>
-            {t("actions.stepUpBody", { minutes: ADMIN_STEP_UP_MINUTES })}
+            {t("actions.enrolBody")}
           </Text>
           <CalmButton
             size="sm"
-            label={t("actions.stepUpAction")}
+            label={t("actions.enrolAction")}
             onPress={() => {
-              void signInAgain();
+              onClose();
+              router.push(`/${locale}/admin/security` as never);
             }}
           />
         </View>
