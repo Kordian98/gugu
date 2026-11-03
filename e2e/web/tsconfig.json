@@ -1,0 +1,9 @@
+{
+  "extends": "@gugu/config/tsconfig.library.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "allowJs": false
+  },
+  "include": ["**/*.ts", "stack/*.d.mts"]
+}
