@@ -10,11 +10,11 @@ import {
 } from "@gugu/contracts";
 import { AppError } from "../../../common/problem/app-error";
 import { AppConfig } from "../../../infrastructure/config/app-config";
-import type {
-  FoundingPartner,
+import {
+  type EntitlementOverride,
+  type FoundingPartner,
   Prisma,
-  Subscription,
-  EntitlementOverride,
+  type Subscription,
 } from "../../../infrastructure/prisma/generated/client";
 import { canTransition, CURRENT_STATUSES } from "../domain/subscription-status";
 import { Clock } from "./clock";
@@ -94,19 +94,17 @@ export class SubscriptionAdminService {
         },
       });
     } else {
-      after = await db.subscription.create({
-        data: {
-          salonId,
-          planId: plan.id,
-          planVersion: plan.version,
-          status: "active",
-          interval: input.interval,
-          invoicingEntity: input.invoicingEntity ?? "tbd",
-          currentPeriodStart: now,
-          currentPeriodEnd: paidUntil,
-          events: {
-            create: { fromStatus: null, toStatus: "active", toPlanCode: plan.code, actor, reason },
-          },
+      after = await createCurrent(db, {
+        salonId,
+        planId: plan.id,
+        planVersion: plan.version,
+        status: "active",
+        interval: input.interval,
+        invoicingEntity: input.invoicingEntity ?? "tbd",
+        currentPeriodStart: now,
+        currentPeriodEnd: paidUntil,
+        events: {
+          create: { fromStatus: null, toStatus: "active", toPlanCode: plan.code, actor, reason },
         },
       });
     }
@@ -160,18 +158,16 @@ export class SubscriptionAdminService {
         },
       });
     } else {
-      after = await db.subscription.create({
-        data: {
-          salonId,
-          planId: trialPlan.id,
-          planVersion: trialPlan.version,
-          status: "trialing",
-          trialEndsAt,
-          currentPeriodStart: now,
-          currentPeriodEnd: trialEndsAt,
-          events: {
-            create: { fromStatus: null, toStatus: "trialing", toPlanCode: "trial", actor, reason },
-          },
+      after = await createCurrent(db, {
+        salonId,
+        planId: trialPlan.id,
+        planVersion: trialPlan.version,
+        status: "trialing",
+        trialEndsAt,
+        currentPeriodStart: now,
+        currentPeriodEnd: trialEndsAt,
+        events: {
+          create: { fromStatus: null, toStatus: "trialing", toPlanCode: "trial", actor, reason },
         },
       });
     }
@@ -349,6 +345,26 @@ export class SubscriptionAdminService {
       },
       update: {},
     });
+  }
+}
+
+/**
+ * Creates the salon's current subscription. Two admins racing on a salon without one: the partial
+ * unique index `subscriptions_one_current_per_salon` lets one win; the other gets a 409.
+ */
+async function createCurrent(
+  db: Db,
+  data: Prisma.SubscriptionUncheckedCreateInput,
+): Promise<Subscription> {
+  try {
+    return await db.subscription.create({ data });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      throw new AppError(409, SUBSCRIPTION_ERRORS.invalidTransition, "Changed concurrently", {
+        cause: e,
+      });
+    }
+    throw e;
   }
 }
 

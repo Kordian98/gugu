@@ -745,4 +745,63 @@ describe("platform admin (integration)", () => {
       expect(problemSchema.parse(old.body).code).toBe(ADMIN_ERRORS.usageMonthUnavailable);
     });
   });
+
+  describe("races", () => {
+    it("parallel plan assignments: one current subscription, one audit row per success", async () => {
+      const s = await newSalon("Race Plan");
+      const paidUntil = new Date(Date.now() + 30 * DAY).toISOString();
+      const results = await Promise.all(
+        Array.from({ length: 6 }, (_, i) =>
+          post(`salons/${s.salonId}/subscription/plan`, superAdmin, {
+            plan: i % 2 ? "pro" : "ultra",
+            interval: "month",
+            paidUntil,
+            reason: `Parallel assignment ${String(i)}`,
+          }),
+        ),
+      );
+      const statuses = results.map((r) => r.status);
+      expect(statuses.every((st) => st === 200 || st === 409)).toBe(true);
+      const ok = statuses.filter((st) => st === 200).length;
+      expect(ok).toBeGreaterThanOrEqual(1);
+      expect(
+        await prisma.subscription.count({
+          where: { salonId: s.salonId, status: { in: ["trialing", "active", "past_due"] } },
+        }),
+      ).toBe(1);
+      expect(
+        await prisma.auditLog.count({
+          where: { salonId: s.salonId, action: "admin.subscription_plan_assigned" },
+        }),
+      ).toBe(ok);
+    });
+
+    it("parallel revokes of one override: exactly one succeeds and is audited", async () => {
+      const s = await newSalon("Race Revoke");
+      await facade.startTrial({ salonId: s.salonId });
+      await post(`salons/${s.salonId}/overrides`, superAdmin, {
+        key: "analytics.advanced",
+        value: true,
+        expiresAt: new Date(Date.now() + 5 * DAY).toISOString(),
+        reason: "Pilot of advanced analytics",
+      }).expect(200);
+      const o = await prisma.entitlementOverride.findFirstOrThrow({
+        where: { salonId: s.salonId },
+      });
+      const results = await Promise.all(
+        Array.from({ length: 5 }, () =>
+          post(`salons/${s.salonId}/overrides/${o.id}/revoke`, superAdmin, {
+            reason: "Pilot ended",
+          }),
+        ),
+      );
+      expect(results.filter((r) => r.status === 200)).toHaveLength(1);
+      expect(results.filter((r) => r.status === 409)).toHaveLength(4);
+      expect(
+        await prisma.auditLog.count({
+          where: { salonId: s.salonId, action: "admin.entitlement_override_revoked" },
+        }),
+      ).toBe(1);
+    });
+  });
 });

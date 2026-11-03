@@ -73,7 +73,7 @@
     },
     "costNote": "Chi phí GuGu chi trả (AI theo bộ đếm hạn mức cứng, tin nhắn mẫu Zalo là ước tính). Không phải doanh thu của salon.",
     "byPlan": "Chi phí theo gói",
-    "byPlanRow": "{{count}} salon · AI {{ai}} · Zalo {{zalo}}",
+    "byPlanRow": "Salon: {{count}} · AI {{ai}} · Zalo {{zalo}}",
     "trialsTitle": "Dùng thử kết thúc trong 7 ngày tới",
     "trialsEmpty": "Không có bản dùng thử nào kết thúc trong 7 ngày tới.",
     "trialEnds": "Kết thúc {{date}}",
@@ -91,7 +91,7 @@
   },
   "salons": {
     "title": "Salon",
-    "subtitle": "{{count}} salon",
+    "subtitle": "Tổng: {{count}}",
     "search": "Tìm theo tên hoặc slug",
     "filters": "Bộ lọc",
     "clear": "Xóa bộ lọc",

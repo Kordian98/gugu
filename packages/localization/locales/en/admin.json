@@ -73,7 +73,7 @@
     },
     "costNote": "Costs GuGu pays (AI from the hard-cap meter, Zalo template estimates). Not salon revenue.",
     "byPlan": "Cost by plan",
-    "byPlanRow": "{{count}} salons · AI {{ai}} · Zalo {{zalo}}",
+    "byPlanRow": "Salons: {{count}} · AI {{ai}} · Zalo {{zalo}}",
     "trialsTitle": "Trials ending in the next 7 days",
     "trialsEmpty": "No trial ends in the next 7 days.",
     "trialEnds": "Ends {{date}}",
@@ -91,7 +91,7 @@
   },
   "salons": {
     "title": "Salons",
-    "subtitle": "{{count}} salons",
+    "subtitle": "Total: {{count}}",
     "search": "Search name or slug",
     "filters": "Filters",
     "clear": "Clear filters",
