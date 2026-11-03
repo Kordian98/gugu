@@ -91,9 +91,9 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `salons_suspension_consistent` | check | `20261103200000_add_platform_admin` | `db:drift`; `admin.int.test.ts` (suspend / unsuspend) |
 | `zalo_funnel_events_valid`, `zalo_funnel_events_no_update_delete` (+ function) | check, trigger | `20261103190000_add_zalo_funnel_events` | `db:drift`; `zalo.int.test.ts` (funnel stats) |
 | `notification_deliveries_valid` | check | `20261104090000_add_notifications` | `db:drift`; `notifications.int.test.ts` |
-| `privacy_exports_one_in_flight` | partial unique index | `20261104120000_add_privacy_admin_mfa` | `privacy.int.test.ts` (one at a time → 409) |
-| `privacy_exports_content_valid`, `admin_mfa_factors_step_valid` | check | `20261104120000_add_privacy_admin_mfa` | `db:drift`; `privacy.int.test.ts`, `admin-mfa.int.test.ts` |
-| `booking_status_history_append_only()` (new body: only `reason_text → NULL` allowed) | trigger function | `20261104120000_add_privacy_admin_mfa` | `privacy.int.test.ts` (append-only apart from blanking reason_text) |
+| `privacy_exports_one_in_flight` | partial unique index | `20261104150000_add_privacy_admin_mfa` | `privacy.int.test.ts` (one at a time → 409) |
+| `privacy_exports_content_valid`, `admin_mfa_factors_step_valid` | check | `20261104150000_add_privacy_admin_mfa` | `db:drift`; `privacy.int.test.ts`, `admin-mfa.int.test.ts` |
+| `booking_status_history_append_only()` (new body: only `reason_text → NULL` allowed) | trigger function | `20261104150000_add_privacy_admin_mfa` | `privacy.int.test.ts` (append-only apart from blanking reason_text) |
 
 ## Read-model registry
 Base layer of the registries (X7): read models here → metric catalogue (07, `packages/domain/metrics`) → agent tools (08).

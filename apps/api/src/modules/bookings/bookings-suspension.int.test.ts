@@ -7,7 +7,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { problemSchema, publicBookingCreatedSchema, SALON_SUSPENDED_ERROR } from "@gugu/contracts";
 import { createBookableSalon, vnAt } from "../../../test/factories/booking";
-import { bearerFor, testEmail } from "../../../test/factories/identity";
+import { steppedUpBearerFor, testEmail } from "../../../test/factories/identity";
 import { http } from "../../../test/http-app";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
@@ -48,7 +48,8 @@ describe("manage links on a suspended salon (integration)", () => {
         profile: { create: {} },
       },
     });
-    admin = await bearerFor(app, user.id);
+    // Suspension is a high-risk admin write: enrolled factor + stepped-up session (ADR-0011).
+    admin = await steppedUpBearerFor(app, user.id);
   });
 
   afterAll(async () => {

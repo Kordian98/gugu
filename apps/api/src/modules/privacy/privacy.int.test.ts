@@ -157,7 +157,14 @@ describe("privacy tools (integration)", () => {
         oaId: conv.oaId,
         salonId: salon.salonId,
         eventName: "user_send_text",
-        payload: { sender: { id: conv.zaloUserId }, message: { text: "Cho em đặt lịch" } },
+        // Already processed: the Zalo suite's drain() replays every `received` event in the DB.
+        status: "processed",
+        payload: {
+          event_name: "user_send_text",
+          sender: { id: conv.zaloUserId },
+          recipient: { id: conv.oaId },
+          message: { text: "Cho em đặt lịch" },
+        },
         occurredAt: new Date(),
       },
     });
