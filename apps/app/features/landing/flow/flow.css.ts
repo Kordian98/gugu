@@ -290,6 +290,7 @@ export const FLOW_CSS = `
   .sw-ai{margin:8px 10px;padding:8px 10px}
   .sw-bar{padding:7px 12px}
   .ov-s .sw-row:nth-child(n+5){display:none}
+  .sw-status{height:32px}.sw-status span{white-space:normal;line-height:1.3}
   .sw-rows{margin:0 10px 10px}
 }
 }
