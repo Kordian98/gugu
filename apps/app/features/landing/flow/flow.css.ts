@@ -94,7 +94,7 @@ export const FLOW_CSS = `
 .sp-h{position:absolute;inset:0;overflow:hidden}
 .sp-l{clip-path:inset(0 calc(100% - var(--x)) 0 0)}
 .sp-r{clip-path:inset(0 0 0 var(--x))}
-.sp-h img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:58% 40%}
+.sp-h>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:58% 40%}
 .sp-veil{position:absolute;inset:0;background:rgba(253,250,247,.78);opacity:0;will-change:opacity}
 .sp-line{position:absolute;top:0;bottom:0;left:var(--x);width:2px;margin-left:-1px;background:linear-gradient(#A68CF6,#F08DB4);opacity:0}
 .sp-knob{position:absolute;top:50%;left:var(--x);width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:#fff;color:${color.ink};display:flex;align-items:center;justify-content:center;gap:2px;font-size:13px;box-shadow:0 12px 30px rgba(42,20,38,.25);cursor:ew-resize;pointer-events:auto;touch-action:none;opacity:0;z-index:3;border:0}
