@@ -17,7 +17,7 @@
     "subtitle": "Bớt việc giấy tờ, thêm thời gian làm đẹp. Lịch làm việc cho cả đội, khách hàng, nhắc lịch và thiết lập bằng AI — trong một không gian làm việc nhẹ nhàng cho salon của bạn.",
     "trialCta": "Dùng thử miễn phí",
     "howCta": "Xem cách hoạt động",
-    "note": "Dùng thử miễn phí 14 ngày · dành cho các cơ sở làm đẹp tại Việt Nam"
+    "note": "Miễn phí năm đầu với gói Basic · dùng thử Pro 14 ngày · dành cho các cơ sở làm đẹp tại Việt Nam"
   },
   "story": {
     "dive": {
@@ -160,7 +160,7 @@
     "billedYearly": "thanh toán theo năm",
     "cta": "Dùng thử miễn phí",
     "popular": "Phổ biến nhất",
-    "trial": "Gói Basic miễn phí cho mọi salon trong năm đầu tiên, sau đó 99.000₫/tháng. Basic có thiết lập bằng AI từ bảng giá; trợ lý AI có từ gói Pro.",
+    "trial": "Gói Basic miễn phí cho mọi salon trong năm đầu tiên, sau đó 99.000₫/tháng. Salon mới được dùng thử Pro 14 ngày, rồi tự chuyển về Basic miễn phí. Basic có thiết lập bằng AI từ bảng giá; trợ lý AI có từ gói Pro.",
     "basic": {
       "name": "Basic",
       "tagline": "Đủ mọi thứ để vận hành một salon",
@@ -180,8 +180,8 @@
     "basicThen": "sau đó 99.000₫/tháng"
   },
   "cta": {
-    "title": "Sẵn sàng toả sáng? Dùng thử miễn phí 14 ngày.",
-    "body": "Thiết lập trong vài phút nhờ AI. Khách vẫn thanh toán tại salon như bình thường.",
+    "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
+    "body": "Bắt đầu với 14 ngày dùng thử Pro, sau đó tự chuyển sang Basic miễn phí trọn năm đầu. Thiết lập trong vài phút nhờ AI; khách vẫn thanh toán tại salon như bình thường.",
     "trial": "Dùng thử miễn phí",
     "signIn": "Đăng nhập"
   },

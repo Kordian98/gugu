@@ -65,7 +65,7 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **Treatment room after:** `after-p4…p6-vi-{1440,1280,390}.webp`, one fact and one cropped CRM screen with a callout per page.
 - **Switch before:** `before-switch-vi-*.webp`.
 - **Switch after:** `after-p9-vi-*.webp`, migration from notebook / spreadsheet / old app with 4 real steps.
-- **Insights:** `after-p8-vi-*.webp`.
+- **Insights:** `after-p8-vi-*.webp`. "Phễu Zalo" is the Zalo statistics card in the CRM Insights (bot funnel, lost reasons, reminders).
 - **Front desk before:** `after-p2-*.webp`.
 - **Hero with the hint:** `after-p0-*.webp`.
 - **X25 band:** `after-free-year-*.webp`.
@@ -78,6 +78,7 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **New sections:** `flow.insights.*` and `flow.free.*`.
 - **`pricing`:** `trial`, `basicFree`, `basicThen`, `basic.items`.
 - **Reminders:** `features.reminders.title` and `story.reminders.sub` now say Zalo only (q85/q86).
+- **Trial (q96):** `hero.note`, `cta.title`, `cta.body` and `pricing.trial` lead with the free Basic year and mention the 14-day Pro trial second.
 
 ## Not verified
 
