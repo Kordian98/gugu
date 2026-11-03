@@ -38,7 +38,10 @@ export const SALON_PERMISSIONS = [
   "customers.read.own",
   "customers.phone.read",
   "customers.notes.write",
+  /** Export one client's data or the whole salon's client data (privacy requests). Owner only. */
   "customers.export",
+  /** Erase (anonymise) a client on request: profile, notes, Zalo chat; bookings kept. Owner only. */
+  "customers.erase",
   "customers.block",
   "analytics.read",
   "analytics.read.own",
@@ -75,6 +78,11 @@ export const PLATFORM_PERMISSIONS = [
   "platform.entitlements.write",
   /** Grant or revoke the founding-partner flag (X20, spec 12 R-FP2: super_admin only). */
   "platform.founding_partner.write",
+  /**
+   * Manage one's own admin second factor (TOTP enrolment, recovery codes) and step up the current
+   * session. Every platform role has it: enrolment is required before any admin write.
+   */
+  "platform.mfa.self",
 ] as const;
 export type PlatformPermission = (typeof PLATFORM_PERMISSIONS)[number];
 
@@ -83,6 +91,7 @@ export const OWNER_ONLY_PERMISSIONS: readonly SalonPermission[] = [
   "salon.delete",
   "members.roles.write",
   "customers.export",
+  "customers.erase",
   "integrations.zalo.manage",
   "billing.manage",
 ];
@@ -153,6 +162,7 @@ export const PLATFORM_ROLE_PERMISSIONS: Readonly<
     "platform.usage.read",
     "platform.moderation.write",
     "platform.salons.verify",
+    "platform.mfa.self",
   ]),
 };
 

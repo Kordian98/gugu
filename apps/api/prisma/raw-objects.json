@@ -32,7 +32,9 @@
     "resource_units_valid",
     "service_resource_requirements_valid",
     "zalo_funnel_events_valid",
-    "notification_deliveries_valid"
+    "notification_deliveries_valid",
+    "privacy_exports_content_valid",
+    "admin_mfa_factors_step_valid"
   ],
   "indexes": [
     "subscriptions_one_current_per_salon",
@@ -44,7 +46,8 @@
     "outbox_events_unpublished",
     "zalo_oa_connections_one_live_per_oa",
     "customer_salon_profiles_one_per_phone",
-    "customer_salon_profiles_name_trgm"
+    "customer_salon_profiles_name_trgm",
+    "privacy_exports_one_in_flight"
   ],
   "triggers": [
     "audit_logs_no_update_delete",
