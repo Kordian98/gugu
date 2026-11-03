@@ -248,8 +248,10 @@ const windowOf = (k: MetricKey): MetricDefinition["window"] =>
   (METRICS[k] as MetricDefinition).window;
 
 /** Metrics of the period Insights endpoint (everything except the monthly profit view). */
-export const PERIOD_METRIC_KEYS = METRIC_KEYS.filter((k) => windowOf(k) !== "month");
 export type PeriodMetricKey = Exclude<MetricKey, `profit.${string}`>;
+export const PERIOD_METRIC_KEYS = METRIC_KEYS.filter(
+  (k): k is PeriodMetricKey => windowOf(k) !== "month",
+);
 
 /** Metrics of the "This month" profit view (`GET insights/profit`). */
 export type ProfitMetricKey = Extract<MetricKey, `profit.${string}`>;

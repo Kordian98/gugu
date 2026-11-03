@@ -14,9 +14,19 @@ import {
   periodExpressionSchema,
   percentSchema,
   revenueKindSchema,
+  signedMoneyVndSchema,
+  signedPercentSchema,
 } from "@gugu/contracts";
-import { daysBetween, isLocalDate, offsetMinutesAt, resolvePeriod } from "@gugu/domain";
+import {
+  daysBetween,
+  isLocalDate,
+  monthOf,
+  monthRange,
+  offsetMinutesAt,
+  resolvePeriod,
+} from "@gugu/domain";
 import { z } from "zod";
+import { ProfitService } from "../../insights/insights.facade";
 import { AssistantReadQueries } from "./read-queries";
 import type { AssistantTool, ToolContext } from "./tool";
 
@@ -61,7 +71,10 @@ export class ToolInputError extends Error {}
  */
 @Injectable()
 export class ReadTools {
-  constructor(private readonly q: AssistantReadQueries) {}
+  constructor(
+    private readonly q: AssistantReadQueries,
+    private readonly profit: ProfitService,
+  ) {}
 
   all(): AssistantTool[] {
     return [
@@ -70,7 +83,82 @@ export class ReadTools {
       this.revenueSummary(),
       this.utilization(),
       this.bookingsList(),
+      this.monthProfit(),
     ] as AssistantTool[];
+  }
+
+  /**
+   * Salon-level "This month" profit (metric catalogue profit.*, ADR-0014). Totals and margins
+   * only: per-person pay, salaries and commissions are personal data and never reach the model
+   * (X10) — the output schema has no staff dimension at all.
+   */
+  private monthProfit(): AssistantTool<{ date: string }> {
+    const pct = (r: number | null) => (r === null ? null : Math.round(r * 1000) / 10);
+    const output = z.strictObject({
+      monthStart: isoDateSchema,
+      monthEnd: isoDateSchema,
+      monthProgressPercent: percentSchema,
+      revenueKind: z.literal("estimated_from_bookings"),
+      revenueEarnedVnd: moneyVndSchema,
+      recordedAtSalonPartVnd: moneyVndSchema,
+      recordedAtSalonKind: z.literal("recorded_offline_sale"),
+      revenueUpcomingVnd: moneyVndSchema,
+      noShowAssumptionPercent: percentSchema.nullable(),
+      noShowAllowanceVnd: moneyVndSchema,
+      revenueTotalVnd: signedMoneyVndSchema,
+      serviceCostsVnd: signedMoneyVndSchema,
+      payrollTotalVnd: signedMoneyVndSchema,
+      otherCostsVnd: moneyVndSchema,
+      netProfitVnd: signedMoneyVndSchema,
+      grossMarginPercent: signedPercentSchema.nullable(),
+      netMarginPercent: signedPercentSchema.nullable(),
+      payrollMonthClosed: z.boolean(),
+    });
+    return {
+      name: "month_profit",
+      description:
+        "Estimated profit of one calendar month for the whole salon (lãi ước tính, lợi nhuận tháng này): revenue earned so far from completed appointments, revenue still to come from upcoming ones, an optional no-show allowance (an assumption from the salon's own history), service execution costs, the team's payroll as ONE total (base pay + commissions + bonuses − deductions; before tax and insurance), other monthly costs, estimated net profit and gross/net margin. Pass any day of the month (use resolve_period first). Pay of individual people is NOT available to you: never guess or split it. All money is an estimate, not a payment.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          date: { type: "string", description: "Any day of the month, YYYY-MM-DD (salon-local)." },
+        },
+        required: ["date"],
+        additionalProperties: false,
+      },
+      input: z
+        .strictObject({ date: isoDateSchema })
+        .refine((i) => isLocalDate(i.date), "invalid_date"),
+      output,
+      permission: "payroll.read",
+      period: (i) => monthRange(monthOf(i.date)),
+      handler: async (ctx, i) => {
+        const month = monthOf(i.date);
+        const p = await this.profit.compute(ctx.salonId, month, new Date(ctx.now()));
+        const b = p.breakdown;
+        const range = monthRange(month);
+        return {
+          monthStart: range.from,
+          monthEnd: range.to,
+          monthProgressPercent: pct(b.monthProgress) ?? 0,
+          revenueKind: "estimated_from_bookings" as const,
+          revenueEarnedVnd: b.revenueEarned,
+          recordedAtSalonPartVnd: b.revenueEarnedRecorded,
+          recordedAtSalonKind: "recorded_offline_sale" as const,
+          revenueUpcomingVnd: b.revenueUpcoming,
+          noShowAssumptionPercent: b.noShowAllowance > 0 ? pct(p.noShow.rate) : null,
+          noShowAllowanceVnd: b.noShowAllowance,
+          revenueTotalVnd: b.revenueTotal,
+          serviceCostsVnd: b.serviceCosts,
+          payrollTotalVnd: b.payroll,
+          otherCostsVnd: b.otherCosts,
+          netProfitVnd: b.netProfit,
+          grossMarginPercent: pct(b.grossMargin),
+          netMarginPercent: pct(b.netMargin),
+          payrollMonthClosed: p.payrollClosed,
+        };
+      },
+    };
   }
 
   private resolvePeriod(): AssistantTool<{ expression: string }> {

@@ -132,6 +132,10 @@ describe("permission matrix", () => {
     }
     for (const role of ["owner", "manager", "receptionist", "staff"] as const) {
       expect(ROLE_PERMISSIONS[role].has("payroll.self.read")).toBe(true);
+      // The profit view shows service costs: whoever can get payroll.read already sees costs.
+      if (effectiveSalonPermissions(role, { grant: ["payroll.read"] }).has("payroll.read")) {
+        expect(ROLE_PERMISSIONS[role].has("services.cost.read")).toBe(true);
+      }
     }
   });
 });

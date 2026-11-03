@@ -1,5 +1,7 @@
 // Guard: internal service costs (services.cost.read) must never reach customer-facing, Zalo or AI
-// assistant code paths. Only the catalogue (gated DTO) and insights (gated margin) may read them.
+// assistant code paths. Only the catalogue (gated DTO), insights (gated margin) and payroll
+// (commission base "price minus cost" and the profit view, payroll.read ⇒ services.cost.read,
+// asserted in packages/domain permissions.test.ts) may read them.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -8,6 +10,7 @@ const ROOT = join(__dirname, "..", "..", "..");
 const ALLOWED = [
   "src/modules/catalog/",
   "src/modules/insights/",
+  "src/modules/salon-crm/payroll/",
   "src/infrastructure/prisma/generated/",
 ];
 const SCAN = ["src", join("..", "..", "packages", "contracts", "src", "assistant")];

@@ -240,6 +240,15 @@ export const exportQuerySchema = z.object({
 });
 export type PayrollExportQuery = z.infer<typeof exportQuerySchema>;
 
+/** File handed to the browser (bearer API; no cookies on downloads). xlsx is base64. */
+export const payrollExportSchema = z.object({
+  fileName: z.string(),
+  mimeType: z.string(),
+  encoding: z.enum(["utf8", "base64"]),
+  content: z.string(),
+});
+export type PayrollExport = z.infer<typeof payrollExportSchema>;
+
 /** A staff member's own estimate (payroll.self.read): never anyone else's. */
 export const myEarningsSchema = z.object({
   month: monthSchema,
