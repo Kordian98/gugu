@@ -35,14 +35,14 @@ Output: JUnit in `reports/`, `reports/gate-summary.md` (failing test, file:line,
 ## Commands
 - Unit for one package: `pnpm --filter <pkg> test`
 - API integration: `pnpm --filter api test:int` (needs `docker compose up -d --wait`)
-- Web E2E: `pnpm --filter e2e-web exec playwright test [--grep @smoke]`
+- Web E2E: `pnpm e2e:web` (boots its own stack on :3460/:8460, DB `gugu_e2e`, Redis DB 14; needs `pnpm stack:up`). One file: `pnpm --filter @gugu/e2e-web exec playwright test tests/<file> --project=chromium`. Details: `e2e/web/README.md`
 - Native E2E: `maestro test e2e/native/<flow>.yaml`
 - Load: `k6 run e2e/load/<script>.js -e BASE_URL=...`
 - Agent evals: `pnpm --filter evals run [--suite <name>]`
 
 ## Layout (target)
 - Unit: colocated `*.test.ts`. API integration: `apps/api/test/integration/**`, factories `apps/api/test/factories/`.
-- Web E2E: `e2e/web/` (page objects per area). Native: `e2e/native/*.yaml` — select by `testID`, never by translated text.
+- Web E2E: `e2e/web/` (`tests/*.spec.ts` per area, helpers in `support/`, stack boot in `stack/`). Native: `e2e/native/*.yaml` — select by `testID`, never by translated text.
 - Load: `e2e/load/`. Evals: `evals/` (`datasets/*.jsonl`, `thresholds.json`).
 
 ## Local merge gate
@@ -62,7 +62,7 @@ Output: JUnit in `reports/`, `reports/gate-summary.md` (failing test, file:line,
 
 ### Procedure: review a branch (any reviewer)
 1. `git -C <your-worktree> checkout <branch>`; note `SHA=$(git rev-parse HEAD)`.
-2. Review the diff `git diff main...$SHA`; `test-engineer` also runs `pnpm gate`.
+2. Review the diff `git diff main...$SHA`; `test-engineer` also runs `pnpm gate`, and `pnpm e2e:web` when the branch touches `apps/app/**`, `packages/design-system/**`, `packages/localization/**` or user-facing `apps/api/**` behaviour. `pnpm e2e:web` is not part of `pnpm verify` (it needs Docker and ~75 s); its last line `STATUS: ok …` goes into the verdict's findings with the SHA.
 3. Write `.git/gugu-reviews/<branch>/<reviewer>.json` (in the main repo's `.git`, find it with `git rev-parse --git-common-dir`):
    `{ "reviewer": "<slug>", "sha": "<SHA>", "verdict": "approve" | "changes", "findings": [...], "ts": "<ISO>" }`
 4. A new commit on the branch invalidates all verdicts — reviewers re-run on the new SHA.
