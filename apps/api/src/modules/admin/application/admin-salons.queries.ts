@@ -325,20 +325,18 @@ export class AdminSalonsQueries {
         status: salon.zaloConnection?.status ?? null,
       },
       lastActivityAt: activity?.at?.toISOString() ?? null,
-      recentAudit: audit.map(
-        (a): AdminAuditEntry => ({
-          id: a.id,
-          action: a.action,
-          actorType: a.actorType,
-          actorId: a.actorId,
-          targetType: a.targetType,
-          createdAt: a.createdAt.toISOString(),
-          metadata:
-            typeof a.metadata === "object" && a.metadata !== null && !Array.isArray(a.metadata)
-              ? (a.metadata as Record<string, unknown>)
-              : {},
-        }),
-      ),
+      recentAudit: audit.map((a): AdminAuditEntry => ({
+        id: a.id,
+        action: a.action,
+        actorType: a.actorType,
+        actorId: a.actorId,
+        targetType: a.targetType,
+        createdAt: a.createdAt.toISOString(),
+        metadata:
+          typeof a.metadata === "object" && a.metadata !== null && !Array.isArray(a.metadata)
+            ? (a.metadata as Record<string, unknown>)
+            : {},
+      })),
     };
   }
 }

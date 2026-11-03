@@ -103,7 +103,13 @@ export class AdminUsageQueries {
     }
     const { start, end } = monthRange(month);
     const salons = await this.prisma.$queryRaw<
-      { id: string; name: string; plan: string | null; status: string | null; trial_ends_at: Date | null }[]
+      {
+        id: string;
+        name: string;
+        plan: string | null;
+        status: string | null;
+        trial_ends_at: Date | null;
+      }[]
     >`
       SELECT sa.id, sa.name, cur.plan, cur.status, cur.trial_ends_at
       FROM salons sa
@@ -161,7 +167,10 @@ export class AdminUsageQueries {
     );
     const offset = decodeOffset(query.cursor);
     const items = all.slice(offset, offset + query.limit);
-    const byPlan = new Map<string, { salons: number; aiCostVnd: number; zaloTemplateCostVnd: number }>();
+    const byPlan = new Map<
+      string,
+      { salons: number; aiCostVnd: number; zaloTemplateCostVnd: number }
+    >();
     for (const it of all) {
       const k = it.plan ?? "none";
       const agg = byPlan.get(k) ?? { salons: 0, aiCostVnd: 0, zaloTemplateCostVnd: 0 };

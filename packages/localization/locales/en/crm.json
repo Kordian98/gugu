@@ -254,7 +254,8 @@
     "resource_type_in_use": "This type is used by services or still has active rooms/equipment.",
     "resource_in_use": "Can't reduce or turn off: upcoming appointments use these places.",
     "resource_not_found": "Room/equipment not found.",
-    "resource_type_not_found": "Room/equipment type not found."
+    "resource_type_not_found": "Room/equipment type not found.",
+    "salon_suspended": "This salon is suspended by GuGu. You can view data but not make changes. Contact GuGu support."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",

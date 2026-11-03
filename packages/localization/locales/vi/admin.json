@@ -1,0 +1,382 @@
+{
+  "shell": {
+    "brand": "GuGu Admin",
+    "docTitle": "{{page}} · GuGu Admin",
+    "nav": {
+      "overview": "Tổng quan",
+      "salons": "Salon"
+    },
+    "theme": {
+      "light": "Sáng",
+      "dark": "Tối",
+      "system": "Theo hệ thống"
+    },
+    "themeLabel": "Giao diện",
+    "signOut": "Đăng xuất",
+    "role": {
+      "super_admin": "Quản trị cấp cao",
+      "support_admin": "Hỗ trợ"
+    },
+    "staffOnly": "Chỉ dành cho nhân viên GuGu"
+  },
+  "guard": {
+    "deniedTitle": "Không có quyền truy cập",
+    "deniedBody": "Khu vực này dành cho nhân viên GuGu có vai trò quản trị nền tảng. Tài khoản của bạn không có vai trò này.",
+    "toWorkspace": "Về không gian làm việc của tôi"
+  },
+  "common": {
+    "loading": "Đang tải…",
+    "loadFailed": "Không tải được. Vui lòng thử lại.",
+    "retry": "Thử lại",
+    "none": "—",
+    "yes": "Có",
+    "no": "Không",
+    "cancel": "Hủy",
+    "back": "Quay lại",
+    "unlimited": "Không giới hạn",
+    "never": "Chưa bao giờ"
+  },
+  "plan": {
+    "basic": "Basic",
+    "pro": "Pro",
+    "ultra": "Ultra",
+    "trial": "Dùng thử",
+    "none": "Chưa có gói"
+  },
+  "subStatus": {
+    "trialing": "Đang dùng thử",
+    "active": "Đang hoạt động",
+    "past_due": "Quá hạn thanh toán",
+    "cancelled": "Đã hủy",
+    "expired": "Đã hết hạn",
+    "none": "Chưa có"
+  },
+  "salonStatus": {
+    "draft": "Bản nháp",
+    "pending_review": "Đang xét duyệt",
+    "active": "Đang hoạt động",
+    "suspended": "Đã tạm khóa",
+    "closed": "Đã đóng"
+  },
+  "overview": {
+    "title": "Tổng quan",
+    "subtitle": "Chi phí AI so với hạn mức và các bản dùng thử sắp kết thúc, {{month}}",
+    "month": "Tháng",
+    "thisMonth": "Tháng này",
+    "lastMonth": "Tháng trước",
+    "stats": {
+      "salons": "Salon",
+      "aiCost": "Chi phí AI (GuGu trả)",
+      "nearCap": "Đã dùng ≥ 80% hạn mức AI",
+      "zaloTemplates": "Tin nhắn mẫu Zalo",
+      "zaloCost": "Ước tính {{amount}}"
+    },
+    "costNote": "Chi phí GuGu chi trả (AI theo bộ đếm hạn mức cứng, tin nhắn mẫu Zalo là ước tính). Không phải doanh thu của salon.",
+    "byPlan": "Chi phí theo gói",
+    "byPlanRow": "{{count}} salon · AI {{ai}} · Zalo {{zalo}}",
+    "trialsTitle": "Dùng thử kết thúc trong 7 ngày tới",
+    "trialsEmpty": "Không có bản dùng thử nào kết thúc trong 7 ngày tới.",
+    "trialEnds": "Kết thúc {{date}}",
+    "usageTitle": "Chi phí AI theo salon",
+    "usageEmpty": "Chưa có salon nào.",
+    "col": {
+      "salon": "Salon",
+      "plan": "Gói",
+      "ai": "Chi phí AI / hạn mức",
+      "zalo": "Tin nhắn mẫu Zalo"
+    },
+    "aiOfCap": "{{used}} / {{cap}}",
+    "zaloOfLimit": "{{sent}} / {{limit}}",
+    "loadMore": "Xem thêm"
+  },
+  "salons": {
+    "title": "Salon",
+    "subtitle": "{{count}} salon",
+    "search": "Tìm theo tên hoặc slug",
+    "filters": "Bộ lọc",
+    "clear": "Xóa bộ lọc",
+    "filter": {
+      "plan": "Gói",
+      "status": "Thuê bao",
+      "trialEnds": "Dùng thử kết thúc",
+      "activity": "Hoạt động",
+      "zalo": "Zalo",
+      "founding": "Đối tác sáng lập",
+      "created": "Ngày tạo",
+      "bookings": "Lịch hẹn",
+      "sort": "Sắp xếp",
+      "any": "Tất cả"
+    },
+    "trialEnds": {
+      "7": "Trong 7 ngày",
+      "14": "Trong 14 ngày"
+    },
+    "activity": {
+      "active7": "Hoạt động trong 7 ngày qua",
+      "active30": "Hoạt động trong 30 ngày qua",
+      "inactive30": "Không hoạt động từ 30 ngày"
+    },
+    "zalo": {
+      "true": "Đã kết nối",
+      "false": "Chưa kết nối"
+    },
+    "founding": "Sáng lập",
+    "created": {
+      "7": "7 ngày qua",
+      "30": "30 ngày qua",
+      "90": "90 ngày qua"
+    },
+    "bookings": {
+      "1": "Ít nhất 1",
+      "10": "Ít nhất 10",
+      "100": "Ít nhất 100"
+    },
+    "sort": {
+      "created_desc": "Mới nhất",
+      "created_asc": "Cũ nhất",
+      "name_asc": "Tên A–Z",
+      "trial_ends_asc": "Dùng thử sắp hết nhất",
+      "last_activity_desc": "Hoạt động gần đây",
+      "bookings_desc": "Nhiều lịch hẹn nhất"
+    },
+    "col": {
+      "salon": "Salon",
+      "plan": "Gói",
+      "trialEnds": "Hết dùng thử",
+      "paidUntil": "Đã trả đến",
+      "created": "Ngày tạo",
+      "activity": "Hoạt động gần nhất",
+      "bookings": "Lịch hẹn (30 ngày)",
+      "zalo": "Zalo"
+    },
+    "bookingsValue": "{{total}} ({{recent}})",
+    "overdue": "Quá hạn",
+    "zaloOn": "Đã kết nối",
+    "zaloOff": "—",
+    "empty": "Không có salon nào khớp với bộ lọc.",
+    "loadMore": "Xem thêm"
+  },
+  "detail": {
+    "back": "Tất cả salon",
+    "created": "Tạo ngày {{date}}",
+    "suspendedSince": "Tạm khóa từ {{date}}",
+    "org": "Tổ chức: {{name}}",
+    "lastActivity": "Hoạt động gần nhất: {{date}}",
+    "suspend": "Tạm khóa",
+    "unsuspend": "Mở khóa",
+    "subscription": {
+      "title": "Thuê bao",
+      "none": "Salon này chưa từng có thuê bao.",
+      "plan": "Gói",
+      "status": "Trạng thái",
+      "interval": "Chu kỳ",
+      "trialEnds": "Hết dùng thử",
+      "paidUntil": "Đã trả đến",
+      "invoicing": "Đơn vị xuất hóa đơn",
+      "manual": "Thanh toán thủ công: hóa đơn được xuất bên ngoài GuGu; không có khoản thu tự động nào.",
+      "assign": "Gán gói",
+      "extendTrial": "Gia hạn dùng thử",
+      "setPaidUntil": "Đặt ngày đã trả đến",
+      "history": "Lịch sử",
+      "historyEmpty": "Chưa có thay đổi.",
+      "historyRow": "{{from}} → {{to}}",
+      "by": "bởi {{actor}}"
+    },
+    "interval": {
+      "month": "Hằng tháng",
+      "year": "Hằng năm"
+    },
+    "invoicing": {
+      "tbd": "Chưa quyết định",
+      "pl": "Công ty Ba Lan",
+      "vn": "Công ty Việt Nam"
+    },
+    "usage": {
+      "title": "Mức sử dụng tháng này ({{month}})",
+      "ai": "Chi phí AI",
+      "aiValue": "{{used}} / {{cap}}",
+      "zalo": "Tin nhắn mẫu Zalo",
+      "zaloValue": "{{sent}} / {{limit}} · ước tính {{cost}}",
+      "bookings": "Lịch hẹn",
+      "bookingsValue": "Tổng {{total}} · {{recent}} trong 30 ngày",
+      "zaloConnection": "Zalo OA",
+      "zaloStatus": {
+        "connected": "Đã kết nối",
+        "needs_reauth": "Cần kết nối lại",
+        "disconnected": "Đã ngắt kết nối",
+        "none": "Chưa kết nối"
+      }
+    },
+    "founding": {
+      "title": "Đối tác sáng lập",
+      "body": "Salon trả phí trước khi sàn ra mắt sẽ không mất phí đặt lịch trong 2 năm sau khi ra mắt (lưu theo tổ chức).",
+      "yes": "Đối tác sáng lập từ {{date}} ({{source}})",
+      "revoked": "Đã thu hồi ngày {{date}}",
+      "no": "Không phải đối tác sáng lập",
+      "source": {
+        "paid_before_launch": "trả phí trước khi ra mắt",
+        "admin_grant": "do quản trị viên cấp"
+      },
+      "grant": "Cấp",
+      "revoke": "Thu hồi"
+    },
+    "entitlements": {
+      "title": "Quyền sử dụng",
+      "body": "Giá trị áp dụng cho salon này (theo gói, sau đó là các ngoại lệ còn hiệu lực). API thực thi các giá trị này.",
+      "on": "Bật",
+      "off": "Tắt",
+      "overrides": "Ngoại lệ",
+      "overridesEmpty": "Chưa có ngoại lệ.",
+      "add": "Thêm ngoại lệ",
+      "revoke": "Thu hồi",
+      "overrideRow": "{{key}} = {{value}}",
+      "until": "đến {{date}}",
+      "inactive": "Hết hiệu lực",
+      "active": "Còn hiệu lực"
+    },
+    "members": {
+      "title": "Thành viên",
+      "empty": "Chưa có thành viên.",
+      "lastSeen": "Truy cập lần cuối {{date}}",
+      "role": {
+        "owner": "Chủ salon",
+        "manager": "Quản lý",
+        "receptionist": "Lễ tân",
+        "staff": "Nhân viên"
+      },
+      "status": {
+        "invited": "Đã mời",
+        "pending_verification": "Chờ xác minh",
+        "active": "Đang hoạt động",
+        "removed": "Đã gỡ"
+      }
+    },
+    "audit": {
+      "title": "Nhật ký gần đây",
+      "empty": "Chưa có thao tác nào được ghi lại.",
+      "reason": "Lý do: {{reason}}"
+    }
+  },
+  "actions": {
+    "reason": "Lý do",
+    "reasonHint": "Bắt buộc, ít nhất 5 ký tự. Được lưu trong nhật ký; không ghi dữ liệu cá nhân.",
+    "submit": "Lưu",
+    "saving": "Đang lưu…",
+    "done": "Đã lưu",
+    "stepUpTitle": "Đăng nhập lại để xác nhận",
+    "stepUpBody": "Thao tác này cần một lần đăng nhập trong {{minutes}} phút gần nhất. Hãy đăng xuất, đăng nhập lại rồi thực hiện lại.",
+    "stepUpAction": "Đăng nhập lại",
+    "highRisk": "Thao tác rủi ro cao: cần đăng nhập gần đây.",
+    "assign": {
+      "title": "Gán gói",
+      "plan": "Gói",
+      "interval": "Chu kỳ thanh toán",
+      "paidUntil": "Đã trả đến (cuối ngày, giờ Việt Nam)",
+      "invoicing": "Đơn vị xuất hóa đơn"
+    },
+    "trial": {
+      "title": "Gia hạn dùng thử",
+      "until": "Ngày kết thúc dùng thử mới (cuối ngày, giờ Việt Nam)",
+      "hint": "Tối đa 90 ngày kể từ hôm nay. Bản dùng thử đã hết hạn sẽ được mở lại."
+    },
+    "paidUntil": {
+      "title": "Đặt ngày đã trả đến",
+      "until": "Đã trả đến (cuối ngày, giờ Việt Nam)"
+    },
+    "suspend": {
+      "title": "Tạm khóa salon",
+      "body": "Thành viên vẫn xem được dữ liệu; mọi thay đổi và mọi tính năng trả phí dừng lại cho đến khi mở khóa."
+    },
+    "unsuspend": {
+      "title": "Mở khóa salon",
+      "body": "Salon trở lại trạng thái trước đó và các tính năng theo gói."
+    },
+    "override": {
+      "title": "Thêm ngoại lệ",
+      "key": "Quyền sử dụng",
+      "value": "Giá trị",
+      "boolOn": "Bật",
+      "boolOff": "Tắt",
+      "limit": "Hạn mức (số)",
+      "unlimited": "Không giới hạn",
+      "expires": "Hết hạn (cuối ngày, giờ Việt Nam)",
+      "hint": "Mọi ngoại lệ đều có hạn (tối đa 366 ngày)."
+    },
+    "revokeOverride": {
+      "title": "Thu hồi ngoại lệ",
+      "body": "Giá trị theo gói được áp dụng lại ngay."
+    },
+    "foundingGrant": {
+      "title": "Cấp đối tác sáng lập",
+      "body": "Đánh dấu tổ chức của salon là đối tác sáng lập (do quản trị viên cấp)."
+    },
+    "foundingRevoke": {
+      "title": "Thu hồi đối tác sáng lập",
+      "body": "Gỡ dấu đối tác sáng lập khỏi tổ chức. Dấu này không bao giờ được đặt lại tự động."
+    },
+    "dates": {
+      "d30": "+30 ngày",
+      "d90": "+90 ngày",
+      "y1": "+1 năm",
+      "d7": "+7 ngày",
+      "d14": "+14 ngày"
+    },
+    "prevMonth": "Tháng trước",
+    "nextMonth": "Tháng sau"
+  },
+  "entitlementKey": {
+    "crm_core": "CRM",
+    "calendar_core": "Lịch",
+    "booking_marketplace_listing": "Hiển thị trên sàn",
+    "ai_onboarding_import": "Nhập dữ liệu bằng AI",
+    "ai_agent_enabled": "Trợ lý AI",
+    "ai_monthly_review": "Báo cáo AI hằng tháng",
+    "zalo_oa_connect": "Kết nối Zalo OA",
+    "zalo_inbox": "Hộp thư Zalo",
+    "analytics_chain_reporting": "Báo cáo chuỗi",
+    "analytics_advanced": "Phân tích nâng cao",
+    "ai_monthly_cost_cap_vnd": "Hạn mức chi phí AI (VND / tháng)",
+    "zalo_template_monthly_messages": "Tin nhắn mẫu Zalo / tháng",
+    "notifications_sms_monthly_messages": "SMS / tháng",
+    "salon_max_locations": "Số chi nhánh tối đa",
+    "promotion_weekly_credits_per_month": "Lượt quảng bá / tháng",
+    "staff_max_seats": "Số nhân viên"
+  },
+  "auditAction": {
+    "admin_subscription_plan_assigned": "Đã gán gói",
+    "admin_trial_extended": "Đã gia hạn dùng thử",
+    "admin_paid_until_set": "Đã đặt ngày đã trả đến",
+    "admin_salon_suspended": "Đã tạm khóa salon",
+    "admin_salon_unsuspended": "Đã mở khóa salon",
+    "admin_entitlement_override_created": "Đã thêm ngoại lệ",
+    "admin_entitlement_override_revoked": "Đã thu hồi ngoại lệ",
+    "admin_founding_partner_granted": "Đã cấp đối tác sáng lập",
+    "admin_founding_partner_revoked": "Đã thu hồi đối tác sáng lập"
+  },
+  "actor": {
+    "platform_admin": "Quản trị viên GuGu",
+    "user": "Thành viên",
+    "system": "Hệ thống",
+    "anonymous": "Ẩn danh",
+    "agent": "Trợ lý AI",
+    "integration": "Tích hợp"
+  },
+  "errors": {
+    "generic": "Đã có lỗi. Vui lòng thử lại.",
+    "common_validation_failed": "Kiểm tra lại các trường: cần lý do ít nhất 5 ký tự.",
+    "common_forbidden": "Vai trò quản trị của bạn không được phép làm việc này.",
+    "common_not_found": "Không tìm thấy.",
+    "admin_step_up_required": "Đăng nhập lại để xác nhận thao tác này.",
+    "admin_already_suspended": "Salon đã bị tạm khóa.",
+    "admin_not_suspended": "Salon không bị tạm khóa.",
+    "admin_no_current_subscription": "Salon không có thuê bao trả phí để cập nhật.",
+    "admin_trial_not_extendable": "Salon đang dùng gói trả phí; không thể đặt dùng thử.",
+    "admin_invalid_date": "Ngày nằm ngoài phạm vi cho phép.",
+    "admin_override_not_active": "Ngoại lệ này không còn hiệu lực.",
+    "admin_invalid_override_value": "Giá trị không phù hợp với quyền sử dụng này.",
+    "admin_founding_partner_exists": "Đã là đối tác sáng lập.",
+    "admin_founding_partner_missing": "Không phải đối tác sáng lập.",
+    "admin_usage_month_unavailable": "Chỉ lưu mức sử dụng của tháng này và tháng trước.",
+    "subscription_invalid_transition": "Không thể thay đổi như vậy ở trạng thái thuê bao hiện tại."
+  }
+}

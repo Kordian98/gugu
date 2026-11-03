@@ -62,12 +62,7 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 /** JSON metadata value (admin entries nest `before` / `after` snapshots). */
 export type AuditValue =
-  | string
-  | number
-  | boolean
-  | null
-  | readonly AuditValue[]
-  | { readonly [key: string]: AuditValue };
+  string | number | boolean | null | readonly AuditValue[] | { readonly [key: string]: AuditValue };
 
 export interface AuditEntry {
   action: AuditAction;
@@ -105,7 +100,7 @@ export class AuditService {
         requestId: ctx?.requestId ?? null,
         ipPrefix: entry.ipPrefix ?? null,
         userAgent: entry.userAgent?.slice(0, 256) ?? null,
-        metadata: (entry.metadata ?? {}) as Prisma.InputJsonObject,
+        metadata: entry.metadata ?? {},
       },
       select: { id: true },
     });

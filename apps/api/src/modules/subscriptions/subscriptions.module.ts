@@ -25,6 +25,12 @@ import { RedisEntitlementCache } from "./infra/redis-entitlement-cache";
     EntitlementGuard,
     { provide: ENTITLEMENT_CACHE, useClass: RedisEntitlementCache },
   ],
-  exports: [EntitlementService, SubscriptionsFacade, SubscriptionAdminService, EntitlementGuard, Clock],
+  exports: [
+    EntitlementService,
+    SubscriptionsFacade,
+    SubscriptionAdminService,
+    EntitlementGuard,
+    Clock,
+  ],
 })
 export class SubscriptionsModule {}

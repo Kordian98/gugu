@@ -1,6 +1,3 @@
-import { ShellScreen } from "@/features/shell/ShellScreen";
+import { OverviewScreen } from "@/features/admin/OverviewScreen";
 
-// Route-group shell screen; replaced by the owning topic's real screens.
-export default function AdminHome() {
-  return <ShellScreen area="admin" />;
-}
+export default OverviewScreen;

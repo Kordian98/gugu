@@ -75,7 +75,9 @@ describe("permission matrix", () => {
   });
 
   it("platform roles: super_admin has everything, support_admin no commercial writes (R-AD4)", () => {
-    expect([...PLATFORM_ROLE_PERMISSIONS.super_admin].sort()).toEqual([...PLATFORM_PERMISSIONS].sort());
+    expect([...PLATFORM_ROLE_PERMISSIONS.super_admin].sort()).toEqual(
+      [...PLATFORM_PERMISSIONS].sort(),
+    );
     const support = PLATFORM_ROLE_PERMISSIONS.support_admin;
     expect(support.has("platform.directory.read")).toBe(true);
     expect(support.has("platform.usage.read")).toBe(true);

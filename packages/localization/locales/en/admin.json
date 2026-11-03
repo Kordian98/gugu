@@ -1,0 +1,382 @@
+{
+  "shell": {
+    "brand": "GuGu Admin",
+    "docTitle": "{{page}} · GuGu Admin",
+    "nav": {
+      "overview": "Overview",
+      "salons": "Salons"
+    },
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "themeLabel": "Theme",
+    "signOut": "Sign out",
+    "role": {
+      "super_admin": "Super admin",
+      "support_admin": "Support"
+    },
+    "staffOnly": "GuGu staff only"
+  },
+  "guard": {
+    "deniedTitle": "No access",
+    "deniedBody": "This area is for GuGu staff with a platform role. Your account has none.",
+    "toWorkspace": "Go to my workspace"
+  },
+  "common": {
+    "loading": "Loading…",
+    "loadFailed": "Could not load. Try again.",
+    "retry": "Retry",
+    "none": "—",
+    "yes": "Yes",
+    "no": "No",
+    "cancel": "Cancel",
+    "back": "Back",
+    "unlimited": "Unlimited",
+    "never": "Never"
+  },
+  "plan": {
+    "basic": "Basic",
+    "pro": "Pro",
+    "ultra": "Ultra",
+    "trial": "Trial",
+    "none": "No plan"
+  },
+  "subStatus": {
+    "trialing": "Trialing",
+    "active": "Active",
+    "past_due": "Past due",
+    "cancelled": "Cancelled",
+    "expired": "Expired",
+    "none": "None"
+  },
+  "salonStatus": {
+    "draft": "Draft",
+    "pending_review": "In review",
+    "active": "Live",
+    "suspended": "Suspended",
+    "closed": "Closed"
+  },
+  "overview": {
+    "title": "Overview",
+    "subtitle": "AI cost against caps and trials ending soon, {{month}}",
+    "month": "Month",
+    "thisMonth": "This month",
+    "lastMonth": "Last month",
+    "stats": {
+      "salons": "Salons",
+      "aiCost": "AI cost (GuGu)",
+      "nearCap": "At ≥ 80% of AI cap",
+      "zaloTemplates": "Zalo template messages",
+      "zaloCost": "Est. {{amount}}"
+    },
+    "costNote": "Costs GuGu pays (AI from the hard-cap meter, Zalo template estimates). Not salon revenue.",
+    "byPlan": "Cost by plan",
+    "byPlanRow": "{{count}} salons · AI {{ai}} · Zalo {{zalo}}",
+    "trialsTitle": "Trials ending in the next 7 days",
+    "trialsEmpty": "No trial ends in the next 7 days.",
+    "trialEnds": "Ends {{date}}",
+    "usageTitle": "AI cost per salon",
+    "usageEmpty": "No salons yet.",
+    "col": {
+      "salon": "Salon",
+      "plan": "Plan",
+      "ai": "AI cost / cap",
+      "zalo": "Zalo templates"
+    },
+    "aiOfCap": "{{used}} of {{cap}}",
+    "zaloOfLimit": "{{sent}} of {{limit}}",
+    "loadMore": "Show more"
+  },
+  "salons": {
+    "title": "Salons",
+    "subtitle": "{{count}} salons",
+    "search": "Search name or slug",
+    "filters": "Filters",
+    "clear": "Clear filters",
+    "filter": {
+      "plan": "Plan",
+      "status": "Subscription",
+      "trialEnds": "Trial ends",
+      "activity": "Activity",
+      "zalo": "Zalo",
+      "founding": "Founding partner",
+      "created": "Created",
+      "bookings": "Bookings",
+      "sort": "Sort",
+      "any": "Any"
+    },
+    "trialEnds": {
+      "7": "Within 7 days",
+      "14": "Within 14 days"
+    },
+    "activity": {
+      "active7": "Active in last 7 days",
+      "active30": "Active in last 30 days",
+      "inactive30": "Inactive 30+ days"
+    },
+    "zalo": {
+      "true": "Connected",
+      "false": "Not connected"
+    },
+    "founding": "Founding",
+    "created": {
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days"
+    },
+    "bookings": {
+      "1": "At least 1",
+      "10": "At least 10",
+      "100": "At least 100"
+    },
+    "sort": {
+      "created_desc": "Newest",
+      "created_asc": "Oldest",
+      "name_asc": "Name A–Z",
+      "trial_ends_asc": "Trial ends soonest",
+      "last_activity_desc": "Recently active",
+      "bookings_desc": "Most bookings"
+    },
+    "col": {
+      "salon": "Salon",
+      "plan": "Plan",
+      "trialEnds": "Trial ends",
+      "paidUntil": "Paid until",
+      "created": "Created",
+      "activity": "Last activity",
+      "bookings": "Bookings (30 d)",
+      "zalo": "Zalo"
+    },
+    "bookingsValue": "{{total}} ({{recent}})",
+    "overdue": "Overdue",
+    "zaloOn": "Connected",
+    "zaloOff": "—",
+    "empty": "No salons match these filters.",
+    "loadMore": "Show more"
+  },
+  "detail": {
+    "back": "All salons",
+    "created": "Created {{date}}",
+    "suspendedSince": "Suspended since {{date}}",
+    "org": "Organisation: {{name}}",
+    "lastActivity": "Last activity: {{date}}",
+    "suspend": "Suspend",
+    "unsuspend": "Lift suspension",
+    "subscription": {
+      "title": "Subscription",
+      "none": "This salon has never had a subscription.",
+      "plan": "Plan",
+      "status": "Status",
+      "interval": "Billing",
+      "trialEnds": "Trial ends",
+      "paidUntil": "Paid until",
+      "invoicing": "Invoicing entity",
+      "manual": "Manual billing: invoices are issued outside GuGu; nothing is charged automatically.",
+      "assign": "Assign plan",
+      "extendTrial": "Extend trial",
+      "setPaidUntil": "Set paid until",
+      "history": "History",
+      "historyEmpty": "No changes yet.",
+      "historyRow": "{{from}} → {{to}}",
+      "by": "by {{actor}}"
+    },
+    "interval": {
+      "month": "Monthly",
+      "year": "Yearly"
+    },
+    "invoicing": {
+      "tbd": "To be decided",
+      "pl": "Polish company",
+      "vn": "Vietnamese company"
+    },
+    "usage": {
+      "title": "Usage this month ({{month}})",
+      "ai": "AI cost",
+      "aiValue": "{{used}} of {{cap}}",
+      "zalo": "Zalo template messages",
+      "zaloValue": "{{sent}} of {{limit}} · est. {{cost}}",
+      "bookings": "Bookings",
+      "bookingsValue": "{{total}} total · {{recent}} in 30 days",
+      "zaloConnection": "Zalo OA",
+      "zaloStatus": {
+        "connected": "Connected",
+        "needs_reauth": "Needs reconnect",
+        "disconnected": "Disconnected",
+        "none": "Not connected"
+      }
+    },
+    "founding": {
+      "title": "Founding partner",
+      "body": "Salons that pay before the marketplace launches pay no booking fees for 2 years after launch (stored on the organisation).",
+      "yes": "Founding partner since {{date}} ({{source}})",
+      "revoked": "Revoked on {{date}}",
+      "no": "Not a founding partner",
+      "source": {
+        "paid_before_launch": "paid before launch",
+        "admin_grant": "granted by admin"
+      },
+      "grant": "Grant",
+      "revoke": "Revoke"
+    },
+    "entitlements": {
+      "title": "Entitlements",
+      "body": "Resolved value for this salon (plan, then active overrides). The API enforces these.",
+      "on": "On",
+      "off": "Off",
+      "overrides": "Overrides",
+      "overridesEmpty": "No overrides.",
+      "add": "Add override",
+      "revoke": "Revoke",
+      "overrideRow": "{{key}} = {{value}}",
+      "until": "until {{date}}",
+      "inactive": "Inactive",
+      "active": "Active"
+    },
+    "members": {
+      "title": "Members",
+      "empty": "No members.",
+      "lastSeen": "Last seen {{date}}",
+      "role": {
+        "owner": "Owner",
+        "manager": "Manager",
+        "receptionist": "Receptionist",
+        "staff": "Staff"
+      },
+      "status": {
+        "invited": "Invited",
+        "pending_verification": "Pending",
+        "active": "Active",
+        "removed": "Removed"
+      }
+    },
+    "audit": {
+      "title": "Recent audit",
+      "empty": "No audited actions yet.",
+      "reason": "Reason: {{reason}}"
+    }
+  },
+  "actions": {
+    "reason": "Reason",
+    "reasonHint": "Required, at least 5 characters. Stored in the audit log; no personal data.",
+    "submit": "Save",
+    "saving": "Saving…",
+    "done": "Saved",
+    "stepUpTitle": "Sign in again to confirm",
+    "stepUpBody": "This action needs a sign-in from the last {{minutes}} minutes. Sign out, sign in again and repeat it.",
+    "stepUpAction": "Sign in again",
+    "highRisk": "High-risk action: needs a recent sign-in.",
+    "assign": {
+      "title": "Assign plan",
+      "plan": "Plan",
+      "interval": "Billing interval",
+      "paidUntil": "Paid until (end of day, Vietnam time)",
+      "invoicing": "Invoicing entity"
+    },
+    "trial": {
+      "title": "Extend trial",
+      "until": "New trial end (end of day, Vietnam time)",
+      "hint": "At most 90 days from today. An expired trial is re-opened."
+    },
+    "paidUntil": {
+      "title": "Set paid until",
+      "until": "Paid until (end of day, Vietnam time)"
+    },
+    "suspend": {
+      "title": "Suspend salon",
+      "body": "Members keep read access; every change and every paid feature stops until the suspension is lifted."
+    },
+    "unsuspend": {
+      "title": "Lift suspension",
+      "body": "The salon returns to its previous status and plan features."
+    },
+    "override": {
+      "title": "Add override",
+      "key": "Entitlement",
+      "value": "Value",
+      "boolOn": "On",
+      "boolOff": "Off",
+      "limit": "Limit (number)",
+      "unlimited": "Unlimited",
+      "expires": "Expires (end of day, Vietnam time)",
+      "hint": "Every override expires (at most 366 days)."
+    },
+    "revokeOverride": {
+      "title": "Revoke override",
+      "body": "The plan value applies again at once."
+    },
+    "foundingGrant": {
+      "title": "Grant founding partner",
+      "body": "Marks the salon's organisation as a founding partner (admin grant)."
+    },
+    "foundingRevoke": {
+      "title": "Revoke founding partner",
+      "body": "Removes the founding-partner flag from the organisation. It is never re-set automatically."
+    },
+    "dates": {
+      "d30": "+30 days",
+      "d90": "+90 days",
+      "y1": "+1 year",
+      "d7": "+7 days",
+      "d14": "+14 days"
+    },
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month"
+  },
+  "entitlementKey": {
+    "crm_core": "CRM",
+    "calendar_core": "Calendar",
+    "booking_marketplace_listing": "Marketplace listing",
+    "ai_onboarding_import": "AI onboarding import",
+    "ai_agent_enabled": "AI assistant",
+    "ai_monthly_review": "Monthly AI review",
+    "zalo_oa_connect": "Zalo OA connect",
+    "zalo_inbox": "Zalo inbox",
+    "analytics_chain_reporting": "Chain reporting",
+    "analytics_advanced": "Advanced analytics",
+    "ai_monthly_cost_cap_vnd": "AI cost cap (VND / month)",
+    "zalo_template_monthly_messages": "Zalo template messages / month",
+    "notifications_sms_monthly_messages": "SMS / month",
+    "salon_max_locations": "Max locations",
+    "promotion_weekly_credits_per_month": "Promotion credits / month",
+    "staff_max_seats": "Staff seats"
+  },
+  "auditAction": {
+    "admin_subscription_plan_assigned": "Plan assigned",
+    "admin_trial_extended": "Trial extended",
+    "admin_paid_until_set": "Paid until set",
+    "admin_salon_suspended": "Salon suspended",
+    "admin_salon_unsuspended": "Suspension lifted",
+    "admin_entitlement_override_created": "Override added",
+    "admin_entitlement_override_revoked": "Override revoked",
+    "admin_founding_partner_granted": "Founding partner granted",
+    "admin_founding_partner_revoked": "Founding partner revoked"
+  },
+  "actor": {
+    "platform_admin": "GuGu admin",
+    "user": "Member",
+    "system": "System",
+    "anonymous": "Anonymous",
+    "agent": "AI agent",
+    "integration": "Integration"
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again.",
+    "common_validation_failed": "Check the fields: a reason of at least 5 characters is required.",
+    "common_forbidden": "Your platform role does not allow this.",
+    "common_not_found": "Not found.",
+    "admin_step_up_required": "Sign in again to confirm this action.",
+    "admin_already_suspended": "The salon is already suspended.",
+    "admin_not_suspended": "The salon is not suspended.",
+    "admin_no_current_subscription": "The salon has no paid subscription to update.",
+    "admin_trial_not_extendable": "The salon is on a paid plan; a trial cannot be set.",
+    "admin_invalid_date": "The date is out of range.",
+    "admin_override_not_active": "This override is no longer active.",
+    "admin_invalid_override_value": "This value does not fit the entitlement.",
+    "admin_founding_partner_exists": "Already a founding partner.",
+    "admin_founding_partner_missing": "Not a founding partner.",
+    "admin_usage_month_unavailable": "Usage is kept for the current and the previous month only.",
+    "subscription_invalid_transition": "This change is not allowed in the current subscription state."
+  }
+}

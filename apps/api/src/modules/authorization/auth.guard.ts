@@ -21,6 +21,13 @@ import { MembershipService } from "./membership.service";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+/** Suspended by GuGu (topic 12 M12.6): members keep read access, every write is refused. */
+function assertWritable(salon: { suspended?: boolean }, method: string): void {
+  if (salon.suspended && !SAFE_METHODS.has(method)) {
+    throw new AppError(403, SALON_SUSPENDED_ERROR, "Salon is suspended");
+  }
+}
+
 /**
  * Global guard (spec 05 §3.3): authenticates the session (web cookie or native bearer), enforces
  * CSRF for cookie-authenticated writes, then applies the route's auth policy. Salon routes get a
@@ -79,10 +86,7 @@ export class AuthGuard implements CanActivate {
         if (!salon.permissions.has(policy.permission)) {
           throw new AppError(403, COMMON_ERRORS.forbidden, "Permission required");
         }
-        // Suspended by GuGu (topic 12 M12.6): members keep read access, every write is refused.
-        if (salon.suspended && !SAFE_METHODS.has(req.method)) {
-          throw new AppError(403, SALON_SUSPENDED_ERROR, "Salon is suspended");
-        }
+        assertWritable(salon, req.method);
         return true;
       }
     }

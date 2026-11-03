@@ -254,7 +254,8 @@
     "resource_type_in_use": "Loại này đang được dịch vụ sử dụng hoặc còn phòng/thiết bị đang hoạt động.",
     "resource_in_use": "Không thể giảm hoặc tắt: đã có lịch hẹn sắp tới đang dùng chỗ này.",
     "resource_not_found": "Không tìm thấy phòng/thiết bị.",
-    "resource_type_not_found": "Không tìm thấy loại phòng/thiết bị."
+    "resource_type_not_found": "Không tìm thấy loại phòng/thiết bị.",
+    "salon_suspended": "Salon đang bị GuGu tạm khóa. Bạn vẫn xem được dữ liệu nhưng không thể thay đổi. Vui lòng liên hệ bộ phận hỗ trợ GuGu."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",

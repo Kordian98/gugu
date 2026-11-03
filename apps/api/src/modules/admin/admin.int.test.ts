@@ -33,7 +33,11 @@ import { RedisService } from "../../infrastructure/redis/redis.service";
 import { aiCostMonth } from "../ai-import/ai-import.facade";
 import { AuditService } from "../audit/audit.facade";
 import { listRoutes, type RouteInfo } from "../authorization/authorization.facade";
-import { Clock, EntitlementService, SubscriptionsFacade } from "../subscriptions/subscriptions.facade";
+import {
+  Clock,
+  EntitlementService,
+  SubscriptionsFacade,
+} from "../subscriptions/subscriptions.facade";
 
 const DAY = 86_400_000;
 const MIN = 60_000;
@@ -157,22 +161,28 @@ describe("platform admin (integration)", () => {
       const members = {
         owner: await bearerFor(app, own.ownerUserId),
         manager: await bearerFor(app, await addSalonMember(prisma, own.salonId, "manager")),
-        receptionist: await bearerFor(app, await addSalonMember(prisma, own.salonId, "receptionist")),
+        receptionist: await bearerFor(
+          app,
+          await addSalonMember(prisma, own.salonId, "receptionist"),
+        ),
         staff: await bearerFor(app, await addSalonMember(prisma, own.salonId, "staff")),
       };
       const id = "0190f000-0000-7000-8000-0000000000aa";
       for (const route of adminRoutes) {
         const { path, body } =
-          route.method === "GET"
-            ? { path: route.path, body: {} }
-            : validBody(route, id);
+          route.method === "GET" ? { path: route.path, body: {} } : validBody(route, id);
         const url = `/api/v1/${path.replace(":salonId", own.salonId)}`;
         const method = route.method.toLowerCase() as "get" | "post";
-        const anon = await request(http(app))[method](url).send({ ...body, reason: REASON });
-        expect({ route: route.path, status: anon.status }).toEqual({ route: route.path, status: 401 });
+        const anon = await request(http(app))
+          [method](url)
+          .send({ ...body, reason: REASON });
+        expect({ route: route.path, status: anon.status }).toEqual({
+          route: route.path,
+          status: 401,
+        });
         for (const [role, bearer] of Object.entries(members)) {
-          const res = await request(http(app))
-            [method](url)
+          const agent = request(http(app));
+          const res = await agent[method](url)
             .set("authorization", bearer)
             .send({ ...body, reason: REASON });
           expect({ route: route.path, role, status: res.status }).toEqual({
@@ -198,15 +208,25 @@ describe("platform admin (integration)", () => {
           const res = await request(http(app))
             .get(`/api/v1/${route.path.replace(":salonId", s.salonId)}`)
             .set("authorization", supportAdmin);
-          expect({ route: route.path, ok: res.status < 400 }).toEqual({ route: route.path, ok: allowed });
+          expect({ route: route.path, ok: res.status < 400 }).toEqual({
+            route: route.path,
+            ok: allowed,
+          });
         } else {
           expect({ route: route.path, allowed }).toEqual({ route: route.path, allowed: false });
           const { path, body } = validBody(route, "0190f000-0000-7000-8000-0000000000aa");
-          const res = await post(path.replace("admin/", "").replace(":salonId", s.salonId), supportAdmin, {
-            ...body,
-            reason: REASON,
+          const res = await post(
+            path.replace("admin/", "").replace(":salonId", s.salonId),
+            supportAdmin,
+            {
+              ...body,
+              reason: REASON,
+            },
+          );
+          expect({ route: route.path, status: res.status }).toEqual({
+            route: route.path,
+            status: 403,
           });
-          expect({ route: route.path, status: res.status }).toEqual({ route: route.path, status: 403 });
         }
       }
       expect(await auditCount(s.salonId)).toBe(0);
@@ -222,7 +242,11 @@ describe("platform admin (integration)", () => {
         const { path, body } = validBody(route, "0190f000-0000-7000-8000-0000000000aa");
         const target = path.replace("admin/", "").replace(":salonId", s.salonId);
         for (const reason of [undefined, "", "  ", "x"]) {
-          const res = await post(target, superAdmin, reason === undefined ? body : { ...body, reason });
+          const res = await post(
+            target,
+            superAdmin,
+            reason === undefined ? body : { ...body, reason },
+          );
           expect({ route: route.path, reason, status: res.status }).toEqual({
             route: route.path,
             reason,
@@ -263,9 +287,13 @@ describe("platform admin (integration)", () => {
     });
 
     it("unknown salon → 404", async () => {
-      const res = await post("salons/0190f000-0000-7000-8000-0000000000ff/founding-partner", superAdmin, {
-        reason: REASON,
-      });
+      const res = await post(
+        "salons/0190f000-0000-7000-8000-0000000000ff/founding-partner",
+        superAdmin,
+        {
+          reason: REASON,
+        },
+      );
       expect(res.status).toBe(404);
       const get = await request(http(app))
         .get("/api/v1/admin/salons/0190f000-0000-7000-8000-0000000000ff")
@@ -309,7 +337,13 @@ describe("platform admin (integration)", () => {
         reason: REASON,
         platformRole: "super_admin",
         before: { plan: "trial", status: "trialing", paidUntil: expect.any(String) as string },
-        after: { plan: "ultra", status: "active", paidUntil, invoicingEntity: "pl", trialEndsAt: null },
+        after: {
+          plan: "ultra",
+          status: "active",
+          paidUntil,
+          invoicingEntity: "pl",
+          trialEndsAt: null,
+        },
       });
       const event = await prisma.subscriptionEvent.findFirstOrThrow({
         where: { salonId: s.salonId, toStatus: "active" },
@@ -324,7 +358,10 @@ describe("platform admin (integration)", () => {
       const fp = await prisma.foundingPartner.findUniqueOrThrow({
         where: { organizationId: s.organizationId },
       });
-      expect(fp).toMatchObject({ source: "paid_before_launch", qualifyingSubscriptionId: event.subscriptionId });
+      expect(fp).toMatchObject({
+        source: "paid_before_launch",
+        qualifyingSubscriptionId: event.subscriptionId,
+      });
 
       // Downgrade keeps the same current row and the flag; one current subscription only.
       await post(`salons/${s.salonId}/subscription/plan`, superAdmin, {
@@ -500,9 +537,13 @@ describe("platform admin (integration)", () => {
 
       // Another salon's override id is not found through this salon.
       const other = await newSalon("OverrideOther");
-      const cross = await post(`salons/${other.salonId}/overrides/${override.id}/revoke`, superAdmin, {
-        reason: REASON,
-      });
+      const cross = await post(
+        `salons/${other.salonId}/overrides/${override.id}/revoke`,
+        superAdmin,
+        {
+          reason: REASON,
+        },
+      );
       expect(cross.status).toBe(404);
     });
   });
@@ -514,7 +555,9 @@ describe("platform admin (integration)", () => {
       const owner = await bearerFor(app, s.ownerUserId);
 
       clock.offsetMs = 16 * MIN; // the admin signed in more than 15 minutes ago
-      const stale = await post(`salons/${s.salonId}/suspend`, superAdmin, { reason: "Fraud report" });
+      const stale = await post(`salons/${s.salonId}/suspend`, superAdmin, {
+        reason: "Fraud report",
+      });
       expect(stale.status).toBe(403);
       expect(problemSchema.parse(stale.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
       expect(await auditCount(s.salonId)).toBe(0);
@@ -538,14 +581,20 @@ describe("platform admin (integration)", () => {
       expect(write.status).toBe(403);
       expect(problemSchema.parse(write.body).code).toBe(SALON_SUSPENDED_ERROR);
 
-      const twice = await post(`salons/${s.salonId}/suspend`, superAdmin, { reason: "Fraud report" });
+      const twice = await post(`salons/${s.salonId}/suspend`, superAdmin, {
+        reason: "Fraud report",
+      });
       expect(problemSchema.parse(twice.body).code).toBe(ADMIN_ERRORS.alreadySuspended);
 
-      await post(`salons/${s.salonId}/unsuspend`, superAdmin, { reason: "Cleared after review" }).expect(
-        200,
-      );
+      await post(`salons/${s.salonId}/unsuspend`, superAdmin, {
+        reason: "Cleared after review",
+      }).expect(200);
       const salon = await prisma.salon.findUniqueOrThrow({ where: { id: s.salonId } });
-      expect(salon).toMatchObject({ status: "draft", suspendedAt: null, preSuspensionStatus: null });
+      expect(salon).toMatchObject({
+        status: "draft",
+        suspendedAt: null,
+        preSuspensionStatus: null,
+      });
       expect((await entitlements.forSalon(s.salonId)).entitlements["crm.core"]).toBe(true);
       const actions = await prisma.auditLog.findMany({
         where: { salonId: s.salonId, actorType: "platform_admin" },
@@ -569,7 +618,9 @@ describe("platform admin (integration)", () => {
         reason: "Signed letter of intent before launch",
       }).expect(200);
       expect((await entitlements.forSalon(s.salonId)).foundingPartner).not.toBeNull();
-      const dup = await post(`salons/${s.salonId}/founding-partner`, superAdmin, { reason: REASON });
+      const dup = await post(`salons/${s.salonId}/founding-partner`, superAdmin, {
+        reason: REASON,
+      });
       expect(problemSchema.parse(dup.body).code).toBe(ADMIN_ERRORS.foundingPartnerExists);
 
       clock.offsetMs = 20 * MIN;
@@ -619,9 +670,9 @@ describe("platform admin (integration)", () => {
       expect((await list("")).total).toBe(3);
       expect((await list("plan=pro")).items.map((i) => i.id)).toEqual([paid.salonId]);
       expect((await list("plan=none")).items.map((i) => i.id)).toEqual([none.salonId]);
-      expect((await list("subscriptionStatus=trialing&trialEndsWithinDays=14")).items.map((i) => i.id)).toEqual([
-        trial.salonId,
-      ]);
+      expect(
+        (await list("subscriptionStatus=trialing&trialEndsWithinDays=14")).items.map((i) => i.id),
+      ).toEqual([trial.salonId]);
       expect((await list("trialEndsWithinDays=7")).items).toHaveLength(0);
       expect((await list("foundingPartner=true")).items.map((i) => i.id)).toEqual([paid.salonId]);
       expect((await list("zaloConnected=false")).total).toBe(3);

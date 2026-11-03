@@ -1,4 +1,5 @@
 import enA11y from "../locales/en/a11y.json";
+import enAdmin from "../locales/en/admin.json";
 import enAuth from "../locales/en/auth.json";
 import enCommon from "../locales/en/common.json";
 import enCrm from "../locales/en/crm.json";
@@ -7,6 +8,7 @@ import enLanding from "../locales/en/landing.json";
 import enMarketing from "../locales/en/marketing.json";
 import enZalo from "../locales/en/zalo.json";
 import viA11y from "../locales/vi/a11y.json";
+import viAdmin from "../locales/vi/admin.json";
 import viAuth from "../locales/vi/auth.json";
 import viCommon from "../locales/vi/common.json";
 import viCrm from "../locales/vi/crm.json";
@@ -26,6 +28,7 @@ export const resources = {
     crm: viCrm,
     landing: viLanding,
     zalo: viZalo,
+    admin: viAdmin,
   },
   en: {
     common: enCommon,
@@ -36,6 +39,7 @@ export const resources = {
     crm: enCrm,
     landing: enLanding,
     zalo: enZalo,
+    admin: enAdmin,
   },
 } as const;
 
@@ -48,6 +52,7 @@ export const NAMESPACES = [
   "crm",
   "landing",
   "zalo",
+  "admin",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 export type Resources = (typeof resources)["vi"];

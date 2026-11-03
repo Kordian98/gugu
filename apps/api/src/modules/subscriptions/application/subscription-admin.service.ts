@@ -132,7 +132,10 @@ export class SubscriptionAdminService {
   ): Promise<AdminChange> {
     const now = this.clock.now();
     const trialEndsAt = new Date(trialEndsAtIso);
-    if (trialEndsAt <= now || trialEndsAt.getTime() > now.getTime() + MAX_TRIAL_AHEAD_DAYS * DAY_MS) {
+    if (
+      trialEndsAt <= now ||
+      trialEndsAt.getTime() > now.getTime() + MAX_TRIAL_AHEAD_DAYS * DAY_MS
+    ) {
       throw invalidDate("trialEndsAt");
     }
     const trialPlan = await db.plan.findUniqueOrThrow({ where: { code: "trial" } });
@@ -287,7 +290,12 @@ export class SubscriptionAdminService {
     const row = await db.foundingPartner.upsert({
       where: { organizationId },
       create: { organizationId, qualifiedAt: now, source: "admin_grant" },
-      update: { qualifiedAt: now, source: "admin_grant", revokedAt: null, qualifyingSubscriptionId: null },
+      update: {
+        qualifiedAt: now,
+        source: "admin_grant",
+        revokedAt: null,
+        qualifyingSubscriptionId: null,
+      },
     });
     return {
       before: existing ? foundingSnapshot(existing) : null,

@@ -1,4 +1,14 @@
-import { applyDecorators, Body, Controller, Get, HttpCode, Param, Post, Query, Req } from "@nestjs/common";
+import {
+  applyDecorators,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Query,
+  Req,
+} from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import {
@@ -41,11 +51,27 @@ type OverrideParams = { salonId: string; overrideId: string };
 
 const MutationResponses = () =>
   applyDecorators(
-    ApiResponse({ status: 200, description: "Done; audit row id.", standardSchema: adminMutationResultSchema }),
-    ApiResponse({ status: 400, description: "Validation (reason required).", standardSchema: problemSchema }),
-    ApiResponse({ status: 403, description: "Not a platform admin, missing permission or step-up.", standardSchema: problemSchema }),
+    ApiResponse({
+      status: 200,
+      description: "Done; audit row id.",
+      standardSchema: adminMutationResultSchema,
+    }),
+    ApiResponse({
+      status: 400,
+      description: "Validation (reason required).",
+      standardSchema: problemSchema,
+    }),
+    ApiResponse({
+      status: 403,
+      description: "Not a platform admin, missing permission or step-up.",
+      standardSchema: problemSchema,
+    }),
     ApiResponse({ status: 404, description: "Salon not found.", standardSchema: problemSchema }),
-    ApiResponse({ status: 409, description: "Not allowed in the current state.", standardSchema: problemSchema }),
+    ApiResponse({
+      status: 409,
+      description: "Not allowed in the current state.",
+      standardSchema: problemSchema,
+    }),
   );
 
 /**
@@ -67,8 +93,14 @@ export class AdminController {
   @Get("salons")
   @RequirePlatformPermission("platform.directory.read")
   @ApiOperation({ operationId: "admin.listSalons", summary: "Salon directory with filters." })
-  @ApiResponse({ status: 200, description: "Page of salons.", standardSchema: adminSalonListSchema })
-  list(@Query({ schema: adminSalonListQuerySchema }) q: AdminSalonListQuery): Promise<AdminSalonList> {
+  @ApiResponse({
+    status: 200,
+    description: "Page of salons.",
+    standardSchema: adminSalonListSchema,
+  })
+  list(
+    @Query({ schema: adminSalonListQuerySchema }) q: AdminSalonListQuery,
+  ): Promise<AdminSalonList> {
     return this.salons.list(q);
   }
 
@@ -88,7 +120,8 @@ export class AdminController {
   @RequirePlatformPermission("platform.usage.read")
   @ApiOperation({
     operationId: "admin.usageOverview",
-    summary: "AI cost vs cap and Zalo template sends per salon for a month; trials ending in 7 days.",
+    summary:
+      "AI cost vs cap and Zalo template sends per salon for a month; trials ending in 7 days.",
   })
   @ApiResponse({ status: 200, description: "Usage.", standardSchema: adminUsageOverviewSchema })
   usageOverview(
@@ -113,7 +146,13 @@ export class AdminController {
   ): Promise<AdminMutationResult> {
     const { reason, ...input } = body;
     return this.actions.run(
-      { admin, action: "admin.subscription_plan_assigned", salonId: p.salonId, reason, meta: requestMeta(req) },
+      {
+        admin,
+        action: "admin.subscription_plan_assigned",
+        salonId: p.salonId,
+        reason,
+        meta: requestMeta(req),
+      },
       (db, actor) => this.subscriptions.assignPlan(db, p.salonId, input, actor, reason),
     );
   }
@@ -133,8 +172,15 @@ export class AdminController {
     @Req() req: Request,
   ): Promise<AdminMutationResult> {
     return this.actions.run(
-      { admin, action: "admin.trial_extended", salonId: p.salonId, reason: body.reason, meta: requestMeta(req) },
-      (db, actor) => this.subscriptions.extendTrial(db, p.salonId, body.trialEndsAt, actor, body.reason),
+      {
+        admin,
+        action: "admin.trial_extended",
+        salonId: p.salonId,
+        reason: body.reason,
+        meta: requestMeta(req),
+      },
+      (db, actor) =>
+        this.subscriptions.extendTrial(db, p.salonId, body.trialEndsAt, actor, body.reason),
     );
   }
 
@@ -153,8 +199,15 @@ export class AdminController {
     @Req() req: Request,
   ): Promise<AdminMutationResult> {
     return this.actions.run(
-      { admin, action: "admin.paid_until_set", salonId: p.salonId, reason: body.reason, meta: requestMeta(req) },
-      (db, actor) => this.subscriptions.setPaidUntil(db, p.salonId, body.paidUntil, actor, body.reason),
+      {
+        admin,
+        action: "admin.paid_until_set",
+        salonId: p.salonId,
+        reason: body.reason,
+        meta: requestMeta(req),
+      },
+      (db, actor) =>
+        this.subscriptions.setPaidUntil(db, p.salonId, body.paidUntil, actor, body.reason),
     );
   }
 
@@ -173,7 +226,14 @@ export class AdminController {
     @Req() req: Request,
   ): Promise<AdminMutationResult> {
     return this.actions.run(
-      { admin, action: "admin.salon_suspended", salonId: p.salonId, reason: body.reason, meta: requestMeta(req), stepUp: true },
+      {
+        admin,
+        action: "admin.salon_suspended",
+        salonId: p.salonId,
+        reason: body.reason,
+        meta: requestMeta(req),
+        stepUp: true,
+      },
       (db) => suspendSalon(db, p.salonId, this.clock.now()),
     );
   }
@@ -193,7 +253,14 @@ export class AdminController {
     @Req() req: Request,
   ): Promise<AdminMutationResult> {
     return this.actions.run(
-      { admin, action: "admin.salon_unsuspended", salonId: p.salonId, reason: body.reason, meta: requestMeta(req), stepUp: true },
+      {
+        admin,
+        action: "admin.salon_unsuspended",
+        salonId: p.salonId,
+        reason: body.reason,
+        meta: requestMeta(req),
+        stepUp: true,
+      },
       (db) => unsuspendSalon(db, p.salonId),
     );
   }
@@ -214,7 +281,13 @@ export class AdminController {
   ): Promise<AdminMutationResult> {
     const { reason, ...input } = body;
     return this.actions.run(
-      { admin, action: "admin.entitlement_override_created", salonId: p.salonId, reason, meta: requestMeta(req) },
+      {
+        admin,
+        action: "admin.entitlement_override_created",
+        salonId: p.salonId,
+        reason,
+        meta: requestMeta(req),
+      },
       (db, actor) => this.subscriptions.createOverride(db, p.salonId, input, actor, reason),
     );
   }
@@ -231,7 +304,13 @@ export class AdminController {
     @Req() req: Request,
   ): Promise<AdminMutationResult> {
     return this.actions.run(
-      { admin, action: "admin.entitlement_override_revoked", salonId: p.salonId, reason: body.reason, meta: requestMeta(req) },
+      {
+        admin,
+        action: "admin.entitlement_override_revoked",
+        salonId: p.salonId,
+        reason: body.reason,
+        meta: requestMeta(req),
+      },
       (db) => this.subscriptions.revokeOverride(db, p.salonId, p.overrideId),
     );
   }
@@ -251,7 +330,13 @@ export class AdminController {
     @Req() req: Request,
   ): Promise<AdminMutationResult> {
     return this.actions.run(
-      { admin, action: "admin.founding_partner_granted", salonId: p.salonId, reason: body.reason, meta: requestMeta(req) },
+      {
+        admin,
+        action: "admin.founding_partner_granted",
+        salonId: p.salonId,
+        reason: body.reason,
+        meta: requestMeta(req),
+      },
       (db) => this.subscriptions.grantFoundingPartner(db, p.salonId),
     );
   }
@@ -271,7 +356,14 @@ export class AdminController {
     @Req() req: Request,
   ): Promise<AdminMutationResult> {
     return this.actions.run(
-      { admin, action: "admin.founding_partner_revoked", salonId: p.salonId, reason: body.reason, meta: requestMeta(req), stepUp: true },
+      {
+        admin,
+        action: "admin.founding_partner_revoked",
+        salonId: p.salonId,
+        reason: body.reason,
+        meta: requestMeta(req),
+        stepUp: true,
+      },
       (db) => this.subscriptions.revokeFoundingPartner(db, p.salonId),
     );
   }
