@@ -780,7 +780,8 @@
     "today": "Today · {{date}}",
     "emptyTitle": "No appointments today",
     "emptyBody": "Your appointments will appear here.",
-    "week": "See the whole week"
+    "week": "See the whole week",
+    "subtitle": "Your day, {{date}}"
   },
   "override": {
     "title": "Outside the booking rules — book anyway?",

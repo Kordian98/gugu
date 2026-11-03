@@ -780,7 +780,8 @@
     "today": "Hôm nay · {{date}}",
     "emptyTitle": "Hôm nay chưa có lịch",
     "emptyBody": "Lịch hẹn của anh/chị sẽ hiện ở đây.",
-    "week": "Xem lịch cả tuần"
+    "week": "Xem lịch cả tuần",
+    "subtitle": "Lịch của anh/chị hôm nay, {{date}}"
   },
   "override": {
     "title": "Ngoài quy định đặt lịch — vẫn đặt?",

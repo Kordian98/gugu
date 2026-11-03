@@ -119,7 +119,13 @@ export function TodayScreen() {
 
   // Staff on a phone: their own day, next client first.
   if (mobile && ws.role === "staff" && !ws.demo)
-    return <MyDay ws={ws} title={title} subtitle={subtitle} />;
+    return (
+      <MyDay
+        ws={ws}
+        title={title}
+        subtitle={t("myDay.subtitle", { date: formatDateLong(now, locale) })}
+      />
+    );
 
   if (mobile) {
     return (
