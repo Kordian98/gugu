@@ -37,4 +37,10 @@ describe("requiredOverrides", () => {
     expect(requiredOverrides(input, at("2026-11-03", 12, 15), "a")).toBeNull(); // busy
     expect(requiredOverrides(input, at("2026-11-03", 14), "zzz")).toBeNull();
   });
+  it("restricted to allowed overrides: what a caller actually needed among those it sent", () => {
+    const evening = at("2026-11-03", 19);
+    expect(requiredOverrides(input, evening, "a", ["hours", "lead_time"])).toEqual(["hours"]);
+    expect(requiredOverrides(input, evening, "a", ["lead_time"])).toBeNull();
+    expect(requiredOverrides(input, at("2026-11-03", 14), "a", ["hours"])).toEqual([]);
+  });
 });

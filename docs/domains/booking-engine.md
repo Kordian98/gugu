@@ -100,6 +100,26 @@ The public controller is unrouted (X23). Before it is ever registered again:
 Already in place as defence in depth: the pino `req` serializer redacts `/public/bookings/<token>`
 segments from logged URLs (`infrastructure/logger/redaction.ts`, tested).
 
+## Edge-case audit: resources × overrides (2026-11-03)
+Covered by `apps/api/src/modules/bookings/edge-cases.int.test.ts` (E1–E7):
+- **E1** An after-hours override never lifts resource needs: the unit is still claimed, and a busy unit is a conflict (`slot_taken`, check `blocked`), never `override_required`.
+- **E2** Overrides a caller sends but doesn't need are dropped; only the minimal needed set (from the ones sent) is stored in `rule_overrides` and audited. **Fixed in this audit:** before, every sent override was recorded and audited.
+- **E3** A reschedule may overlap the booking's own old interval on a single unit (its own claims are excluded and replaced).
+- **E4** A reschedule outside hours returns `override_required`; with the override it is stored and audited as `booking.rules_overridden`.
+- **E5** A hold claims staff and units; booking from the hold converts both claims in place (no gap for another writer).
+- **E6** Recording a walk-in earlier today needs `hours` + `lead_time` (check endpoint lists both).
+- **E7** A resource requirement added after a booking applies when that booking is rescheduled (current requirements, snapshot price/duration). Pausing, shrinking or deleting a resource whose units hold future claims (bookings or unexpired holds) returns `409 resource.in_use`.
+Known gaps (by design or later): the `staff_service_assignment` override from the spec isn't implemented (staff must be assigned); `hours` override ignores the staff schedule completely (breaks and time off still apply); free-text status-history reasons are not anonymised (append-only).
+
+## Load test (2026-11-03)
+`pnpm --filter @gugu/api test:load` (`booking-writes.load.int.test.ts`, in-process HTTP, local stack, pool 10):
+| Scenario | Result | Latency (local) |
+|---|---|---|
+| A — 50 creates, 5 staff × 5 times, each pair contested twice | exactly 25 × 201, 25 × `slot_taken`, 0 × 5xx, no overlaps | p95 ≈ 0.35–0.54 s (all 50 in flight at once) |
+| B — 50 any-staff creates at 5 times, 2-unit bed required | 6–8 winners depending on race order through an overlap chain; bed limit never exceeded | p95 ≈ 0.55–0.73 s |
+| C — 25 reschedules of 10 bookings racing 25 creates for 3 slots | each booking keeps exactly one active claim; no overlaps, no 5xx, no deadlocks | p95 ≈ 0.2–0.25 s |
+Latency is queueing under the per-target advisory locks with the default pool (10); no deadlock (`40P01`) or 5xx was seen in repeated runs.
+
 ## Known limitations
 - One service per appointment (+ variant + add-ons); multi-service Phase B/C not implemented.
 - Resources/capacity units, availability cache, waitlist, recurring, group bookings, deposits not implemented.

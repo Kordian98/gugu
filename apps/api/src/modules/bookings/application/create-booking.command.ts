@@ -156,6 +156,11 @@ export class CreateBookingCommand {
     }
     const terms = selection.staffTerms.get(option.staffId);
     if (!terms) throw slotTaken();
+    // Record and audit only the overrides this booking really needed (audit review).
+    const applied =
+      req.overrides.length === 0
+        ? []
+        : (requiredOverrides(input, start, option.staffId, req.overrides) ?? [...req.overrides]);
 
     const isFirstVisit =
       phoneHash && settings.confirmNewClients
@@ -194,8 +199,8 @@ export class CreateBookingCommand {
         totalPriceMinor: BigInt(terms.priceMinor),
         totalPriceMaxMinor: terms.priceMaxMinor === null ? null : BigInt(terms.priceMaxMinor),
         currency: selection.currency,
-        ruleOverrides: [...req.overrides],
-        overrideReason: req.overrides.length > 0 ? req.overrideReason : null,
+        ruleOverrides: applied,
+        overrideReason: applied.length > 0 ? req.overrideReason : null,
         pendingExpiresAt:
           decision.status === "pending"
             ? new Date(now.getTime() + settings.manualConfirmWindowHours * 3_600_000)
@@ -273,7 +278,7 @@ export class CreateBookingCommand {
         startsAt: new Date(option.start).toISOString(),
       },
     });
-    if (req.overrides.length > 0 && actor.kind === "salon_member") {
+    if (applied.length > 0 && actor.kind === "salon_member") {
       await this.audit.record(
         {
           action: "booking.rules_overridden",
@@ -281,7 +286,7 @@ export class CreateBookingCommand {
           salonId,
           targetType: "booking",
           targetId: booking.id,
-          metadata: { overrides: req.overrides.join(","), phase: "create" },
+          metadata: { overrides: applied.join(","), phase: "create" },
         },
         tx,
       );
