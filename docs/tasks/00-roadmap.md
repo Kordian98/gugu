@@ -2,7 +2,7 @@
 
 Build order for the 13 topic specs in `docs/tasks/01–13`. Read this first to know **what to build next**; read the topic spec for **how**. Milestone IDs (e.g. `M6.3`, `S4`, `Z1.2`) refer to the "Suggested sub-milestones" section of each spec. Open product questions are in [`open-questions.md`](open-questions.md); each step lists the questions that block it.
 
-Status: **not started** (specs only, 2026-11-02).
+Status: **SaaS core built** (2026-11-04); see the Steps table and the live tracker.
 
 ## Topic index
 
@@ -55,73 +55,36 @@ Where specs disagree, these decisions win. Owner agents MUST apply them to their
 
 ## Parallel tracks (run alongside the steps)
 
-- **T-BIZ — business & legal** (no code): Vietnamese legal entity, `gugu.vn` domain, Apple/Google developer accounts, SMS brandname, Zalo OA + ZBS Account, legal review (PDPL, data residency, consumer/e-commerce rules), field interviews with 5–10 salons. Starts now; blocks Z1, OTP over SMS in production, store release, launch.
-- **T-HERO — 3D hero** (02): `HERO-1` starts the day references arrive in `design/hero-references/`; `HERO-2` (Blender scene, glTF, poster, native video) runs in parallel with Steps 3–6; `HERO-3` lands in Step 9. Homepage ships with the poster slot until then.
-- **T-AI-DEV — AI-first tooling** (01, 13): agents, skills and `docs/domains/*` are updated in the same PR as the code they describe; `pnpm agents:check` keeps them in sync from Step 2 onward.
+- **T-BIZ — business & legal** (no code): Vietnamese company (needed before the marketplace), `gugu.vn` domain, Apple/Google developer accounts, Zalo developer App (owner registers it, q81), email provider + sending domain (q86), legal review (PDPL, cross-border data, Law 122/2025, consumer rules), interviews and Zalo-OA pilot salons. Blocks the real Zalo pilot, store release and launch.
+- **T-AI-DEV — AI-first tooling** (01, 13): agents, skills and `docs/domains/*` change in the same commit as the code they describe; `pnpm agents:check` keeps them in sync.
 
-## Steps
+## Steps (after the SaaS-first pivot, X19/X21/X23/X25)
 
-Each step ends with a **gate**: tests green (`pnpm verify`), docs updated, both locales checked, platforms checked as listed, and a written report of what is done vs. not done.
+GuGu is built **SaaS-first**: GuGu Studio is the salon's internal tool (staff, owner, platform admin). Customers have no accounts and no booking surface on gugu.vn (X23); they book through the salon's own Zalo OA chatbot (X24) or by phone/walk-in entered by staff. The marketplace comes later, after a Vietnamese company and a legal review. The live status of every task is in the tracker artifact; this section is the map.
 
-### Step 0 — Decisions and cleanup (no code)
-- Product owner answers the **P0** questions in `open-questions.md`.
-- Owner agents apply cross-topic resolutions X1–X7 to their specs, agents and skills.
-- DS-1: three art-direction routes + Vietnamese typeface test → product owner picks one.
-- **Gate:** P0 questions answered or explicitly deferred; `grep` finds no "13/2023" as current law, no `packages/validation`.
+Each step ends with a **gate**: `pnpm verify` + API integration tests green (own `*_test` DB), `pnpm e2e:web` for UI changes, reviewers' verdicts, docs updated, both locales checked.
 
-### Step 1 — Spikes (1–3 days each, in parallel)
-- **01 A1:** Expo SDK 58 + Expo Router + NativeWind v4.2 vs v5 rc on 3 platforms → ADR-0004.
-- **04 S0:** Prisma 7 + adapter-pg + PostGIS `Unsupported` + exclusion constraint + `migrate diff` drift check → ADR-0001, ADR-0002.
-- **10 S1:** server rendering on SDK 58 with NativeWind, i18n, loaders, metadata → ADR (resolves X8).
-- **03 M1 (spike part):** Hermes `Intl` formatter tests on iOS/Android dev builds → polyfill decision.
-- **Gate:** ADRs 0001–0005 accepted in `docs/adr/`.
+| Step | Scope | Status (2026-11-04) |
+|---|---|---|
+| 0 Decisions and cleanup | P0 answers, X1–X25 applied | done |
+| 1 Spikes | Expo SDK 58 + NativeWind 5 rc (ADR-0004), Prisma 7 + PostGIS (ADR-0001/0002) | done (Android check pending, q79) |
+| 2 Foundation | monorepo, app/API shells, local stack, vi/en, design tokens, local merge gate | done (gate script/hooks still open) |
+| 3 Identity & tenancy | staff/owner magic-link sign-in, permission matrix, guards, audit, invitations, entitlements core | done |
+| 4 Booking core | slot math, occupancy exclusion constraints, holds, state machine, outbox, idempotency, race harness | done |
+| 5 Salon SaaS (CRM) | Today, calendar (drag, earliest slot, overrides), services + staff checkboxes, resources, costs/margin, multi-service chains (on for all, q91), staff my-day, onboarding wizard, web E2E suite | done; E2E bug fixes in progress |
+| 6 Zalo booking bot & inbox | salon OA connect, one webhook, rule-based bot, hand-off inbox, ZBS reminders, windows, funnel stats — against the emulator | done (real Zalo pilot is Step 12) |
+| 7 Notifications, privacy & insights | email confirmations/reminders (Zalo first, email fallback), staff bell, client export/erase, salon export, retention, Insights + metric registry | done |
+| 8 AI | price-list import (no PII), business assistant (PII firewall, Haiku-first, evals) | import done; assistant built, real-model evals wait for a key (q84 deferred); confirmed write actions (08 B) later |
+| 9 Platform admin & pricing | admin panel, TOTP step-up, 2FA reset, suspension (bot + sends paused), audit retention; X25 pricing (Basic free first year, then 99k VND, no assistant in Basic); analytics + feature flags | admin done; X25 in progress; analytics/flags to do |
+| 10 Payroll, commissions & owner profit | pay settings, commission per completed line, monthly payroll close, owner "This month" net profit (actual vs projected), staff own earnings | in progress |
+| 11 GuGu Studio marketing site | photoreal story landing, book-style navigation, pricing copy (X25), SEO basics | landing merged; navigation/pricing pass in progress |
+| 12 Production readiness & launch | AWS Singapore staging + prod, backups/restore drill, email provider (q86), real Zalo pilot (q81), media service, native dev builds + push + stores (q79), performance/a11y, full security review, legal sign-off | to do |
 
-### Step 2 — Foundation (master-prompt Phase 1)
-- 01 A2–A7 · 13 M13.1–M13.4 · 04 S1 · 03 M1–M3 · 02 DS-2–DS-3.
-- **Gate:** `docker compose up` + `pnpm dev` run app on web and iOS/Android dev builds, API `/health`, Swagger, vi/en switch, CI T0/T1 green, Claude PR review active, `run-locally` skill verified by an agent.
+### Later (after a Vietnamese company and legal review)
+Marketplace and customer side: search and salon pages (10), customer booking surface, reviews/moderation (11), attribution + commission ledger (12), map, Zalo Mini App (09 Z4), AI on Zalo chat (08 Z3), MCP server (08 D), multi-staff multi-service phase C (06), SMS (X12), payment gateway, passkeys + read-only impersonation (05 step 9 rest).
 
-### Step 3 — Identity, tenancy, contracts
-- 04 S2 · 05 steps 1–5 (permission matrix, phone OTP via provider-sink, sessions + refresh rotation, guards, audit log, invitations, generated cross-tenant suite) · 03 M4 · 12 M12.1 (entitlements core, free plan seeded) · 13 M13.5 (tenant-isolation matrix) · 08 A0 (tool/read-model/metric interfaces, X7).
-- Blocked by: P0 SMS provider (production only; dev uses the sink).
-- **Gate:** customer and salon user can sign in with OTP on all 3 platforms; cross-tenant suite green; no endpoint without a guard (boot check).
-
-### Step 4 — Booking core
-- 04 S3–S5 · 06 M6.1–M6.5 · 13 M13.5 (concurrency harness) · 11 M11.1 (outbox consumer, in-app channel, template coverage) · 02 DS-4–DS-5 · 12 M12.2 (attribution inside the booking transaction).
-- Blocked by: P1 booking-policy questions (auto-confirm, cancellation cutoff, limits).
-- **Gate:** 20 parallel requests for one slot → exactly 1 booking; state machine + history tests; idempotent retries; booking engine coverage ≥ 90%.
-
-### Step 5 — Salon SaaS (master-prompt Phase 2)
-- 07 M7.1–M7.6 · 06 M6.6–M6.7 · 04 S6 (media) · 02 DS-6 · 09 Z0.1–Z0.2 (Zalo deep links, "Nhắn Zalo", snippets, QR — no API).
-- **Gate:** a salon registers, finishes onboarding in < 10 min, configures services/staff/hours, and creates, moves, checks in and completes real bookings in the CRM on desktop web and phone; tap budgets from 07 met.
-
-### Step 6 — Customer marketplace (master-prompt Phase 3)
-- 10 steps 2–7 (locations, search read model, salon/service pages, search UI, homepage with poster hero, sitemaps/OG/llms.txt) · customer booking flow · 04 S7–S8 · 11 M11.2–M11.3 (push, reminders) · 05 step 7 (Apple/Google login) · 12 M12.6 + taxonomy/locations part of M12.10 (minimal admin) · 13 M13.6 (staging).
-- Blocked by: P1 launch cities, maps provider.
-- **Gate:** a customer discovers a salon on web and native, books a real slot, sees it in history; the salon sees it in the CRM; Lighthouse and structured-data checks pass on public pages in vi and en.
-
-### Step 7 — Trust, reviews, channels, insights
-- 11 M11.4–M11.8 (email/SMS, fallback, preferences, reviews, moderation, deletion/export) · 05 step 8 (privacy) · 07 M7.7–M7.8 (CRM directory, notes, metric registry, Insights, OfflineSale) · 12 M12.3–M12.4 (analytics, feature flags) · 09 Z1.1–Z1.3 (central GuGu OA + ZBS templates; only if T-BIZ has the entity).
-- **Gate:** review only after completed visit; reminders correct after reschedule/cancel; internal notes never in customer responses (contract test); Insights numbers match the metric registry.
-
-### Step 8 — AI business agent (beta)
-- 12 M12.5 (usage metering) · 08 A1–A4 · 05 step 10 (agent principal envelope) · 07 M7.9 (price-list import, paste-from-Zalo, assistant panel) · 13 M13.8 (evals in CI).
-- Blocked by: P2 plan/price for the agent; P0 legal answer on sending salon data to an external LLM.
-- **Gate:** eval suite ≥ 95% numeric accuracy, 100% security cases; quotas enforced; every tool call audited; beta enabled per salon via entitlement.
-
-### Step 9 — Zalo inbox, 3D hero, native polish (master-prompt Phase 5)
-- 09 Z2.1–Z2.3 (salon OA connect, webhooks, CRM inbox) · 07 M7.10 · 08 C (agent drafts on Zalo) · 02 HERO-3 · 13 M13.7 (Maestro native E2E, deep links) · 10 step 8 (map).
-- **Gate:** hero meets budgets (≤ 250 KB JS, ≤ 1.5 MB assets, LCP ≤ 2.5 s, Lighthouse mobile ≥ 85) with poster fallback; universal/app links open the right screen; Zalo 7-day/48-hour reply windows enforced in UI and backend.
-
-### Step 10 — Admin and monetization foundations (master-prompt Phase 6)
-- 12 M12.6–M12.11 (verification, suspension, trust, commission ledger shipped inactive, rollups, moderation, promoted-listing foundation) · 05 step 9 (admin TOTP/passkey, impersonation) · 08 B (confirmed write actions) · 06 M6.8–M6.9 (multi-service phase B, agent/Zalo booking drafts) · 09 Z3.1–Z3.2.
-- **Gate:** every admin action has a reason and an audit row; no automatic charges anywhere; agent writes only through confirmed proposals and the booking engine.
-
-### Step 11 — Production readiness (master-prompt Phase 7)
-- 13 M13.9 (prod infra, backups/PITR, alerts, runbooks, load test, restore drill, store pipeline) · 10 step 9 (performance + a11y) · full `security-reviewer` pass · legal review sign-off (T-BIZ) · App Store / Google Play submission.
-- **Gate:** readiness checklist in 13 complete; restore drill passed; legal sign-off recorded.
-
-### Later (post-MVP, behind flags)
-09 Z4 (Zalo Mini App, needs ADR — it is a separate React target) · 08 D (MCP server) · 02 HERO-4 (native real-time 3D) · 06 phase C (multi-staff multi-service) · 12 M12.12 (Admin Copilot) · commission activation · subscription payment gateway.
+### Earlier plan (before the pivot)
+The original 0–11 step plan assumed a customer marketplace in Step 6. It is superseded by the table above; see git history of this file for the old text.
 
 ## Coverage: master-prompt sections → topics
 
