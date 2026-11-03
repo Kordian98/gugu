@@ -13,7 +13,8 @@ export const E2E = {
     password: env.POSTGRES_PASSWORD ?? "gugu",
     // `gugu_<suffix>` but not `*_test`: seed-platform-admin.mjs only runs against such names,
     // and `*_test` belongs to the API integration tests.
-    database: "gugu_e2e",
+    // E2E_DATABASE lets a parallel worktree run its own copy (still `gugu_<suffix>`, never `*_test`).
+    database: env.E2E_DATABASE ?? "gugu_e2e",
   },
   redisDb: Number(env.E2E_REDIS_DB ?? 14),
   redisPort: Number(env.REDIS_PORT ?? 16379),
@@ -33,7 +34,11 @@ export function assertIsolated() {
   for (const p of [E2E.apiPort, E2E.webPort]) {
     if (FORBIDDEN_PORTS.has(p)) throw new Error(`E2E refuses dev port ${String(p)}`);
   }
-  if (E2E.pg.database === "gugu" || E2E.pg.database.endsWith("_test")) {
+  if (
+    E2E.pg.database === "gugu" ||
+    E2E.pg.database.endsWith("_test") ||
+    !/^gugu_[a-z0-9_]+$/.test(E2E.pg.database)
+  ) {
     throw new Error(`E2E refuses database ${E2E.pg.database}`);
   }
   if (E2E.redisDb === 0 || E2E.redisDb === 15) {

@@ -58,8 +58,9 @@ export function InsightsScreen() {
   const params = useLocalSearchParams<{ tab?: string }>();
   // "This month" profit view: owner by default (payroll.read), ADR-0014.
   const canProfit = can("payroll.read");
+  // Permissions load after the first render: keep the requested tab and gate only the rendering.
   const [tab, setTab] = useState<"overview" | "month">(
-    params.tab === "month" && canProfit ? "month" : "overview",
+    params.tab === "month" ? "month" : "overview",
   );
   const [period, setPeriod] = useState<Period>("d30");
   const to = salonDate(new Date(), summary?.timezone);

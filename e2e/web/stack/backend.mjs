@@ -38,7 +38,7 @@ const sh = (cmd, args, extra = {}) =>
   execFileSync(cmd, args, { cwd: apiDir, env: { ...env, ...extra }, stdio: "inherit" });
 // `migrate deploy` never touches the shadow DB, but prisma.config.ts requires a distinct URL.
 sh("pnpm", ["exec", "prisma", "migrate", "deploy"], {
-  SHADOW_DATABASE_URL: databaseUrl.replace(/\/gugu_e2e$/, "/gugu_e2e_shadow"),
+  SHADOW_DATABASE_URL: databaseUrl.replace(/\/([^/]+)$/, "/$1_shadow"),
 });
 if (process.env.E2E_SKIP_BUILD !== "1") {
   sh("pnpm", ["run", "generate"]);
