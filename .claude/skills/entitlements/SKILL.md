@@ -32,7 +32,7 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 - Module: `apps/api/src/modules/subscriptions` (global). Exports `EntitlementService` (`forSalon`, `get`, `isEnabled`, `limit`, `assert`, `invalidate`) and `SubscriptionsFacade` (`startTrial`, `transition`, `endDueTrials`).
 - Decorator: `@RequiresEntitlement(key)` from `modules/subscriptions/http/requires-entitlement.ts` (boolean keys only; salon from RequestContext, else `:salonId`).
 - Cache: Redis `entitlements:v1:<salonId>`, TTL ≤ 60 s (never past a trial end), fails open to the DB. Call `invalidate(salonId)` after writing subscriptions or overrides.
-- An ended trial reads immediately as active **Basic** while the free year runs (X25, `subscriptions.free_until`), otherwise as `expired` (`effectiveStatus` / `effectivePlan`); `endDueTrials()` only records it. ADR-0014.
+- An ended trial reads immediately as active **Basic** while the free year runs (X25, `subscriptions.free_until`), otherwise as `expired` (`effectiveStatus` / `effectivePlan`); `endDueTrials()` only records it. ADR-0015.
 - Free Basic year (X25): `free_until` = local midnight after registration date + 12 months in the salon zone. Not a plan and not an entitlement: never gate on it. A free Basic year never qualifies a founding partner.
 
 ## Procedure: add a boolean-gated feature

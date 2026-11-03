@@ -1,4 +1,4 @@
-// X25 data backfill (migration 20261104160100_x25_backfill_free_year) against real Postgres. The
+// X25 data backfill (migration 20261104170100_x25_backfill_free_year) against real Postgres. The
 // migration SQL is replayed inside a transaction that is rolled back, so other suites' rows in the
 // test database are never changed.
 import { readFileSync } from "node:fs";
@@ -15,7 +15,7 @@ import { freeYearEnd } from "./domain/free-year";
 
 const DAY = 86_400_000;
 const SQL = readFileSync(
-  resolve("prisma/migrations/20261104160100_x25_backfill_free_year/migration.sql"),
+  resolve("prisma/migrations/20261104170100_x25_backfill_free_year/migration.sql"),
   "utf8",
 );
 /** Statements of the migration (no semicolons inside statements; comments stripped). */
