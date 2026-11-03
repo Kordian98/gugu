@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -73,17 +73,9 @@ export function ChatStory({
   const t = typed as unknown as (k: string, o?: Record<string, unknown>) => string;
   const [step, setStep] = useState(0);
   const [count, setShown] = useState(0);
-  /** The step whose copy is animating out (cleared after the transition). */
-  const [prev, setPrev] = useState<number | null>(null);
-  useEffect(() => {
-    if (prev === null) return;
-    const id = window.setTimeout(() => {
-      setPrev(null);
-    }, 460);
-    return () => {
-      window.clearTimeout(id);
-    };
-  }, [prev]);
+  /** The step whose copy is on screen; it follows `step` through one out → swap → in transition. */
+  const [copyStep, setCopyStep] = useState(0);
+  const copy = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const last = steps.length - 1;
@@ -139,10 +131,8 @@ export function ChatStory({
         return;
       }
       setShown(target);
-      setPrev(step);
       setStep(step + 1);
     } else if (step > 0) {
-      setPrev(step);
       setStep(step - 1);
       setShown(upTo(step - 1));
     }
@@ -194,7 +184,114 @@ export function ChatStory({
     };
   }, [active]);
 
-  const cur = steps[step];
+  // Step copy, two clear phases (owner): OUT (number → title → body, 30 ms apart, 220 ms: up 16 px,
+  // fade, slight blur), a 70 ms beat where only the progress bar moves (it follows `copyStep`), then IN
+  // (number, title +60 ms, body +120 ms, 320 ms: from 16 px below, ease-out, no overshoot). A click while
+  // it runs jumps straight to the newest step's final state. Height is reserved by invisible ghosts of
+  // every step's copy, so nothing reflows. Reduced motion: a 150 ms crossfade.
+  const running = useRef(false);
+  const pendingIn = useRef(false);
+  const shownRef = useRef(copyStep);
+  useLayoutEffect(() => {
+    shownRef.current = copyStep;
+  }, [copyStep]);
+  const parts = () => Array.from(copy.current?.children ?? []) as HTMLElement[];
+  const stopAll = () => {
+    parts().forEach((el) => {
+      el.getAnimations().forEach((an) => {
+        an.cancel();
+      });
+    });
+    copy.current?.getAnimations().forEach((an) => {
+      an.cancel();
+    });
+  };
+  useEffect(() => {
+    if (step === shownRef.current) return;
+    const el = copy.current;
+    if (running.current || !el || typeof el.animate !== "function") {
+      // quick second click (or no animation support): straight to the newest step
+      stopAll();
+      running.current = false;
+      pendingIn.current = false;
+      const id = window.setTimeout(() => {
+        setCopyStep(step);
+      }, 0);
+      return () => {
+        window.clearTimeout(id);
+      };
+    }
+    running.current = true;
+    let alive = true;
+    let beat = 0;
+    if (reduce) {
+      pendingIn.current = true;
+      beat = window.setTimeout(() => {
+        if (alive) setCopyStep(step);
+      }, 0);
+      return () => {
+        alive = false;
+        window.clearTimeout(beat);
+      };
+    }
+    const outs = parts().map((part, i) =>
+      part.animate(
+        [
+          { opacity: 1, transform: "none", filter: "blur(0)" },
+          { opacity: 0, transform: "translateY(-16px)", filter: "blur(3px)" },
+        ],
+        { duration: 220, delay: i * 30, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" },
+      ),
+    );
+    void Promise.all(outs.map((an) => an.finished))
+      .then(() => {
+        if (!alive) return;
+        beat = window.setTimeout(() => {
+          if (!alive) return;
+          pendingIn.current = true;
+          setCopyStep(step);
+        }, 70);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+      window.clearTimeout(beat);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, reduce]);
+  useLayoutEffect(() => {
+    if (!pendingIn.current) return;
+    pendingIn.current = false;
+    stopAll();
+    const el = copy.current;
+    if (!el) {
+      running.current = false;
+      return;
+    }
+    if (reduce) {
+      const an = el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: "linear" });
+      void an.finished.then(() => {
+        running.current = false;
+      });
+      return;
+    }
+    const ins = parts().map((part, i) =>
+      part.animate(
+        [
+          { opacity: 0, transform: "translateY(16px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: 320, delay: i * 60, easing: "cubic-bezier(.2,.7,.2,1)", fill: "backwards" },
+      ),
+    );
+    void Promise.all(ins.map((an) => an.finished))
+      .then(() => {
+        running.current = false;
+      })
+      .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [copyStep]);
+  const shownCopy = steps[copyStep];
   const messages = (
     <div className="cs-log" ref={log} aria-live="polite">
       {kind === "phone" ? <div className="cs-day">{t(`${ns}.day`)}</div> : null}
@@ -257,30 +354,26 @@ export function ChatStory({
       <div className="cs-copy">
         <div className="fl-eye">{t(`${ns}.eyebrow`)}</div>
         <h2 className="fl-h">{t(`${ns}.title`)}</h2>
-        {/* Step copy: the old card slides up and out while the new one comes in (number, title, body
-            staggered); both share one grid cell, so there is no layout jump. */}
-        <div className="cs-steps">
-          {prev !== null && prev !== step ? (
-            <div className="cs-step out" key={`o-${String(prev)}`} aria-hidden>
-              <span className="cs-stepn">
-                <span>{String(prev + 1).padStart(2, "0")}</span>
+        <div className="cs-step">
+          <span className="cs-stepbar" aria-hidden>
+            <i style={{ width: `${String(((copyStep + 1) / steps.length) * 100)}%` }} />
+          </span>
+          <div className="cs-stepcopy">
+            {/* ghosts reserve the tallest step's height */}
+            {steps.map((g) => (
+              <div key={g.k} className="cs-ghost" aria-hidden>
+                <span className="cs-stepn">00</span>
+                <b>{t(`${ns}.${g.k}.h`)}</b>
+                <p>{t(`${ns}.${g.k}.b`)}</p>
+              </div>
+            ))}
+            <div className="cs-live" ref={copy} aria-live="polite">
+              <span className="cs-stepn" aria-hidden>
+                {String(copyStep + 1).padStart(2, "0")}
               </span>
-              <b>{t(`${ns}.${steps[prev]?.k ?? "s1"}.h`)}</b>
-              <p>{t(`${ns}.${steps[prev]?.k ?? "s1"}.b`)}</p>
+              <b>{t(`${ns}.${shownCopy?.k ?? "s1"}.h`)}</b>
+              <p>{t(`${ns}.${shownCopy?.k ?? "s1"}.b`)}</p>
             </div>
-          ) : null}
-          <div
-            className={`cs-step in${prev !== null && prev > step ? " back" : ""}`}
-            key={`i-${String(step)}`}
-          >
-            <span className="cs-stepn" aria-hidden>
-              <span>{String(step + 1).padStart(2, "0")}</span>
-            </span>
-            <b>{t(`${ns}.${cur?.k ?? "s1"}.h`)}</b>
-            <p>{t(`${ns}.${cur?.k ?? "s1"}.b`)}</p>
-            <span className="cs-stepbar" aria-hidden>
-              <i style={{ width: `${String(((step + 1) / steps.length) * 100)}%` }} />
-            </span>
           </div>
         </div>
         <p className="cs-note">{t(`${ns}.note`)}</p>

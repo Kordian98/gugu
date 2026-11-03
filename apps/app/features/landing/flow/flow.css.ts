@@ -370,18 +370,14 @@ export const FLOW_CSS = `
 .cs-veil{position:absolute;inset:0;background:linear-gradient(120deg,rgba(253,250,247,.94),rgba(238,231,252,.9));z-index:-1}
 .cs-copy{max-width:460px;justify-self:end;align-self:center}
 .cs-copy .fl-h{font-size:clamp(28px,2.8vw,46px);margin-bottom:0}
-.cs-steps{display:grid;margin-top:clamp(16px,2.6vh,28px)}
-.cs-step{grid-area:1/1;position:relative;min-height:clamp(150px,19vh,190px);box-sizing:border-box;background:${color.white};border-radius:24px;padding:clamp(18px,2vw,26px) clamp(18px,2vw,26px) clamp(22px,2.4vw,30px) clamp(64px,5.4vw,86px);box-shadow:0 24px 60px rgba(42,20,38,.12);overflow:hidden}
-.cs-step.out{animation:csOut 300ms cubic-bezier(.4,0,1,1) forwards;pointer-events:none;z-index:1;box-shadow:none;background:transparent}
-.cs-step.in .cs-stepn>span{display:inline-block;animation:csRoll 420ms ${motion.ease.out} both}
-.cs-step.in.back .cs-stepn>span{animation-name:csRollBack}
-.cs-step.in b{animation:csIn 380ms ${motion.ease.out} 90ms both}
-.cs-step.in p{animation:csIn 380ms ${motion.ease.out} 170ms both}
-.cs-stepn{overflow:hidden;line-height:1.05}
+.cs-step{position:relative;margin-top:clamp(16px,2.6vh,28px);background:${color.white};border-radius:24px;padding:clamp(18px,2vw,26px) clamp(18px,2vw,26px) clamp(22px,2.4vw,30px);box-shadow:0 24px 60px rgba(42,20,38,.12);overflow:hidden}
+.cs-stepcopy{display:grid}
+.cs-ghost,.cs-live{grid-area:1/1;position:relative;padding-left:clamp(48px,4vw,64px)}
+.cs-ghost{visibility:hidden}
+.cs-live{will-change:opacity,transform}
+.cs-stepn{position:absolute;left:0;top:-2px;font-family:${font.display};font-size:clamp(30px,2.6vw,40px);line-height:1;font-variant-numeric:tabular-nums;background:${cssGradient(gradient.glowHere)};-webkit-background-clip:text;background-clip:text;color:transparent}
 .cs-stepbar{position:absolute;left:0;right:0;bottom:0;height:3px;background:${color.lineSoft}}
-.cs-stepbar i{display:block;height:100%;background:${cssGradient(gradient.glowSoft)};transition:width 450ms ${motion.ease.out}}
-.cs-stepn{position:absolute;left:clamp(16px,1.6vw,24px);top:clamp(14px,1.6vw,22px);font-family:${font.display};font-size:clamp(30px,2.6vw,40px);line-height:1;color:${color.lilac500}}
-.cs-stepn>span{background:${cssGradient(gradient.glowHere)};-webkit-background-clip:text;background-clip:text;color:transparent}
+.cs-stepbar i{display:block;height:100%;background:${cssGradient(gradient.glowSoft)};transition:width 400ms ${motion.ease.out}}
 .cs-step b{display:block;font-family:${font.uiSemiBold};font-size:clamp(17px,1.45vw,21px);line-height:1.3;color:${color.ink}}
 .cs-step p{margin:8px 0 0;font-family:${font.ui};font-size:clamp(14px,1.08vw,16px);line-height:1.55;color:${color.ink2};text-wrap:pretty}
 .cs-note{margin:12px 0 0;font-family:${font.ui};font-size:12px;color:${color.ink2}}
@@ -526,7 +522,7 @@ export const FLOW_CSS = `
 @keyframes syToast{0%{opacity:0;transform:translateY(calc(100% + 8px))}12%,82%{opacity:1;transform:translateY(100%)}100%{opacity:0;transform:translateY(100%)}}
 @keyframes avGrow{from{transform:scaleY(0)}to{transform:none}}
 @keyframes avBar{from{transform:scaleX(0)}to{transform:none}}
-@media (prefers-reduced-motion:reduce){.cs-step.in b,.cs-step.in p,.cs-step.in .cs-stepn>span{animation:none!important}.cs-step.in{animation:csFade 200ms both!important}.cs-step.out{animation:csFadeOut 200ms forwards!important}.cs-stepbar i{transition:none}.cs-msg,.cs-viz,.sy-card.on,.sy-slot .sy-chip,.av-week i,.av-bar i,.sy-stripin{animation:none!important}.cs-typing i,.sy-live::before{animation:none}.cs,.sy-slot,.sy-card{transition:none}.sy-toast{animation:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.cs-stepbar i{transition:none}.cs-msg,.cs-viz,.sy-card.on,.sy-slot .sy-chip,.av-week i,.av-bar i,.sy-stripin{animation:none!important}.cs-typing i,.sy-live::before{animation:none}.cs,.sy-slot,.sy-card{transition:none}.sy-toast{animation:none;opacity:1}}
 @media (max-width:1199px){.cs.has-side{grid-template-columns:minmax(0,1fr) auto}.cs-side{display:none}.cs-strip{display:block}}
 .jr-end{position:absolute;right:var(--g);top:clamp(70px,9vh,96px);display:none;gap:8px;z-index:6}
 .jr-stage:has(.jr-hud[data-settled="9"]) .jr-end{display:flex}
@@ -544,9 +540,9 @@ export const FLOW_CSS = `
   .cs,.cs.has-side{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:8px;padding:60px 14px calc(var(--hud) + 6px);align-items:stretch}
   .cs-copy{justify-self:stretch;max-width:none}
   .cs-copy .fl-eye,.cs-copy .fl-h{display:none}
-  .cs-steps{margin-top:0}
-  .cs-step{min-height:92px;padding:10px 14px 12px 52px;border-radius:16px}
-  .cs-stepn{left:14px;top:11px;font-size:24px}
+  .cs-step{margin-top:0;padding:10px 14px 12px;border-radius:16px}
+  .cs-ghost,.cs-live{padding-left:40px}
+  .cs-stepn{font-size:24px;top:0}
   .cs-step b{font-size:14.5px}.cs-step p{font-size:12.5px;margin-top:2px;line-height:1.45}
   .cs-note{display:none}
   .cs-devicecol{gap:8px}
