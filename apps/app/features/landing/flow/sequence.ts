@@ -1,8 +1,8 @@
 /**
  * Scroll-scrubbed walk-through on ONE canvas (web only): three frame sequences (street → reception,
  * reception → treatment area, treatment area → back office) exported by design/hero/scripts/walk_frames.py
- * from fal-generated 4K video. Desktop frames are 3200 px wide (a 1440×900 @2x viewport at 1.0×); mobile
- * frames are 960×1706 portrait crops that pan with the subject.
+ * from fal-generated 4K video. 90 frames per walk, neighbours cross-blended. Desktop frames are 2048 px wide (~4 MB per walk), mobile
+ * frames 720×1280 portrait crops that pan with the subject (~2 MB per walk).
  *
  * Smoothness: the position is a float, and the two neighbouring frames are cross-blended, so slow scrolling
  * glides instead of stepping. Loading is progressive (every 8th frame first, then 4th, 2nd, all) per walk,
@@ -40,7 +40,7 @@ export class WalkPlayer {
     if (!tr || tr.started) return;
     tr.started = true;
     const order: number[] = [0, FRAMES - 1];
-    for (const step of [12, 6, 3, 1])
+    for (const step of [8, 4, 2, 1])
       for (let i = 0; i < FRAMES; i += step) if (!order.includes(i)) order.push(i);
     let k = 0;
     const next = () => {

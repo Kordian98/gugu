@@ -7,7 +7,8 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import { screen } from "../screens";
 import { PHOTO } from "./media";
-import { buildBeforeAfter, trackTimeline } from "./timelines";
+import { chapterScroller } from "./chapters";
+import { BA_DURATIONS, BA_STOPS, buildBeforeAfter, scrollParent, trackTimeline } from "./timelines";
 
 const BEFORE = ["b1", "b2", "b3", "b4"] as const;
 const AFTER = ["a1", "a2", "a3", "a4", "a5"] as const;
@@ -25,9 +26,13 @@ function useTrack(
     const el = ref.current;
     if (el === null) return;
     const ctx = gsap.context(() => {
-      build(trackTimeline(el, 0.5), gsap.utils.selector(el));
+      build(trackTimeline(el, 0.3), gsap.utils.selector(el));
     }, el);
+    const sc = scrollParent(el);
+    const stop =
+      sc instanceof HTMLElement ? chapterScroller(sc, el, BA_STOPS, BA_DURATIONS) : () => undefined;
     return () => {
+      stop();
       ctx.revert();
     };
   }, [build, dep]);

@@ -9,7 +9,8 @@ import type { LandingNavActions } from "../useLandingNav";
 import { LOOP, PHOTO } from "./media";
 import { FeaturesPanel, OfficePanel } from "./Rooms";
 import { WalkPlayer } from "./sequence";
-import { buildJourney } from "./timelines";
+import { chapterScroller } from "./chapters";
+import { DURATIONS, STOPS, buildJourney, scrollParent } from "./timelines";
 
 const NOTES = ["n1", "n2", "n3", "n4"] as const;
 const ENTRIES = ["e1", "e2", "e3", "e4"] as const;
@@ -70,7 +71,11 @@ export function Journey({
         calm: vCalm.current,
       });
     }, el);
+    const sc = scrollParent(el);
+    const stopChapters =
+      sc instanceof HTMLElement ? chapterScroller(sc, el, STOPS, DURATIONS) : () => undefined;
     return () => {
+      stopChapters();
       ctx.revert();
       io.disconnect();
       window.removeEventListener("resize", onResize);

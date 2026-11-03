@@ -44,15 +44,35 @@ export function trackTimeline(trigger: HTMLElement, scrub = 0.5, snap?: number[]
   });
 }
 
-const show = (tl: TL, q: Q, sel: string, at: number, from: gsap.TweenVars = { y: 28 }) => {
-  tl.fromTo(q(sel), { opacity: 0, ...from }, { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }, at);
+// UI enters slowly: each element takes ~0.04 of the track (≈0.6–1 s inside a scene transition).
+const D = 0.04;
+const show = (tl: TL, q: Q, sel: string, at: number, from: gsap.TweenVars = { y: 28 }, d = D) => {
+  tl.fromTo(
+    q(sel),
+    { opacity: 0, ...from },
+    { opacity: 1, x: 0, y: 0, scale: 1, rotate: 0, duration: d, ease: "power2.out" },
+    at,
+  );
 };
 const hide = (tl: TL, q: Q, sel: string, at: number, to: gsap.TweenVars = { y: -20 }) => {
-  tl.to(q(sel), { opacity: 0, ...to }, at);
+  tl.to(q(sel), { opacity: 0, duration: 0.025, ease: "power1.in", ...to }, at);
 };
-const stagger = (tl: TL, q: Q, sel: string, at: number, step: number, from: gsap.TweenVars) => {
+const stagger = (
+  tl: TL,
+  q: Q,
+  sel: string,
+  at: number,
+  step: number,
+  from: gsap.TweenVars,
+  d = 0.03,
+) => {
   q(sel).forEach((el, i) => {
-    tl.fromTo(el, { opacity: 0, ...from }, { opacity: 1, x: 0, y: 0, scale: 1 }, at + i * step);
+    tl.fromTo(
+      el,
+      { opacity: 0, ...from },
+      { opacity: 1, x: 0, y: 0, scale: 1, duration: d, ease: "power2.out" },
+      at + i * step,
+    );
   });
 };
 
@@ -62,16 +82,18 @@ const PH = {
   w1: [0.05, 0.17],
   pain: 0.17,
   swap: 0.36,
-  calmOut: 0.47,
-  w2: [0.49, 0.6],
-  feat: 0.6,
-  featOut: 0.72,
-  w3: [0.75, 0.87],
-  office: 0.87,
+  calmOut: 0.48,
+  w2: [0.5, 0.61],
+  feat: 0.61,
+  featOut: 0.735,
+  w3: [0.76, 0.88],
+  office: 0.88,
 } as const;
 
-/** Scenes the scroll snaps to: hero · front desk (built) · calm · treatment area · back office. */
-const STOPS = [0, 0.335, 0.445, 0.7, 1];
+/** Scenes one scroll gesture steps between: hero · front desk (built) · calm · treatment area · office. */
+export const STOPS = [0, 0.345, 0.462, 0.725, 1] as const;
+/** Seconds per transition (stop i → i+1): door + walk + desk build, calm, walk + features, walk + office. */
+export const DURATIONS = [6.0, 3.8, 5.6, 5.2] as const;
 
 /** Which walk frame to show at journey time t. */
 function frameAt(t: number): [Segment, number] {
@@ -92,7 +114,7 @@ type Videos = { stress: HTMLVideoElement | null; calm: HTMLVideoElement | null }
  * smoothed timeline time; everything else is transform/opacity.
  */
 export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Videos) {
-  const tl = trackTimeline(root, 0.35, STOPS);
+  const tl = trackTimeline(root, 0.25);
   const frame = q(".jr-frame")[0] as HTMLElement | undefined;
   const media = q(".jr-media")[0] as HTMLElement | undefined;
   const mobile = player.mobile;
@@ -136,11 +158,11 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Vid
   tl.eventCallback("onUpdate", () => {
     const t = tl.duration() > 0 ? tl.time() / tl.duration() : 0;
     const [seg, p] = frameAt(t);
-    if (t > 0.1 && !loaded.has("w2")) {
+    if (t > 0.2 && !loaded.has("w2")) {
       loaded.add("w2");
       player.load("w2");
     }
-    if (t > 0.4 && !loaded.has("w3")) {
+    if (t > 0.5 && !loaded.has("w3")) {
       loaded.add("w3");
       player.load("w3");
     }
@@ -164,45 +186,45 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Vid
   tl.to(vs, { opacity: 1, duration: 0.006, ease: "none" }, PH.pain - 0.004);
   tl.to(q(".jr-light"), { opacity: 1, duration: 0.02 }, PH.pain);
   show(tl, q, ".pn-a", PH.pain + 0.005);
-  show(tl, q, ".pn-sa", PH.pain + 0.02);
-  show(tl, q, ".jr-foot", PH.pain + 0.02, { y: 0 });
-  stagger(tl, q, ".pn-n", PH.pain + 0.03, 0.018, { y: -26, scale: 0.94 });
-  show(tl, q, ".pn-book", PH.pain + 0.07, { y: 40, rotate: -7 });
-  tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.012 }, PH.pain + 0.12);
-  tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.012 }, PH.pain + 0.14);
+  show(tl, q, ".pn-sa", PH.pain + 0.03);
+  show(tl, q, ".jr-foot", PH.pain + 0.03, { y: 0 });
+  stagger(tl, q, ".pn-n", PH.pain + 0.045, 0.022, { y: -26, scale: 0.94 });
+  show(tl, q, ".pn-book", PH.pain + 0.09, { y: 40, rotate: -7 });
+  tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.02 }, PH.pain + 0.13);
+  tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.02 }, PH.pain + 0.15);
 
   // same desk: calm
-  tl.to(vc, { opacity: 1, duration: 0.025, ease: "none" }, PH.swap);
+  tl.to(vc, { opacity: 1, duration: 0.035, ease: "sine.inOut" }, PH.swap);
   hide(tl, q, ".pn-n", PH.swap, { y: -14, scale: 0.96 });
   hide(tl, q, ".pn-book", PH.swap, { y: 30 });
   hide(tl, q, ".pn-a", PH.swap + 0.004);
   hide(tl, q, ".pn-sa", PH.swap + 0.004);
   show(tl, q, ".pn-b", PH.swap + 0.02);
-  show(tl, q, ".pn-sb", PH.swap + 0.026);
-  stagger(tl, q, ".pn-gi", PH.swap + 0.034, 0.012, { x: -24 });
-  hide(tl, q, ".pn-b", PH.calmOut - 0.012);
-  hide(tl, q, ".pn-sb", PH.calmOut - 0.012);
-  hide(tl, q, ".jr-foot", PH.calmOut - 0.012, { y: 0 });
-  tl.to(q(".jr-light"), { opacity: 0, duration: 0.02 }, PH.calmOut - 0.01);
-  tl.to([...vs, ...vc], { opacity: 0, duration: 0.012, ease: "none" }, PH.calmOut + 0.004);
+  show(tl, q, ".pn-sb", PH.swap + 0.03);
+  stagger(tl, q, ".pn-gi", PH.swap + 0.045, 0.016, { x: -24 });
+  hide(tl, q, ".pn-b", PH.calmOut - 0.014);
+  hide(tl, q, ".pn-sb", PH.calmOut - 0.014);
+  hide(tl, q, ".jr-foot", PH.calmOut - 0.014, { y: 0 });
+  tl.to(q(".jr-light"), { opacity: 0, duration: 0.025 }, PH.calmOut - 0.01);
+  tl.to([...vs, ...vc], { opacity: 0, duration: 0.015, ease: "none" }, PH.calmOut + 0.006);
 
   // walk to the treatment area → features
   show(tl, q, ".cap-deeper", PH.w2[0], { y: 0 });
   hide(tl, q, ".cap-deeper", PH.w2[1] - 0.03, { y: 0 });
-  tl.to(q(".jr-veil"), { opacity: 1, duration: 0.02 }, PH.feat);
-  show(tl, q, ".ov-f .t", PH.feat + 0.01);
-  show(tl, q, ".ft-lap", PH.feat + 0.015, { x: 80, scale: 0.96 });
-  stagger(tl, q, ".ft-i", PH.feat + 0.03, 0.01, { y: 26 });
+  tl.to(q(".jr-veil"), { opacity: 1, duration: 0.03 }, PH.feat);
+  show(tl, q, ".ov-f .t", PH.feat + 0.012);
+  show(tl, q, ".ft-lap", PH.feat + 0.022, { x: 80, scale: 0.96 });
+  stagger(tl, q, ".ft-i", PH.feat + 0.045, 0.014, { y: 26 });
   hide(tl, q, ".ov-f .t, .ft-lap, .ft-i", PH.featOut);
-  tl.to(q(".jr-veil"), { opacity: 0, duration: 0.02 }, PH.featOut + 0.005);
+  tl.to(q(".jr-veil"), { opacity: 0, duration: 0.025 }, PH.featOut + 0.005);
 
   // walk to the back office → overview
   show(tl, q, ".cap-office", PH.w3[0], { y: 0 });
   hide(tl, q, ".cap-office", PH.w3[1] - 0.03, { y: 0 });
-  tl.to(q(".jr-veil"), { opacity: 1, duration: 0.02 }, PH.office);
-  show(tl, q, ".of-lap", PH.office + 0.01, { x: -80, scale: 0.96 });
-  show(tl, q, ".ov-o .t", PH.office + 0.015);
-  stagger(tl, q, ".of-side .card", PH.office + 0.03, 0.015, { y: 26 });
+  tl.to(q(".jr-veil"), { opacity: 1, duration: 0.03 }, PH.office);
+  show(tl, q, ".of-lap", PH.office + 0.015, { x: -80, scale: 0.96 });
+  show(tl, q, ".ov-o .t", PH.office + 0.025);
+  stagger(tl, q, ".of-side .card", PH.office + 0.05, 0.022, { y: 26 }, 0.035);
   tl.to({}, { duration: 0.001 }, 0.999);
   return tl;
 }
@@ -211,6 +233,10 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, v: Vid
  * Before/after split + time-saved card. Steps highlight, cards appear; counters write text only when the
  * formatted value changes; the ring animates stroke-dashoffset on one circle.
  */
+/** Before/after steps one beat per scroll gesture. */
+export const BA_STOPS = [0, 0.3, 0.52, 0.74, 1] as const;
+export const BA_DURATIONS = [3.2, 2.8, 2.8, 3.0] as const;
+
 export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) => string) {
   const step = (sel: string, at: number) => {
     tl.to(q(sel), { opacity: 1, scale: 1.02, color: "#221024", duration: 0.05 }, at).to(
@@ -223,28 +249,32 @@ export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) 
     tl.fromTo(
       q(sel),
       { opacity: 0, ...from },
-      { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.07 },
+      { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.11, ease: "power2.out" },
       at,
     );
   };
+  // beat 1 (→ stop 0.3): the message arrives; booked automatically on the right
   step(".bs1", 0.04);
-  card(".bc-zalo", 0.04);
-  step(".bs2", 0.24);
-  card(".bc-book", 0.24, { y: 30, rotate: -3 });
-  step(".bs3", 0.44);
-  card(".bc-call", 0.44);
-  step(".bs4", 0.64);
-  card(".bc-forgot", 0.64, { scale: 1.3 });
+  card(".bc-zalo", 0.05);
   step(".as1", 0.04);
-  card(".ac-zalo", 0.04);
-  step(".as2", 0.18);
-  card(".ac-ok", 0.18, { scale: 0.85 });
-  step(".as3", 0.32);
-  card(".ac-cal", 0.32, { y: 40, scale: 0.94 });
-  step(".as4", 0.5);
-  card(".ac-rem", 0.5);
-  step(".as5", 0.66);
-  card(".ac-come", 0.66, { scale: 0.85 });
+  card(".ac-zalo", 0.05);
+  step(".as2", 0.14);
+  card(".ac-ok", 0.15, { scale: 0.85 });
+  // beat 2 (→ 0.52): notebook vs calendar
+  step(".bs2", 0.32);
+  card(".bc-book", 0.33, { y: 30, rotate: -3 });
+  step(".as3", 0.36);
+  card(".ac-cal", 0.38, { y: 40, scale: 0.94 });
+  // beat 3 (→ 0.74): call back vs Zalo reminder
+  step(".bs3", 0.54);
+  card(".bc-call", 0.55);
+  step(".as4", 0.58);
+  card(".ac-rem", 0.6);
+  // beat 4 (→ 1): forgotten vs "I'll come"
+  step(".bs4", 0.76);
+  card(".bc-forgot", 0.77, { scale: 1.3 });
+  step(".as5", 0.8);
+  card(".ac-come", 0.82, { scale: 0.85 });
 
   const targets: [string, number, number][] = [
     [".sv-num", 6.5, 1],
@@ -259,7 +289,7 @@ export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) 
     v,
     {
       p: 1,
-      duration: 0.72,
+      duration: 0.9,
       ease: "none",
       onUpdate: () => {
         targets.forEach(([, to, d], i) => {
@@ -280,7 +310,7 @@ export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) 
     tl.fromTo(
       ring,
       { strokeDashoffset: c },
-      { strokeDashoffset: c * 0.22, duration: 0.72, ease: "none" },
+      { strokeDashoffset: c * 0.22, duration: 0.9, ease: "none" },
       0.04,
     );
   }

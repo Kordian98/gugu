@@ -36,7 +36,7 @@ export const FLOW_CSS = `
 .wk-hint{font-family:${font.uiMedium};font-size:13px;letter-spacing:.2em;text-transform:uppercase;opacity:.9}
 .wk-cap{position:absolute;left:var(--g);top:96px;font-family:${font.uiMedium};font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:#fff;background:rgba(34,16,36,.45);padding:8px 14px;border-radius:99px;opacity:0;will-change:opacity}
 .jr-pain{position:absolute;left:var(--g);top:clamp(96px,13vh,150px);bottom:9vh;width:min(42vw,640px);display:flex;flex-direction:column;justify-content:space-between}
-.jr-stack{display:grid}
+.jr-stack{display:grid;align-items:start}
 .jr-stack>*{grid-area:1/1;opacity:0;will-change:transform,opacity}
 .jr-pain .fl-h{font-size:clamp(36px,4.4vw,78px);margin:.2em 0 0}
 .pn-stat{display:flex;align-items:flex-end;gap:14px}
@@ -61,26 +61,33 @@ export const FLOW_CSS = `
 @media (max-width:899px){
   .jr{height:650vh}
   .jr-hero{width:100%;bottom:auto;height:58vh;align-items:flex-end;padding:84px 16px 14px}
-  .jr-light{background:linear-gradient(180deg,rgba(253,250,247,.97),rgba(253,250,247,.88) 36%,rgba(253,250,247,0) 58%)}
-  .jr-pain{left:16px;right:16px;width:auto;top:74px;bottom:auto;justify-content:flex-start;gap:8px}
-  .jr-pain .fl-h{font-size:31px}
-  .pn-stat .big{font-size:58px}
-  .pn-stat p{font-size:13px;max-width:190px}
-  .pn-calm{font-size:14px}
+  /* desk scene on phones: face stays clear at the top, copy sits on a light fade at the bottom */
+  .jr-light{background:linear-gradient(0deg,rgba(253,250,247,.97),rgba(253,250,247,.9) 30%,rgba(253,250,247,.35) 46%,rgba(253,250,247,0) 58%)}
+  .jr-pain{left:16px;right:16px;width:auto;top:auto;bottom:46px;justify-content:flex-end;gap:6px}
+  .jr-pain .jr-stack:last-child{align-items:end}
+  .jr-pain .fl-eye{font-size:11px;letter-spacing:.24em}
+  .jr-pain .fl-h{font-size:clamp(28px,8.2vw,36px)}
+  .pn-stat{gap:10px}
+  .pn-stat .pre{font-size:12px}
+  .pn-stat .big{font-size:clamp(50px,15vw,64px)}
+  .pn-stat p{font-size:12.5px;max-width:200px}
+  .pn-calm{font-size:14px;line-height:1.45}
   .pn-g{margin-top:10px;gap:6px}
-  .pn-gi{padding:8px 10px;font-size:12px}
-  .pn-notes{left:16px;right:auto;top:auto;bottom:20vh;width:68vw}
-  .pn-n{padding:9px 11px;font-size:12px}
+  .pn-gi{padding:8px 11px;font-size:12.5px;border-radius:14px}
+  .pn-notes{left:14px;right:auto;top:auto;bottom:calc(30vh + 96px);width:min(72vw,300px);gap:7px}
+  .pn-n{padding:8px 10px;font-size:12px;border-radius:14px}
+  .pn-n i{flex-basis:24px;height:24px}
   .pn-n:nth-child(n+4){display:none}
-  .pn-book{left:auto;right:16px;bottom:4vh;width:48vw;padding:12px 14px}
-  .pn-e{font-size:16px}
-  .jr-intro{bottom:9%}
-  .jr-intro .fl-h{font-size:34px}
-  .wk-cap{top:76px;left:16px}
+  .pn-book{display:none}
+  .jr-foot{left:16px;right:16px;bottom:10px;font-size:10px;line-height:1.35}
+  .jr-intro{bottom:9%;left:16px;right:16px;max-width:none}
+  .jr-intro .fl-h{font-size:clamp(30px,8.6vw,38px)}
+  .wk-cap{top:20px;left:16px;font-size:11px}
+}
 }
 
 /* before / after */
-.ba-track{position:relative;height:420vh}
+.ba-track{position:relative;height:520vh}
 .ba-stage{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:0 var(--g);max-width:1440px;margin:0 auto;box-sizing:border-box;contain:layout paint}
 .ba-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:clamp(14px,2.6vh,30px)}
 .ba-head .fl-h{font-size:clamp(28px,3.4vw,54px);margin:.2em 0 0}
@@ -152,7 +159,10 @@ export const FLOW_CSS = `
 .chip{display:inline-block;font-family:${font.uiSemiBold};font-size:12px;padding:.35em .85em;border-radius:99px;background:${color.ink};color:#fff}
 .ft-m{display:none}
 @media (max-width:899px){
-  .ov{display:flex;flex-direction:column;gap:10px;padding:72px 16px 16px;justify-content:flex-start}
+  .ov{display:flex;flex-direction:column;gap:10px;padding:24px 16px 18px;justify-content:center}
+  .ov .lap{padding:6px;border-radius:10px 10px 0 0}
+  .ov .lap-base{height:8px}
+  .ov-o .of-lap{order:2}.ov-o .t{order:1}.ov-o .of-side{order:3}
   .ov .t .fl-h{font-size:28px}
   .ft-list{grid-template-columns:1fr 1fr;gap:8px}
   .ft-i{padding:10px 12px}
@@ -160,6 +170,8 @@ export const FLOW_CSS = `
   .of-side{gap:8px}
   .of-side .card{padding:12px 14px}
   .of-sub{display:none}
+  .of-side .card:last-child{display:none}
+  .stat-l{font-size:12.5px}
   .stat{font-size:40px}
 }
 
