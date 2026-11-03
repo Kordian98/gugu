@@ -268,9 +268,11 @@ export function requiredOverrides(
   input: Omit<AvailabilityInput, "from" | "to" | "overrides">,
   start: number,
   staffId: string | null,
+  /** Only consider these (e.g. the ones a caller sent, to record just what was actually used). */
+  allowed: readonly RuleOverride[] = RULE_OVERRIDES,
 ): RuleOverride[] | null {
   const subsets: RuleOverride[][] = [[]];
-  for (const o of RULE_OVERRIDES) {
+  for (const o of RULE_OVERRIDES.filter((r) => allowed.includes(r))) {
     for (const s of [...subsets]) subsets.push([...s, o]);
   }
   subsets.sort((a, b) => a.length - b.length);

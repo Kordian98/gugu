@@ -282,6 +282,12 @@ export class BookingLifecycleCommands {
           : slotTaken();
       }
 
+      const applied =
+        input.overrides.length === 0
+          ? []
+          : (requiredOverrides(availability, start, option.staffId, input.overrides) ?? [
+              ...input.overrides,
+            ]);
       const rotated = actor.kind === "customer" ? this.secrets.issueManageToken() : null;
       await deleteBookingOccupancy(tx, booking.id);
       await insertOccupancy(tx, {
@@ -305,9 +311,9 @@ export class BookingLifecycleCommands {
                 ...(rotated ? { manageTokenHash: rotated.hash } : {}),
               }
             : {}),
-          ...(input.overrides.length > 0
+          ...(applied.length > 0
             ? {
-                ruleOverrides: [...new Set([...booking.ruleOverrides, ...input.overrides])],
+                ruleOverrides: [...new Set([...booking.ruleOverrides, ...applied])],
                 overrideReason: input.overrideReason,
               }
             : {}),
@@ -340,7 +346,7 @@ export class BookingLifecycleCommands {
       });
       await this.audit.record(
         {
-          action: input.overrides.length > 0 ? "booking.rules_overridden" : "booking.rescheduled",
+          action: applied.length > 0 ? "booking.rules_overridden" : "booking.rescheduled",
           actor:
             actor.kind === "salon_member"
               ? { type: "user", id: actor.userId }
@@ -351,7 +357,7 @@ export class BookingLifecycleCommands {
           metadata: {
             from: booking.startsAt.toISOString(),
             to: new Date(option.start).toISOString(),
-            overrides: input.overrides.join(",") || null,
+            overrides: applied.join(",") || null,
           },
         },
         tx,
