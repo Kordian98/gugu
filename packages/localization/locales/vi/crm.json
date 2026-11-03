@@ -46,7 +46,15 @@
       "receptionist": "Lễ tân",
       "staff": "Nhân viên"
     },
-    "docTitle": "{{page}} · GuGu Studio"
+    "docTitle": "{{page}} · GuGu Studio",
+    "suspension": {
+      "title": "Salon đang bị GuGu tạm khóa",
+      "titleSince": "Salon bị GuGu tạm khóa từ {{date}}",
+      "body": "Bạn vẫn xem được toàn bộ dữ liệu nhưng không thể thay đổi. Trợ lý đặt lịch trên Zalo và tin nhắc lịch cho khách đang tạm dừng.",
+      "contact": "Liên hệ bộ phận hỗ trợ GuGu: {{email}}",
+      "contactPhone": "Liên hệ bộ phận hỗ trợ GuGu: {{email}} · {{phone}}",
+      "emailAction": "Gửi email cho hỗ trợ"
+    }
   },
   "greeting": {
     "morning": "Chào buổi sáng",

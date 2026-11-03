@@ -45,6 +45,7 @@ import { ConnectionService } from "../application/connection.service";
 import { InboxService } from "../application/inbox.service";
 import { StatsQueries } from "../application/stats.queries";
 import { ZALO_READ_MODELS } from "../zalo.read-models";
+import { RequiresInboxRead } from "./inbox-read.guard";
 
 const conversationParams = z.object({ salonId: uuidV7Schema, conversationId: uuidV7Schema });
 type ConversationParams = z.infer<typeof conversationParams>;
@@ -128,7 +129,7 @@ export class ZaloPanelController {
 
   @Get("conversations")
   @RequirePermission("zalo.inbox.use")
-  @RequiresEntitlement("zalo.inbox")
+  @RequiresInboxRead()
   @ApiOperation({ operationId: "zalo.conversations", summary: "Zalo conversations, newest first." })
   @ApiResponse({ status: 200, description: "Page.", standardSchema: zaloConversationListSchema })
   conversations(
@@ -142,7 +143,7 @@ export class ZaloPanelController {
 
   @Get("conversations/:conversationId")
   @RequirePermission("zalo.inbox.use")
-  @RequiresEntitlement("zalo.inbox")
+  @RequiresInboxRead()
   @ApiOperation({ operationId: "zalo.conversation", summary: "One Zalo conversation." })
   @ApiResponse({
     status: 200,
@@ -159,7 +160,7 @@ export class ZaloPanelController {
 
   @Get("conversations/:conversationId/messages")
   @RequirePermission("zalo.inbox.use")
-  @RequiresEntitlement("zalo.inbox")
+  @RequiresInboxRead()
   @ApiOperation({
     operationId: "zalo.messages",
     summary: "Messages of a conversation (oldest first within a page).",

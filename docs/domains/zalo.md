@@ -15,6 +15,7 @@ Implemented on branch `zalo/09-impl` (2026-11-02). It runs end to end against th
 | Reminders 24 h / 2 h, salon-made booking changes (confirmed / cancelled / moved) | done |
 | Windows (48 h free / 7 d paid / closed), monthly template cap, send log with cost | done |
 | Real Zalo (`ZALO_CLIENT=http`) | built, unverified (spike S-Z1 after q81) |
+| Suspended salon (q89): bot paused with a neutral notice, sends skipped, inbox read-only, panel banner | done (branch `zalo/09-suspension`) |
 | AI on Zalo chat (Z3), Mini App, Zalo Login for customers | not planned now (X10, q41, X21/X23) |
 
 ## Invariants
@@ -73,6 +74,21 @@ Implemented on branch `zalo/09-impl` (2026-11-02). It runs end to end against th
    - changes the salon makes (confirm, cancel, move a booking) reach the customer right after the commit: the outbox relay (04-S5) delivers `booking.created` / `booking.status_changed` / `booking.rescheduled` to `ZaloBookingEventsHandler`. Delivery is at-least-once; sends dedupe on `booking_update:<eventId>`.
 6. **Tokens:** refreshed when less than 10 min is left; a 10-min job also refreshes tokens expiring within 1 h. On `token_invalid`: one forced refresh, then `needs_reauth` plus a notification.
 
+## Suspended salon (q89, owner 2026-11-04)
+While GuGu has suspended a salon (`salons.status = suspended`, ADR-0010) the Zalo side behaves like this. Pure rules: `domain/suspension.ts` (unit tests next to it).
+- **Webhooks:** still verified, stored and processed; messages land in the inbox, the window timestamp moves, unread counts go up.
+- **Bot:** never runs. `InboundService` reads the salon status under the conversation lock and skips `runBot()`. A customer message the bot would have answered gets one neutral reply, purpose `suspended_notice`: `zalo:bot.suspendedNotice` (or `suspendedNoticePhone` with the salon's own phone). It speaks as the salon, has no buttons, never mentions GuGu and has no links.
+  - At most one per conversation per `ZALO_SUSPENDED_NOTICE_COOLDOWN_HOURS` (24), counted from the latest `suspended_notice` send-log row.
+  - Not sent when the salon switched its bot off.
+  - Funnel: `bot_unavailable` with reason `salon_suspended`.
+  - Backstop: `BotPortsFactory.forConversation` calls `BookingContexts.assertWritable` (403 `salon.suspended`).
+- **Sends:** `OutboundService.sendOne` re-checks the status at send time. Everything except `suspended_notice` is `rejected` with error code `salon_suspended`, no cost: bot and staff replies, booking updates, ZBS templates queued earlier.
+- **Reminders:** the `zalo.minute` scan logs one `rejected/salon_suspended` row per due reminder under `<kind>:<bookingId>:salon_suspended`, leaving the real dedup key free. A reminder already queued when the suspension lands is parked the same way at send time. After unsuspend the scan sends whatever `dueReminder()` still returns (a 24 h reminder until 2 h before, then the 2 h one); reminders whose window passed are never sent.
+- **Inbox:** the three inbox GETs use `ZaloInboxReadGuard` (`http/inbox-read.guard.ts`): `zalo.inbox` entitlement, or a suspended salon (granted nothing, but members keep reading). Every write (reply, take over, release, read) is 403 `salon.suspended` from the auth guard; `InboxService.reply` re-checks it. The panel hides the reply box actions and shows `panel.inbox.suspendedNote`.
+  - Accepted (security review, orchestrator 2026-11-04): while suspended, a salon whose plan lacks `zalo.inbox` can read its own past inbox (own data, members with `zalo.inbox.use` only; closes again on unsuspend). Not a cross-tenant widening.
+- **Banner:** `apps/app/features/salon-crm/shell/SuspensionBanner.tsx` on every workspace page, fed by `SalonSummary.suspension { since, support { email, phone } }` (env `SUPPORT_EMAIL`, `SUPPORT_PHONE`). Copy: `crm:shell.suspension.*`.
+- **Tests:** `zalo-suspension.int.test.ts` (neutral reply once per 24 h and no booking, no GuGu or link in the text, inbox readable, staff reply blocked, queued chat and template skipped, reminders skipped then sent while still due, two-salon isolation).
+
 ## Configuration
 | Variable | Meaning |
 |---|---|
@@ -80,6 +96,8 @@ Implemented on branch `zalo/09-impl` (2026-11-02). It runs end to end against th
 | `API_PUBLIC_URL` | Origin of this API: OAuth `redirect_uri`, emulator pages, emulator webhook target |
 | `ZALO_APP_ID`, `ZALO_APP_SECRET`, `ZALO_OA_SECRET_KEY`, `ZALO_TOKEN_KEY` | Required for `http` (boot fails otherwise) |
 | `ZALO_PRICE_TEMPLATE_VND` (200), `ZALO_PRICE_CS_PAID_VND` (55) | Indicative prices for the send log |
+| `ZALO_SUSPENDED_NOTICE_COOLDOWN_HOURS` (24) | Suspended salon: neutral notice at most once per conversation per N hours |
+| `SUPPORT_EMAIL`, `SUPPORT_PHONE` | GuGu support contact in the suspension banner (set per environment) |
 | Entitlements | `zalo.oa_connect` (connect), `zalo.inbox` (inbox), `zalo_template.monthly_messages` (template cap, lowered by the owner's cap) |
 | Permissions | `integrations.zalo.manage` (owner: connect, settings, send log), `zalo.inbox.use` (owner, manager, receptionist) |
 
@@ -94,12 +112,12 @@ Salons register their ZBS templates at Zalo with exactly these parameters: `cust
 
 ## File map
 - `apps/api/src/modules/zalo/`:
-  - `domain/`: `window.ts` (48 h / 7 d), `signature.ts`, and `bot/` (`engine.ts`, `payload.ts`, `types.ts`), each with unit tests.
+  - `domain/`: `window.ts` (48 h / 7 d), `signature.ts`, `suspension.ts` (q89), and `bot/` (`engine.ts`, `payload.ts`, `types.ts`), each with unit tests.
   - `client/`: `zalo-client.ts` (port, errors) and `http-zalo-client.ts` (real Zalo).
   - `emulator/`: `emulated-zalo-client.ts`, `emulator-store.ts` (Redis `zalo-emu:*`), `emulator.controller.ts`, `emulator-pages.ts`.
   - `application/`: `connection.service.ts`, `webhook-ingest.service.ts`, `inbound.service.ts`, `bot-ports.ts`, `outbound.service.ts`, `reminders.service.ts`, `booking-updates.service.ts`, `inbox.service.ts`, `usage.queries.ts`, `zalo-jobs.ts`.
-  - `http/`: `zalo-panel.controller.ts` (`/salons/:salonId/zalo/*`) and `zalo-webhook.controller.ts`.
-  - Integration test: `zalo.int.test.ts`.
+  - `http/`: `zalo-panel.controller.ts` (`/salons/:salonId/zalo/*`), `zalo-webhook.controller.ts` and `inbox-read.guard.ts`.
+  - Integration tests: `zalo.int.test.ts`, `zalo-suspension.int.test.ts`.
 - Jobs: `apps/api/src/jobs/zalo.processor.ts`.
 - Contracts: `packages/contracts/src/zalo/zalo.ts`.
 - Copy: `packages/localization/locales/{vi,en}/zalo.json` (`bot.*`, `panel.*`).
@@ -144,3 +162,4 @@ Salons register their ZBS templates at Zalo with exactly these parameters: `cust
 - Events are locked per conversation, so two taps processed in parallel run one after the other. Their order follows lock acquisition, not the Zalo timestamp.
 - Integration tests and a running dev worker share Redis and the DB. Stop the worker before running the tests.
 - Who pays for templates sent from salon OAs is open (q83). Sends are metered and capped.
+- Suspension: the status is read without a lock, so a suspension committing while an inbound event is mid-way can still let that one event book (the bot-ports backstop narrows it to the moment between its check and the engine write). The neutral notice uses the salon's default locale; the rest of the bot is vi only.

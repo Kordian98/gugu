@@ -78,7 +78,9 @@
     "dayFull": "{{date}} salon không còn giờ trống. Bạn chọn ngày khác nhé.",
     "notBookable": "Salon chưa mở đặt lịch qua tin nhắn cho dịch vụ này. Bạn vui lòng gọi điện cho salon, hoặc nhắn để nhân viên hỗ trợ nhé.",
     "windowLimit": "Salon chỉ nhận đặt lịch trước tối đa {{days}} ngày. Bạn quay lại sau hoặc nhắn để nhân viên hỗ trợ nhé.",
-    "earliestOffer": "{{days}} ngày tới đã kín lịch. Giờ trống sớm nhất:"
+    "earliestOffer": "{{days}} ngày tới đã kín lịch. Giờ trống sớm nhất:",
+    "suspendedNotice": "Hiện salon tạm thời chưa nhận đặt lịch qua tin nhắn này. Bạn vui lòng liên hệ trực tiếp với salon nhé. Cảm ơn bạn!",
+    "suspendedNoticePhone": "Hiện salon tạm thời chưa nhận đặt lịch qua tin nhắn này. Bạn vui lòng liên hệ trực tiếp với salon qua số {{phone}} nhé. Cảm ơn bạn!"
   },
   "panel": {
     "title": "Zalo",
@@ -182,7 +184,8 @@
       "paidNote": "Khách nhắn lần cuối hơn 48 giờ trước: tin trả lời có phí (khoảng {{price}}).",
       "closedNote": "Đã quá 7 ngày từ tin nhắn cuối của khách nên Zalo không cho phép trả lời. Khách cần nhắn cho salon trước.",
       "sendExplain": "Tin nhắn được gửi từ Zalo OA của salon và khách nhận trong Zalo. Bạn không cần mở ứng dụng Zalo.",
-      "selectBody": "Tin nhắn của khách gửi tới Zalo OA của salon sẽ hiện ở đây. Bạn trả lời ngay trong GuGu Studio."
+      "selectBody": "Tin nhắn của khách gửi tới Zalo OA của salon sẽ hiện ở đây. Bạn trả lời ngay trong GuGu Studio.",
+      "suspendedNote": "Salon đang bị GuGu tạm khóa: bạn vẫn xem được tin nhắn nhưng không thể trả lời từ đây. Trợ lý đặt lịch và nhắc lịch đang tạm dừng."
     },
     "notifications": {
       "title": "Cần chú ý",

@@ -36,6 +36,9 @@ import { NotifyClock } from "./notify-clock";
 import { RecipientsService } from "./recipients.service";
 import { NotificationSettingsService } from "./settings.service";
 
+/** Skip reason while GuGu has suspended the salon (q89); the Zalo send log uses the same code. */
+export const SALON_SUSPENDED_REASON = "salon_suspended";
+
 /** Send lease: long enough for one SMTP round trip, short enough that a crash recovers quickly. */
 const LEASE_MS = 120_000;
 /** Re-check Zalo every minute; after this long without a final Zalo result, email anyway. */
@@ -231,12 +234,26 @@ export class SenderService {
   private async decide(d: NotificationDelivery, now: Date): Promise<Decision> {
     const event = d.event as NotificationEvent;
     if (!(event in CATALOG)) return { kind: "skip", reason: "other" };
+    // q89: nothing reaches a suspended salon's customers (confirmations, changes, reminders).
+    // Checked here, at send time, so reminders planned earlier are covered; a reminder whose time
+    // comes after unsuspend still goes out, one that fell inside the suspension does not.
+    if (d.audience === "customer" && (await this.salonSuspended(d.salonId))) {
+      return { kind: "skip", reason: SALON_SUSPENDED_REASON };
+    }
     const settings = await this.settings.stored(d.salonId);
     if (!channelEnabled(settings.events, event, "email"))
       return { kind: "skip", reason: "disabled" };
     return isTeamEvent(event)
       ? this.decideTeam(d, event)
       : this.decideCustomer(d, event, settings.replyToEmail, now);
+  }
+
+  private async salonSuspended(salonId: string): Promise<boolean> {
+    const salon = await this.prisma.salon.findUnique({
+      where: { id: salonId },
+      select: { status: true },
+    });
+    return salon?.status === "suspended";
   }
 
   private async decideCustomer(

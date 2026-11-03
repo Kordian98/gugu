@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { createI18n } from "@gugu/localization";
 import { normalizeVnPhone } from "@gugu/domain";
 import { Prisma, type ZaloConversation } from "../../../infrastructure/prisma/generated/client";
+import { AppConfig } from "../../../infrastructure/config/app-config";
 import { appendOutbox } from "../../../infrastructure/outbox/outbox.writer";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { ZALO_CLIENT, type ZaloClient } from "../client/zalo-client";
@@ -11,6 +12,11 @@ import { globalPayload } from "../domain/bot/payload";
 import { routeInbound } from "../domain/bot/routing";
 import type { BotInput, BotReply, BotState } from "../domain/bot/types";
 import type { FunnelEventInput } from "../domain/funnel";
+import {
+  SALON_SUSPENDED_REASON,
+  shouldSendSuspendedNotice,
+  SUSPENDED_NOTICE_PURPOSE,
+} from "../domain/suspension";
 import { BotPortsFactory } from "./bot-ports";
 import { recordFunnel } from "./funnel.recorder";
 import { ConnectionService } from "./connection.service";
@@ -40,6 +46,13 @@ const INTERACTIONS = new Set([
   "user_submit_info",
   "user_click_button",
 ]);
+
+/** `+84901234567` → `0901 234 567` (how salons print their number); other numbers as stored. */
+export function displayVnPhone(e164: string): string {
+  if (!e164.startsWith("+84")) return e164;
+  const n = `0${e164.slice(3)}`;
+  return n.length === 10 ? `${n.slice(0, 4)} ${n.slice(4, 7)} ${n.slice(7)}` : n;
+}
 
 interface Inbound {
   kind: string;
@@ -104,6 +117,7 @@ export class InboundService {
     private readonly ports: BotPortsFactory,
     private readonly outbound: OutboundService,
     private readonly connections: ConnectionService,
+    private readonly config: AppConfig,
     @Inject(ZALO_CLIENT) private readonly client: ZaloClient,
   ) {}
 
@@ -136,6 +150,13 @@ export class InboundService {
         });
         if (still?.status !== "received") return;
         const current = await tx.zaloConversation.findUniqueOrThrow({ where: { id: conv.id } });
+        // Read under the conversation lock, right before deciding: a salon suspended by GuGu
+        // (q89) never books, it only stores the message and answers with the neutral notice.
+        const salon = await tx.salon.findUniqueOrThrow({
+          where: { id: salonId },
+          select: { status: true, phoneE164: true, defaultLocale: true },
+        });
+        const suspended = salon.status === "suspended";
         const at = event.occurredAt;
         const interacted = INTERACTIONS.has(e.event_name);
         await tx.zaloMessage.create({
@@ -158,7 +179,7 @@ export class InboundService {
             increment:
               inbound.kind !== "follow" &&
               inbound.kind !== "unfollow" &&
-              (current.mode === "staff" || !conn.botEnabled)
+              (current.mode === "staff" || !conn.botEnabled || suspended)
                 ? 1
                 : 0,
           },
@@ -174,101 +195,117 @@ export class InboundService {
         if (inbound.kind === "follow") funnel.push({ event: "followed" });
         else if (inbound.kind === "unfollow") funnel.push({ event: "unfollowed" });
         else funnel.push({ event: "inbound" });
-        const route = routeInbound(current, conn.botEnabled, inbound.bot);
-        if (inbound.bot && !conn.botEnabled && current.mode === "bot") {
-          funnel.push({ event: "bot_unavailable", reason: "bot_disabled" });
-        }
-        if (route === "resume_bot") {
-          update.mode = "bot";
-          update.assignedUserId = null;
-          update.handoffRequestedAt = null;
-          update.staffNoticeAt = null;
-        }
-        if (route === "staff_notice") {
-          update.staffNoticeAt = this.clock.now();
-          const { t } = createI18n("vi");
-          logIds = await this.outbound.record(
-            salonId,
-            [
-              {
-                channel: "cs",
-                purpose: "bot_reply",
-                conversationId: conv.id,
-                sender: "bot",
-                message: {
-                  kind: "text",
-                  text: t("zalo:bot.staffActive"),
-                  buttons: [{ title: t("zalo:bot.backToBot"), payload: globalPayload("bot") }],
-                },
-              },
-            ],
-            tx,
-          );
-        }
-        if (inbound.bot && (route === "bot" || route === "resume_bot")) {
-          const locale = "vi" as const;
-          const { t } = createI18n(locale);
-          const ports = await this.ports.forConversation(
-            {
-              id: current.id,
-              salonId,
-              displayName: current.displayName,
-              phoneE164: current.phoneE164,
-            },
-            locale,
-            event.eventKey,
-          );
-          const result = await runBot(current.botState as unknown as BotState, inbound.bot, ports, {
-            now: this.clock.now(),
-            locale,
-            t: (key, vars) => t(`zalo:${key}`, vars ?? {}),
-            newId: randomUUID,
+        if (suspended) {
+          if (inbound.bot)
+            funnel.push({ event: "bot_unavailable", reason: SALON_SUSPENDED_REASON });
+          logIds = await this.suspendedNotice(tx, salonId, conv.id, event.eventKey, {
+            hasBotInput: inbound.bot !== null,
+            botEnabled: conn.botEnabled,
+            phoneE164: salon.phoneE164,
+            locale: salon.defaultLocale,
           });
-          update.botState = result.state as unknown as Prisma.InputJsonObject;
-          for (const effect of result.effects) {
-            if (effect.type === "contact") {
-              if (effect.phone)
-                update.phoneE164 = normalizeVnPhone(effect.phone) ?? current.phoneE164;
-              if (effect.name && !current.displayName) update.displayName = effect.name;
-            } else if (effect.type === "funnel") {
-              funnel.push(effect.event);
-            } else if (effect.type === "setup_issue") {
-              await tx.zaloStaffNotification.create({
-                data: { salonId, kind: "booking_setup_issue", conversationId: conv.id },
-              });
-            } else if (effect.type === "handoff") {
-              update.mode = "staff";
-              update.handoffRequestedAt = this.clock.now();
-              update.lastStaffActivityAt = this.clock.now();
-              update.staffNoticeAt = null;
-              await tx.zaloStaffNotification.create({
-                data: { salonId, kind: "handoff_requested", conversationId: conv.id },
-              });
-              // Topic 11: bell + email for the team (ids only, no chat text or names).
-              await appendOutbox(tx, {
-                salonId,
-                aggregateType: "zalo_conversation",
-                aggregateId: conv.id,
-                type: "zalo.handoff_requested",
-                payload: { conversationId: conv.id },
-              });
-            } else {
-              await tx.zaloStaffNotification.create({
-                data: {
-                  salonId,
-                  kind: effect.kind,
-                  conversationId: conv.id,
-                  bookingId: effect.bookingId,
-                },
-              });
-              const action = NOTIFY_FUNNEL[effect.kind];
-              if (action) funnel.push({ event: action, bookingId: effect.bookingId });
-            }
+        } else {
+          const route = routeInbound(current, conn.botEnabled, inbound.bot);
+          if (inbound.bot && !conn.botEnabled && current.mode === "bot") {
+            funnel.push({ event: "bot_unavailable", reason: "bot_disabled" });
           }
-          logIds = await this.outbound.record(salonId, this.toItems(conv.id, result.replies), tx);
-        } else if (inbound.kind === "user_info" && inbound.bot?.kind === "user_info") {
-          const phone = inbound.bot.phone ? normalizeVnPhone(inbound.bot.phone) : null;
-          if (phone) update.phoneE164 = phone;
+          if (route === "resume_bot") {
+            update.mode = "bot";
+            update.assignedUserId = null;
+            update.handoffRequestedAt = null;
+            update.staffNoticeAt = null;
+          }
+          if (route === "staff_notice") {
+            update.staffNoticeAt = this.clock.now();
+            const { t } = createI18n("vi");
+            logIds = await this.outbound.record(
+              salonId,
+              [
+                {
+                  channel: "cs",
+                  purpose: "bot_reply",
+                  conversationId: conv.id,
+                  sender: "bot",
+                  message: {
+                    kind: "text",
+                    text: t("zalo:bot.staffActive"),
+                    buttons: [{ title: t("zalo:bot.backToBot"), payload: globalPayload("bot") }],
+                  },
+                },
+              ],
+              tx,
+            );
+          }
+          if (inbound.bot && (route === "bot" || route === "resume_bot")) {
+            const locale = "vi" as const;
+            const { t } = createI18n(locale);
+            const ports = await this.ports.forConversation(
+              {
+                id: current.id,
+                salonId,
+                displayName: current.displayName,
+                phoneE164: current.phoneE164,
+              },
+              locale,
+              event.eventKey,
+            );
+            const result = await runBot(
+              current.botState as unknown as BotState,
+              inbound.bot,
+              ports,
+              {
+                now: this.clock.now(),
+                locale,
+                t: (key, vars) => t(`zalo:${key}`, vars ?? {}),
+                newId: randomUUID,
+              },
+            );
+            update.botState = result.state as unknown as Prisma.InputJsonObject;
+            for (const effect of result.effects) {
+              if (effect.type === "contact") {
+                if (effect.phone)
+                  update.phoneE164 = normalizeVnPhone(effect.phone) ?? current.phoneE164;
+                if (effect.name && !current.displayName) update.displayName = effect.name;
+              } else if (effect.type === "funnel") {
+                funnel.push(effect.event);
+              } else if (effect.type === "setup_issue") {
+                await tx.zaloStaffNotification.create({
+                  data: { salonId, kind: "booking_setup_issue", conversationId: conv.id },
+                });
+              } else if (effect.type === "handoff") {
+                update.mode = "staff";
+                update.handoffRequestedAt = this.clock.now();
+                update.lastStaffActivityAt = this.clock.now();
+                update.staffNoticeAt = null;
+                await tx.zaloStaffNotification.create({
+                  data: { salonId, kind: "handoff_requested", conversationId: conv.id },
+                });
+                // Topic 11: bell + email for the team (ids only, no chat text or names).
+                await appendOutbox(tx, {
+                  salonId,
+                  aggregateType: "zalo_conversation",
+                  aggregateId: conv.id,
+                  type: "zalo.handoff_requested",
+                  payload: { conversationId: conv.id },
+                });
+              } else {
+                await tx.zaloStaffNotification.create({
+                  data: {
+                    salonId,
+                    kind: effect.kind,
+                    conversationId: conv.id,
+                    bookingId: effect.bookingId,
+                  },
+                });
+                const action = NOTIFY_FUNNEL[effect.kind];
+                if (action) funnel.push({ event: action, bookingId: effect.bookingId });
+              }
+            }
+            logIds = await this.outbound.record(salonId, this.toItems(conv.id, result.replies), tx);
+          } else if (inbound.kind === "user_info" && inbound.bot?.kind === "user_info") {
+            const phone = inbound.bot.phone ? normalizeVnPhone(inbound.bot.phone) : null;
+            if (phone) update.phoneE164 = phone;
+          }
         }
 
         await recordFunnel(tx, salonId, conv.id, funnel, at);
@@ -282,6 +319,53 @@ export class InboundService {
     );
     await this.outbound.enqueue(salonId, logIds);
     return { status: "processed" };
+  }
+
+  /**
+   * Suspended salon (q89): one neutral reply in the salon's voice — "please contact the salon
+   * directly", never GuGu, never a link — at most once per conversation per cooldown (config).
+   * Runs under the conversation lock, so parallel events cannot both send it.
+   */
+  private async suspendedNotice(
+    tx: Prisma.TransactionClient,
+    salonId: string,
+    conversationId: string,
+    eventKey: string,
+    ctx: { hasBotInput: boolean; botEnabled: boolean; phoneE164: string | null; locale: string },
+  ): Promise<string[]> {
+    const last = await tx.zaloSendLog.findFirst({
+      where: { salonId, conversationId, purpose: SUSPENDED_NOTICE_PURPOSE },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    const send = shouldSendSuspendedNotice({
+      hasBotInput: ctx.hasBotInput,
+      botEnabled: ctx.botEnabled,
+      lastNoticeAt: last?.createdAt ?? null,
+      now: this.clock.now(),
+      cooldownMs: this.config.env.ZALO_SUSPENDED_NOTICE_COOLDOWN_HOURS * 3_600_000,
+    });
+    if (!send) return [];
+    // The salon's language (vi by default); i18n falls back to en for a missing key.
+    const { t } = createI18n(ctx.locale === "en" ? "en" : "vi");
+    const phone = ctx.phoneE164 ? displayVnPhone(ctx.phoneE164) : null;
+    const text = phone
+      ? t("zalo:bot.suspendedNoticePhone", { phone })
+      : t("zalo:bot.suspendedNotice");
+    return this.outbound.record(
+      salonId,
+      [
+        {
+          channel: "cs",
+          purpose: SUSPENDED_NOTICE_PURPOSE,
+          conversationId,
+          sender: "bot",
+          dedupKey: `${SUSPENDED_NOTICE_PURPOSE}:${eventKey}`,
+          message: { kind: "text", text, buttons: [] },
+        },
+      ],
+      tx,
+    );
   }
 
   private toItems(conversationId: string, replies: readonly BotReply[]): OutboundItem[] {

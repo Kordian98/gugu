@@ -72,6 +72,10 @@ export class BotPortsFactory {
     locale: "vi" | "en",
     actionKey: string,
   ): Promise<BotPorts> {
+    // Backstop for q89: a salon suspended by GuGu never gets bot ports (no booking, no cancel).
+    // InboundService already answers suspended salons with the neutral notice instead; this
+    // throws 403 `salon.suspended` if a suspension lands between that check and here.
+    await this.contexts.assertWritable(conv.salonId);
     const ctx = await this.contexts.forSalon(conv.salonId);
     // The customer acts as themself; the device hash keys holds/idempotency to this conversation.
     const actor: BookingActor = {

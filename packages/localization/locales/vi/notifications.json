@@ -153,6 +153,7 @@
         "not_connected": "Zalo chưa kết nối",
         "user_unreachable": "Không liên lạc được qua Zalo",
         "cap": "Đã đạt giới hạn email trong ngày",
+        "salon_suspended": "Salon đang bị tạm khóa",
         "other": "Lý do khác"
       }
     },

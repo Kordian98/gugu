@@ -46,7 +46,15 @@
       "receptionist": "Receptionist",
       "staff": "Staff"
     },
-    "docTitle": "{{page}} · GuGu Studio"
+    "docTitle": "{{page}} · GuGu Studio",
+    "suspension": {
+      "title": "This salon is suspended by GuGu",
+      "titleSince": "This salon has been suspended by GuGu since {{date}}",
+      "body": "You can still view all data but can't make changes. The Zalo booking assistant and customer reminders are paused.",
+      "contact": "Contact GuGu support: {{email}}",
+      "contactPhone": "Contact GuGu support: {{email}} · {{phone}}",
+      "emailAction": "Email support"
+    }
   },
   "greeting": {
     "morning": "Good morning",

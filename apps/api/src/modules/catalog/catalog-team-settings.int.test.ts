@@ -26,6 +26,7 @@ import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
+import { RedisService } from "../../infrastructure/redis/redis.service";
 import { EntitlementService, SubscriptionsFacade } from "../subscriptions/subscriptions.facade";
 
 describe("catalog, team & settings (integration)", () => {
@@ -491,14 +492,32 @@ describe("catalog, team & settings (integration)", () => {
   });
 
   it("emailed invitations are rate limited per inviter", async () => {
-    let last = 0;
-    for (let i = 0; i < 21; i++) {
-      const res = await api()
+    // Worktrees sharing a Redis DB wipe `rl:*` in their own setup (clearRateLimits); a 21-request
+    // burst often lost its counter that way (21st answered 201). Seed the counter to one below the
+    // limit right before the boundary instead, and retry only when a foreign wipe is visible. A
+    // missing limit still fails every attempt.
+    const redis = app.get(RedisService).client;
+    const counter = `rl:team.invite_email.user:${a.ownerUserId}`;
+    const invite = (auth: string, tag: string) =>
+      api()
         .post(`/api/v1/salons/${a.salonId}/invitations`)
-        .set("authorization", ownerA)
-        .send({ role: "staff", email: testEmail(`burst${String(i)}`) });
-      last = res.status;
+        .set("authorization", auth)
+        .send({ role: "staff", email: testEmail(tag) });
+    let statuses: number[] = [];
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await redis.set(counter, 19, "EX", 3600);
+      statuses = [
+        (await invite(ownerA, "burst20")).status,
+        (await invite(ownerA, "burst21")).status,
+      ];
+      // Untouched by anyone else, the counter now reads 19 + 2 (consume counts refused hits too).
+      if ((await redis.get(counter)) === "21") break;
     }
-    expect(last).toBe(429);
+    expect(statuses, `20th and 21st emailed invitation by user ${a.ownerUserId}`).toEqual([
+      201, 429,
+    ]);
+    // Per inviter: another manager of the same salon still invites.
+    const manager = await bearerFor(app, await addSalonMember(prisma, a.salonId, "manager"));
+    expect((await invite(manager, "burst-other")).status).toBe(201);
   });
 });

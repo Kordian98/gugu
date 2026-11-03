@@ -4,6 +4,7 @@ import { z } from "zod";
  * Environment contract for the API and worker. Parsed once at boot; the process refuses to start on
  * invalid config. Add a variable here before reading it anywhere (never read process.env directly).
  */
+const DEV_SUPPORT_EMAIL = "support@gugu.local";
 const DEV_AUTH_SECRET = "dev-only-insecure-auth-secret-do-not-use-in-prod";
 const DEV_BOOKING_TOKEN_SECRET = "dev-only-insecure-booking-token-secret-not-for-prod";
 const DEV_ZALO_TOKEN_KEY = "dev-only-insecure-zalo-token-key-do-not-use-in-prod";
@@ -100,6 +101,18 @@ export const envSchema = z
      * becomes active before this moment becomes a founding partner (X20). ISO 8601 UTC.
      */
     MARKETPLACE_LAUNCH_AT: z.iso.datetime().optional(),
+    /**
+     * GuGu support contact shown to salon members, e.g. in the suspension banner (q89). Set the
+     * real address per environment; the default only exists for local dev and tests.
+     */
+    SUPPORT_EMAIL: z.email().default(DEV_SUPPORT_EMAIL),
+    /** Optional support phone / Zalo number, shown as written (e.g. `0901 234 567`). */
+    SUPPORT_PHONE: z.string().trim().max(40).optional(),
+    /**
+     * Suspended salon (q89): the Zalo bot answers a conversation with the neutral "please contact
+     * the salon" notice at most once per this many hours.
+     */
+    ZALO_SUSPENDED_NOTICE_COOLDOWN_HOURS: z.coerce.number().min(1).max(720).default(24),
   })
   .transform((env) => ({
     ...env,
@@ -113,6 +126,10 @@ export const envSchema = z
     (env) => env.NODE_ENV !== "production" || env.BOOKING_TOKEN_SECRET !== DEV_BOOKING_TOKEN_SECRET,
     { path: ["BOOKING_TOKEN_SECRET"], message: "must be set in production" },
   )
+  .refine((env) => env.NODE_ENV !== "production" || env.SUPPORT_EMAIL !== DEV_SUPPORT_EMAIL, {
+    path: ["SUPPORT_EMAIL"],
+    message: "must be set in production (shown to suspended salons, q89)",
+  })
   .refine((env) => env.NODE_ENV !== "production" || env.ZALO_CLIENT !== "emulated", {
     path: ["ZALO_CLIENT"],
     message: "the Zalo emulator is not allowed in production",
