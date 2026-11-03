@@ -1,7 +1,7 @@
 // Sign-in through the real UI: email on /{locale}/sign-in → magic link from Mailpit → open it.
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { t, type Locale } from "./i18n";
-import { latestMagicLink, searchMail } from "./mailpit";
+import { latestCode, latestMagicLink, searchMail } from "./mailpit";
 import { fillField, tap } from "./ui";
 
 // The magic-link issue and verify endpoints allow 30 requests per IP /24 per 15 min. Every browser
@@ -37,5 +37,31 @@ export async function signInViaUi(
   const link = await latestMagicLink(email, before);
   await page.goto(link);
   await expect(page).not.toHaveURL(/\/auth\/verify/, { timeout: 30_000 });
+  await page.unroute(AUTH_LIMITED, withIp);
+}
+
+/**
+ * Email-only signup through the real UI (owner 2026-11-04): `/{locale}/business/join` → email →
+ * the 6-digit code from Mailpit typed into the code field (auto-confirms at six digits). Same rate-
+ * limit routing as `signInViaUi`. Ends wherever the app lands (the setup wizard for a new account).
+ */
+export async function signUpWithCodeViaUi(
+  page: Page,
+  email: string,
+  locale: Locale = "vi",
+): Promise<void> {
+  const ip = nextSignInIp();
+  const withIp = (route: Route) =>
+    route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": ip } });
+  await page.route(AUTH_LIMITED, withIp);
+  const before = (await searchMail(`to:"${email}"`)).length;
+  await page.goto(`/${locale}/business/join`);
+  await expect(page.getByText(t(locale, "auth:signUp.title"))).toBeVisible();
+  await fillField(page.getByLabel(t(locale, "auth:signIn.emailLabel"), { exact: true }), email);
+  await tap(page.getByRole("button", { name: t(locale, "auth:signUp.submit") }));
+  await expect(page.getByText(t(locale, "auth:checkInbox.title"))).toBeVisible();
+  const code = await latestCode(email, before);
+  await fillField(page.getByTestId("auth-code"), code);
+  await expect(page).not.toHaveURL(/\/business\/join/, { timeout: 30_000 });
   await page.unroute(AUTH_LIMITED, withIp);
 }

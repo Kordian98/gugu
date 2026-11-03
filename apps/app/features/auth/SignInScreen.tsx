@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import type { AuthProviders } from "@gugu/contracts";
-import { Button, Text, color } from "@gugu/design-system";
+import { Button, Icon, Text, color } from "@gugu/design-system";
 
 import { apiFetch } from "@/services/auth/api";
 import { useAuth } from "@/services/auth/AuthProvider";
@@ -16,6 +16,9 @@ import { AuthCard } from "./AuthCard";
 import { EMAIL_RE, authErrorMessage } from "./errors";
 import { TextField } from "./TextField";
 
+/** Signup reassurance lines (keys under `auth:signUp.points`). */
+const SIGNUP_POINTS = ["free", "fast", "ai"] as const;
+
 /** Only app-relative paths are accepted as `next` (the API re-validates). */
 const safeNext = (next: unknown): string | undefined =>
   typeof next === "string" && /^\/(?!\/)/.test(next) ? next : undefined;
@@ -24,8 +27,13 @@ const safeNext = (next: unknown): string | undefined =>
  * Email magic-link sign-in (X12: no SMS/OTP). Step 1: email → link sent. Step 2: "check your inbox",
  * with a 6-digit code field for native or another device. Apple/Google buttons appear only when the
  * API reports them enabled.
+ *
+ * `mode="signUp"` (`/business/join`, owner 2026-11-04) is the same flow with signup copy: email is
+ * the only thing needed to start. New and existing emails see exactly the same screens (no account
+ * enumeration); after sign-in the business area creates the salon if the user has none.
  */
-export function SignInScreen() {
+export function SignInScreen({ mode = "signIn" }: { mode?: "signIn" | "signUp" }) {
+  const signUp = mode === "signUp";
   const { t } = useTranslation("auth");
   const locale = useLocale();
   const router = useRouter();
@@ -63,16 +71,16 @@ export function SignInScreen() {
     }
   };
 
-  const confirmCode = async () => {
-    if (!sentTo) return;
-    if (!/^\d{6}$/.test(code)) {
+  const confirmCode = async (value = code) => {
+    if (!sentTo || busy) return;
+    if (!/^\d{6}$/.test(value)) {
       setError(t("errors.invalidCode"));
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      const session = await auth.verify({ email: sentTo, code });
+      const session = await auth.verify({ email: sentTo, code: value });
       router.replace(
         afterSignInHref(session.user, session.redirectPath ?? next ?? `/${locale}/business`),
       );
@@ -126,7 +134,10 @@ export function SignInScreen() {
           placeholder={t("checkInbox.codePlaceholder")}
           value={code}
           onChangeText={(v) => {
-            setCode(v.replace(/\D/g, "").slice(0, 6));
+            const digits = v.replace(/\D/g, "").slice(0, 6);
+            setCode(digits);
+            // Six digits typed or pasted: confirm at once (one tap fewer).
+            if (digits.length === 6 && digits !== code) void confirmCode(digits);
           }}
           keyboardType="number-pad"
           textContentType="oneTimeCode"
@@ -134,10 +145,11 @@ export function SignInScreen() {
           maxLength={6}
           error={error}
           onSubmitEditing={() => void confirmCode()}
+          testID="auth-code"
         />
         <Button
           label={busy ? t("signIn.sending") : t("checkInbox.verify")}
-          onPress={() => void (busy ? undefined : confirmCode())}
+          onPress={() => void confirmCode()}
           height={52}
           fontSize={16}
         />
@@ -168,11 +180,23 @@ export function SignInScreen() {
   return (
     <AuthCard>
       <Text role="display" size={44} lineHeight={48}>
-        {t("signIn.title")}
+        {signUp ? t("signUp.title") : t("signIn.title")}
       </Text>
       <Text size={16} color={color.body}>
-        {t("signIn.subtitle")}
+        {signUp ? t("signUp.subtitle") : t("signIn.subtitle")}
       </Text>
+      {signUp ? (
+        <View className="gap-2">
+          {SIGNUP_POINTS.map((k) => (
+            <View key={k} className="flex-row items-center gap-2">
+              <Icon name="check" size={16} color={color.lilac700} strokeWidth={2.4} />
+              <Text size={15} color={color.ink}>
+                {t(`signUp.points.${k}`)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <TextField
         label={t("signIn.emailLabel")}
         placeholder={t("signIn.emailPlaceholder")}
@@ -186,7 +210,7 @@ export function SignInScreen() {
         onSubmitEditing={() => void send(email.trim())}
       />
       <Button
-        label={busy ? t("signIn.sending") : t("signIn.submit")}
+        label={busy ? t("signIn.sending") : signUp ? t("signUp.submit") : t("signIn.submit")}
         onPress={() => void (busy ? undefined : send(email.trim()))}
         height={52}
         fontSize={16}
@@ -218,24 +242,32 @@ export function SignInScreen() {
           ) : null}
         </View>
       ) : null}
-      <Text size={14} color={color.muted}>
-        {t("signIn.noAccount")}
-      </Text>
-      <View className="flex-row flex-wrap items-center gap-2">
-        <Text size={14} color={color.body}>
-          {t("signIn.forSalons")}
+      {signUp ? (
+        <Text size={14} color={color.muted}>
+          {t("signUp.existing")}
         </Text>
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => {
-            router.push(`/${locale}/business/join`);
-          }}
-        >
-          <Text role="uiSemiBold" size={14} color={color.lilac700}>
-            {t("signIn.forSalonsLink")}
+      ) : (
+        <>
+          <Text size={14} color={color.muted}>
+            {t("signIn.noAccount")}
           </Text>
-        </Pressable>
-      </View>
+          <View className="flex-row flex-wrap items-center gap-2">
+            <Text size={14} color={color.body}>
+              {t("signIn.forSalons")}
+            </Text>
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => {
+                router.push(`/${locale}/business/join`);
+              }}
+            >
+              <Text role="uiSemiBold" size={14} color={color.lilac700}>
+                {t("signIn.forSalonsLink")}
+              </Text>
+            </Pressable>
+          </View>
+        </>
+      )}
     </AuthCard>
   );
 }

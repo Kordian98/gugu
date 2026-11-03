@@ -1,4 +1,4 @@
-import type { SalonBooking } from "@gugu/contracts";
+import type { SalonBooking, SetupState } from "@gugu/contracts";
 
 /** Read models the workspace renders. Shapes mirror the planned insights/calendar API (07 §4.3, §4.6). */
 export type Plan = "basic" | "pro" | "ultra";
@@ -71,5 +71,7 @@ export type Workspace = {
   canGoLive: boolean;
   /** False while the checklist is loading (avoid flashing the setup card). */
   setupLoaded: boolean;
+  /** Guided-setup state for salons from the email-only signup; null for older salons and demo. */
+  setup: SetupState | null;
   role: "owner" | "manager" | "receptionist" | "staff" | null;
 };

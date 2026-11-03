@@ -281,7 +281,8 @@
     "payroll_invalid_override": "A service does not belong to this salon.",
     "payroll_adjustment_not_found": "Entry not found.",
     "payroll_cost_not_found": "Cost not found.",
-    "payroll_not_a_manager": "Only managers can be given access."
+    "payroll_not_a_manager": "Only managers can be given access.",
+    "salon_pending_confirmation": "A salon registered with this email is waiting for your confirmation."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",
@@ -1361,5 +1362,141 @@
     "noServicesYet": "No services completed this month yet.",
     "baseLine": "Base pay: {{base}}",
     "baseAndAdjustments": "Base pay: {{base}} · Bonus / deduction / advance: {{adjustments}}"
+  },
+  "quickStart": {
+    "preparing": "Getting your salon ready…",
+    "failedTitle": "We couldn't create your salon",
+    "failedBody": "Check your connection and try again.",
+    "retry": "Try again"
+  },
+  "setupWizard": {
+    "later": "Later",
+    "skip": "Skip",
+    "next": "Continue",
+    "back": "Back",
+    "saving": "Saving…",
+    "stepOf": "Step {{step}} of {{total}}",
+    "progressLabel": "{{done}} of {{total}} steps done",
+    "totalEta": "About 3 minutes to finish",
+    "eta": {
+      "seconds": "About 30 seconds",
+      "minute": "About 1 minute",
+      "minutes": "About 2 minutes"
+    },
+    "cheer": {
+      "remaining_one": "Nice! {{count}} step to go",
+      "remaining_other": "Nice! {{count}} steps to go",
+      "last": "Nice! Just one more step",
+      "skipped": "No problem, you can do it later"
+    },
+    "steps": {
+      "business": "Salon",
+      "hours": "Hours",
+      "services": "Services",
+      "team": "Team",
+      "zalo": "Zalo",
+      "done": "Done"
+    },
+    "business": {
+      "title": "Welcome! What's your salon called?",
+      "body": "It shows on appointments and on messages to clients. You can change it any time.",
+      "nameLabel": "Salon name",
+      "namePlaceholder": "e.g. Mây Nail & Spa",
+      "typeLabel": "What does your salon mostly do?",
+      "types": {
+        "nails": "Nails",
+        "hair": "Hair",
+        "spa": "Spa & massage",
+        "lashes_brows": "Lashes & brows",
+        "mixed": "A bit of everything"
+      }
+    },
+    "hours": {
+      "title": "When are you open?",
+      "body": "Pick the closest preset and tweak it if needed. Appointments only fit within opening hours.",
+      "presets": {
+        "everyday_9_21": "9:00–21:00 every day",
+        "everyday_8_20": "8:00–20:00 every day",
+        "weekdays_9_19": "9:00–19:00, closed Sunday",
+        "custom": "Custom"
+      },
+      "days": "Open on",
+      "opens": "Opens",
+      "closes": "Closes",
+      "invalid": "Closing time must be after opening time, with at least one open day."
+    },
+    "services": {
+      "title": "What services do you offer?",
+      "body": "Pick whatever is quickest for you. Your list shows up right below.",
+      "aiTitle": "Snap or upload your price list",
+      "aiBody": "AI reads the photo and builds a list for you to check. Only the price list is needed, no client data.",
+      "aiCta": "Choose price-list photos",
+      "aiUnavailable": "AI import isn't switched on here yet. Pick from a template below; it takes less than a minute.",
+      "aiNotEntitled": "Your plan doesn't include AI import yet. Pick from a template below.",
+      "tabTemplate": "From a template",
+      "tabManual": "Add my own",
+      "templateHint": "Prices are typical; change them to match your salon.",
+      "rangeHint": "Usually {{range}}",
+      "addSelected_one": "Add {{count}} service",
+      "addSelected_other": "Add {{count}} services",
+      "selectSome": "Select at least one service",
+      "added_one": "{{count}} service added",
+      "added_other": "{{count}} services added",
+      "listTitle": "Your services",
+      "empty": "No services yet. Pick one of the options above.",
+      "editRow": "Edit"
+    },
+    "team": {
+      "title": "Who serves your clients?",
+      "body": "Names are enough. You can invite people to sign in later under Team.",
+      "justMe": "Just me",
+      "justMeBody": "You take and do the appointments",
+      "withTeam": "I have a team",
+      "withTeamBody": "Add each person's name",
+      "myName": "Your name (shown on the calendar)",
+      "includeMe": "I also do services myself",
+      "staffName": "Team member's name",
+      "staffPlaceholder": "e.g. Trần Mai",
+      "add": "Add",
+      "hint": "Everyone works the salon's opening hours and every service. Fine-tune later under Team.",
+      "needOne": "Add at least one person to take appointments"
+    },
+    "zalo": {
+      "title": "Connect your salon's Zalo OA",
+      "body": "Clients book right in your salon's Zalo chat; confirmations and reminders go out automatically.",
+      "cta": "Connect Zalo OA",
+      "connected": "Zalo OA connected",
+      "disabled": "Zalo isn't switched on here yet. You can connect later in Settings.",
+      "noOa": "No Zalo OA yet? Skip this step and connect later in Settings.",
+      "result": {
+        "connected": "Zalo OA connected.",
+        "denied": "You cancelled on Zalo. Try again when you're ready.",
+        "failed": "That didn't work. Please try again in a few minutes.",
+        "oa_in_use": "This Zalo OA is already used by another salon.",
+        "expired": "The connection timed out. Please try again.",
+        "plan": "Your plan doesn't include the Zalo connection."
+      }
+    },
+    "done": {
+      "title": "All set! Your salon is ready for bookings",
+      "body": "Here's your salon's calendar for today. Add your first appointment to get going.",
+      "firstBooking": "Add your first appointment",
+      "toToday": "Go to Today",
+      "later": "You can do these later:",
+      "calendarTitle": "Today's calendar",
+      "noStaff": "Add team members to see a calendar column for each person."
+    }
+  },
+  "finishSetup": {
+    "title": "Finish setting up",
+    "body": "A few small things left, whenever it suits you.",
+    "dismiss": "Hide this card",
+    "items": {
+      "business": "Name your salon",
+      "hours": "Set opening hours",
+      "services": "Add services",
+      "team": "Add someone to take appointments",
+      "zalo": "Connect Zalo OA"
+    }
   }
 }

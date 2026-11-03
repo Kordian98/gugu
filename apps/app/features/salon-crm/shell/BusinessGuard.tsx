@@ -11,6 +11,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { SalonProvider } from "../data/SalonContext";
 import { useDemoMode } from "../data/useDemoMode";
 import { EmptyState } from "../ui/EmptyState";
+import { QuickStart } from "./QuickStart";
 
 /**
  * Session + membership guard for the whole business area (07 M7.6). UX only: every API call is
@@ -45,8 +46,9 @@ export function BusinessGuard({ children }: { children: ReactNode }) {
   const memberships = auth.user?.memberships ?? [];
   if (!memberships.some((m) => m.status === "active")) {
     const pending = memberships.some((m) => m.status === "pending_verification");
-    // A new owner goes straight into registration, then the first-run stepper (owner feedback).
-    if (!pending) return <Redirect href={`/${locale}/business/join` as never} />;
+    // Email-only signup: a signed-in user without any salon gets one created with smart defaults,
+    // then lands in the guided setup (owner 2026-11-04). Nothing to fill in before entering.
+    if (!pending) return <QuickStart />;
     return (
       <View
         style={{

@@ -1,10 +1,15 @@
-// Flow 1 (vi): a new owner registers, runs the first-run wizard, adds a service with staff
-// checkboxes, books with "find the earliest slot", stores a client's email on the profile,
-// drag-reschedules in the calendar and cancels. GuGu never emails a salon's customers (X26):
-// Mailpit must stay empty for them, and the drawer says the salon has no Zalo OA to reach them.
-import { expect, test } from "@playwright/test";
-import { signInViaUi } from "../support/auth";
-import { t } from "../support/i18n";
+// Flow 1: a new owner signs up with only an email (owner 2026-11-04): email → 6-digit code → the
+// guided setup (name + type tiles → hours preset → template services, with the AI import shown as
+// "not configured" → team by name → Zalo skipped → celebration with today's calendar) → first
+// appointment straight from the done screen. Then the old journey continues: a service performed
+// only by one person (staff checkboxes), "find the earliest slot", a client email on the profile,
+// drag-reschedule and cancel. GuGu never emails a salon's customers (X26). A second test runs the
+// signup on a 390 px phone in English, leaves the wizard halfway and finishes one step from the
+// Today "finish setup" card.
+import { expect, test, type Page } from "@playwright/test";
+import { signUpWithCodeViaUi } from "../support/auth";
+import { WEB } from "../support/env";
+import { t, type Locale } from "../support/i18n";
 import { expectNoMail } from "../support/mailpit";
 import { mail } from "../support/seed";
 import { addDays, vnDate } from "../support/time";
@@ -12,78 +17,136 @@ import { dragVertically, fillField, hydrated, tap } from "../support/ui";
 
 const L = "vi" as const;
 
+const noHorizontalOverflow = async (page: Page, where: string) => {
+  const { scroll, width } = await page.evaluate(() => ({
+    scroll: document.documentElement.scrollWidth,
+    width: window.innerWidth,
+  }));
+  expect(scroll, `${where}: ${String(scroll)}px wide in ${String(width)}px`).toBeLessThanOrEqual(
+    width,
+  );
+};
+
 test.describe("owner journey @vi", () => {
-  test("register → onboarding → service → book earliest → drag-reschedule → cancel", async ({
+  test("email only → guided setup → first appointment → service → drag-reschedule → cancel", async ({
     page,
   }, info) => {
     const owner = mail("newowner", info.project.name);
     const customerEmail = mail("customer1", info.project.name);
-    const earliestEmail = mail("customer0", info.project.name);
     // A new account's display name defaults to the email's local part.
     const ownerName = owner.slice(0, owner.indexOf("@"));
+    const gel = "Sơn gel tay";
 
-    await test.step("sign in with a new email and land on registration", async () => {
-      await signInViaUi(page, owner, L);
-      await expect(page).toHaveURL(/\/vi\/business\/join/);
-    });
-
-    await test.step("register the salon", async () => {
-      await fillField(
-        page.getByLabel(t(L, "auth:join.businessName"), { exact: true }),
-        "Mây Nail & Spa E2E",
-      );
-      const cat = page.getByRole("radiogroup", { name: t(L, "auth:join.category") });
-      await tap(cat.getByRole("radio").first());
-      await fillField(page.getByLabel(t(L, "auth:join.phone"), { exact: true }), "0912 345 678");
-      await tap(
-        page
-          .getByRole("radiogroup", { name: t(L, "auth:join.province") })
-          .getByRole("radio")
-          .first(),
-      );
-      await tap(
-        page
-          .getByRole("radiogroup", { name: t(L, "auth:join.ward") })
-          .getByRole("radio")
-          .first(),
-      );
-      await fillField(
-        page.getByLabel(t(L, "auth:join.streetAddress"), { exact: true }),
-        "8 Hai Bà Trưng",
-      );
-      await tap(page.getByRole("button", { name: t(L, "auth:join.submit") }));
-      await expect(page.getByText(t(L, "auth:join.doneTitle"))).toBeVisible();
-      await tap(page.getByRole("button", { name: t(L, "auth:join.goToBusiness") }));
-    });
-
-    await test.step("wizard: hours preset → services → team → go live", async () => {
+    await test.step("sign up with only an email and the 6-digit code", async () => {
+      await signUpWithCodeViaUi(page, owner, L);
       await expect(page).toHaveURL(/\/vi\/business\/setup/);
-      await tap(page.getByRole("button", { name: t(L, "crm:settings.hoursPreset") }));
-      // Seven open days → seven start-time inputs and seven day switches exposed as checked.
-      await expect(page.getByLabel(t(L, "crm:team.start"), { exact: true })).toHaveCount(7);
-      await expect(page.getByRole("switch", { checked: true })).toHaveCount(7);
-      await expect(page.getByRole("switch", { checked: false })).toHaveCount(0);
-      await tap(page.getByTestId("crm-hours-save"));
-      await expect(page.getByText(t(L, "crm:common.saving"))).toHaveCount(0);
-      await tap(page.getByTestId("crm-wizard-next"));
+      await expect(page.getByTestId("crm-setup-title")).toHaveText(
+        t(L, "crm:setupWizard.business.title"),
+      );
+      await expect(page.getByText(t(L, "crm:setupWizard.totalEta"))).toBeVisible();
+    });
 
-      await fillField(page.getByTestId("crm-wizard-service-name"), "Sơn gel");
-      await fillField(page.getByTestId("crm-wizard-service-price"), "150000");
-      await tap(page.getByTestId("crm-wizard-service-add"));
-      await expect(page.getByText("Sơn gel", { exact: true })).toBeVisible();
-      await tap(page.getByTestId("crm-wizard-next"));
+    await test.step("(a) salon name and business type tiles", async () => {
+      const next = page.getByTestId("crm-setup-next");
+      await expect(next).toHaveAttribute("aria-disabled", "true");
+      await fillField(page.getByTestId("crm-setup-salon-name"), "Mây Nail & Spa E2E");
+      await tap(page.getByTestId("crm-setup-type-nails"));
+      await expect(page.getByTestId("crm-setup-type-nails")).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      await tap(next);
+      await expect(page.getByTestId("crm-setup-cheer")).toHaveText(
+        t(L, "crm:setupWizard.cheer.remaining_other", { count: 4 }),
+      );
+    });
 
-      // Type the next name right after "add myself": its success must not wipe the field.
-      await tap(page.getByTestId("crm-wizard-add-me"));
-      await fillField(page.getByTestId("crm-wizard-staff-name"), "Trần Mai");
-      await expect(page.getByText(ownerName, { exact: true })).toBeVisible();
-      await expect(page.getByTestId("crm-wizard-staff-name")).toHaveValue("Trần Mai");
-      await tap(page.getByTestId("crm-wizard-staff-add"));
-      await expect(page.getByText("Trần Mai", { exact: true })).toBeVisible();
-      await tap(page.getByTestId("crm-wizard-next"));
+    await test.step("(b) opening hours preset", async () => {
+      await expect(page.getByTestId("crm-setup-title")).toHaveText(
+        t(L, "crm:setupWizard.hours.title"),
+      );
+      await expect(page.getByTestId("crm-setup-hours-everyday_9_21")).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      await tap(page.getByTestId("crm-setup-next"));
+    });
 
-      await tap(page.getByTestId("crm-wizard-go-live"));
+    await test.step("(c) AI import not configured is explained; template services fill the list", async () => {
+      const ai = page.getByTestId("crm-setup-ai-unavailable");
+      await expect(ai).toBeVisible();
+      await expect(ai).toContainText(t(L, "crm:setupWizard.services.aiUnavailable"));
+      await expect(page.getByTestId("crm-setup-ai-pick")).toHaveCount(0);
+      const list = page.getByTestId("crm-setup-service-list");
+      await expect(list).toContainText(t(L, "crm:setupWizard.services.empty"));
+      await tap(page.getByTestId("crm-setup-template-add"));
+      await expect(page.getByTestId("crm-setup-template-added")).toHaveText(
+        t(L, "crm:setupWizard.services.added_other", { count: 7 }),
+      );
+      await expect(list.getByText(gel, { exact: true })).toBeVisible();
+      await expect(list.getByText("Úp móng gel", { exact: true })).toBeVisible();
+      await tap(page.getByTestId("crm-setup-next"));
+    });
+
+    await test.step("(d) team by name: me + Trần Mai", async () => {
+      await tap(page.getByTestId("crm-setup-with-team"));
+      await expect(page.getByTestId("crm-setup-my-name")).toHaveValue(ownerName);
+      await fillField(page.getByTestId("crm-setup-staff-name"), "Trần Mai");
+      await tap(page.getByTestId("crm-setup-staff-add"));
+      await expect(
+        page.getByTestId("crm-setup-team-list").getByText("Trần Mai", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByTestId("crm-setup-staff-name")).toHaveValue("");
+      await tap(page.getByTestId("crm-setup-next"));
+    });
+
+    await test.step("(e) Zalo: one-line benefit, connect offered, skipped", async () => {
+      await expect(page.getByTestId("crm-setup-title")).toHaveText(
+        t(L, "crm:setupWizard.zalo.title"),
+      );
+      await expect(page.getByTestId("crm-setup-zalo-connect")).toBeVisible();
+      await tap(page.getByTestId("crm-setup-skip"));
+    });
+
+    await test.step("(f) celebration with today's real calendar", async () => {
+      await expect(page.getByTestId("crm-setup-done")).toBeVisible();
+      await expect(page.getByTestId("crm-setup-title")).toHaveText(
+        t(L, "crm:setupWizard.done.title"),
+      );
+      const preview = page.getByTestId("crm-setup-calendar-preview");
+      await expect(preview.getByText("Trần Mai")).toBeVisible();
+      await expect(page.getByTestId("crm-setup-done-remaining")).toContainText(
+        t(L, "crm:finishSetup.items.zalo"),
+      );
+    });
+
+    await test.step("first appointment straight from the done screen", async () => {
+      await tap(page.getByTestId("crm-setup-first-booking"));
+      await expect(page).toHaveURL(/\/vi\/business\/calendar/);
+      await fillField(page.getByTestId("crm-client-name"), "Phạm Thu Trang");
+      await fillField(page.getByTestId("crm-client-phone"), "0909 000 111");
+      await tap(page.getByTestId("crm-chip").filter({ hasText: gel }));
+      await tap(page.getByTestId("crm-find-earliest"));
+      const first = page.getByTestId("crm-earliest-slot").first();
+      await expect(first).toBeVisible();
+      await tap(first);
+      await tap(page.getByTestId("crm-new-confirm"));
+      await expect(page.getByTestId("crm-new-confirm")).toHaveCount(0);
+    });
+
+    await test.step("Today: no redirect back, a compact finish card that can be hidden", async () => {
+      await page.goto("/vi/business");
+      const card = await hydrated(page.getByTestId("crm-finish-setup"));
       await expect(page).toHaveURL(/\/vi\/business$/);
+      await expect(card.getByTestId("crm-finish-setup-zalo")).toBeVisible();
+      await expect(card.getByTestId("crm-finish-setup-services")).toHaveCount(0);
+      // The old checklist never shows for salons from the guided setup.
+      await expect(page.getByTestId("crm-setup-card")).toHaveCount(0);
+      await tap(page.getByTestId("crm-finish-setup-dismiss"));
+      await expect(page.getByTestId("crm-finish-setup")).toHaveCount(0);
+      await page.reload();
+      await hydrated(page.getByTestId("crm-nav-services"));
+      await expect(page.getByTestId("crm-finish-setup")).toHaveCount(0);
     });
 
     await test.step("add a service performed only by Trần Mai (staff checkboxes)", async () => {
@@ -129,7 +192,7 @@ test.describe("owner journey @vi", () => {
       await tap(page.getByTestId("crm-new-appointment"));
       await fillField(page.getByTestId("crm-client-name"), "Võ Thị Hồng");
       await fillField(page.getByTestId("crm-client-phone"), "0977 123 456");
-      await tap(page.getByTestId("crm-chip").filter({ hasText: "Sơn gel" }));
+      await tap(page.getByTestId("crm-chip").filter({ hasText: gel }));
       await tap(page.getByRole("button", { name: tomorrow, exact: true }));
       await tap(page.getByTestId("crm-slot").filter({ hasText: /^10:00$/ }));
       await tap(page.getByTestId("crm-new-confirm"));
@@ -149,7 +212,9 @@ test.describe("owner journey @vi", () => {
       await expect(page.getByTestId("crm-customer-email")).toHaveValue(customerEmail);
     });
 
-    const block = page.getByRole("button", { name: /^\d\d:\d\d Sơn gel, Võ Thị Hồng,/ });
+    const block = page.getByRole("button", {
+      name: new RegExp(`^\\d\\d:\\d\\d ${gel}, Võ Thị Hồng,`),
+    });
 
     await test.step("drag the booking from 10:00 to 14:00 in the calendar", async () => {
       await page.goto(`/vi/business/calendar?date=${tomorrow}`);
@@ -172,7 +237,6 @@ test.describe("owner journey @vi", () => {
       await expect(messages.getByTestId("crm-booking-messages-unreachable")).toHaveText(
         t(L, "notifications:panel.messages.reach.not_connected"),
       );
-      // The drawer no longer shows a customer email.
       await expect(page.getByTestId("crm-booking-email")).toHaveCount(0);
     });
 
@@ -183,10 +247,8 @@ test.describe("owner journey @vi", () => {
       await tap(page.getByTestId("crm-cancel-confirm"));
       await expect(page.getByTestId("crm-cancel-confirm")).toHaveCount(0);
       await expect(block).toHaveCount(0);
-      // Confirmation, reschedule and cancellation happened: GuGu sent no email to the customer,
-      // not even to the address stored on the profile (X26, q85/q86/q87).
+      // GuGu sent no email to the customer, not even to the address stored on the profile (X26).
       await expectNoMail(customerEmail);
-      await expectNoMail(earliestEmail, 0);
     });
 
     await test.step("cancelled booking's drawer lists no message", async () => {
@@ -199,5 +261,72 @@ test.describe("owner journey @vi", () => {
       await expect(messages.getByTestId("crm-booking-message")).toHaveCount(0);
       await expect(messages.getByTestId("crm-booking-messages-unreachable")).toBeVisible();
     });
+  });
+});
+
+test.describe("phone signup @en", () => {
+  test("390 px: email only → leave the wizard halfway → finish one step from Today", async ({
+    browser,
+  }, info) => {
+    const E: Locale = "en";
+    const ctx = await browser.newContext({
+      baseURL: WEB,
+      locale: "en-US",
+      timezoneId: "Asia/Ho_Chi_Minh",
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      deviceScaleFactor: 2,
+    });
+    const page = await ctx.newPage();
+    const owner = mail("phoneowner", info.project.name);
+
+    await test.step("sign up and land in the full-screen wizard", async () => {
+      await signUpWithCodeViaUi(page, owner, E);
+      await expect(page).toHaveURL(/\/en\/business\/setup/);
+      await expect(page.getByTestId("crm-setup-title")).toHaveText(
+        t(E, "crm:setupWizard.business.title"),
+      );
+      // Focused screen: no workspace tabs while setting up.
+      await expect(page.getByTestId("crm-nav-services")).toHaveCount(0);
+      await noHorizontalOverflow(page, "wizard step 1");
+    });
+
+    await test.step("name + type, skip hours, then 'Later' on services", async () => {
+      await fillField(page.getByTestId("crm-setup-salon-name"), "Lotus Lashes E2E");
+      await tap(page.getByTestId("crm-setup-type-lashes_brows"));
+      await tap(page.getByTestId("crm-setup-next"));
+      await expect(page.getByTestId("crm-setup-title")).toHaveText(
+        t(E, "crm:setupWizard.hours.title"),
+      );
+      await tap(page.getByTestId("crm-setup-skip"));
+      await expect(page.getByTestId("crm-setup-cheer")).toHaveText(
+        t(E, "crm:setupWizard.cheer.skipped"),
+      );
+      await expect(page.getByTestId("crm-setup-template")).toContainText("Classic lash extensions");
+      await noHorizontalOverflow(page, "services step");
+      await tap(page.getByTestId("crm-setup-later"));
+      await expect(page).toHaveURL(/\/en\/business$/);
+    });
+
+    await test.step("Today shows only what is still open; resume one step from the card", async () => {
+      const card = await hydrated(page.getByTestId("crm-finish-setup"));
+      await expect(card.getByTestId("crm-finish-setup-business")).toHaveCount(0);
+      await expect(card.getByTestId("crm-finish-setup-hours")).toBeVisible();
+      await expect(card.getByTestId("crm-finish-setup-services")).toBeVisible();
+      await expect(card.getByTestId("crm-finish-setup-team")).toBeVisible();
+      await tap(card.getByTestId("crm-finish-setup-hours"));
+      await expect(page.getByTestId("crm-setup-title")).toHaveText(
+        t(E, "crm:setupWizard.hours.title"),
+      );
+      await tap(page.getByTestId("crm-setup-hours-weekdays_9_19"));
+      await tap(page.getByTestId("crm-setup-next"));
+      await expect(page).toHaveURL(/\/en\/business$/);
+      const after = await hydrated(page.getByTestId("crm-finish-setup"));
+      await expect(after.getByTestId("crm-finish-setup-hours")).toHaveCount(0);
+      await expect(after.getByTestId("crm-finish-setup-services")).toBeVisible();
+      await noHorizontalOverflow(page, "Today with the finish card");
+    });
+
+    await ctx.close();
   });
 });

@@ -27,6 +27,7 @@ import { BookabilityIssues } from "./BookabilityIssues";
 import { MyEarningsCard, ProfitCard } from "./MonthCards";
 import { MyDay } from "./MyDay";
 import { PlanNotice } from "./PlanNotice";
+import { FinishSetupCard } from "./FinishSetupCard";
 import { SetupCard } from "./SetupCard";
 import { ZaloWaitingCard } from "./ZaloWaitingCard";
 import { WeekStrip } from "./WeekStrip";
@@ -41,13 +42,16 @@ export function TodayScreen() {
   const { go } = useCrmNav();
   const ws = useWorkspace();
   const salonId = useOptionalSalon()?.salonId ?? "";
-  // First run: a fresh salon (only registration done) starts in the setup stepper.
+  // First run: the owner of a salon from the email-only signup stays in the guided setup until it is
+  // finished or left with "Để sau" (server-side, so it resumes on any device). Older salons keep the
+  // previous rule (only registration done, not dismissed on this device).
   const firstRun =
     !ws.demo &&
     ws.setupLoaded &&
     ws.role === "owner" &&
-    ws.setupDone.every((s) => s === "business") &&
-    !isSetupDismissed(salonId);
+    (ws.setup
+      ? !ws.setup.wizardClosed
+      : ws.setupDone.every((s) => s === "business") && !isSetupDismissed(salonId));
   const [openId, setOpenId] = useState<string | null>(null);
   const openBooking = (id: string) => {
     setOpenId(id);
@@ -70,11 +74,13 @@ export function TodayScreen() {
     ? t("greeting.named", { greeting, name: ws.user.firstName })
     : t("greeting.plain", { greeting });
   const subtitle = t("greeting.subtitle", { date: formatDateLong(now, locale) });
-  // Owners/managers see the checklist until the salon is live; staff never do.
+  // Owners/managers of older salons see the checklist until the salon is live; staff never do.
+  // Salons from the guided setup get the compact "finish setup" card instead (optional items only).
+  const manages = ws.role === "owner" || ws.role === "manager";
   const setupIncomplete =
-    ws.setupLoaded &&
-    !ws.setupDone.includes("live") &&
-    (ws.role === "owner" || ws.role === "manager");
+    ws.setupLoaded && ws.setup === null && !ws.setupDone.includes("live") && manages;
+  const finishCard =
+    ws.setupLoaded && manages && !ws.demo ? <FinishSetupCard setup={ws.setup} /> : null;
   const mobile = bp === "mobile";
 
   const timeline = (
@@ -137,6 +143,7 @@ export function TodayScreen() {
         {setupIncomplete && !ws.demo ? (
           <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} compact />
         ) : null}
+        {finishCard}
         {ws.demo ? null : <BookabilityIssues />}
         {ws.demo ? null : <PlanNotice timeZone={ws.timeZone} />}
         <ZaloWaitingCard />
@@ -166,6 +173,7 @@ export function TodayScreen() {
       {setupIncomplete && !ws.demo ? (
         <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} />
       ) : null}
+      {finishCard}
       {ws.demo ? null : <BookabilityIssues />}
       {ws.demo ? null : <PlanNotice timeZone={ws.timeZone} />}
       <ZaloWaitingCard />

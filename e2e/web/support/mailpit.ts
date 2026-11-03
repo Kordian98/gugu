@@ -74,6 +74,14 @@ export async function latestMagicLink(to: string, after = 0): Promise<string> {
   return link;
 }
 
+/** 6-digit sign-in code from the latest magic-link mail for `to` (typed on another device). */
+export async function latestCode(to: string, after = 0): Promise<string> {
+  const msgs = await waitForMail(to, { count: after + 1 });
+  const code = msgs[0] ? /\b(\d{6})\b/.exec(msgs[0].Text)?.[1] : undefined;
+  if (!code) throw new Error(`no 6-digit code in latest mail to ${to}`);
+  return code;
+}
+
 /**
  * Asserts that `to` receives no email for `forMs` (polling). GuGu never emails a salon's
  * customers (X26): before X26 a confirmation reached Mailpit within a second or two, so a quiet
