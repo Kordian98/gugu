@@ -90,6 +90,20 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **Skip removed.**
 - **Hero CTA is a plaque at the foot of the arch,** with Start. It is gone after the first walk-in.
 
+## Design re-review of `acfda28` (fixed)
+
+- **B1:** every input (keys, Next, Prev, chapters, wheel, swipes) is ignored while the intro plays. Verified: ↓ PgDn Space → plus Next plus a chapter click during the intro still land on page 1.
+- **B2:** ↑ ↓ PgUp PgDn Space scroll the page and never turn it. Only ← / →, Next/Prev, chapters and horizontal swipes turn pages. ↓ on page 1 scrolls, with no before → after.
+- **Contrast:** the margin pill and the AI-setup labels are ink on lilac100.
+- **Net-profit row:** `nowrap`, and stacked on phones.
+- **Next:** 44 px tall on phones.
+- **Formatting:** `formatPercent` and signed `formatVND`; "tự tính" no longer splits.
+- **Short screens (≤ 760 px):** compact layout; the office disclaimer and the Switch eyebrow stay above the HUD at 360 × 740.
+- **Payroll p5** is kept on phones.
+- **Decorative CRM chrome** is `aria-hidden`.
+- **Intro threshold:** 6 % of the viewport (at least 40 px), and nudges add up.
+- **Harness:** Prev on every page plus ← / → / PgUp / PgDn / touch, in Chromium desktop and mobile and in WebKit desktop: all pass.
+
 ## CRM screenshots
 
 - **Checklist cut from `overview` and `kpis` (vi + en), owner 2026-11-04.** The onboarding checklist ("Thiết lập bằng AI trong vài phút") was removed by cutting its band and stitching the real screen back together; the sidebar stays intact. The manifest sizes are updated. This is interim, until the full retake.

@@ -6,7 +6,7 @@ import { gsap } from "gsap";
  *
  * Layout: a STATIC hero block (doors closed, journey time 0) sits above the story stage (one viewport).
  *
- * - Intro, once per visit: the first small scroll at the hero (≥ INTRO_WHEEL px of wheel, ≥ INTRO_TOUCH px
+ * - Intro, once per visit: the first small scroll at the hero (≥ 6 % of the viewport of wheel, nudges add up, ≥ INTRO_TOUCH px
  *   of swipe, Start, a key, or arriving at the stage any other way) jumps invisibly from the static hero to
  *   the identical stage and plays the doors + walk-in to Front desk page 1 at its normal pace. Scroll and
  *   swipe input is ignored while it plays (no skip, no double trigger). Below the threshold nothing happens.
@@ -14,8 +14,9 @@ import { gsap } from "gsap";
  *   2026-11-04): up shows the static hero (no animation, nothing reverses), down passes the book (on the
  *   page the visitor left) and the sections below. While the journey is partly out of the viewport a
  *   "Center view" button smoothly re-docks it.
- * - Pages turn only by Next/Prev, HUD chapters, keys (→ ↓ PgDn Space / ← ↑ PgUp Shift+Space while the
- *   story is in view) and one HORIZONTAL touch swipe per page (vertical swipes scroll). A turn plays the timeline from one composed page to
+ * - Pages turn only by Next/Prev, HUD chapters, ← / → while the story is in view and one HORIZONTAL
+ *   touch swipe per page. ↑ ↓ PgUp PgDn Space and vertical swipes scroll the page. Every input is ignored
+ *   while the intro plays. A turn plays the timeline from one composed page to
  *   the next at the original pacing and cannot stop half-way; Next during a turn fast-forwards it
  *   (≤ 0.45 s) and queues at most one page; Prev reverses it. Page 1 has no Prev (nothing replays).
  * - Reduced motion: the intro and every turn are short crossfades.
@@ -69,7 +70,8 @@ type Opts = {
 };
 
 /** Small-scroll threshold that commits to the intro (one wheel notch / a short swipe is enough). */
-const INTRO_WHEEL = 60;
+/** Wheel distance (fraction of the viewport, at least 40 px) that commits to the intro; nudges add up. */
+const INTRO_WHEEL = 0.06;
 const INTRO_TOUCH = 36;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -217,6 +219,7 @@ export function book(o: Opts): BookApi {
     if (then) after = then;
   };
   function next() {
+    if (intro === "playing") return; // every input is ignored while the intro plays
     if (intro === "todo") {
       playIntro();
       return;
@@ -256,15 +259,7 @@ export function book(o: Opts): BookApi {
       );
       return;
     }
-    if (intro === "playing") {
-      after =
-        to > 1
-          ? () => {
-              play(to, durFor(to, to === 2));
-            }
-          : null;
-      return;
-    }
+    if (intro === "playing") return; // ignored while the intro plays
     if (to === page && !turn) {
       dock();
       return;
@@ -284,7 +279,8 @@ export function book(o: Opts): BookApi {
   };
   const onWheel = (e: WheelEvent) => {
     const now = performance.now();
-    if (now - lastWheel > 220) newGesture();
+    // Small nudges add up; the tally resets after 1.5 s without wheel input.
+    if (now - lastWheel > 1500) newGesture();
     lastWheel = now;
     if (intro === "playing") {
       e.preventDefault(); // ignored while the intro plays
@@ -294,7 +290,7 @@ export function book(o: Opts): BookApi {
       e.preventDefault(); // the hero does not move until the intro commits
       if (e.deltaY > 0 || atDock()) {
         acc += Math.abs(e.deltaY);
-        if (acc >= INTRO_WHEEL) playIntro();
+        if (acc >= Math.max(40, vh * INTRO_WHEEL)) playIntro();
       }
       return;
     }
@@ -356,48 +352,33 @@ export function book(o: Opts): BookApi {
       track.contains(el) ||
       hero.contains(el) ||
       tag === "HTML";
-    const fwd =
-      k === "ArrowRight" || k === "ArrowDown" || k === "PageDown" || (space && !e.shiftKey);
-    const back = k === "ArrowLeft" || k === "ArrowUp" || k === "PageUp" || (space && e.shiftKey);
-    if (!fwd && !back) return;
+    const horiz = k === "ArrowLeft" || k === "ArrowRight";
+    const down = k === "ArrowDown" || k === "PageDown" || (space && !e.shiftKey);
+    const up = k === "ArrowUp" || k === "PageUp" || (space && e.shiftKey);
+    if (!horiz && !down && !up) return;
     if (!focusOk) return;
     if (intro === "playing") {
-      e.preventDefault();
-      if (fwd) next(); // explicit: fast-forward + queue, like the Next button
+      e.preventDefault(); // every input is ignored while the intro plays
       return;
     }
-    if (intro === "todo" && visible(hero)) {
+    // ← → turn pages (and → / ↓ / PgDn / Space at the hero commit the intro, like a small scroll).
+    if (intro === "todo" && visible(hero) && (k === "ArrowRight" || down)) {
       e.preventDefault();
-      if (fwd) playIntro();
+      playIntro();
       return;
     }
-    if (visible(stage)) {
-      // Up at the first page = plain scroll up to the hero (nothing replays).
-      if (back && page <= 1 && !turn && (k === "ArrowUp" || k === "PageUp")) {
-        e.preventDefault();
-        scrollToY(0, scrollDur(y()));
-        return;
-      }
+    if (horiz) {
+      if (intro !== "done" || !visible(stage)) return;
       e.preventDefault();
-      if (fwd) next();
+      if (k === "ArrowRight") next();
       else prev();
       return;
     }
-    if (k === "ArrowLeft" || k === "ArrowRight") return;
-    // Hero (after the intro) or below the story: keyboard page scrolling (the inner scroller does not get
-    // it natively). Down from the hero docks the book.
+    // ↑ ↓ PgUp PgDn Space are plain page scrolling (the inner scroller does not get them natively).
     e.preventDefault();
-    if (fwd && inHero()) {
-      dock();
-      return;
-    }
+    const fwd = down;
     const d = (k.startsWith("Arrow") ? 0.2 : 0.85) * vh * (fwd ? 1 : -1);
-    const to = y() + d;
-    scrollToY(
-      !fwd && y() > dockY && to < dockY ? dockY : to,
-      k.startsWith("Arrow") ? 0.25 : 0.5,
-      "power2.out",
-    );
+    scrollToY(y() + d, k.startsWith("Arrow") ? 0.25 : 0.5, "power2.out");
   };
 
   // ---- touch: hero swipe commits to the intro; one swipe = one page while the book is docked ----

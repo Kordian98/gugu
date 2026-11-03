@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { formatVND } from "@gugu/localization";
+import { formatPercent, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
@@ -18,7 +18,6 @@ const STAFF = [
   { k: "s2", base: 5_500_000, commission: 3_120_000 },
   { k: "s3", base: 0, commission: 1_930_000 },
 ] as const;
-const tag = (locale: string) => (locale === "vi" ? "vi-VN" : "en-US");
 
 /**
  * Back office, pay page (payroll merged in 63bedc7, ADR-0016): base pay (monthly / daily / hourly) plus
@@ -32,15 +31,12 @@ export function PayrollPanel() {
   const locale = useLocale();
   const vnd = (v: number) => formatVND(v, locale);
   const net = MONTH.earned + MONTH.upcoming - MONTH.pay - MONTH.costs;
-  const margin = new Intl.NumberFormat(tag(locale), {
-    style: "percent",
-    maximumFractionDigits: 0,
-  }).format(net / (MONTH.earned + MONTH.upcoming));
+  const margin = formatPercent(net / (MONTH.earned + MONTH.upcoming), locale);
   const rows = [
-    { k: "earned", label: crm("profit.card.earned"), v: MONTH.earned, sign: "" },
-    { k: "upcoming", label: crm("profit.card.upcoming"), v: MONTH.upcoming, sign: "" },
-    { k: "pay", label: t("flow.payroll.payRow"), v: MONTH.pay, sign: "−" },
-    { k: "costs", label: crm("profit.rows.otherCosts"), v: MONTH.costs, sign: "−" },
+    { k: "earned", label: crm("profit.card.earned"), v: MONTH.earned },
+    { k: "upcoming", label: crm("profit.card.upcoming"), v: MONTH.upcoming },
+    { k: "pay", label: t("flow.payroll.payRow"), v: -MONTH.pay },
+    { k: "costs", label: crm("profit.rows.otherCosts"), v: -MONTH.costs },
   ];
   return (
     <div className="ov ov-p">
@@ -59,9 +55,9 @@ export function PayrollPanel() {
       </div>
       <div className="card in-win py-win">
         <div className="sw-bar">
-          <span />
-          <span />
-          <span />
+          <span aria-hidden />
+          <span aria-hidden />
+          <span aria-hidden />
           <b>{crm("profit.card.title")}</b>
           <em className="in-eg">{t("flow.insights.eg")}</em>
         </div>
@@ -70,7 +66,7 @@ export function PayrollPanel() {
             {rows.map((r) => (
               <div key={r.k} className="py-row">
                 <span>{r.label}</span>
-                <b>{`${r.sign}${vnd(r.v)}`}</b>
+                <b>{vnd(r.v)}</b>
               </div>
             ))}
             <div className="py-row py-net">

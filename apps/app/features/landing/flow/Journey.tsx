@@ -149,9 +149,9 @@ export function Journey({
     ];
     const chapterOf = (page: number) =>
       HUD.find((c) => (c.stops as readonly number[]).includes(page));
-    // "Center view": shown (book.ts onCenter) while the journey is partly out of the viewport. Appended to
-    // <body> so `position: fixed` is relative to the viewport (the RN Web scroll content is a containing
-    // block for fixed descendants).
+    // "Center view": book.ts onCenter shows it while the journey is partly out of the viewport. It is
+    // appended to <body> so `position: fixed` is relative to the viewport (the RN Web scroll content would
+    // otherwise be its containing block).
     const centerBtn = document.createElement("button");
     centerBtn.type = "button";
     centerBtn.className = "jr-center";
@@ -504,7 +504,7 @@ export function Journey({
             </div>
             <span className="hud-sr" aria-live="polite" />
             <span className="hud-count" aria-hidden>
-              {t("flow.hud.page", { n: 1, total: PAGES.length })}
+              {t("flow.hud.page", { n: 1, total: PAGES.length - 1 })}
             </span>
             <button
               type="button"

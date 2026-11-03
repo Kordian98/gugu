@@ -282,9 +282,9 @@ export function SwitchPanel() {
         </div>
         <div className="card sw-win">
           <div className="sw-bar">
-            <span />
-            <span />
-            <span />
+            <span aria-hidden />
+            <span aria-hidden />
+            <span aria-hidden />
             <b>{t("flow.switch.win")}</b>
           </div>
           <div className="sw-ai">
@@ -303,7 +303,7 @@ export function SwitchPanel() {
           <div className="sw-rows">
             {SW_ROWS.map((r) => (
               <div key={r} className="sw-row">
-                <div className="sw-sk">
+                <div className="sw-sk" aria-hidden>
                   <span />
                   <span />
                 </div>

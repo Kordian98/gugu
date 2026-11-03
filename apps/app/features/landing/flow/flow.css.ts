@@ -229,7 +229,7 @@ export const FLOW_CSS = `
 .sw-sub{font-size:clamp(14px,1.1vw,17px)!important;margin-top:6px}
 .sw-steps{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .sw-steps li{display:flex;align-items:center;gap:10px;font-family:${font.uiMedium};font-size:clamp(12.5px,1vw,15px);background:${color.white};border-radius:14px;padding:9px 12px;box-shadow:0 10px 26px rgba(42,20,38,.08)}
-.sw-steps li b{flex:0 0 24px;height:24px;border-radius:50%;background:${color.lilac100};color:${color.lilac700};display:flex;align-items:center;justify-content:center;font-size:12px}
+.sw-steps li b{flex:0 0 24px;height:24px;border-radius:50%;background:${color.lilac100};color:${color.ink};display:flex;align-items:center;justify-content:center;font-size:12px}
 .sw-demo{grid-column:6/13;grid-row:1 / 3;align-self:center;position:relative;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.35fr);gap:clamp(14px,2vw,28px);align-items:center}
 .ov-s .sw-list{padding:clamp(20px,2.4vw,40px);transform-origin:center}
 .ov-s .sw-list p{font-size:clamp(16px,1.5vw,27px);line-height:1.5;white-space:pre}
@@ -241,13 +241,13 @@ export const FLOW_CSS = `
 .sw-bar span{width:9px;height:9px;border-radius:50%;background:${color.lineSoft}}
 .sw-bar b{margin-left:8px;font-family:${font.uiSemiBold};font-size:13px}
 .sw-ai{margin:10px 14px;padding:10px 14px;border-radius:14px;background:${color.lilac100}}
-.sw-ai-h{display:flex;align-items:center;gap:8px;font-family:${font.uiSemiBold};font-size:13.5px;color:${color.lilac700}}
+.sw-ai-h{display:flex;align-items:center;gap:8px;font-family:${font.uiSemiBold};font-size:13.5px;color:${color.ink}}
 .sw-ai-h i{font-style:normal}
 .sw-prog{height:6px;border-radius:6px;background:rgba(255,255,255,.8);margin:10px 0 8px;overflow:hidden}
 .sw-fill{display:block;height:100%;background:${cssGradient(gradient.glowSoft)};transform:scaleX(0);transform-origin:left center}
 .sw-status{position:relative;height:18px;font-family:${font.ui};font-size:12px;color:${color.ink2}}
 .sw-status span{position:absolute;left:0;top:0;white-space:nowrap}
-.sw-status .s2{opacity:0;font-family:${font.uiSemiBold};color:${color.lilac700}}
+.sw-status .s2{opacity:0;font-family:${font.uiSemiBold};color:${color.ink}}
 .sw-rows{display:grid;grid-template-columns:1fr;gap:5px;margin:0 14px 14px}
 .sw-row{position:relative;border:1px solid ${color.lineSoft};border-radius:10px;height:clamp(34px,4.4vh,42px)}
 .sw-sk,.sw-val{position:absolute;inset:0;display:flex;align-items:center;gap:8px;padding:0 10px}
@@ -354,11 +354,11 @@ export const FLOW_CSS = `
   .in-sub{display:none}
   .in-list{gap:5px;margin-top:10px}
   .in-list li{padding:6px 10px;font-size:12px}
-  .in-list li:nth-child(4){display:none}
+  .ov-i .in-list li:nth-child(4){display:none}
   .in-body{padding:10px;gap:8px}
   .in-kpi{padding:8px 10px}.in-kpi small{font-size:9.5px}.in-kpi b{font-size:19px}
   .in-mg{display:none}
-  .in-list li:nth-child(n+4){display:none}
+  .ov-i .in-list li:nth-child(n+4){display:none}
   .in-rev{grid-column:1/3}
   .in-fun b{font-size:16px}
 }
@@ -372,9 +372,10 @@ export const FLOW_CSS = `
 .py-row{display:flex;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid ${color.lineSoft};font-family:${font.ui};font-size:13.5px;color:${color.ink2}}
 .py-row b{margin-left:auto;font-family:${font.uiSemiBold};color:${color.ink};font-variant-numeric:tabular-nums}
 .py-net{border-bottom:0;padding-top:10px}
-.py-net span{font-family:${font.uiSemiBold};color:${color.ink}}
+.py-net span{font-family:${font.uiSemiBold};color:${color.ink};white-space:nowrap}
+.py-net b{white-space:nowrap}
 .py-net b{font-size:clamp(18px,1.6vw,24px)}
-.py-net em{font-style:normal;font-family:${font.uiMedium};font-size:12px;color:${color.lilac700};background:${color.lilac100};padding:3px 8px;border-radius:99px}
+.py-net em{font-style:normal;font-family:${font.uiMedium};font-size:12px;color:${color.ink2};white-space:nowrap;background:${color.lilac100};padding:3px 8px;border-radius:99px}
 .py-tr{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid ${color.lineSoft};font-family:${font.ui};font-size:12.5px;color:${color.ink2};font-variant-numeric:tabular-nums}
 .py-tr b{font-family:${font.uiSemiBold};color:${color.ink}}
 .py-th{font-family:${font.uiMedium};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${color.body}}
@@ -384,14 +385,15 @@ export const FLOW_CSS = `
 @media (max-width:899px){
   .ov-p{justify-content:flex-start}
   .ov-p .t .fl-h{font-size:clamp(22px,6.2vw,27px);margin-bottom:0}
-  .ov-p .in-list li:nth-child(n+3){display:none}
+  .ov-p .in-list li:nth-child(3),.ov-p .in-list li:nth-child(4){display:none}
   .py-table{display:none}
-  .py-net span{font-size:12.5px}
+  .py-net{flex-wrap:wrap;row-gap:4px}
+  .py-net span{font-size:12.5px;flex:1 0 100%}
+  .py-net b{margin-left:0}
   .py-note{font-size:11px;margin-top:6px}
   .py-body{padding:10px;gap:8px}
   .py-row{padding:5px 0;font-size:12.5px}
   .py-tr{font-size:11px;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:4px}
-  .py-th{font-size:9.5px}
 }
 @media (max-width:899px) and (max-height:860px){.py-table .py-tr:nth-child(4),.py-actions{display:none}}
 /* X25 band right after the story: Basic free for the first year */
@@ -425,6 +427,18 @@ export const FLOW_CSS = `
 }
 
 @media (min-width:900px) and (max-height:940px){.of-side .card:last-child{display:none}}
+@media (max-width:899px) and (max-height:760px){
+  .ov{padding-top:60px;gap:7px}
+  .ov .t .fl-h{font-size:22px}
+  .ov .fl-eye{font-size:10px;letter-spacing:.2em}
+  .in-list li{padding:5px 9px;font-size:11.5px}
+  .ov-o .of-lap{display:none}
+  .calc{padding:10px 12px}.calc-out b{font-size:24px}.calc-r{margin-top:6px}
+  .sw-old,.sw-arrow{display:none}
+  .ov-s .sw-row:nth-child(n+3){display:none}
+  .ov-s .sw-steps li{padding:5px 9px;font-size:11.5px}
+  .ov-p .in-list li:nth-child(2){display:none}
+}
 @media (max-width:899px) and (max-height:860px){.in-zalo{display:none}.in-rev .in-bh.sm,.in-rev .in-bar:last-child{display:none}}
 /* story HUD: chapters + next + skip */
 .jr-hud{position:absolute;left:50%;bottom:clamp(14px,3vh,28px);transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px;border-radius:99px;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(42,20,38,.16);border:1px solid rgba(255,255,255,.7)}
@@ -471,7 +485,7 @@ export const FLOW_CSS = `
   .jr-stage .hud-prev{grid-row:2}
   .jr-stage .hud-next{grid-row:2;justify-self:end}
   .hud-s .hud-name{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-  .hud-next{padding:10px 14px;font-size:13px}
+  .hud-next{padding:10px 14px;font-size:13px;min-height:44px;box-sizing:border-box}
 
   .hud-count{display:none}
     .jr-pain{bottom:104px}

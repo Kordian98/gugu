@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { formatVND } from "@gugu/localization";
+import { formatPercent, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
@@ -35,8 +35,7 @@ export function InsightsPanel() {
   const { t: crm } = useTranslation("crm");
   const locale = useLocale();
   const num = (v: number) => new Intl.NumberFormat(tag(locale)).format(v);
-  const pct = (v: number) =>
-    new Intl.NumberFormat(tag(locale), { style: "percent", maximumFractionDigits: 0 }).format(v);
+  const pct = (v: number) => formatPercent(v, locale);
   return (
     <div className="ov ov-i">
       <div className="t">
@@ -54,9 +53,9 @@ export function InsightsPanel() {
       </div>
       <div className="card in-win">
         <div className="sw-bar">
-          <span />
-          <span />
-          <span />
+          <span aria-hidden />
+          <span aria-hidden />
+          <span aria-hidden />
           <b>{t("flow.insights.win")}</b>
           <em className="in-eg">{t("flow.insights.eg")}</em>
         </div>

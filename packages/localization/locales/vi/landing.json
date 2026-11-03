@@ -488,7 +488,7 @@
     },
     "payroll": {
       "eyebrow": "Văn phòng · Lương & hoa hồng",
-      "title": "Lương và hoa hồng tự tính, theo từng dịch vụ.",
+      "title": "Lương và hoa hồng tự tính, theo từng dịch vụ.",
       "p1": "Lương cứng theo tháng, theo ngày công hoặc theo giờ, cộng hoa hồng % hoặc số tiền cố định cho từng dịch vụ",
       "p2": "Hoa hồng tính khi dịch vụ hoàn thành; hai người cùng làm một lịch hẹn thì mỗi người nhận đúng phần dịch vụ của mình",
       "p3": "Bảng lương tháng có thưởng và khoản trừ; chốt tháng và tải Excel",

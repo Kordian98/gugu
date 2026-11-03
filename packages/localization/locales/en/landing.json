@@ -488,7 +488,7 @@
     },
     "payroll": {
       "eyebrow": "Back office · Pay & commissions",
-      "title": "Pay and commissions that add up themselves, service by service.",
+      "title": "Pay and commissions that add up themselves, service by service.",
       "p1": "Monthly, daily or hourly base pay, plus a commission % or a fixed amount per service",
       "p2": "Commission is earned when a service is completed; when two people share one appointment, each earns on their own service",
       "p3": "Monthly payroll with bonuses and deductions; close the month and export to Excel",
