@@ -12,7 +12,8 @@ import { useOptionalSalon } from "../data/SalonContext";
  * Persistent banner on every workspace page while GuGu has suspended the salon (q89, ADR-0010):
  * what is happening (read-only, Zalo bot and customer reminders paused) and how to reach GuGu
  * support. The contact comes from the API (`SUPPORT_EMAIL` / `SUPPORT_PHONE`), never from code.
- * UX only: the API refuses every write of a suspended salon with `salon.suspended`.
+ * UX only: the API refuses every write of a suspended salon with `salon.suspended`, except client
+ * erasure and the salon-wide export (q92), which the owner can still use for privacy requests.
  */
 export function SuspensionBanner() {
   const { c } = useCalm();

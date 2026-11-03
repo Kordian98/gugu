@@ -391,7 +391,8 @@
     "admin_mfa_fresh_sign_in_required": "Để bật xác thực hai bước, hãy đăng xuất, đăng nhập lại rồi thử trong 15 phút.",
     "admin_mfa_enrollment_not_started": "Phiên thiết lập đã hết hạn. Hãy bắt đầu lại.",
     "admin_mfa_code_invalid": "Mã không đúng hoặc đã được dùng. Hãy thử mã mới.",
-    "common_rate_limited": "Quá nhiều lần thử. Vui lòng đợi rồi thử lại."
+    "common_rate_limited": "Quá nhiều lần thử. Vui lòng đợi rồi thử lại.",
+    "admin_mfa_reset_self_forbidden": "Bạn không thể tự đặt lại xác thực hai bước của mình. Hãy nhờ một quản trị viên cấp cao khác."
   },
   "security": {
     "title": "Bảo mật",
@@ -422,6 +423,25 @@
     "copy": "Sao chép",
     "copied": "Đã sao chép",
     "bannerTitle": "Bật xác thực hai bước",
-    "bannerBody": "Bạn chưa thể thay đổi gì trong trang quản trị cho đến khi bật xác thực hai bước."
+    "bannerBody": "Bạn chưa thể thay đổi gì trong trang quản trị cho đến khi bật xác thực hai bước.",
+    "team": {
+      "title": "Đội ngũ quản trị",
+      "body": "Dành cho quản trị viên bị mất cả điện thoại lẫn toàn bộ mã khôi phục. Chỉ quản trị viên cấp cao thấy mục này.",
+      "you": "Bạn",
+      "roleSuper": "Quản trị viên cấp cao",
+      "roleSupport": "Quản trị viên hỗ trợ",
+      "on": "Đã bật xác thực hai bước",
+      "off": "Chưa bật xác thực hai bước",
+      "details": "Còn {{codes}} mã khôi phục · {{sessions}} phiên đang đăng nhập",
+      "noEmail": "Không có email",
+      "reset": "Đặt lại xác thực hai bước",
+      "resetTitle": "Đặt lại xác thực hai bước cho {{email}}",
+      "resetBody": "Xóa ứng dụng xác thực và mã khôi phục của người này, đồng thời đăng xuất họ trên mọi thiết bị. Họ phải đăng nhập lại và bật xác thực hai bước trước khi thay đổi bất cứ điều gì. Hãy xác nhận đúng người trước, ví dụ qua cuộc gọi video.",
+      "resetAction": "Đặt lại",
+      "resetting": "Đang đặt lại…",
+      "selfHint": "Bạn không thể tự đặt lại xác thực hai bước của mình tại đây. Hãy dùng mã khôi phục hoặc nhờ một quản trị viên cấp cao khác.",
+      "done": "Đã đặt lại. Người này đã bị đăng xuất trên mọi thiết bị.",
+      "empty": "Không có quản trị viên nào khác."
+    }
   }
 }

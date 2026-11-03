@@ -17,6 +17,7 @@ import {
   salonExportDownloadSchema,
   salonExportListSchema,
   salonExportSchema,
+  SALON_SUSPENDED_ERROR,
 } from "@gugu/contracts";
 import {
   type BookableSalonFixture,
@@ -28,6 +29,7 @@ import { http } from "../../../test/http-app";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
+import { AppConfig } from "../../infrastructure/config/app-config";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { QueueService } from "../../infrastructure/queue/queue.service";
 import { QUEUES } from "../../infrastructure/queue/queues";
@@ -521,6 +523,119 @@ describe("privacy tools (integration)", () => {
       }
       expect(statuses).toEqual([202, 202, 202, 429]);
     });
+  });
+
+  it("q92: a suspended salon's owner can still erase a client and run the salon export; other writes stay blocked", async () => {
+    const s = await createBookableSalon(prisma);
+    const owner = await bearerFor(app, s.ownerUserId);
+    const c = await seedClient(s, owner);
+    await prisma.salon.update({
+      where: { id: s.salonId },
+      data: { status: "suspended", suspendedAt: new Date(), preSuspensionStatus: "active" },
+    });
+
+    // Every other write is still refused, e.g. adding a note to that client.
+    const note = await api("post", `salons/${s.salonId}/customers/${c.profileId}/notes`, owner, {
+      body: "Không được ghi khi bị khóa",
+    });
+    expect(note.status).toBe(403);
+    expect(problemSchema.parse(note.body).code).toBe(SALON_SUSPENDED_ERROR);
+
+    const erased = clientEraseResultSchema.parse(
+      (
+        await api("post", `salons/${s.salonId}/customers/${c.profileId}/erase`, owner, {
+          confirm: true,
+        }).expect(200)
+      ).body,
+    );
+    expect(erased.deletedNotes).toBe(1);
+    expect(await prisma.customerSalonProfile.count({ where: { id: c.profileId } })).toBe(0);
+    expect(
+      await prisma.auditLog.count({
+        where: { action: "privacy.client_erased", salonId: s.salonId, targetId: c.profileId },
+      }),
+    ).toBe(1);
+
+    const created = salonExportSchema.parse(
+      (await api("post", `salons/${s.salonId}/privacy/exports`, owner, {}).expect(202)).body,
+    );
+    expect(await app.get(SalonExportService).run(created.id)).toEqual({ status: "ready" });
+    await api("get", `salons/${s.salonId}/privacy/exports/${created.id}/download`, owner).expect(
+      200,
+    );
+    for (const action of [
+      "privacy.salon_export_requested",
+      "privacy.salon_export_downloaded",
+    ] as const) {
+      expect(
+        await prisma.auditLog.count({
+          where: { action, salonId: s.salonId, targetId: created.id },
+        }),
+      ).toBe(1);
+    }
+    // Still owner-only while suspended.
+    const manager = await bearerFor(app, await addSalonMember(prisma, s.salonId, "manager"));
+    await api("post", `salons/${s.salonId}/privacy/exports`, manager, {}).expect(403);
+  });
+
+  it("q94: retention deletes audit rows older than AUDIT_RETENTION_MONTHS in batches; the trigger keeps the floor", async () => {
+    const now = new Date();
+    const monthsAgo = (n: number) => {
+      const d = new Date(now);
+      d.setUTCMonth(d.getUTCMonth() - n);
+      return d;
+    };
+    const row = (createdAt: Date) => ({
+      action: "salon.settings_updated",
+      actorType: "system" as const,
+      salonId: a.salonId,
+      metadata: { test: "q94" },
+      createdAt,
+    });
+    const expired = await prisma.auditLog.create({ data: row(monthsAgo(25)) });
+    const kept = await prisma.auditLog.create({ data: row(monthsAgo(23)) });
+    const young = await prisma.auditLog.create({ data: row(monthsAgo(6)) });
+
+    // Outside the job the log stays append-only, flag or not, and younger than 12 months always.
+    await expect(
+      prisma.$executeRaw`DELETE FROM audit_logs WHERE id = ${expired.id}::uuid`,
+    ).rejects.toThrow(/append-only/);
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT set_config('gugu.audit_retention', 'on', true)`;
+        await tx.$executeRaw`DELETE FROM audit_logs WHERE id = ${young.id}::uuid`;
+      }),
+    ).rejects.toThrow(/append-only/);
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT set_config('gugu.audit_retention', 'on', true)`;
+        await tx.$executeRaw`UPDATE audit_logs SET action = 'x' WHERE id = ${expired.id}::uuid`;
+      }),
+    ).rejects.toThrow(/append-only/);
+
+    const service = app.get(RetentionService);
+    expect(service.auditCutoff(now).getTime()).toBe(monthsAgo(24).getTime());
+    const counts = await service.purge(now);
+    expect(counts.auditLogs).toBeGreaterThanOrEqual(1);
+    expect(await prisma.auditLog.count({ where: { id: expired.id } })).toBe(0);
+    expect(await prisma.auditLog.count({ where: { id: { in: [kept.id, young.id] } } })).toBe(2);
+
+    // A config below the floor cannot reach younger rows (env refuses < 12; the service clamps).
+    const config = app.get(AppConfig);
+    const original = config.env.AUDIT_RETENTION_MONTHS;
+    Object.assign(config.env, { AUDIT_RETENTION_MONTHS: 1 });
+    try {
+      expect(service.auditCutoff(now).getTime()).toBe(monthsAgo(12).getTime());
+      await service.purge(now);
+      expect(await prisma.auditLog.count({ where: { id: young.id } })).toBe(1);
+    } finally {
+      Object.assign(config.env, { AUDIT_RETENTION_MONTHS: original });
+    }
+    // The flag is transaction-local: after the job, an old row is protected again.
+    const later = await prisma.auditLog.create({ data: row(monthsAgo(30)) });
+    await expect(
+      prisma.$executeRaw`DELETE FROM audit_logs WHERE id = ${later.id}::uuid`,
+    ).rejects.toThrow(/append-only/);
   });
 
   it("retention purges old notification log rows, stale secrets and recipient hashes", async () => {

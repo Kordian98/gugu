@@ -50,7 +50,7 @@
     "suspension": {
       "title": "Salon đang bị GuGu tạm khóa",
       "titleSince": "Salon bị GuGu tạm khóa từ {{date}}",
-      "body": "Bạn vẫn xem được toàn bộ dữ liệu nhưng không thể thay đổi. Trợ lý đặt lịch trên Zalo và tin nhắc lịch cho khách đang tạm dừng.",
+      "body": "Bạn vẫn xem được toàn bộ dữ liệu nhưng không thể thay đổi. Bạn vẫn có thể xử lý yêu cầu về dữ liệu cá nhân của khách: xóa dữ liệu của một khách hoặc xuất dữ liệu khách hàng của salon. Trợ lý đặt lịch trên Zalo và tin nhắc lịch cho khách đang tạm dừng.",
       "contact": "Liên hệ bộ phận hỗ trợ GuGu: {{email}}",
       "contactPhone": "Liên hệ bộ phận hỗ trợ GuGu: {{email}} · {{phone}}",
       "emailAction": "Gửi email cho hỗ trợ"

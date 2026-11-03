@@ -83,6 +83,11 @@ export const PLATFORM_PERMISSIONS = [
    * session. Every platform role has it: enrolment is required before any admin write.
    */
   "platform.mfa.self",
+  /**
+   * Reset ANOTHER admin's second factor (owner answer q93): super_admin only, with the actor's own
+   * step-up and a reason; never one's own account. Also lists the admin team's 2FA status.
+   */
+  "platform.mfa.reset",
 ] as const;
 export type PlatformPermission = (typeof PLATFORM_PERMISSIONS)[number];
 

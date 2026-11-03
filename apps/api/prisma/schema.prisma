@@ -700,6 +700,8 @@ model AuditLog {
   @@index([salonId, createdAt])
   @@index([actorId, createdAt])
   @@index([action, createdAt])
+  /// Retention purge by age (q94).
+  @@index([createdAt])
   @@map("audit_logs")
 }
 

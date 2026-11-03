@@ -151,10 +151,14 @@ describe("platform admin (integration)", () => {
       "admin/mfa/totp/confirm": { code: "123456" },
       "admin/mfa/step-up": { code: "123456" },
       "admin/mfa/recovery-codes": { code: "123456" },
+      "admin/team/:userId/mfa/reset": {},
     };
     const body = bodies[route.path];
     if (!body) throw new Error(`add a valid body for ${route.method} ${route.path}`);
-    return { path: route.path.replace(":overrideId", overrideId), body };
+    return {
+      path: route.path.replace(":overrideId", overrideId).replace(":userId", overrideId),
+      body,
+    };
   }
 
   describe("authorization matrix (default deny)", () => {

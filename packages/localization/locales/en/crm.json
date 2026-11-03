@@ -50,7 +50,7 @@
     "suspension": {
       "title": "This salon is suspended by GuGu",
       "titleSince": "This salon has been suspended by GuGu since {{date}}",
-      "body": "You can still view all data but can't make changes. The Zalo booking assistant and customer reminders are paused.",
+      "body": "You can still view all data but can't make changes. You can still answer clients' privacy requests: delete a client's data or export the salon's client data. The Zalo booking assistant and customer reminders are paused.",
       "contact": "Contact GuGu support: {{email}}",
       "contactPhone": "Contact GuGu support: {{email}} · {{phone}}",
       "emailAction": "Email support"
