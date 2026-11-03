@@ -17,6 +17,9 @@ const SCREENS = {
     appointments: require("../../assets/studio/vi/appointments.webp") as number,
     services: require("../../assets/studio/vi/services.webp") as number,
     team: require("../../assets/studio/vi/team.webp") as number,
+    calendarCrop: require("../../assets/studio/vi/calendar-crop.webp") as number,
+    servicesCrop: require("../../assets/studio/vi/services-crop.webp") as number,
+    appointmentsCrop: require("../../assets/studio/vi/appointments-crop.webp") as number,
   },
   en: {
     overview: require("../../assets/studio/en/overview.webp") as number,
@@ -28,6 +31,9 @@ const SCREENS = {
     appointments: require("../../assets/studio/en/appointments.webp") as number,
     services: require("../../assets/studio/en/services.webp") as number,
     team: require("../../assets/studio/en/team.webp") as number,
+    calendarCrop: require("../../assets/studio/en/calendar-crop.webp") as number,
+    servicesCrop: require("../../assets/studio/en/services-crop.webp") as number,
+    appointmentsCrop: require("../../assets/studio/en/appointments-crop.webp") as number,
   },
 } as const;
 

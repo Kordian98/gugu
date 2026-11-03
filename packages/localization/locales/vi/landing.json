@@ -285,7 +285,10 @@
       "st2": "AI tạo dịch vụ, thời lượng và giá",
       "st3": "Bạn kiểm tra rồi bắt đầu; khách được thêm khi đặt lịch",
       "ai": "Thiết lập bằng AI",
-      "walk": "Bắt đầu"
+      "walk": "Bắt đầu",
+      "win": "Dịch vụ",
+      "reading": "Đang đọc bảng giá…",
+      "done": "Đã tạo 4 dịch vụ · kiểm tra rồi bắt đầu"
     },
     "walk": {
       "eyebrow": "Thứ Bảy · 9:12 · Quận 1",
@@ -342,7 +345,10 @@
       "r4p": "“Chủ nhật ai làm?” trôi mất trong nhóm chat",
       "r4g": "Giờ làm, giờ nghỉ và ai làm dịch vụ nào, cho từng người; mời nhân viên bằng một link.",
       "facts": "Salon demo, tuần này: 40 lịch hẹn · 7 dịch vụ · 4 nhân viên, trong một lịch",
-      "eg": "Các vấn đề là ví dụ minh hoạ."
+      "eg": "Các vấn đề là ví dụ minh hoạ.",
+      "shotCal": "Lịch · giữ ghế & thiết bị",
+      "shotSvc": "Dịch vụ · tuỳ chọn & khoảng giá",
+      "shotAppt": "Lịch hẹn · một hàng chờ"
     },
     "office": {
       "eyebrow": "Phòng làm việc",

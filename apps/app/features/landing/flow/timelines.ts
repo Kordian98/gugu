@@ -329,7 +329,6 @@ export function buildJourney(
   hide(tl, q, ".cap-deeper", PH.w2[1] - 0.03, { y: 0 });
   tl.to(q(".jr-veil"), { opacity: 1, duration: 0.03 }, PH.feat);
   show(tl, q, ".ov-f .t", PH.feat + 0.012, { y: 60 });
-  show(tl, q, ".ft-lap", PH.feat + 0.022, { x: 80, scale: 0.96 });
   // pain → gain rows: the row lands, the pain line dims, the gain + number pop
   q(".fx").forEach((el, i) => {
     const at = PH.feat + 0.035 + i * 0.016;
@@ -353,9 +352,9 @@ export function buildJourney(
     if (pn) tl.to(pn, { opacity: 0.55, duration: 0.015 }, at + 0.02);
   });
   show(tl, q, ".fx-facts", PH.feat + 0.1, { y: 10 }, 0.02);
-  show(tl, q, ".ft-chip", PH.feat + 0.06, { y: 14, scale: 0.7 });
-  stagger(tl, q, ".fx-shot", PH.feat + 0.07, 0.014, { y: 30, scale: 0.9 }, 0.025);
-  hide(tl, q, ".ov-f .t, .ft-lap, .fx, .fx-facts, .ft-chip, .fx-shot", PH.featOut);
+  stagger(tl, q, ".fx-scr", PH.feat + 0.02, 0.016, { y: 30, scale: 0.94 }, 0.028);
+  show(tl, q, ".ft-chip", PH.feat + 0.07, { y: 14, scale: 0.7 });
+  hide(tl, q, ".ov-f .t, .fx, .fx-facts, .ft-chip, .fx-scr", PH.featOut);
   tl.to(q(".jr-veil"), { opacity: 0, duration: 0.025 }, PH.featOut + 0.005);
 
   // walk to the back office → overview
@@ -367,13 +366,48 @@ export function buildJourney(
   stagger(tl, q, ".of-side .card", PH.office + 0.045, 0.02, { y: 26 }, 0.03);
   hide(tl, q, ".of-lap, .ov-o .t, .of-side .card", PH.officeOut);
 
-  // switching: still in the office — price list → AI → service menu
-  show(tl, q, ".ov-s .t", PH.sw, { y: 50 }, 0.025);
-  stagger(tl, q, ".sw-steps li", PH.sw + 0.012, 0.01, { x: -20 }, 0.02);
-  show(tl, q, ".sw-list", PH.sw + 0.01, { y: 30, rotate: -6 }, 0.025);
-  show(tl, q, ".sw-ai", PH.sw + 0.03, { scale: 0.5 }, 0.02);
-  show(tl, q, ".sw-svc", PH.sw + 0.04, { x: 40 }, 0.025);
-  stagger(tl, q, ".sw-svc .svc-row", PH.sw + 0.05, 0.01, { y: 14, scale: 0.95 }, 0.02);
+  // switching: still in the office — the AI reads the price list and fills the services screen
+  const SW = PH.sw;
+  show(tl, q, ".ov-s .t", SW, { y: 50 }, 0.025);
+  stagger(tl, q, ".sw-steps li", SW + 0.012, 0.01, { x: -20 }, 0.02);
+  show(tl, q, ".sw-list", SW + 0.008, { y: 30, rotate: -6 }, 0.025);
+  show(tl, q, ".sw-win", SW + 0.016, { x: 40, scale: 0.96 }, 0.025);
+  tl.fromTo(
+    q(".sw-scan"),
+    { yPercent: -100, opacity: 1 },
+    { yPercent: 900, duration: 0.04, ease: "none" },
+    SW + 0.025,
+  );
+  tl.to(q(".sw-scan"), { opacity: 0, duration: 0.005 }, SW + 0.066);
+  tl.fromTo(
+    q(".sw-fill"),
+    { scaleX: 0 },
+    { scaleX: 1, duration: 0.06, ease: "power1.inOut" },
+    SW + 0.025,
+  );
+  q(".sw-row").forEach((row, i) => {
+    const at = SW + 0.03 + i * 0.012;
+    const sk = row.querySelector(".sw-sk");
+    const val = row.querySelector(".sw-val");
+    const knob = row.querySelector(".sw-tog i");
+    const tog = row.querySelector(".sw-tog");
+    tl.fromTo(row, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.012 }, at);
+    if (sk && val) {
+      tl.to(sk, { opacity: 0, duration: 0.01 }, at + 0.02);
+      tl.fromTo(val, { opacity: 0, x: -8 }, { opacity: 1, x: 0, duration: 0.012 }, at + 0.02);
+    }
+    if (knob && tog) {
+      tl.to(knob, { x: 14, duration: 0.01, ease: "back.out(2)" }, at + 0.03);
+      tl.to(tog, { backgroundColor: "#A98BEB", duration: 0.01 }, at + 0.03);
+    }
+  });
+  tl.to(q(".sw-status .s1"), { opacity: 0, duration: 0.01 }, SW + 0.085);
+  tl.fromTo(
+    q(".sw-status .s2"),
+    { opacity: 0, y: 6 },
+    { opacity: 1, y: 0, duration: 0.012 },
+    SW + 0.087,
+  );
   tl.to({}, { duration: 0.001 }, 0.999);
   return tl;
 }

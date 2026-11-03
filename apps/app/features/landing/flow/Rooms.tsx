@@ -74,22 +74,22 @@ export function FeaturesPanel() {
           {t("flow.features.eg")}
         </div>
       </div>
-      <div className="ft-lap">
-        <div className="lap">
-          <img src={shot("calendar")} alt="" decoding="async" loading="lazy" />
-        </div>
-        <div className="lap-base" />
-        <div className="ft-chip">
-          <i>{PIN}</i>
-          {t("flow.features.chip")}
-        </div>
-        <div className="fx-shots">
-          <div className="card fx-shot">
-            <img src={shot("services")} alt="" decoding="async" loading="lazy" />
+      <div className="fx-screens">
+        <div className="card fx-scr fx-cal">
+          <span className="fx-lbl">{t("flow.features.shotCal")}</span>
+          <img src={shot("calendarCrop")} alt="" decoding="async" loading="lazy" />
+          <div className="ft-chip">
+            <i>{PIN}</i>
+            {t("flow.features.chip")}
           </div>
-          <div className="card fx-shot">
-            <img src={shot("appointments")} alt="" decoding="async" loading="lazy" />
-          </div>
+        </div>
+        <div className="card fx-scr">
+          <span className="fx-lbl">{t("flow.features.shotSvc")}</span>
+          <img src={shot("servicesCrop")} alt="" decoding="async" loading="lazy" />
+        </div>
+        <div className="card fx-scr">
+          <span className="fx-lbl">{t("flow.features.shotAppt")}</span>
+          <img src={shot("appointmentsCrop")} alt="" decoding="async" loading="lazy" />
         </div>
       </div>
     </div>
@@ -244,17 +244,44 @@ export function SwitchPanel() {
         <div className="plist sw-list">
           <div className="lbl">{t("flow.switch.from")}</div>
           <p>{t("story.switch.list")}</p>
+          <span className="sw-scan" />
         </div>
-        <div className="sw-ai">
-          <i>{SPARK}</i>
-          {t("flow.switch.ai")}
-        </div>
-        <div className="card svc sw-svc">
-          <div className="lbl">{t("flow.switch.to")}</div>
+        <div className="card sw-win">
+          <div className="sw-bar">
+            <span />
+            <span />
+            <span />
+            <b>{t("flow.switch.win")}</b>
+          </div>
+          <div className="sw-ai">
+            <div className="sw-ai-h">
+              <i>{SPARK}</i>
+              {t("flow.switch.ai")}
+            </div>
+            <div className="sw-prog">
+              <span className="sw-fill" />
+            </div>
+            <div className="sw-status">
+              <span className="s1">{t("flow.switch.reading")}</span>
+              <span className="s2">{t("flow.switch.done")}</span>
+            </div>
+          </div>
           {SW_ROWS.map((r) => (
-            <div key={r} className="svc-row">
-              {t(`story.switch.s${r}`)}
-              <span>{[t(`story.switch.d${r}`), t(`story.switch.p${r}`)].join(SEP)}</span>
+            <div key={r} className="sw-row">
+              <div className="sw-sk">
+                <span />
+                <span />
+              </div>
+              <div className="sw-val">
+                <div>
+                  <b>{t(`story.switch.s${r}`)}</b>
+                  <small>{t(`story.switch.d${r}`)}</small>
+                </div>
+                <em>{t(`story.switch.p${r}`)}</em>
+                <span className="sw-tog">
+                  <i />
+                </span>
+              </div>
             </div>
           ))}
         </div>

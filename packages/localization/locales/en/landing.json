@@ -285,7 +285,10 @@
       "st2": "AI builds services, durations and prices",
       "st3": "You check, then go live; clients get added as they book",
       "ai": "AI setup",
-      "walk": "Getting started"
+      "walk": "Getting started",
+      "win": "Services",
+      "reading": "Reading your price list…",
+      "done": "4 services created · check and go live"
     },
     "walk": {
       "eyebrow": "Saturday · 9:12 · District 1",
@@ -342,7 +345,10 @@
       "r4p": "“Who works on Sunday?” lost in the group chat",
       "r4g": "Hours, breaks and who does which service, per person; invite staff with one link.",
       "facts": "Demo salon, this week: 40 bookings · 7 services · 4 team members, in one calendar",
-      "eg": "Pains are illustrative examples."
+      "eg": "Pains are illustrative examples.",
+      "shotCal": "Calendar · chairs & devices reserved",
+      "shotSvc": "Services · options & price ranges",
+      "shotAppt": "Appointments · one queue"
     },
     "office": {
       "eyebrow": "Back office",
