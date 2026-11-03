@@ -182,6 +182,19 @@ for (const [loc, T] of [
     "adjustment with a reason is added",
   );
   await shot(page, "owner-desktop-vi-payroll-adjustment");
+  // Remove it again (audited) so repeated runs leave the demo data unchanged.
+  await page.getByRole("button", { name: VI.payroll.adjustments.remove }).last().click();
+  check(
+    await page
+      .getByText("Thưởng doanh số tuần")
+      .first()
+      .waitFor({ state: "detached", timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
+    "adjustment can be removed",
+  );
   await page.close();
 }
 await owner.close();
