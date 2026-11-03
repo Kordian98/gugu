@@ -58,6 +58,7 @@ export class AdminActions {
     }
     if (params.stepUp) await this.assertFreshSignIn(params.admin);
     const actor = `admin:${params.admin.userId}`;
+    let salonIds: string[] = [params.salonId];
     const auditId = await this.prisma.$transaction(async (tx) => {
       const salon = await tx.salon.findFirst({
         where: { id: params.salonId, deletedAt: null },
@@ -65,6 +66,7 @@ export class AdminActions {
       });
       if (!salon) throw new AppError(404, COMMON_ERRORS.notFound, "Salon not found");
       const result = await change(tx, actor);
+      if (result.salonIds) salonIds = [...new Set([params.salonId, ...result.salonIds])];
       return this.audit.record(
         {
           action: params.action,
@@ -85,7 +87,8 @@ export class AdminActions {
         tx,
       );
     });
-    await this.entitlements.invalidate(params.salonId);
+    // Founding-partner changes reach every salon of the organisation.
+    await Promise.all(salonIds.map((id) => this.entitlements.invalidate(id)));
     return { auditId };
   }
 

@@ -87,6 +87,7 @@ describe("permission matrix", () => {
       "platform.entitlements.write",
       "platform.founding_partner.write",
       "platform.salons.suspend",
+      "platform.impersonate.readonly",
       "platform.roles.write",
       "platform.feature_flags.write",
       "platform.commission.write",

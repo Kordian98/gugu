@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { SALON_SUSPENDED_ERROR } from "@gugu/contracts";
 import { AppError } from "../../../common/problem/app-error";
 import { COMMON_ERRORS } from "../../../common/problem/error-codes";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
@@ -15,6 +16,20 @@ export class BookingContexts {
     const ctx = await loadSalonContext(this.prisma, { id: salonId });
     if (!ctx) throw notFound();
     return ctx;
+  }
+
+  /**
+   * Writes outside the salon guard (customer manage links) honour platform suspension the same way
+   * the guard does for members: read-only, 403 `salon.suspended` (topic 12 M12.6).
+   */
+  async assertWritable(salonId: string): Promise<void> {
+    const salon = await this.prisma.salon.findUnique({
+      where: { id: salonId },
+      select: { status: true },
+    });
+    if (salon?.status === "suspended") {
+      throw new AppError(403, SALON_SUSPENDED_ERROR, "Salon is suspended");
+    }
   }
 
   /** Public booking page: only live (`active`) salons; drafts look like they don't exist. */

@@ -289,6 +289,7 @@ function OverrideSheet({
   return (
     <ActionSheet
       testID="admin-override"
+      highRisk
       open={open}
       onClose={onClose}
       salonId={salonId}

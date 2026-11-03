@@ -291,6 +291,7 @@ describe("platform admin side effects (integration)", () => {
       // Update STEP_UP_ROUTES together with ADR-0010 when the high-risk set changes.
       const STEP_UP_ROUTES = [
         "admin/salons/:salonId/founding-partner/revoke",
+        "admin/salons/:salonId/overrides",
         "admin/salons/:salonId/suspend",
         "admin/salons/:salonId/unsuspend",
       ];

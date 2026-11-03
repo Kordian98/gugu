@@ -27,6 +27,8 @@ export interface AdminChange {
   after: Snapshot | null;
   targetType: string;
   targetId: string;
+  /** Salons whose entitlement cache must be cleared (default: the salon in the URL). */
+  salonIds?: string[];
 }
 
 const DAY_MS = 86_400_000;
@@ -108,12 +110,13 @@ export class SubscriptionAdminService {
         },
       });
     }
-    await this.qualifyFoundingPartner(db, salonId, after.id, now);
+    const salonIds = await this.qualifyFoundingPartner(db, salonId, after.id, now);
     return {
       before: current ? await snapshot(db, current) : null,
       after: await snapshot(db, after),
       targetType: "subscription",
       targetId: after.id,
+      ...(salonIds ? { salonIds } : {}),
     };
   }
 
@@ -275,10 +278,7 @@ export class SubscriptionAdminService {
   /** Manual founding-partner grant (source `admin_grant`); re-grants a revoked flag. */
   async grantFoundingPartner(db: Db, salonId: string): Promise<AdminChange> {
     const now = this.clock.now();
-    const { organizationId } = await db.salon.findUniqueOrThrow({
-      where: { id: salonId },
-      select: { organizationId: true },
-    });
+    const organizationId = await lockOrganization(db, salonId);
     const existing = await db.foundingPartner.findUnique({ where: { organizationId } });
     if (existing && !existing.revokedAt) {
       throw new AppError(409, ADMIN_ERRORS.foundingPartnerExists, "Already a founding partner");
@@ -298,29 +298,29 @@ export class SubscriptionAdminService {
       after: foundingSnapshot(row),
       targetType: "organization",
       targetId: organizationId,
+      salonIds: await organizationSalons(db, organizationId),
     };
   }
 
   /** Revocation is super_admin only (R-FP2) — enforced by the route permission. */
   async revokeFoundingPartner(db: Db, salonId: string): Promise<AdminChange> {
     const now = this.clock.now();
-    const { organizationId } = await db.salon.findUniqueOrThrow({
-      where: { id: salonId },
-      select: { organizationId: true },
-    });
+    const organizationId = await lockOrganization(db, salonId);
     const existing = await db.foundingPartner.findUnique({ where: { organizationId } });
-    if (!existing || existing.revokedAt) {
-      throw new AppError(409, ADMIN_ERRORS.foundingPartnerMissing, "Not a founding partner");
-    }
-    const row = await db.foundingPartner.update({
-      where: { organizationId },
+    // Conditional update: a concurrent revoke finds nothing to change → 409, never a second row.
+    const { count } = await db.foundingPartner.updateMany({
+      where: { organizationId, revokedAt: null },
       data: { revokedAt: now },
     });
+    if (!existing || count === 0) {
+      throw new AppError(409, ADMIN_ERRORS.foundingPartnerMissing, "Not a founding partner");
+    }
     return {
       before: foundingSnapshot(existing),
-      after: foundingSnapshot(row),
+      after: foundingSnapshot({ ...existing, revokedAt: now }),
       targetType: "organization",
       targetId: organizationId,
+      salonIds: await organizationSalons(db, organizationId),
     };
   }
 
@@ -328,23 +328,30 @@ export class SubscriptionAdminService {
    * R-FP3: a paid plan becoming active before the marketplace launch qualifies the organisation,
    * once (idempotent; a revoked flag is never re-set automatically). Same transaction as `→ active`.
    */
-  private async qualifyFoundingPartner(db: Db, salonId: string, subscriptionId: string, now: Date) {
+  private async qualifyFoundingPartner(
+    db: Db,
+    salonId: string,
+    subscriptionId: string,
+    now: Date,
+  ): Promise<string[] | undefined> {
     const launch = this.config.marketplaceLaunchAt;
-    if (launch && launch <= now) return;
+    if (launch && launch <= now) return undefined;
     const { organizationId } = await db.salon.findUniqueOrThrow({
       where: { id: salonId },
       select: { organizationId: true },
     });
-    await db.foundingPartner.upsert({
-      where: { organizationId },
-      create: {
+    // INSERT … ON CONFLICT DO NOTHING: idempotent and race-free; never touches a revoked row.
+    const { count } = await db.foundingPartner.createMany({
+      data: {
         organizationId,
         qualifiedAt: now,
         source: "paid_before_launch",
         qualifyingSubscriptionId: subscriptionId,
       },
-      update: {},
+      skipDuplicates: true,
     });
+    // Newly qualified: every salon of the organisation sees the flag in its read model.
+    return count > 0 ? organizationSalons(db, organizationId) : undefined;
   }
 }
 
@@ -366,6 +373,22 @@ async function createCurrent(
     }
     throw e;
   }
+}
+
+/** Serialises founding-partner changes per organisation (row lock on the organisation). */
+async function lockOrganization(db: Db, salonId: string): Promise<string> {
+  const [row] = await db.$queryRaw<{ id: string }[]>`
+    SELECT o.id FROM organizations o JOIN salons s ON s.organization_id = o.id
+    WHERE s.id = ${salonId}::uuid
+    FOR UPDATE OF o`;
+  if (!row) throw new AppError(404, "common.not_found", "Salon not found");
+  return row.id;
+}
+
+/** Every salon of the organisation: they all inherit the founding-partner flag. */
+async function organizationSalons(db: Db, organizationId: string): Promise<string[]> {
+  const salons = await db.salon.findMany({ where: { organizationId }, select: { id: true } });
+  return salons.map((x) => x.id);
 }
 
 /** Locks the salon's current subscription row (at most one) for the rest of the transaction. */

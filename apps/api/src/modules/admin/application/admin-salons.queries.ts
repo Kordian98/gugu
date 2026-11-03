@@ -257,7 +257,8 @@ export class AdminSalonsQueries {
       },
       members: salon.members.map((m) => ({
         userId: m.userId,
-        email: m.user.email,
+        // Removed members are no longer part of the salon: keep their role history, not their email.
+        email: m.status === "removed" ? null : m.user.email,
         displayName: m.user.profile?.displayName ?? null,
         role: m.role,
         status: m.status,
@@ -332,11 +333,25 @@ export class AdminSalonsQueries {
         actorId: a.actorId,
         targetType: a.targetType,
         createdAt: a.createdAt.toISOString(),
-        metadata:
-          typeof a.metadata === "object" && a.metadata !== null && !Array.isArray(a.metadata)
-            ? (a.metadata as Record<string, unknown>)
-            : {},
+        metadata: auditMetadata(a.action, a.metadata),
       })),
     };
   }
+}
+
+/**
+ * Audit metadata shown in the admin panel: only keys known to be safe for that action. Admin
+ * actions keep reason, role and before/after snapshots; other modules' metadata is not shown
+ * (defence in depth against a module that ever logs more than it should).
+ */
+const AUDIT_METADATA_KEYS: readonly { prefix: string; keys: readonly string[] }[] = [
+  { prefix: "admin.", keys: ["reason", "platformRole", "before", "after"] },
+];
+
+function auditMetadata(action: string, raw: unknown): Record<string, unknown> {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return {};
+  const rule = AUDIT_METADATA_KEYS.find((r) => action.startsWith(r.prefix));
+  if (!rule) return {};
+  const source = raw as Record<string, unknown>;
+  return Object.fromEntries(rule.keys.filter((k) => k in source).map((k) => [k, source[k]]));
 }

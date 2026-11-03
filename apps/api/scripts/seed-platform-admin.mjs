@@ -4,10 +4,16 @@
 // Creates the user if missing (verified email, no salon membership), sets users.platform_role and
 // writes an audit row. Then sign in on the web app with that email: the magic link arrives in
 // Mailpit. Platform roles are NOT salon memberships; there is no API to grant them yet (topic 05
-// owns `platform.roles.write`). Refuses to run in production or against a non-local database.
+// owns `platform.roles.write`). Refuses to run unless every local-dev marker holds: NODE_ENV is
+// explicitly `development`, the host is loopback AND the database name is a local GuGu database
+// (`gugu` or `gugu_<suffix>`, never `*_test`). A loopback tunnel to a remote database therefore
+// also needs a matching name and a dev env file. The OS user is recorded in the audit row.
+import { userInfo } from "node:os";
 import pg from "pg";
 
-if (process.env.NODE_ENV === "production") throw new Error("seed-platform-admin is dev-only");
+if (process.env.NODE_ENV !== "development") {
+  throw new Error("seed-platform-admin is dev-only (NODE_ENV must be development)");
+}
 const arg = (name, dflt) => {
   const i = process.argv.indexOf(`--${name}`);
   return i > 0 ? process.argv[i + 1] : dflt;
@@ -17,10 +23,16 @@ const role = arg("role", "super_admin");
 if (!["super_admin", "support_admin"].includes(role)) throw new Error(`unknown role ${role}`);
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set (pass --env-file=../../.env)");
-const host = new URL(url).hostname;
+const parsed = new URL(url);
+const host = parsed.hostname.replace(/^\[|\]$/g, "");
 if (!["127.0.0.1", "localhost", "::1"].includes(host)) {
   throw new Error(`refusing to grant platform roles on a non-local database (${host})`);
 }
+const dbName = decodeURIComponent(parsed.pathname.slice(1));
+if (!/^gugu(_[a-z0-9_]+)?$/.test(dbName) || dbName.endsWith("_test")) {
+  throw new Error(`refusing: database "${dbName}" is not a local GuGu dev database`);
+}
+const osUser = userInfo().username;
 
 const client = new pg.Client({ connectionString: url });
 await client.connect();
@@ -49,7 +61,16 @@ try {
   await client.query(
     `INSERT INTO audit_logs (id, actor_type, action, target_type, target_id, metadata, created_at)
      VALUES (uuidv7(), 'system', 'admin.platform_role_granted', 'user', $1, $2, now())`,
-    [userId, JSON.stringify({ source: "seed-platform-admin", before, after: role })],
+    [
+      userId,
+      JSON.stringify({
+        source: "seed-platform-admin",
+        osUser,
+        database: dbName,
+        before,
+        after: role,
+      }),
+    ],
   );
   await client.query("COMMIT");
   console.log(`platform role ${role} granted to ${email} (user ${userId})`);

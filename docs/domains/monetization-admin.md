@@ -93,13 +93,14 @@ GuGu staff only. A platform role is a column on the user (`users.platform_role`)
 | Assign/change paid plan (+ interval, paid-until, invoicing entity) | `POST /admin/salons/:salonId/subscription/plan` | `platform.subscriptions.write` | no | yes | — |
 | Extend trial (≤ 90 days ahead; re-opens an expired trial) | `POST …/subscription/trial` | `platform.subscriptions.write` | no | yes | — |
 | Set paid-until (past_due paid into the future → active) | `POST …/subscription/paid-until` | `platform.subscriptions.write` | no | yes | — |
-| Entitlement override (mandatory expiry ≤ 366 days) / revoke | `POST …/overrides`, `POST …/overrides/:id/revoke` | `platform.entitlements.write` | no | yes | — |
+| Entitlement override (mandatory expiry ≤ 366 days) / revoke | `POST …/overrides`, `POST …/overrides/:id/revoke` | `platform.entitlements.write` | no | yes | create |
 | Founding partner grant / revoke | `POST …/founding-partner`, `POST …/founding-partner/revoke` | `platform.founding_partner.write` | no | yes | revoke |
 | Suspend / unsuspend | `POST …/suspend`, `POST …/unsuspend` | `platform.salons.suspend` | no | yes | yes |
 
 ### Invariants
 - Every admin mutation body requires `reason` (5–500 chars, no personal data) and goes through `AdminActions.run`: one transaction = domain change + `audit_logs` row (`actor_type = platform_admin`, actor id, `metadata = { reason, platformRole, before, after }`). No audit row → no change (rollback tested). Entitlement cache invalidated after commit.
-- Step-up: high-risk actions need a sign-in within `ADMIN_STEP_UP_MINUTES` (15) → else 403 `admin.step_up_required`.
+- Step-up: high-risk actions (suspend, unsuspend, founding-partner revoke, override create) need a sign-in within `ADMIN_STEP_UP_MINUTES` (15) → else 403 `admin.step_up_required`. Limits in ADR-0010.
+- Suspension also blocks customer manage-link cancel/reschedule and invitation acceptance. Founding-partner changes are race-safe and clear the cache of every salon in the organisation. The panel shows only allow-listed audit metadata and hides removed members' emails.
 - Suspended salon: `EntitlementService` grants nothing (overrides included, `suspended: true` in the read model); the guard refuses every non-GET salon route with 403 `salon.suspended`; members keep reading.
 - Subscription changes are in place on the one current row; each writes `subscription_events` (`from_plan_code` / `to_plan_code`, actor `admin:<userId>`). No processor, nothing charged: "paid until" is what an admin records after an offline invoice.
 - Founding partner (R-FP3): set in the same transaction as the first paid `→ active` while `MARKETPLACE_LAUNCH_AT` (env; unset = not launched) is unset or in the future. Never re-set automatically after a revoke. Read model: `foundingPartner { since, waiverEndsAt }` (`waiverEndsAt` = launch + 24 months, null until the date is set).
@@ -112,7 +113,7 @@ cd apps/api
 node --env-file=../../.env scripts/seed-platform-admin.mjs --email admin@gugu.local            # super_admin
 node --env-file=../../.env scripts/seed-platform-admin.mjs --email support@gugu.local --role support_admin
 ```
-The script refuses production and non-local databases, creates the user if needed and writes an `admin.platform_role_granted` audit row. Sign in at `/vi/sign-in` with that email (magic link in Mailpit), then open `/vi/admin`.
+The script requires `NODE_ENV=development`, a loopback host and a local database name (`gugu`/`gugu_<suffix>`), records the OS user, creates the user if needed and writes an `admin.platform_role_granted` audit row. Sign in at `/vi/sign-in` with that email (magic link in Mailpit), then open `/vi/admin`.
 
 ### UI
 `apps/app/app/[locale]/(admin)/admin/` → `index.tsx` (overview), `salons/index.tsx` (directory), `salons/[salonId].tsx` (detail + action sheets). Feature code in `apps/app/features/admin/`. Light/dark allowed (X18, shares `CrmThemeProvider`); strings in the `admin` namespace (vi/en). Buttons are hidden by `PLATFORM_ROLE_PERMISSIONS` for display only.

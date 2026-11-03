@@ -270,7 +270,8 @@ export class AdminController {
   @RequirePlatformPermission("platform.entitlements.write")
   @ApiOperation({
     operationId: "admin.createOverride",
-    summary: "Grant or restrict one entitlement for this salon until an expiry (≤ 366 days).",
+    summary:
+      "Grant or restrict one entitlement until an expiry (≤ 366 days). Needs a recent sign-in.",
   })
   @MutationResponses()
   createOverride(
@@ -287,6 +288,7 @@ export class AdminController {
         salonId: p.salonId,
         reason,
         meta: requestMeta(req),
+        stepUp: true,
       },
       (db, actor) => this.subscriptions.createOverride(db, p.salonId, input, actor, reason),
     );

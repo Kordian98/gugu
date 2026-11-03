@@ -146,13 +146,13 @@ export const PLATFORM_ROLE_PERMISSIONS: Readonly<
   super_admin: new Set(PLATFORM_PERMISSIONS),
   // Spec 12 R-AD4: support reads everything except money configuration and changes nothing
   // commercial (plans, overrides, founding partners, suspensions are super_admin only).
+  // Impersonation is super_admin only (spec G15).
   support_admin: new Set([
     "platform.directory.read",
     "platform.audit.read",
     "platform.usage.read",
     "platform.moderation.write",
     "platform.salons.verify",
-    "platform.impersonate.readonly",
   ]),
 };
 
