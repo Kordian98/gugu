@@ -2,7 +2,16 @@ import { useMemo, useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Avatar, CalmButton, DatePicker, Icon, Pill, Text, useCalm } from "@gugu/design-system";
+import {
+  Avatar,
+  CalmButton,
+  checkableA11y,
+  DatePicker,
+  Icon,
+  Pill,
+  Text,
+  useCalm,
+} from "@gugu/design-system";
 import type {
   ClientSuggestion,
   EarliestSlots,
@@ -507,8 +516,7 @@ export function NewAppointmentSheet({
                 return (
                   <Pressable
                     key={a.id}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: on }}
+                    {...checkableA11y("checkbox", on)}
                     onPress={() => {
                       setAddOnIds((ids) => (on ? ids.filter((x) => x !== a.id) : [...ids, a.id]));
                       setSlot(null);
@@ -628,8 +636,7 @@ export function NewAppointmentSheet({
           {canOverride && !beyondWindow ? (
             <Pressable
               testID="crm-override-toggle"
-              accessibilityRole="switch"
-              accessibilityState={{ checked: overrideOn }}
+              {...checkableA11y("switch", overrideOn)}
               onPress={() => {
                 setOverrideOn((v) => !v);
                 setSlot(null);
@@ -710,6 +717,9 @@ export function NewAppointmentSheet({
               }}
             />
           )}
+          {!manualMode && !reason && availability.data?.truncated ? (
+            <TruncatedHint testID="crm-availability-truncated" />
+          ) : null}
           {extras.length > 0 && availability.data ? (
             <ChainPlan
               durationMinutes={availability.data.durationMinutes}
@@ -785,8 +795,7 @@ function Chips({
           <Pressable
             key={i.id}
             testID="crm-chip"
-            accessibilityRole="radio"
-            accessibilityState={{ checked: on }}
+            {...checkableA11y("radio", on)}
             onPress={() => {
               onChange(i.id);
             }}
@@ -914,6 +923,21 @@ function EarliestList({
           </View>
         ))
       )}
+      {!loading && data?.truncated ? <TruncatedHint testID="crm-earliest-truncated" /> : null}
+    </View>
+  );
+}
+
+/** The engine's search budget ran out (ADR-0013): what is shown is real, but more may exist. */
+function TruncatedHint({ testID }: { testID: string }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  return (
+    <View testID={testID} style={{ flexDirection: "row", gap: 6, alignItems: "flex-start" }}>
+      <Icon name="alert" size={14} color={c.muted} />
+      <Text size={12} color={c.muted} style={{ flex: 1 }}>
+        {t("calendar.truncated")}
+      </Text>
     </View>
   );
 }

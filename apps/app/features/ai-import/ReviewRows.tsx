@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Icon, Pill, Text, useCalm } from "@gugu/design-system";
+import { checkableA11y, Icon, Pill, Text, useCalm } from "@gugu/design-system";
 import type { CategoryItem } from "@gugu/contracts";
 import { type ReviewRow, rowProblems } from "@gugu/domain";
 
@@ -90,8 +90,7 @@ function Row({
   const check = (
     <Pressable
       testID={`ai-import-include-${row.key}`}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: row.include }}
+      {...checkableA11y("checkbox", row.include)}
       accessibilityLabel={t("aiImport.include", { name: label })}
       onPress={() => {
         onChange({ include: !row.include });

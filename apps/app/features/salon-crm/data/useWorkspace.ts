@@ -6,7 +6,14 @@ import { DEFAULT_SALON_TIMEZONE } from "@gugu/localization";
 import { useAuth } from "@/services/auth/AuthProvider";
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { dayTimeline, isActive, serviceLabel, useBookings, customerLabel } from "./bookings";
+import {
+  customerLabel,
+  dayTimeline,
+  isActive,
+  ownScopeColumns,
+  serviceLabel,
+  useBookings,
+} from "./bookings";
 import { useOnboarding, useTeam } from "./catalog";
 import { salonDate } from "./dates";
 import { demoWorkspace } from "./demo";
@@ -30,7 +37,9 @@ export function useWorkspace(): Workspace {
   const tz = salon?.summary?.timezone ?? DEFAULT_SALON_TIMEZONE;
   const today = salonDate(new Date(), tz);
   const bookings = useBookings(today);
-  const team = useTeam(salon?.can("members.read") ?? false);
+  const canReadTeam = salon?.can("members.read") ?? false;
+  const team = useTeam(canReadTeam);
+  const name = user?.displayName ?? user?.email?.split("@")[0] ?? null;
   // "Now" for remaining/upcoming, refreshed every minute (pure render, React Compiler).
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -41,11 +50,11 @@ export function useWorkspace(): Workspace {
       clearInterval(id);
     };
   }, []);
-  const name = user?.displayName ?? user?.email?.split("@")[0] ?? null;
 
   const todayData = useMemo((): Workspace["today"] & { raw: Workspace["todayBookings"] } => {
     const raw = bookings.data?.items ?? [];
-    const staffList = team.data?.items ?? [];
+    // Staff without team access get their own column from their own bookings (own scope).
+    const staffList = canReadTeam ? (team.data?.items ?? []) : ownScopeColumns(raw, name ?? "");
     const visible = raw.filter((b) => !b.status.startsWith("cancelled"));
     const done = visible.filter((b) => b.status === "completed");
     const upcoming: UpcomingItem[] = visible
@@ -116,7 +125,7 @@ export function useWorkspace(): Workspace {
       upcoming,
       activity,
     };
-  }, [bookings.data, team.data, t, locale, today, tz, now]);
+  }, [bookings.data, team.data, canReadTeam, name, t, locale, today, tz, now]);
 
   if (demo) return demoWorkspace();
   const { raw, ...todayView } = todayData;

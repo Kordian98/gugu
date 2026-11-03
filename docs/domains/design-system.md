@@ -28,6 +28,8 @@ _Duration/easing/spring tokens and choreography rules._
 ## Components
 _Inventory table: name · modes · platform split · status · catalog link._
 
+- `checkableA11y(role, checked, { disabled? })` (`src/a11y.ts`) returns the a11y props for any pressable switch, checkbox or radio: `role` + `aria-checked` (+ `aria-disabled`), plus `accessibilityState` for native. Always use it instead of a bare `accessibilityState={{ checked }}`, because react-native-web drops that and screen readers on web never hear the state.
+
 ## Charts & agent output
 _ChartSpec contract (shared with topic 08), AgentMessage, ActionConfirmCard._
 

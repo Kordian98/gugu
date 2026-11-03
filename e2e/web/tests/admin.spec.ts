@@ -28,8 +28,7 @@ test.describe("platform admin @vi", () => {
     await test.step("find the salon and open its detail", async () => {
       await expect(admin).toHaveURL(/\/vi\/admin\/salons/);
       await fillField(admin.getByTestId("admin-salon-search"), seed.salonName);
-      // The search applies on Enter (or blur); wait for the filtered list before clicking a row.
-      await admin.getByTestId("admin-salon-search").press("Enter");
+      // Search as you type (debounced): no Enter; wait for the filtered list before clicking a row.
       await expect(
         admin.getByText(t(L, "admin:salons.subtitle", { count: 1 }), { exact: true }),
       ).toBeVisible();

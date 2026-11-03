@@ -50,6 +50,23 @@ export function formatTime(
   }).format(date);
 }
 
+/**
+ * "09:30" / "14:30" in both locales: 24-hour clock for grids whose hour axis is 24-hour (the CRM
+ * calendar), so a block's time reads the same way as the column next to it.
+ */
+export function formatClock24(
+  date: Date,
+  locale: AppLocale,
+  timeZone = DEFAULT_SALON_TIMEZONE,
+): string {
+  return new Intl.DateTimeFormat(tag(locale), {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(date);
+}
+
 /** "3/12 14:30" (vi) / "Dec 3, 2:30 PM" (en) in the salon's timezone — compact logs and lists. */
 export function formatDateTimeShort(
   date: Date,

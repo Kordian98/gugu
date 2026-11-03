@@ -486,6 +486,7 @@
     "newFor": "Lịch hẹn mới với {{name}}",
     "today": "Hôm nay",
     "noSlots": "Không còn giờ trống trong ngày này. Anh/chị chọn ngày khác hoặc nhân viên khác nhé.",
+    "truncated": "Kết quả có thể chưa đầy đủ — anh/chị thử khoảng ngày ngắn hơn hoặc chọn một nhân viên cụ thể.",
     "anyStaff": "Bất kỳ ai",
     "timeOff": "Nghỉ phép",
     "all": "Tất cả",

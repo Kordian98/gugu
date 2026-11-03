@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, Icon, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, checkableA11y, Icon, Text, useCalm } from "@gugu/design-system";
 import type { CategoryItem, Service, ServiceInput, StaffMember } from "@gugu/contracts";
 import { formatVND } from "@gugu/localization";
 
@@ -607,8 +607,7 @@ function ResourcePicker({
           >
             <Pressable
               testID={`crm-service-resource-${type.id}`}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: Boolean(cur) }}
+              {...checkableA11y("checkbox", Boolean(cur))}
               accessibilityLabel={type.name}
               onPress={() => {
                 onChange(

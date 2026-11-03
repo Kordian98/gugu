@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, Icon, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, checkableA11y, Icon, Text, useCalm } from "@gugu/design-system";
 import type { NextService, Service, StaffMember } from "@gugu/contracts";
 import { formatVND } from "@gugu/localization";
 
@@ -188,8 +188,7 @@ function LineChips({
           <Pressable
             key={i.id}
             testID="crm-next-chip"
-            accessibilityRole="radio"
-            accessibilityState={{ checked: on }}
+            {...checkableA11y("radio", on)}
             onPress={() => {
               onChange(i.id);
             }}

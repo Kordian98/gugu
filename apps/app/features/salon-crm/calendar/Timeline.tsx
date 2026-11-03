@@ -4,7 +4,7 @@ import Svg, { Defs, Line, Pattern, Rect } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 
 import { Avatar, Text, useCalm } from "@gugu/design-system";
-import { DEFAULT_SALON_TIMEZONE, formatTime } from "@gugu/localization";
+import { DEFAULT_SALON_TIMEZONE, formatClock24 } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
@@ -299,7 +299,8 @@ function BookingBlock({
   const ev = c.event[tone(item.status)];
   const status = t(`timeline.status.${item.status}`);
   const shown = drag ? snapDrag({ col, cols, colWidth, pxPerMin }, drag.dx, drag.dy) : null;
-  const time = formatTime(item.start, locale, timeZone);
+  // 24-hour like the hour column beside it (en too).
+  const time = formatClock24(item.start, locale, timeZone);
   // Multi-service booking: "1/2" marks each staff member's part of the same appointment.
   const part = item.chain ? t("timeline.chainPart", item.chain) : null;
   const label = part ? `${item.service} · ${part}` : item.service;

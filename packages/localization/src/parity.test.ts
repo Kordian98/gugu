@@ -5,6 +5,7 @@ import {
   formatDateLong,
   formatDateTimeShort,
   formatRating,
+  formatClock24,
   formatTime,
   formatVND,
   hourInZone,
@@ -56,6 +57,9 @@ describe("date and time formatters", () => {
   it("formats in the salon timezone", () => {
     expect(formatTime(d, "vi")).toBe("14:30");
     expect(formatTime(d, "en")).toBe("2:30 PM");
+    expect(formatClock24(d, "en")).toBe("14:30");
+    expect(formatClock24(new Date("2026-10-14T02:05:00Z"), "en")).toBe("09:05");
+    expect(formatClock24(new Date("2026-10-14T02:05:00Z"), "vi")).toBe("09:05");
     expect(hourInZone(d)).toBe(14);
     expect(formatDateLong(d, "en")).toBe("Wednesday, October 14, 2026");
     expect(formatDateTimeShort(d, "vi")).toBe("14/10 14:30");
