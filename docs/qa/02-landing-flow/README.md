@@ -110,6 +110,11 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **`srcset` + `sizes`:** derived from the displayed width (box width × crop aspect ÷ box aspect). `width`/`height` attributes give the ratio before lazy load, which fixes a 0 px image on phones.
 - **Measured upscale** (displayed device px ÷ chosen file px; ≤ 1.15 required): 1440@2× 0.76–1.00, 1280@1× 0.44–0.52, 390@3× 0.60–0.82, 360@3× 0.59–0.82.
 
+## Pricing: what you get back vs what you put in (owner, 2026-11-04)
+
+- **`RoiCalculator`** sits under the plan cards. Two steppers (bookings per week, average price, with 44 px buttons) drive three tiles: time back per month, revenue kept per month and "what you pay in year one: 0đ". A verdict line follows, then the disclaimer.
+- **Assumptions** (all in the on-page note): about 3 minutes of admin per booking; 10 % no-shows, 25 % fewer with reminders (BMJ Open 2016, clinics); Basic free for the first year, then {{price}}/month. "Illustrative estimate, not a promise; your salon's results may differ."
+
 ## Final retake after payroll UX (main `96cdd79`)
 
 - **Fresh capture:** own DB `landing_gugu_payroll`, re-seeded with `seed-payroll-demo.mjs`; owner signed in, setup finished (no checklist anywhere; the script fails if one appears).

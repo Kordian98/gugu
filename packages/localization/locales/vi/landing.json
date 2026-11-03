@@ -493,5 +493,24 @@
       "shot": "Bảng lương tháng · tải CSV / Excel, chốt tháng",
       "shotPerson": "Từng người · hoa hồng theo dịch vụ"
     }
+  },
+  "roi": {
+    "title": "Bạn lấy lại được bao nhiêu, và bỏ ra bao nhiêu?",
+    "sub": "Chọn số lịch hẹn mỗi tuần và giá dịch vụ trung bình của salon.",
+    "weekly": "Lịch hẹn mỗi tuần",
+    "perWeek": "{{n}} / tuần",
+    "price": "Giá dịch vụ trung bình",
+    "less": "Giảm",
+    "more": "Tăng",
+    "time": "Thời gian lấy lại mỗi tháng",
+    "hours": "≈ {{n}} giờ",
+    "timeSub": "bớt gọi điện và nhắn tin để xác nhận, nhắc và đổi lịch",
+    "money": "Doanh thu giữ lại mỗi tháng",
+    "moneySub": "nhờ ít khách vắng hơn khi được nhắc lịch qua Zalo",
+    "cost": "Bạn trả trong năm đầu",
+    "costSub": "gói Basic miễn phí năm đầu, sau đó {{price}}/tháng",
+    "verdict": "Sau năm đầu, doanh thu giữ lại ước tính gấp khoảng {{x}} lần phí gói Basic.",
+    "verdictLow": "Năm đầu miễn phí; từ năm thứ hai, gói Basic là {{price}}/tháng.",
+    "note": "Ước tính minh hoạ, không phải cam kết: giả định khoảng 3 phút làm việc cho mỗi lịch hẹn (xác nhận, nhắc, đổi lịch), 10% khách không đến và giảm 25% nhờ nhắc lịch (BMJ Open 2016, phòng khám). Kết quả thực tế của salon có thể khác."
   }
 }

@@ -8,6 +8,7 @@ import { formatVND } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { BASIC_MONTHLY_VND } from "./plans";
+import { RoiCalculator } from "./RoiCalculator";
 
 import { Container, SectionHead } from "./Section";
 import type { LandingNavActions } from "./useLandingNav";
@@ -146,6 +147,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
       <Text size={14.5} lineHeight={22} color={color.muted} style={{ maxWidth: 760 }}>
         {t("pricing.trial", { price })}
       </Text>
+      <RoiCalculator stacked={stacked} />
     </Container>
   );
 }

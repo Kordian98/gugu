@@ -493,5 +493,24 @@
       "shot": "Monthly payroll · CSV / Excel export, close the month",
       "shotPerson": "Per person · commission by service"
     }
+  },
+  "roi": {
+    "title": "What you get back, and what you put in",
+    "sub": "Pick your bookings per week and your average service price.",
+    "weekly": "Bookings per week",
+    "perWeek": "{{n}} / week",
+    "price": "Average service price",
+    "less": "Decrease",
+    "more": "Increase",
+    "time": "Time back each month",
+    "hours": "≈ {{n}} h",
+    "timeSub": "fewer calls and messages to confirm, remind and reschedule",
+    "money": "Revenue kept each month",
+    "moneySub": "from fewer no-shows when clients get Zalo reminders",
+    "cost": "What you pay in year one",
+    "costSub": "Basic is free for the first year, then {{price}}/month",
+    "verdict": "After the first year, the revenue kept is about {{x}}× the Basic fee (estimate).",
+    "verdictLow": "Free for the first year; from year two Basic is {{price}}/month.",
+    "note": "Illustrative estimate, not a promise: assumes about 3 minutes of admin per booking (confirming, reminding, rescheduling), 10% no-shows and 25% fewer with reminders (BMJ Open 2016, clinics). Your salon's results may differ."
   }
 }
