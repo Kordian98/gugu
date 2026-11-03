@@ -12,6 +12,7 @@ import { RedisModule } from "./infrastructure/redis/redis.module";
 import { MailModule } from "./infrastructure/mail/mail.module";
 import { RateLimitModule } from "./infrastructure/rate-limit/rate-limit.module";
 import { AdminModule } from "./modules/admin/admin.facade";
+import { AnalyticsModule } from "./modules/analytics/analytics.facade";
 import { AiImportModule } from "./modules/ai-import/ai-import.facade";
 import { AssistantModule } from "./modules/assistant/assistant.facade";
 import { AuditModule } from "./modules/audit/audit.facade";
@@ -47,6 +48,7 @@ export const INFRASTRUCTURE_MODULES = [
     RateLimitModule,
     MailModule,
     AuditModule,
+    AnalyticsModule,
     AuthModule,
     AuthorizationModule,
     HealthModule,

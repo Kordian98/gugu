@@ -13,6 +13,8 @@ export * from "./salon/salon";
 export * from "./catalog/catalog";
 export * from "./team/team";
 export * from "./salon-settings/settings";
+export * from "./salon-settings/setup";
+export * from "./analytics/events";
 export * from "./booking/booking";
 export * from "./booking/chain";
 export * from "./booking/errors";

@@ -45,6 +45,7 @@ description: Rules and procedures for GuGu's salon workspace (Today, calendar UI
 - One service per appointment; combos are services or add-on options. No prepaid packages.
 - Staff pay and commission (owner 2026-11-04, ADR-0016): commission per **completed booking line** for `booking_services.staff_id`, never the booking's first staff member; effective-dated pay settings never rewrite past months; closed payroll months are read-only; every adjustment has a reason. MUST say "estimate before tax and insurance" wherever pay is shown; MUST NOT compute PIT/BHXH or move money. Payroll is owner-only by default (`payroll.read/manage`, grantable to managers), staff see only their own figures (`payroll.self.read`). Per-person pay MUST NOT reach the assistant (team totals only).
 - Staff see their own ratings and, by default, client phones (`client.view_contact`, revocable).
+- Email-only signup and guided setup (owner 2026-11-04, ADR-0018): an email is the only thing required to start. MUST NOT add required fields before the workspace (phone, address, licence and payment stay optional, in Settings). The salon is created by `POST salons/quick-start` (idempotent); wizard progress lives in `salon_setups`; the Today "finish setup" card shows only items still open from real data and MUST never render for completed salons (landing screenshots). Every wizard step stays skippable and emits a PII-free `setup_step_*` event.
 - Shared-tablet and personal-device setups both work with no configuration.
 - No SMS (X12): invites and messages use links, email or Zalo.
 

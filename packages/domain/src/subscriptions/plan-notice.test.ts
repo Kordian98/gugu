@@ -5,20 +5,22 @@ const now = new Date("2026-11-03T05:00:00Z");
 const inDays = (d: number) => new Date(now.getTime() + d * 86_400_000).toISOString();
 
 describe("planEndingNotice (X25 Today notice)", () => {
-  it("warns in the last 14 days of the trial, naming the free Basic year after it", () => {
+  it("warns only in the last 3 days of the trial (q104), naming the free Basic year after it", () => {
     const state = {
       plan: "trial",
       status: "trialing",
-      trialEndsAt: inDays(10),
+      trialEndsAt: inDays(2),
       freeUntil: inDays(360),
     } as const;
     expect(planEndingNotice(state, now)).toEqual({
       kind: "trial_ends",
-      endsAt: new Date(inDays(10)),
+      endsAt: new Date(inDays(2)),
       freeUntil: new Date(inDays(360)),
     });
-    expect(planEndingNotice({ ...state, trialEndsAt: inDays(14.5) }, now)).toBeNull();
-    expect(planEndingNotice({ ...state, trialEndsAt: inDays(14) }, now)?.kind).toBe("trial_ends");
+    expect(planEndingNotice({ ...state, trialEndsAt: inDays(3) }, now)?.kind).toBe("trial_ends");
+    expect(planEndingNotice({ ...state, trialEndsAt: inDays(3.5) }, now)).toBeNull();
+    // A fresh signup (14 days left) sees no "trial ending" notice.
+    expect(planEndingNotice({ ...state, trialEndsAt: inDays(14) }, now)).toBeNull();
   });
 
   it("warns in the last 14 days of the free Basic year, not before and not after", () => {

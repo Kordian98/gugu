@@ -20,3 +20,4 @@ One file per decision: `NNNN-<slug>.md`, using the template in `.claude/skills/a
 | [0015](0015-basic-free-first-year.md) | Basic free for the first year: `free_until` on the subscription, trial ends into free Basic (X25) | proposed |
 | [0016](0016-staff-pay-commission-payroll.md) | Staff pay, commission per booking line, monthly payroll close/reopen, owner profit estimate | proposed |
 | [0017](0017-payroll-ux-real-cost.md) | Payroll UX redesign, bulk commission changes, per-person real cost (employer taxes/insurance entered by the salon) | proposed |
+| [0018](0018-email-only-signup-guided-setup.md) | Email-only signup, lazily created draft salon (quick start), server-side guided setup, minimal signup analytics | proposed |

@@ -141,5 +141,6 @@ export function useWorkspace(): Workspace {
     setupDone: onboarding.data?.done ?? [],
     canGoLive: onboarding.data?.canGoLive ?? false,
     setupLoaded: onboarding.isSuccess,
+    setup: onboarding.data?.setup ?? null,
   };
 }

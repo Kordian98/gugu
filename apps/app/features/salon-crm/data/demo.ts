@@ -190,6 +190,7 @@ export function demoWorkspace(): Workspace {
     todayBookings: [],
     timeZone: DEFAULT_SALON_TIMEZONE,
     setupLoaded: true,
+    setup: null,
     role: "owner",
   };
 }

@@ -67,6 +67,9 @@ export class AccountsService {
         profile: { select: { displayName: true } },
         salonMemberships: {
           where: { status: { in: ["active", "pending_verification"] }, salon: { deletedAt: null } },
+          // Most recently joined first: the workspace opens it unless the user picked another
+          // salon on this device (ADR-0018; e.g. right after accepting an invitation).
+          orderBy: { createdAt: "desc" },
           include: {
             salon: { select: { id: true, name: true, slug: true, organizationId: true } },
           },

@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.facade";
+import { QuickStartSalonCommand } from "./application/quick-start-salon.command";
 import { RegisterSalonCommand } from "./application/register-salon.command";
 import { SalonQueries } from "./application/salon.queries";
 import { UpdateSalonProfileCommand } from "./application/update-salon-profile.command";
@@ -12,6 +13,11 @@ import { SalonsController } from "./http/salons.controller";
 @Module({
   imports: [AuthModule],
   controllers: [SalonsController],
-  providers: [RegisterSalonCommand, SalonQueries, UpdateSalonProfileCommand],
+  providers: [
+    QuickStartSalonCommand,
+    RegisterSalonCommand,
+    SalonQueries,
+    UpdateSalonProfileCommand,
+  ],
 })
 export class SalonsModule {}

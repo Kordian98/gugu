@@ -63,15 +63,44 @@ export async function waitForMail(
   return Promise.all(matching.map((m) => readMail(m.ID)));
 }
 
+const LINK_RE = /https?:\/\/\S+\/auth\/verify\?token=[\w-]+/;
+
+/**
+ * Newest sign-in mail for `to` (it carries the verify link and the 6-digit code). Other mail to the
+ * same address — e.g. a Zalo hand-off notification sent by the worker at the same moment — is
+ * skipped, so a team notification can never be mistaken for the magic link.
+ */
+async function latestSignInMail(to: string, after: number): Promise<MailMessage> {
+  let found: MailMessage | undefined;
+  await expect
+    .poll(
+      async () => {
+        const msgs = await waitForMail(to, { count: after + 1 });
+        // Only mail that arrived after the `after` earlier ones (newest first).
+        found = msgs.slice(0, Math.max(0, msgs.length - after)).find((m) => LINK_RE.test(m.Text));
+        return found !== undefined;
+      },
+      { message: `no sign-in mail with a magic link to ${to}`, timeout: 20_000 },
+    )
+    .toBe(true);
+  if (!found) throw new Error(`no magic link mail to ${to}`);
+  return found;
+}
+
 /** Latest magic link for `to` (the link that lands on `/{locale}/auth/verify?token=…`). */
 export async function latestMagicLink(to: string, after = 0): Promise<string> {
-  const msgs = await waitForMail(to, { count: after + 1 });
-  const latest = msgs[0];
-  const link = latest
-    ? /https?:\/\/\S+\/auth\/verify\?token=[\w-]+/.exec(latest.Text)?.[0]
-    : undefined;
-  if (!link) throw new Error(`no magic link in latest mail to ${to}: ${latest?.Subject ?? "none"}`);
+  const mail = await latestSignInMail(to, after);
+  const link = LINK_RE.exec(mail.Text)?.[0];
+  if (!link) throw new Error(`no magic link in latest sign-in mail to ${to}`);
   return link;
+}
+
+/** 6-digit sign-in code from the latest magic-link mail for `to` (typed on another device). */
+export async function latestCode(to: string, after = 0): Promise<string> {
+  const mail = await latestSignInMail(to, after);
+  const code = /\b(\d{6})\b/.exec(mail.Text)?.[1];
+  if (!code) throw new Error(`no 6-digit code in latest sign-in mail to ${to}`);
+  return code;
 }
 
 /**

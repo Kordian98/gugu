@@ -107,8 +107,12 @@ describe("AI assistant (integration)", () => {
       where: { id: staffA },
       data: { displayName: CANARY.staff },
     });
-    const day = (h: number) => new Date(Date.now() + h * 3600_000);
-    for (const [i, h] of [1, 2, -30].entries()) {
+    // Fixed wall-clock hours of *today in Vietnam* (10:00, 11:00) and one two days earlier: now+1h
+    // used to fall on tomorrow between 22:00 and 24:00 VN, so "today" counted nothing.
+    const vnToday = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+    const vnMidnight = Date.parse(`${vnToday}T00:00:00+07:00`);
+    const day = (h: number) => new Date(vnMidnight + h * 3600_000);
+    for (const [i, h] of [10, 11, -38].entries()) {
       const booking = await prisma.booking.create({
         data: {
           salonId,

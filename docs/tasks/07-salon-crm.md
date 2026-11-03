@@ -137,15 +137,17 @@ Acceptance: a receptionist can find the next customer and check them in with **a
 
 **Path B:** pick from category templates. **Path C:** add manually.
 
-Wizard steps:
-1. Business basics: name, category, phone, address with a map pin, and "one location or several?" (creates the Organization when there are several; G6).
-2. Services (Path A/B/C above). This comes **before** hours so the "aha" moment happens in the first minutes.
-3. Hours: template presets ("9:00–21:00 every day" is common), prefilled from AI if detected.
-4. Team: "Just me" or add staff (name plus services) and invite them by link.
-5. Photos: logo, cover, gallery (optional, can skip).
-6. Go live: show the share link and QR code, plus an optional Zalo OA connect step (09).
+**Signup and wizard (owner 2026-11-04, ADR-0018; supersedes the old registration form).** An email is the only thing needed to start: email → magic link or 6-digit code → in. The salon is created on first entry as a draft with smart defaults (no name yet, Asia/Ho_Chi_Minh, vi, default booking window, trial + free Basic year; no phone, address, licence or payment), idempotently. Invited staff are offered "Join <salon>" instead and never get an empty salon (q102). Then a full-screen, mobile-first guided setup, every step short and resumable (progress saved on the server), skippable except the name:
+1. Salon name — mandatory, first, no default (q103); nothing else opens until it is saved — and an optional business type (nails / hair / spa / lashes & brows / mixed) as big tiles.
+2. Opening hours: presets ("9:00–21:00 every day" first) plus a quick tweak (days + one open/close time).
+3. Services three ways: Path A (AI import, the hero card), Path B (starter template for the business type, Vietnamese names, durations and price ranges, editable), Path C (manual). The list fills in live.
+4. Team: "Just me" or names (each gets the salon hours and every service); invites later under Team.
+5. Zalo OA connect (optional, one-line benefit, returns to the wizard).
+6. Done: celebration, a preview of today's real calendar and one suggested action ("Thêm lịch hẹn đầu tiên").
 
-Progress is saved after each step. A checklist card on Today shows the remaining setup until it is complete. For chains, an additional location can **copy services, hours and team** from an existing one.
+Delight inside calm mode: progress ring, check pop and a small brand confetti burst on completion, haptics on native, encouraging copy ("Tuyệt! Còn 2 bước nữa"), time estimates; reduced motion respected. Phone/address and photos move to Settings (optional). A complete salon goes live automatically when the wizard closes (no public page, X23). Each step emits a PII-free server event (`setup_step_*`, `setup_finished`) so drop-off per step is visible.
+
+Progress is saved after each step. After the wizard, a compact "finish setup" card on Today shows only the optional items still open (from real data, e.g. Zalo); it can be dismissed and never appears for completed salons. For chains, an additional location can **copy services, hours and team** from an existing one.
 
 Metrics for the marketing claim (tracked through 12 analytics): the median time from sign-up to first bookable state, and the share of salons that used AI setup. Target: median under 10 minutes and under 3 minutes of hands-on time for Path A.
 
@@ -339,6 +341,8 @@ Per X7, 08 generates these from the 04 read-model registry and the 07 metric cat
 | `month_profit` | R | `{ date }` (any day of the month) → salon totals: earned so far (+ recorded part), still to come, no-show allowance, service costs, **team payroll as one total** (real cost where the salon entered one, ADR-0017; `profit.employer_costs` also one total), other costs, net profit, gross/net margin, progress. **No per-person pay, salary or commission** (personal data, X10); no staff dimension in the schema; salary canary in evals | `payroll.read` | aggregate | — |
 | `services.import_draft` | W | `{ sourceMediaId or text }` of a price board, PII-scanned and rejected if it contains phones or names → draft table | `service.manage` | none (rejected if found) | **required** |
 | ~~`bookings.search`~~, ~~`clients.search`~~, ~~`clients.get_profile`~~, ~~`clients.add_note`~~, ~~`bookings.create_draft`~~, ~~`bookings.reschedule_draft`~~ | — | **Deferred (G9a)**: these need names, phones, notes or free text | — | — | — |
+
+Setup endpoints (`salons/quick-start`, `onboarding/business|progress|dismiss-card|starter-services`) are human onboarding only and are **not** agent tools.
 
 **PII rule (G9a):** every read model or metric exposed to the agent MUST be aggregate or tokenised. Tokens are stable within a conversation, mapped and re-hydrated server-side by 08's firewall, and never derived from names or phones. Each 04 read model used by a tool declares `piiLevel: none | aggregate | tokenised`, and a test fails if a tool output contains names, phones, emails, notes, review or message text. The source `ai_agent` (X6) is reserved for when agent booking drafts return. Rules: the agent never sees other salons. Money results always include `revenueKind`. Every call is audited (08/05).
 

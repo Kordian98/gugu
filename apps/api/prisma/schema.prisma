@@ -614,6 +614,7 @@ model Salon {
   commissionPolicies     SalonCommissionPolicy[]
   payrollMonths          PayrollMonth[]
   salonCosts             SalonCost[]
+  setup                  SalonSetup?
 
   @@unique([organizationId, id])
   @@index([organizationId])
@@ -2207,4 +2208,49 @@ model SalonCost {
   @@unique([salonId, id])
   @@index([salonId, startMonth])
   @@map("salon_costs")
+}
+
+// ─── Guided setup after email-only signup (topic 07, owner 2026-11-04) ────────────────────────────
+
+/// Wizard progress of a salon created by the email-only signup (`POST salons/quick-start`). One row
+/// per salon; salons registered through the old form have none (they keep the checklist only).
+/// Step and business-type values are validated by `@gugu/contracts` (`SETUP_STEPS`, `BUSINESS_TYPES`).
+model SalonSetup {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  salonId         String    @unique @map("salon_id") @db.Uuid
+  businessType    String?   @map("business_type")
+  /// False while the salon still has the placeholder name from quick start.
+  nameConfirmed   Boolean   @default(false) @map("name_confirmed")
+  currentStep     String    @default("business") @map("current_step")
+  completedSteps  String[]  @default([]) @map("completed_steps")
+  skippedSteps    String[]  @default([]) @map("skipped_steps")
+  startedAt       DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  /// Finished (reached "done") or left with "Để sau"; Today stops redirecting into the wizard.
+  wizardClosedAt  DateTime? @map("wizard_closed_at") @db.Timestamptz(6)
+  finishedAt      DateTime? @map("finished_at") @db.Timestamptz(6)
+  /// The "finish setup" card on Today was dismissed.
+  cardDismissedAt DateTime? @map("card_dismissed_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@map("salon_setups")
+}
+
+/// Minimal in-house analytics (X14), server-side events only, until topic 12 builds the full
+/// pipeline (partitioning, rollups, consent-gated client events). No PII: ids, enums and counts;
+/// the acting user only as a salted HMAC. Catalogue: `@gugu/contracts` `ANALYTICS_EVENTS`.
+model AnalyticsEvent {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  name       String
+  salonId    String?  @map("salon_id") @db.Uuid
+  actorHash  String?  @map("actor_hash")
+  props      Json     @default("{}")
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  @@index([name, occurredAt])
+  @@index([salonId, occurredAt])
+  @@map("analytics_events")
 }

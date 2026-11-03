@@ -10,6 +10,7 @@ const DEV_BOOKING_TOKEN_SECRET = "dev-only-insecure-booking-token-secret-not-for
 const DEV_ZALO_TOKEN_KEY = "dev-only-insecure-zalo-token-key-do-not-use-in-prod";
 const DEV_ZALO_OA_SECRET_KEY = "dev-only-zalo-emulator-oa-secret-key";
 const DEV_MFA_ENCRYPTION_KEY = "dev-only-insecure-admin-mfa-key-do-not-use-in-prod";
+const DEV_ANALYTICS_HASH_SECRET = "dev-only-insecure-analytics-hash-secret-not-for-prod";
 
 export const envSchema = z
   .object({
@@ -38,6 +39,21 @@ export const envSchema = z
      * ≥ 32 chars; the default only works outside production.
      */
     MFA_ENCRYPTION_KEY: z.string().min(32).default(DEV_MFA_ENCRYPTION_KEY),
+    /**
+     * Salt for the pseudonymous `actor_hash` of analytics events (X14, ADR-0018). Separate from
+     * AUTH_SECRET so analytics rows can never be joined to auth hashes. ≥ 32 chars; required in
+     * production.
+     */
+    ANALYTICS_HASH_SECRET: z.string().min(32).default(DEV_ANALYTICS_HASH_SECRET),
+    /** Analytics event retention in months; the daily retention job deletes older rows. */
+    ANALYTICS_RETENTION_MONTHS: z.coerce.number().int().min(1).max(120).default(24),
+    /**
+     * Global cap on salons created by the email-only signup per rolling 24 h (abuse brake against
+     * trial farming, ADR-0018). Hitting it logs an error so someone looks.
+     */
+    QUICK_START_DAILY_CAP: z.coerce.number().int().min(1).default(500),
+    /** Salons per email domain per 24 h (large consumer providers exempt). E2E raises it. */
+    QUICK_START_DOMAIN_DAILY_LIMIT: z.coerce.number().int().min(1).default(20),
     /**
      * Per-user limits on the platform admin API (`/api/v1/admin/*`), per minute: all requests and
      * writes only. Integration tests raise them (vitest.integration.config.ts).
@@ -155,6 +171,11 @@ export const envSchema = z
   .refine(
     (env) => env.NODE_ENV !== "production" || env.MFA_ENCRYPTION_KEY !== DEV_MFA_ENCRYPTION_KEY,
     { path: ["MFA_ENCRYPTION_KEY"], message: "must be set in production" },
+  )
+  .refine(
+    (env) =>
+      env.NODE_ENV !== "production" || env.ANALYTICS_HASH_SECRET !== DEV_ANALYTICS_HASH_SECRET,
+    { path: ["ANALYTICS_HASH_SECRET"], message: "must be set in production" },
   )
   .refine((env) => env.NODE_ENV !== "production" || env.ZALO_CLIENT !== "emulated", {
     path: ["ZALO_CLIENT"],

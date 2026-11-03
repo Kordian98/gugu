@@ -62,7 +62,9 @@ Migration `20261102122228_add_subscription_salon_fks` adds `salon_id → salons(
 | `GET /api/v1/me` | authenticated | User, memberships, web `csrfToken` |
 | `GET /api/v1/me/pending-salons`, `POST …/:salonId/confirm`, `POST …/:salonId/decline` | authenticated | Explicit confirm/decline of salons registered with my email (audited `salon.owner_verified` / `salon.owner_declined`) |
 | `GET /api/v1/public/categories`, `/public/locations` | public | Reference data for registration |
-| `POST /api/v1/salons/registrations` | public | Signed in → owner at once. Anonymous → `email` required, memberships `pending_verification`. Only that salon's registration link activates it; otherwise the owner confirms explicitly after signing in (`/me/pending-salons`). When the per-email limit is hit, the salon is still created and `magicLinkStatus` is `rate_limited`. Starts the 14-day trial in the same transaction |
+| `POST /api/v1/salons/registrations` | authenticated | Signed-in only since ADR-0018 (the anonymous, pending-until-emailed-link variant is retired): owner at once, 14-day trial in the same transaction |
+| `POST /api/v1/salons/quick-start` | authenticated | Email-only signup (ADR-0018): first salon, unnamed draft, idempotent; refuses admins, disposable domains and emails with team invitations (unless `ignoreInvitations`); per user/IP/domain limits + global daily cap |
+| `GET /api/v1/me/invitations`, `POST /api/v1/me/invitations/:id/accept` | authenticated | Email-bound team invitations of the signed-in user (q102) |
 | `GET/PATCH /api/v1/salons/:salonId`, `GET …/members` | `salon.read` / `salon.profile.write` / `members.read` | Minimal workspace read models |
 | `GET /api/v1/salons/:salonId/entitlements` | `subscription.read` | Topic 12, guarded by the membership guard |
 | `GET /api/v1/salons/:salonId/customers/:customerId/export?locale=` | `customers.export` (owner) | One client's data as JSON + readable text; audited `privacy.client_exported` |
@@ -80,7 +82,7 @@ Errors: `AUTH_ERRORS` (`packages/contracts/src/auth/auth.ts`), `SALON_ERRORS` (`
 - **Magic link (native):** request with `client: "native"` → the user types the 6-digit code → tokens go to SecureStore. Universal links for the emailed URL come with topic 13.
 - **Client IP:** `req.ip` comes from Express `trust proxy`, set from `TRUST_PROXY` (default `false` = no proxy, local). Behind Cloudflare/a load balancer set the hop count (e.g. `1`) or the proxy CIDRs; never `true`. IP limits are the first layer; per-email/per-account limits are the second.
 - **Refresh:** `apiFetch` refreshes once on 401, with one in-flight refresh shared by concurrent calls.
-- **Salon registration (anonymous):** a user row is created unverified → org, salon, memberships and trial are created in one transaction → after commit, a `salon_registration` magic link is emailed → verifying it activates **only that salon** (audit `salon.owner_verified`). A plain sign-in activates nothing: the app routes users with pending salons to `/{locale}/auth/pending-salons` to confirm or decline each one.
+- **Salon registration (anonymous) — retired by ADR-0018; kept here for salons pending from before:** a user row was created unverified → org, salon, memberships and trial are created in one transaction → after commit, a `salon_registration` magic link is emailed → verifying it activates **only that salon** (audit `salon.owner_verified`). A plain sign-in activates nothing: the app routes users with pending salons to `/{locale}/auth/pending-salons` to confirm or decline each one.
 - **Admin step-up:** admin opens a high-risk action → API 403 `admin.step_up_required` → the sheet asks for the authenticator code → `POST /admin/mfa/step-up` sets `sessions.step_up_until = now + 10 min` → the sheet retries the action. Without an enrolled factor every admin write answers 403 `admin.mfa_enrollment_required` and the panel links to `/{locale}/admin/security`.
 - **Client erasure (owner):** client card → "Xoá dữ liệu của khách" → confirm → one transaction (profile/notes deleted, bookings anonymised, Zalo content deleted) → upcoming bookings cancelled after commit (`reasonCode client_data_erased`, actor system).
 - **Salon export (owner):** Settings → "Dữ liệu và quyền riêng tư" → "Tạo bản xuất" → `privacy` queue job builds gzipped JSON + CSV → the panel polls and offers the downloads for 24 h.
@@ -173,7 +175,7 @@ Without `--with-totp`, sign in at `/vi/sign-in` (Mailpit), open `/vi/admin/secur
 - `apps/api/src/modules/salons/`: registration, reference data, salon read models.
 - `apps/api/src/infrastructure/{mail,rate-limit}/`: SMTP transport, Valkey fixed-window limiter.
 - `apps/app/services/auth/`: `apiFetch`, `AuthProvider`, token stores (`token-store.native.ts` = SecureStore; web keeps only the CSRF token in memory).
-- `apps/app/features/auth/`, `apps/app/features/salon-join/`: sign-in, verify and join screens.
+- `apps/app/features/auth/`: sign-in, verify and the email-only signup (`SignInScreen mode="signUp"` on `/business/join`, ADR-0018; the old salon form `features/salon-join/` was removed).
 - Tests: `apps/api/src/modules/auth/admin-mfa.int.test.ts`, `auth/mfa/totp.test.ts`, `privacy/privacy.int.test.ts`, `privacy/domain/render-export.test.ts`, `authorization/admin-rate-limit.int.test.ts`, `jobs/worker-module.int.test.ts`, `apps/api/src/modules/{auth,salons}/*.int.test.ts` (stack), `apps/api/src/modules/authorization/{authorization,suspension-allowlist}.e2e.test.ts` (q92 generated route matrix), `authorization/route-inventory.test.ts`, `admin/admin-effects.int.test.ts` (suspension matrix on the stack), `apps/api/test/{auth-fakes,mailpit,rate-limits}.ts`, `apps/api/test/factories/identity.ts`.
 
 ## ADRs

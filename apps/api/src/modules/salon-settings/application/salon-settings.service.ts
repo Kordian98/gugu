@@ -22,6 +22,7 @@ import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../../audit/audit.facade";
 import { bumpAvailabilityVersion } from "../domain/availability-version";
 import { onboardingProgress } from "../domain/onboarding";
+import { setupStateOf } from "../domain/setup";
 import { fromDateColumn, fromTimeColumn, toDateColumn, toTimeColumn } from "../domain/wall-clock";
 
 type Tx = Prisma.TransactionClient;
@@ -213,12 +214,19 @@ export class SalonSettingsService {
       activeServices,
       openingDays,
       readyStaff,
+      bookableStaff,
       unassignedServices,
       staffWithoutServices,
+      zalo,
     ] = await Promise.all([
       this.prisma.salon.findFirstOrThrow({
         where: { id: ctx.salonId },
-        select: { status: true, phoneE164: true, location: { select: { id: true } } },
+        select: {
+          status: true,
+          phoneE164: true,
+          location: { select: { id: true } },
+          setup: true,
+        },
       }),
       this.prisma.service.count({
         where: { salonId: ctx.salonId, isActive: true, deletedAt: null },
@@ -235,6 +243,7 @@ export class SalonSettingsService {
           services: { some: { service: { deletedAt: null, isActive: true } } },
         },
       }),
+      this.prisma.staffProfile.count({ where: { salonId: ctx.salonId, ...assigned } }),
       this.prisma.service.count({
         where: {
           salonId: ctx.salonId,
@@ -250,9 +259,17 @@ export class SalonSettingsService {
           services: { none: { service: { deletedAt: null, isActive: true } } },
         },
       }),
+      this.prisma.zaloOaConnection.findUnique({
+        where: { salonId: ctx.salonId },
+        select: { status: true },
+      }),
     ]);
+    // Business basics: named in the setup wizard, or phone + address from the old registration form.
+    const businessDone =
+      (salon.setup?.nameConfirmed ?? false) ||
+      (salon.phoneE164 !== null && salon.location !== null);
     const { done, canGoLive } = onboardingProgress({
-      hasAddressAndPhone: salon.phoneE164 !== null && salon.location !== null,
+      hasBusinessBasics: businessDone,
       activeServices,
       openingDays,
       readyStaff,
@@ -263,7 +280,30 @@ export class SalonSettingsService {
       total: ONBOARDING_STEPS.length,
       canGoLive,
       issues: { unassignedServices, staffWithoutServices },
+      setup: salon.setup
+        ? setupStateOf(salon.setup, {
+            businessDone,
+            openingDays,
+            activeServices,
+            bookableStaff,
+            zaloConnected: zalo?.status === "connected" || zalo?.status === "needs_reauth",
+          })
+        : null,
     };
+  }
+
+  /** Go live when the checklist is complete; false when not ready or already live. */
+  async goLiveIfReady(ctx: SalonContext): Promise<boolean> {
+    const progress = await this.onboarding(ctx);
+    if (!progress.canGoLive) return false;
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.salon.updateMany({
+        where: { id: ctx.salonId, status: "draft" },
+        data: { status: "active" },
+      });
+      if (count === 1) await this.record(tx, ctx, "salon.went_live", { via: "setup" });
+      return count === 1;
+    });
   }
 
   /** Draft → active once the checklist is complete (07 §3.7 "Go live"). */

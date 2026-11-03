@@ -1,36 +1,58 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, CalmCard, Icon, Logo, ProgressBar, Text, useCalm } from "@gugu/design-system";
+import {
+  SETUP_STEPS,
+  type BusinessType,
+  type SetupItem,
+  type SetupMethod,
+  type SetupStep,
+  setupStepSchema,
+} from "@gugu/contracts";
+import { CalmButton, CalmCard, Logo, Text, useCalm } from "@gugu/design-system";
+import { DEFAULT_SALON_TIMEZONE } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import {
-  crmApi,
-  useCrmMutation,
-  useOnboarding,
-  useServices,
-  useSettings,
-  useTeam,
-} from "../../data/catalog";
+import { useOnboarding, useServices, useSettings, useTeam } from "../../data/catalog";
 import { useSalon } from "../../data/SalonContext";
+import { setupApi, useSetupMutation } from "../../data/setup";
+import { useZaloConnection } from "../../data/zalo";
 import { useBreakpoint } from "../../shell/useBreakpoint";
-import { HoursSection } from "../settings/HoursSection";
-import { ProfileSection } from "../settings/ProfileSection";
+import { EmptyState } from "../../ui/EmptyState";
 import { dismissSetup } from "./firstRun";
-import { ServicesStep, TeamStep } from "./steps";
+import { CheckPop, Confetti } from "./parts/Celebrate";
+import { successHaptic } from "./parts/haptics";
+import { ProgressRing } from "./parts/ProgressRing";
+import { BusinessStep } from "./steps/BusinessStep";
+import { DoneStep } from "./steps/DoneStep";
+import { HoursStep } from "./steps/HoursStep";
+import { ServicesStep } from "./steps/ServicesStep";
+import { TeamStep } from "./steps/TeamStep";
+import { ZaloStep } from "./steps/ZaloStep";
 
-const STEPS = ["business", "hours", "services", "team", "done"] as const;
-type Step = (typeof STEPS)[number];
-const CHECK_STEPS = ["business", "hours", "services", "team"] as const;
+type WizardStep = Exclude<SetupStep, "done">;
+/** The five steps that count towards progress; `done` is the celebration. */
+const WIZARD: readonly WizardStep[] = ["business", "hours", "services", "team", "zalo"];
+const ETA: Record<WizardStep, "seconds" | "minute" | "minutes"> = {
+  business: "seconds",
+  hours: "seconds",
+  services: "minutes",
+  team: "minute",
+  zalo: "minute",
+};
+
+const nextStep = (from: SetupStep): SetupStep =>
+  SETUP_STEPS[Math.min(SETUP_STEPS.indexOf(from) + 1, SETUP_STEPS.length - 1)] ?? "done";
 
 /**
- * First-run setup (07 §3.7, owner feedback): one continuous path after registration — salon
- * details → opening hours → first services (AI import entry or manual) → yourself/team → done.
- * Every step saves through the normal APIs, so leaving halfway keeps the progress and the Today
- * checklist shows the same state.
+ * Guided setup after the email-only signup (07 §3.7, owner 2026-11-04): full screen, mobile first,
+ * one short skippable step at a time, progress saved on the server after every step (resume on any
+ * device), a progress ring, a check pop + small confetti and haptics on completion (reduced motion
+ * respected), encouraging copy and time estimates. `?step=x&single=1` opens one step from the Today
+ * card and returns there afterwards.
  */
 export function SetupWizard() {
   const { c, scheme } = useCalm();
@@ -38,28 +60,79 @@ export function SetupWizard() {
   const locale = useLocale();
   const router = useRouter();
   const bp = useBreakpoint();
-  const { salonId } = useSalon();
+  const salon = useSalon();
+  const params = useLocalSearchParams<{ step?: string; single?: string; zalo?: string }>();
   const onboarding = useOnboarding();
   const settings = useSettings();
   const services = useServices();
   const team = useTeam(true);
-  const goLive = useCrmMutation(crmApi.goLive, ["settings"]);
-  const done: readonly string[] = onboarding.data?.done ?? [];
-  const firstOpen = STEPS.find((s) => s !== "done" && !done.includes(s)) ?? "done";
-  const [step, setStep] = useState<Step | null>(null);
-  // Start at the first unfinished step once, then stay where the user is (saving a step must not
-  // jump ahead on its own).
-  if (step === null && onboarding.data) setStep(firstOpen);
-  const current = step ?? firstOpen;
-  const index = STEPS.indexOf(current);
+  const zalo = useZaloConnection();
+  const progress = useSetupMutation(setupApi.progress, ["summary"]);
+  const setup = onboarding.data?.setup ?? null;
+  const single = params.single === "1";
+
+  const [step, setStep] = useState<SetupStep | null>(null);
+  const [completed, setCompleted] = useState<Set<SetupStep>>(new Set());
+  const [businessType, setBusinessType] = useState<BusinessType | null>(null);
+  const [cheer, setCheer] = useState<{ text: string; burst: number } | null>(null);
+  const viewed = useRef<SetupStep | null>(null);
+
+  // q103: an unnamed salon always starts (and stays) on the name step.
+  const unnamed = setup !== null && !setup.nameConfirmed;
+  // Resume once: a valid `?step=`, else where the owner left off (server-side), else the start.
+  if (step === null && onboarding.data) {
+    const fromParam = setupStepSchema.safeParse(params.step);
+    setStep(
+      unnamed
+        ? "business"
+        : fromParam.success
+          ? fromParam.data
+          : (setup?.currentStep ?? "business"),
+    );
+    setCompleted(new Set(setup?.completed ?? []));
+    setBusinessType(setup?.businessType ?? null);
+  }
+
+  useEffect(() => {
+    if (step === null || viewed.current === step) return;
+    viewed.current = step;
+    progress.mutate({ step, event: "viewed" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one "viewed" event per step entry
+  }, [step]);
+
   const toToday = () => {
-    dismissSetup(salonId);
+    // Older salons (no server-side setup state) remember "later" on this device instead.
+    if (!setup) dismissSetup(salon.salonId);
     router.replace(`/${locale}/business` as never);
   };
 
-  if (!settings.data || !onboarding.data) {
+  if (onboarding.isError || settings.isError) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", padding: 24, backgroundColor: c.canvas }}>
+        <CalmCard style={{ maxWidth: 520, width: "100%", alignSelf: "center" }}>
+          <EmptyState
+            testID="crm-setup-error"
+            icon="alert"
+            title={t("errors.loadFailed")}
+            body={t("quickStart.failedBody")}
+            action={
+              <CalmButton
+                label={t("quickStart.retry")}
+                onPress={() => {
+                  void onboarding.refetch();
+                  void settings.refetch();
+                }}
+              />
+            }
+          />
+        </CalmCard>
+      </View>
+    );
+  }
+  if (step === null || !settings.data || !onboarding.data) {
     return (
       <View
+        testID="crm-setup-loading"
         style={{
           flex: 1,
           alignItems: "center",
@@ -71,139 +144,208 @@ export function SetupWizard() {
       </View>
     );
   }
+
+  const index = step === "done" ? WIZARD.length : WIZARD.indexOf(step);
+  const doneCount = WIZARD.filter((s) => completed.has(s)).length;
+  const zaloOff = zalo.data?.mode === "disabled";
+  const remaining: SetupItem[] = (setup?.remaining ?? []).filter((r) => !(r === "zalo" && zaloOff));
+
+  /** Records the step, celebrates, moves on (or back to Today when opened from the Today card). */
+  const advance = (from: WizardStep, kind: "completed" | "skipped", method?: SetupMethod) => {
+    // The business step is recorded by its own endpoint.
+    if (!(from === "business" && kind === "completed")) {
+      progress.mutate({ step: from, event: kind, ...(method ? { method } : {}) });
+    }
+    const left = WIZARD.length - WIZARD.indexOf(from) - 1;
+    if (kind === "completed") {
+      setCompleted((s) => new Set(s).add(from));
+      successHaptic();
+      setCheer((prev) => ({
+        text:
+          left <= 0
+            ? ""
+            : left === 1
+              ? t("setupWizard.cheer.last")
+              : t("setupWizard.cheer.remaining", { count: left }),
+        burst: (prev?.burst ?? 0) + 1,
+      }));
+    } else {
+      setCheer({ text: t("setupWizard.cheer.skipped"), burst: 0 });
+    }
+    if (single) toToday();
+    else setStep(nextStep(from));
+  };
+
+  const back = () => {
+    setStep(SETUP_STEPS[Math.max(0, SETUP_STEPS.indexOf(step) - 1)] ?? "business");
+    setCheer(null);
+  };
+
+  const later = () => {
+    progress.mutate({ step, event: "left" }, { onSettled: toToday });
+  };
+
+  const mobile = bp === "mobile";
+  const eta = step === "done" ? "" : t(`setupWizard.eta.${ETA[step]}`);
+
   return (
     <ScrollView
+      testID="crm-setup"
       style={{ backgroundColor: c.canvas }}
-      contentContainerStyle={{ padding: bp === "mobile" ? 16 : 32, gap: 20, alignItems: "center" }}
+      contentContainerStyle={{
+        padding: mobile ? 16 : 32,
+        paddingBottom: 48,
+        alignItems: "center",
+        flexGrow: 1,
+      }}
+      keyboardShouldPersistTaps="handled"
     >
-      <View style={{ width: "100%", maxWidth: 760, gap: 20 }}>
+      <View style={{ width: "100%", maxWidth: 640, gap: 18 }}>
         <View
           style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
         >
-          <Logo height={30} variant={scheme === "dark" ? "onDark" : "color"} />
-          <CalmButton
-            testID="crm-setup-later"
-            size="sm"
-            variant="ghost"
-            label={t("wizard.later")}
-            onPress={toToday}
-          />
+          <Logo height={28} variant={scheme === "dark" ? "onDark" : "color"} />
+          {step === "done" || unnamed ? null : (
+            <CalmButton
+              testID="crm-setup-later"
+              size="sm"
+              variant="ghost"
+              label={t("setupWizard.later")}
+              onPress={later}
+            />
+          )}
         </View>
-        <View style={{ gap: 8 }}>
-          <Text role="uiMedium" size={13} color={c.body}>
-            {t("wizard.progress", { step: index + 1, total: STEPS.length })}
-          </Text>
-          <ProgressBar value={(index + 1) / STEPS.length} width="100%" />
-          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-            {STEPS.map((s, i) => (
-              <View key={s} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <View
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 10,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor:
-                      done.includes(s) || (s === "done" && i === index)
+
+        {step === "done" ? null : (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <View style={{ alignItems: "center", justifyContent: "center" }}>
+              <ProgressRing
+                value={doneCount / WIZARD.length}
+                label={`${String(index + 1)}/${String(WIZARD.length)}`}
+                accessibilityLabel={t("setupWizard.progressLabel", {
+                  done: doneCount,
+                  total: WIZARD.length,
+                })}
+              />
+              <Confetti burst={cheer?.burst ?? 0} />
+            </View>
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                {WIZARD.map((s, i) => (
+                  <View
+                    key={s}
+                    style={{
+                      height: 6,
+                      flex: 1,
+                      borderRadius: 3,
+                      backgroundColor: completed.has(s)
                         ? c.accentBg
                         : i === index
-                          ? c.accentSoft
-                          : c.surfaceMuted,
-                  }}
-                >
-                  {done.includes(s) ? (
-                    <Icon name="check" size={12} color={c.onAccent} strokeWidth={2.6} />
-                  ) : (
-                    <Text size={11} color={c.ink}>
-                      {String(i + 1)}
-                    </Text>
-                  )}
-                </View>
-                <Text
-                  role={i === index ? "uiSemiBold" : "ui"}
-                  size={13}
-                  color={i === index ? c.ink : c.muted}
-                >
-                  {t(`wizard.steps.${s}`)}
-                </Text>
+                          ? c.accent
+                          : c.line,
+                      opacity: !completed.has(s) && i === index ? 0.45 : 1,
+                    }}
+                  />
+                ))}
               </View>
-            ))}
+              {cheer?.text ? (
+                <View
+                  testID="crm-setup-cheer"
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  {cheer.burst > 0 ? <CheckPop key={cheer.burst} size={20} /> : null}
+                  <Text role="uiSemiBold" size={14} color={c.accent}>
+                    {cheer.text}
+                  </Text>
+                </View>
+              ) : (
+                <Text size={13} color={c.muted}>
+                  {index === 0
+                    ? t("setupWizard.totalEta")
+                    : t("setupWizard.stepOf", { step: index + 1, total: WIZARD.length })}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
-        <View style={{ gap: 6 }}>
-          <Text role="uiSemiBold" size={24} lineHeight={30} color={c.ink}>
-            {t(`wizard.titles.${current}`)}
-          </Text>
-          <Text size={14} color={c.body}>
-            {t(`wizard.bodies.${current}`)}
-          </Text>
-        </View>
+        )}
 
-        {current === "business" ? <ProfileSection settings={settings.data} canEdit /> : null}
-        {current === "hours" ? (
-          <HoursSection key={settings.dataUpdatedAt} settings={settings.data} canEdit />
-        ) : null}
-        {current === "services" ? <ServicesStep services={services.data?.items ?? []} /> : null}
-        {current === "team" ? (
-          <TeamStep
-            team={team.data?.items ?? []}
-            services={services.data?.items ?? []}
-            settings={settings.data}
+        {step === "business" ? (
+          <BusinessStep
+            setup={setup}
+            currentName={salon.summary?.name ?? settings.data.profile.name}
+            eta={eta}
+            onDone={(type) => {
+              setBusinessType(type);
+              advance("business", "completed", type ? "tiles" : undefined);
+            }}
           />
         ) : null}
-        {current === "done" ? (
-          <CalmCard style={{ gap: 12, alignItems: "flex-start" }}>
-            {CHECK_STEPS.map((s) => (
-              <View key={s} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                <Icon
-                  name={done.includes(s) ? "check" : "clock"}
-                  size={16}
-                  color={done.includes(s) ? c.accent : c.muted}
-                />
-                <Text size={14} color={done.includes(s) ? c.ink : c.muted}>
-                  {t(`wizard.steps.${s}`)}
-                </Text>
-              </View>
-            ))}
-            {onboarding.data.canGoLive ? (
-              <CalmButton
-                testID="crm-wizard-go-live"
-                icon="check"
-                label={goLive.isPending ? t("common.saving") : t("setup.goLive")}
-                onPress={() => {
-                  goLive.mutate(undefined, { onSuccess: toToday });
-                }}
-              />
-            ) : null}
-          </CalmCard>
+        {step === "hours" ? (
+          <HoursStep
+            settings={settings.data}
+            eta={eta}
+            onDone={(m) => {
+              advance("hours", "completed", m);
+            }}
+            onSkip={() => {
+              advance("hours", "skipped");
+            }}
+            onBack={back}
+          />
         ) : null}
-
-        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 10 }}>
-          {index > 0 ? (
-            <CalmButton
-              variant="secondary"
-              label={t("common.back")}
-              onPress={() => {
-                setStep(STEPS[index - 1] ?? "business");
-              }}
-            />
-          ) : (
-            <View />
-          )}
-          {current === "done" ? (
-            <CalmButton testID="crm-wizard-finish" label={t("wizard.toToday")} onPress={toToday} />
-          ) : (
-            <CalmButton
-              testID="crm-wizard-next"
-              icon="arrowRight"
-              label={t("wizard.next")}
-              onPress={() => {
-                setStep(STEPS[index + 1] ?? "done");
-              }}
-            />
-          )}
-        </View>
+        {step === "services" ? (
+          <ServicesStep
+            services={services.data?.items ?? []}
+            businessType={businessType}
+            eta={eta}
+            onDone={(m) => {
+              advance("services", "completed", m);
+            }}
+            onSkip={() => {
+              advance("services", "skipped");
+            }}
+            onBack={back}
+          />
+        ) : null}
+        {step === "team" ? (
+          <TeamStep
+            team={team.data?.items ?? []}
+            settings={settings.data}
+            eta={eta}
+            onDone={(m) => {
+              advance("team", "completed", m);
+            }}
+            onSkip={() => {
+              advance("team", "skipped");
+            }}
+            onBack={back}
+          />
+        ) : null}
+        {step === "zalo" ? (
+          <ZaloStep
+            result={params.zalo}
+            eta={eta}
+            onDone={(m) => {
+              advance("zalo", "completed", m);
+            }}
+            onSkip={() => {
+              advance("zalo", "skipped");
+            }}
+            onBack={back}
+          />
+        ) : null}
+        {step === "done" ? (
+          <DoneStep
+            team={team.data?.items ?? []}
+            settings={settings.data}
+            timeZone={salon.summary?.timezone ?? DEFAULT_SALON_TIMEZONE}
+            remaining={remaining}
+            onFirstBooking={() => {
+              router.replace(`/${locale}/business/calendar?new=1` as never);
+            }}
+            onToday={toToday}
+          />
+        ) : null}
       </View>
     </ScrollView>
   );

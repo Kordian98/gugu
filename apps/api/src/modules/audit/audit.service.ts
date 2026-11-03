@@ -16,6 +16,8 @@ export const AUDIT_ACTIONS = [
   "salon.profile_updated",
   "salon.settings_updated",
   "salon.went_live",
+  /** q102 clean-up: an empty, never-named quick-start salon archived when its owner joined a team. */
+  "salon.archived_unused",
   "catalog.service_created",
   "catalog.service_updated",
   "catalog.service_deleted",

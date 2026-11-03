@@ -61,10 +61,10 @@ Registry: `ENTITLEMENT_KEYS` in `packages/contracts/src/subscriptions/entitlemen
 - Tables: `plans`, `plan_prices` (empty, prices TBD), `plan_entitlements`, `subscriptions`, `subscription_events` (append-only history), `entitlement_overrides`.
 - State machine (`domain/subscription-status.ts`): trialing → active | expired | cancelled; active → past_due | cancelled | expired; past_due → active | cancelled | expired. `cancelled` and `expired` are terminal; a returning salon gets a new row. Each transition writes a `subscription_events` row (from, to, actor, reason).
 - One current (trialing | active | past_due) subscription per salon: partial unique index `subscriptions_one_current_per_salon`.
-- Trial: `trial` plan (internal), 14 days, Pro features (incl. the assistant), AI cap 20,000 VND (`TRIAL_AI_CAP_VND`, q96), Basic message limits.
+- Trial: `trial` plan (internal), 14 days, Pro features (incl. the assistant), AI cap 20,000 VND (`TRIAL_AI_CAP_VND`, q96), Basic message limits. A salon from the email-only signup has an AI cap of 0 until it is named (its first setup step, ADR-0018); admin overrides of the cap still apply.
 - **Free Basic year (X25, ADR-0015):** `subscriptions.free_until` = local midnight after (registration date + 12 months) in the salon's time zone (`domain/free-year.ts`), set by `startTrial` and on every new row an admin creates. A trial past `trial_ends_at` reads immediately as **active Basic** while `free_until` is ahead (`effectiveStatus` / `effectivePlan`), otherwise as `expired`. `SubscriptionsFacade.endDueTrials()` records it in place (`trialing → active`, plan `trial → basic`, `current_period_end = free_until`, reason `trial_ended_free_basic`) or writes `expired`; it is not scheduled yet. After `free_until` Basic is paid: an admin records paid-until; lapses follow the manual state machine. A free Basic year never qualifies a founding partner.
 - Read model (`GET /salons/:salonId/entitlements`) adds `freeUntil`, `paidUntil` and `basicMonthlyPriceVnd`. The cache TTL is capped by the trial end and the free-year end while they are ahead.
-- Owner UI: Settings → Plan (`PlanSection`: plan, status, trial end, last free day, paid-until) and a Today notice in the last 14 days before the trial or the free year ends (`PlanNotice`, logic `planEndingNotice` in `packages/domain`). Visible with `subscription.read` (owner, manager).
+- Owner UI: Settings → Plan (`PlanSection`: plan, status, trial end, last free day, paid-until) and a Today notice in the last 3 days of the trial (`TRIAL_ENDING_NOTICE_DAYS`, q104) or the last 14 days of the free year (`PLAN_ENDING_NOTICE_DAYS`) (`PlanNotice`, logic `planEndingNotice` in `packages/domain`). Visible with `subscription.read` (owner, manager).
 - The assistant bubble shows the "available from Pro" upsell when `ai.agent.enabled` is off, before any "not configured" notice; `POST /assistant/turns` answers 403 `entitlement.required` on Basic. AI import keeps working on Basic.
 
 ## Contract with topic 05 (salon registration)
@@ -78,6 +78,14 @@ _TODO: one row per catalog event (name, side, properties, owner, metrics using i
 
 | Event | Side | Owner | Feeds metric |
 |---|---|---|---|
+| `salon_quick_started` `{ locale }` | server (`analytics_events`, interim) | 07 | signup funnel |
+| `setup_step_viewed` `{ step, step_index }` | server (interim) | 07 | setup drop-off per step |
+| `setup_step_completed` `{ step, step_index, method, business_type, seconds_since_start }` | server (interim) | 07 | setup drop-off; share using AI import (07 §3.7) |
+| `setup_step_skipped`, `setup_left` `{ step, step_index }` | server (interim) | 07 | setup drop-off |
+| `setup_finished` `{ seconds_since_start, completed_count, skipped_count, went_live }` | server (interim) | 07 | time to first bookable state (07 §3.7) |
+| `setup_card_dismissed` `{ remaining_count }`, `starter_services_added` `{ business_type, count }` | server (interim) | 07 | — |
+
+_Interim store (ADR-0018): table `analytics_events` + catalogue `ANALYTICS_EVENTS` in `@gugu/contracts`, written by `modules/analytics`, until this topic builds `packages/analytics` and the partitioned pipeline._
 
 ## Metrics
 _TODO: link each definition in `packages/domain/metrics` with its version._

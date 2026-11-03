@@ -2,6 +2,9 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from "@ne
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { z } from "zod";
 import {
+  type MyInvitationList,
+  myInvitationListSchema,
+  myInvitationParamsSchema,
   type CreateInvitationInput,
   createInvitationInputSchema,
   type InvitationCreated,
@@ -226,5 +229,34 @@ export class TeamController {
     @CurrentUser() user: UserPrincipal,
   ): Promise<{ salonId: string }> {
     return this.invitations.accept(user, body.token);
+  }
+
+  @Get("me/invitations")
+  @Authenticated()
+  @ApiOperation({
+    operationId: "team.listMyInvitations",
+    summary:
+      "Open team invitations bound to my verified email (shown instead of creating a salon).",
+  })
+  @ApiResponse({ status: 200, description: "Invitations.", standardSchema: myInvitationListSchema })
+  async mine(@CurrentUser() user: UserPrincipal): Promise<MyInvitationList> {
+    return this.invitations.listMine(user);
+  }
+
+  @Post("me/invitations/:invitationId/accept")
+  @Authenticated()
+  @HttpCode(200)
+  @ApiOperation({
+    operationId: "team.acceptMyInvitation",
+    summary: "Join a salon from one of my email-bound invitations (no link token needed).",
+  })
+  @ApiResponse({ status: 200, description: "Joined.", standardSchema: invitationAcceptedSchema })
+  @ApiResponse({ status: 403, description: "Email mismatch.", standardSchema: problemSchema })
+  @ApiResponse({ status: 404, description: "No such invitation.", standardSchema: problemSchema })
+  async acceptMine(
+    @Param({ schema: myInvitationParamsSchema }) p: { invitationId: string },
+    @CurrentUser() user: UserPrincipal,
+  ): Promise<{ salonId: string }> {
+    return this.invitations.acceptMine(user, p.invitationId);
   }
 }

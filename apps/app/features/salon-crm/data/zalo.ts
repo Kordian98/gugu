@@ -135,6 +135,12 @@ export const zaloApi = {
       method: "POST",
       body: { locale },
     }),
+  /** Same, but Zalo sends the browser back to the setup wizard's Zalo step. */
+  startFromSetup: (s: string, locale: "vi" | "en") =>
+    apiFetch<ZaloStartConnectionResult>(`/salons/${s}/zalo/connection/start`, {
+      method: "POST",
+      body: { locale, returnTo: "setup" },
+    }),
   disconnect: (s: string, _v: undefined) =>
     apiFetch(`/salons/${s}/zalo/connection/disconnect`, { method: "POST" }),
   updateSettings: (s: string, body: ZaloSettingsInput) =>

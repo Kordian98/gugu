@@ -1,4 +1,7 @@
 import { Module } from "@nestjs/common";
+import { CatalogModule } from "../catalog/catalog.facade";
+import { StarterServicesService } from "./application/starter-services.service";
+import { StarterServicesController } from "./http/starter-services.controller";
 import { ClientLookupQuery } from "./application/client-lookup.query";
 import { CrmScopes } from "./application/crm-scope";
 import { OfflineSaleService } from "./application/offline-sale.service";
@@ -11,11 +14,13 @@ import { SalonCostsService } from "./payroll/salon-costs.service";
 
 /**
  * CRM helpers around bookings: client quick pick and offline sale amounts (07 M7.2), plus staff
- * pay, payroll and fixed costs (ADR-0016). Insights builds the profit view on the payroll exports.
+ * pay, payroll and fixed costs (ADR-0016), and the guided setup's template services (ADR-0018). Insights builds the profit view on the payroll exports.
  */
 @Module({
-  controllers: [SalonCrmController, PayrollController],
+  imports: [CatalogModule],
+  controllers: [SalonCrmController, PayrollController, StarterServicesController],
   providers: [
+    StarterServicesService,
     ClientLookupQuery,
     OfflineSaleService,
     CrmScopes,

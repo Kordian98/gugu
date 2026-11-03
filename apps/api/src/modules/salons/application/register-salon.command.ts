@@ -5,27 +5,27 @@ import {
   type SalonRegistrationResult,
 } from "@gugu/contracts";
 import { normalizeVnPhone } from "@gugu/domain";
-import type { Principal } from "../../../common/guards/principal";
+import type { UserPrincipal } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { RateLimitService } from "../../../infrastructure/rate-limit/rate-limit.service";
 import { AuditService } from "../../audit/audit.facade";
-import { AccountsService, MagicLinkService, type RequestMeta } from "../../auth/auth.facade";
+import type { RequestMeta } from "../../auth/auth.facade";
 import { SubscriptionsFacade } from "../../subscriptions/subscriptions.facade";
 import { uniqueSlug } from "./slug";
 
 /**
- * Salon registration (spec 05 milestone 3, contract agreed with topic 07). One transaction creates
- * organisation + org owner membership + salon (draft) + location + salon owner membership + the
- * 14-day trial (topic 12). Signed-in callers become active owners; anonymous callers give an email,
- * their memberships stay `pending_verification` until they open the emailed magic link.
+ * Salon registration with full details (spec 05 milestone 3), **signed-in callers only** since
+ * ADR-0018: the anonymous variant (pending owner membership confirmed by an emailed link) is retired
+ * so nobody can create salons, or pending salons, without proving an email first. The app's signup
+ * uses `POST /salons/quick-start`; this endpoint stays for scripted setups (demo seed). One
+ * transaction creates organisation + org owner + salon (draft) + location + owner membership + the
+ * trial (topic 12) + an audit entry.
  */
 @Injectable()
 export class RegisterSalonCommand {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly accounts: AccountsService,
-    private readonly magicLinks: MagicLinkService,
     private readonly subscriptions: SubscriptionsFacade,
     private readonly rateLimit: RateLimitService,
     private readonly audit: AuditService,
@@ -33,19 +33,17 @@ export class RegisterSalonCommand {
 
   async execute(
     input: SalonRegistrationInput,
-    principal: Principal,
+    user: UserPrincipal,
     meta: RequestMeta,
   ): Promise<SalonRegistrationResult> {
     await this.rateLimit.consume(
       { name: "salons.register.ip", limit: 10, windowSeconds: 3600 },
-      meta.ipPrefix ?? "none",
+      meta.ipPrefix ?? `user:${user.userId}`,
     );
-    const signedIn = principal.kind === "user";
-    if (!signedIn && !input.email) {
-      throw new AppError(400, SALON_ERRORS.emailRequired, "Email required when not signed in", {
-        errors: [{ path: "email", code: "required" }],
-      });
-    }
+    await this.rateLimit.consume(
+      { name: "salons.register.user", limit: 5, windowSeconds: 86_400 },
+      user.userId,
+    );
     const phone = normalizeVnPhone(input.phone);
     if (!phone) {
       throw new AppError(400, SALON_ERRORS.invalidPhone, "Invalid phone number", {
@@ -53,18 +51,9 @@ export class RegisterSalonCommand {
       });
     }
     await this.assertReferences(input);
-    const memberStatus = signedIn ? "active" : "pending_verification";
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const owner = signedIn
-        ? await tx.user.findUniqueOrThrow({ where: { id: principal.userId } })
-        : await this.accounts.findOrCreateUnverifiedByEmail(input.email ?? "", input.locale, tx);
-      if (signedIn) {
-        await this.rateLimit.consume(
-          { name: "salons.register.user", limit: 5, windowSeconds: 86_400 },
-          owner.id,
-        );
-      }
+      const owner = await tx.user.findUniqueOrThrow({ where: { id: user.userId } });
       const organization = await tx.organization.create({
         data: {
           name: input.businessName,
@@ -72,7 +61,7 @@ export class RegisterSalonCommand {
           ownerUserId: owner.id,
           defaultLocale: input.locale,
           locationsHint: input.locationsHint,
-          members: { create: { userId: owner.id, role: "org_owner", status: memberStatus } },
+          members: { create: { userId: owner.id, role: "org_owner", status: "active" } },
         },
       });
       const salon = await tx.salon.create({
@@ -92,57 +81,32 @@ export class RegisterSalonCommand {
               wardId: input.wardId,
             },
           },
-          members: { create: { userId: owner.id, role: "owner", status: memberStatus } },
+          members: { create: { userId: owner.id, role: "owner", status: "active" } },
         },
       });
       await this.subscriptions.startTrial({ salonId: salon.id }, tx);
       await this.audit.record(
         {
           action: "salon.registered",
-          actor: signedIn ? { type: "user", id: owner.id } : { type: "anonymous" },
+          actor: { type: "user", id: owner.id },
           salonId: salon.id,
           organizationId: organization.id,
           targetType: "salon",
           targetId: salon.id,
-          metadata: { ownerVerified: signedIn, locationsHint: input.locationsHint },
+          metadata: { ownerVerified: true, locationsHint: input.locationsHint },
           ipPrefix: meta.ipPrefix,
           userAgent: meta.userAgent,
         },
         tx,
       );
-      return { organization, salon, ownerEmail: owner.email };
+      return { organization, salon };
     });
-
-    let magicLinkStatus: SalonRegistrationResult["magicLinkStatus"] = "not_required";
-    if (!signedIn && result.ownerEmail) {
-      // After commit: never email about a salon that was rolled back. issue() enforces the
-      // per-email limits; when they're hit the salon still exists and the owner confirms later by
-      // signing in with that email and confirming it (POST /me/pending-salons/:id/confirm).
-      magicLinkStatus = "sent";
-      await this.magicLinks
-        .issue(
-          {
-            email: result.ownerEmail,
-            locale: input.locale,
-            client: "web",
-            purpose: "salon_registration",
-            salonId: result.salon.id,
-            salonName: result.salon.name,
-            redirectPath: `/${input.locale}/business`,
-          },
-          meta,
-        )
-        .catch((e: unknown) => {
-          if (e instanceof AppError && e.status === 429) magicLinkStatus = "rate_limited";
-          else throw e;
-        });
-    }
     return {
       salonId: result.salon.id,
       salonSlug: result.salon.slug,
       organisationId: result.organization.id,
       status: "draft",
-      magicLinkStatus,
+      magicLinkStatus: "not_required",
     };
   }
 

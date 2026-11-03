@@ -281,7 +281,12 @@
     "payroll_invalid_override": "Có dịch vụ không thuộc salon này.",
     "payroll_adjustment_not_found": "Không tìm thấy khoản này.",
     "payroll_cost_not_found": "Không tìm thấy khoản chi phí.",
-    "payroll_not_a_manager": "Chỉ cấp được cho quản lý."
+    "payroll_not_a_manager": "Chỉ cấp được cho quản lý.",
+    "salon_pending_confirmation": "Salon đăng ký bằng email này đang chờ anh/chị xác nhận.",
+    "salon_name_required": "Anh/chị đặt tên salon trước nhé.",
+    "salon_invitation_pending": "Email này đang có lời mời vào một salon.",
+    "salon_email_not_allowed": "Email tạm thời không dùng được để tạo salon. Anh/chị đăng nhập lại bằng email thường dùng nhé.",
+    "salon_quick_start_not_allowed": "Tài khoản quản trị không tạo salon."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",
@@ -1361,5 +1366,160 @@
     "stillExpected_one": "Dự kiến thêm ({{count}} lịch hẹn)",
     "commissionFrom_one": "Hoa hồng từ {{count}} dịch vụ: {{amount}}",
     "serviceLine_one": "{{name}} × {{count}}"
+  },
+  "quickStart": {
+    "preparing": "Đang chuẩn bị salon của anh/chị…",
+    "failedTitle": "Chưa tạo được salon",
+    "failedBody": "Kiểm tra kết nối mạng rồi thử lại nhé.",
+    "retry": "Thử lại",
+    "emailNotAllowed": "Email tạm thời không dùng được để tạo salon. Anh/chị đăng nhập lại bằng email thường dùng nhé.",
+    "adminTitle": "Tài khoản quản trị GuGu",
+    "adminBody": "Tài khoản quản trị không có salon riêng. Mở trang quản trị để tiếp tục.",
+    "adminCta": "Mở trang quản trị",
+    "invitedTitle": "Anh/chị được mời vào salon",
+    "invitedOne": "Anh/chị được mời vào {{salon}}. Tham gia?",
+    "invitedBody": "Tham gia để xem lịch hẹn của mình và làm việc cùng cả nhóm.",
+    "role": "Vai trò: {{role}}",
+    "join": "Tham gia {{salon}}",
+    "joining": "Đang tham gia…",
+    "createOwn": "Tôi là chủ salon, tạo salon mới",
+    "formerTitle": "Anh/chị chưa thuộc salon nào",
+    "formerBody": "Anh/chị không còn trong salon trước đây. Nếu anh/chị là chủ salon, tạo salon mới ở đây.",
+    "joinFailed": "Chưa tham gia được. Lời mời có thể đã hết hạn, anh/chị nhờ salon gửi lại nhé."
+  },
+  "setupWizard": {
+    "later": "Để sau",
+    "skip": "Bỏ qua",
+    "next": "Tiếp tục",
+    "back": "Quay lại",
+    "saving": "Đang lưu…",
+    "stepOf": "Bước {{step}}/{{total}}",
+    "progressLabel": "Đã xong {{done}}/{{total}} bước",
+    "totalEta": "Khoảng 3 phút là xong",
+    "eta": {
+      "seconds": "Khoảng 30 giây",
+      "minute": "Khoảng 1 phút",
+      "minutes": "Khoảng 2 phút"
+    },
+    "cheer": {
+      "remaining_other": "Tuyệt! Còn {{count}} bước nữa",
+      "last": "Tuyệt! Còn bước cuối",
+      "skipped": "Không sao, làm sau cũng được",
+      "remaining_one": "Tuyệt! Còn {{count}} bước nữa"
+    },
+    "steps": {
+      "business": "Salon",
+      "hours": "Giờ mở cửa",
+      "services": "Dịch vụ",
+      "team": "Nhân viên",
+      "zalo": "Zalo",
+      "done": "Xong"
+    },
+    "business": {
+      "title": "Chào mừng anh/chị! Salon tên là gì?",
+      "body": "Tên này hiện trên lịch hẹn và tin nhắn gửi khách. Đổi lúc nào cũng được.",
+      "nameLabel": "Tên salon",
+      "namePlaceholder": "Ví dụ: Mây Nail & Spa",
+      "typeLabel": "Salon làm gì là chính?",
+      "types": {
+        "nails": "Làm móng",
+        "hair": "Làm tóc",
+        "spa": "Spa & massage",
+        "lashes_brows": "Mi & chân mày",
+        "mixed": "Nhiều dịch vụ"
+      },
+      "nameTooShort": "Tên salon cần ít nhất 2 ký tự.",
+      "nameTooLong": "Tên salon tối đa 80 ký tự.",
+      "nameOk": "Tên đẹp lắm!",
+      "previewLabel": "Hiện trên lịch của salon",
+      "typeOptional": "Không bắt buộc, chọn để có gợi ý dịch vụ phù hợp."
+    },
+    "hours": {
+      "title": "Salon mở cửa lúc nào?",
+      "body": "Chọn mẫu gần đúng nhất, chỉnh nhanh nếu cần. Lịch hẹn chỉ nhận trong giờ mở cửa.",
+      "presets": {
+        "everyday_9_21": "9:00–21:00 cả tuần",
+        "everyday_8_20": "8:00–20:00 cả tuần",
+        "weekdays_9_19": "9:00–19:00, nghỉ Chủ nhật",
+        "custom": "Tự chỉnh"
+      },
+      "days": "Ngày mở cửa",
+      "opens": "Mở cửa",
+      "closes": "Đóng cửa",
+      "invalid": "Giờ đóng cửa phải sau giờ mở cửa, và cần ít nhất một ngày mở."
+    },
+    "services": {
+      "title": "Salon có những dịch vụ nào?",
+      "body": "Chọn cách nhanh nhất với anh/chị. Danh sách sẽ hiện ngay bên dưới.",
+      "aiTitle": "Chụp hoặc tải ảnh bảng giá",
+      "aiBody": "AI đọc ảnh và tạo danh sách để anh/chị kiểm tra. Chỉ cần bảng giá, không gửi thông tin khách.",
+      "aiCta": "Chọn ảnh bảng giá",
+      "aiUnavailable": "Nhập bằng AI chưa bật trên hệ thống này. Anh/chị chọn từ mẫu bên dưới nhé, mất chưa tới một phút.",
+      "aiNotEntitled": "Gói hiện tại chưa có nhập bằng AI. Anh/chị chọn từ mẫu bên dưới nhé.",
+      "tabTemplate": "Chọn từ mẫu",
+      "tabManual": "Tự thêm",
+      "templateHint": "Giá là mức thường gặp, anh/chị sửa theo salon mình.",
+      "rangeHint": "Thường {{range}}",
+      "addSelected_other": "Thêm {{count}} dịch vụ",
+      "selectSome": "Chọn ít nhất một dịch vụ",
+      "added_other": "Đã thêm {{count}} dịch vụ",
+      "listTitle": "Dịch vụ của salon",
+      "empty": "Chưa có dịch vụ nào. Chọn một cách ở trên nhé.",
+      "addSelected_one": "Thêm {{count}} dịch vụ",
+      "added_one": "Đã thêm {{count}} dịch vụ",
+      "editRow": "Sửa"
+    },
+    "team": {
+      "title": "Ai sẽ phục vụ khách?",
+      "body": "Chỉ cần tên. Muốn mời nhân viên đăng nhập thì làm sau ở mục Nhân viên.",
+      "justMe": "Chỉ mình tôi",
+      "justMeBody": "Anh/chị tự nhận và làm lịch hẹn",
+      "withTeam": "Có nhân viên",
+      "withTeamBody": "Thêm tên từng người",
+      "myName": "Tên của anh/chị (hiện trên lịch)",
+      "includeMe": "Tôi cũng trực tiếp làm dịch vụ",
+      "staffName": "Tên nhân viên",
+      "staffPlaceholder": "Ví dụ: Trần Mai",
+      "add": "Thêm",
+      "hint": "Mỗi người làm theo giờ mở cửa của salon và tất cả dịch vụ. Chỉnh chi tiết sau ở mục Nhân viên.",
+      "needOne": "Thêm ít nhất một người để nhận lịch hẹn"
+    },
+    "zalo": {
+      "title": "Kết nối Zalo OA của salon",
+      "body": "Khách đặt lịch ngay trong chat Zalo của salon, xác nhận và nhắc lịch được gửi tự động.",
+      "cta": "Kết nối Zalo OA",
+      "connected": "Đã kết nối Zalo OA",
+      "disabled": "Kết nối Zalo chưa bật trên hệ thống này. Anh/chị kết nối sau trong Cài đặt.",
+      "noOa": "Chưa có Zalo OA? Anh/chị bỏ qua bước này, kết nối sau trong Cài đặt cũng được.",
+      "result": {
+        "connected": "Đã kết nối Zalo OA.",
+        "denied": "Anh/chị đã huỷ kết nối trên Zalo. Thử lại khi sẵn sàng nhé.",
+        "failed": "Chưa kết nối được. Thử lại sau ít phút nhé.",
+        "oa_in_use": "Zalo OA này đang được một salon khác dùng.",
+        "expired": "Phiên kết nối đã hết hạn. Thử lại nhé.",
+        "plan": "Gói hiện tại chưa có kết nối Zalo."
+      }
+    },
+    "done": {
+      "title": "Xong rồi! Salon đã sẵn sàng nhận lịch",
+      "body": "Đây là lịch hôm nay của salon. Thêm lịch hẹn đầu tiên để bắt đầu nhé.",
+      "firstBooking": "Thêm lịch hẹn đầu tiên",
+      "toToday": "Vào trang Hôm nay",
+      "later": "Có thể làm sau:",
+      "calendarTitle": "Lịch hôm nay",
+      "noStaff": "Thêm nhân viên để thấy cột lịch của từng người."
+    }
+  },
+  "finishSetup": {
+    "title": "Hoàn tất thiết lập",
+    "body": "Còn vài việc nhỏ, làm lúc nào tiện cũng được.",
+    "dismiss": "Ẩn thẻ này",
+    "items": {
+      "business": "Đặt tên salon",
+      "hours": "Chọn giờ mở cửa",
+      "services": "Thêm dịch vụ",
+      "team": "Thêm người làm dịch vụ",
+      "zalo": "Kết nối Zalo OA"
+    }
   }
 }

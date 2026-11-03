@@ -35,7 +35,8 @@ export type RetentionCounts = Record<
   | "idempotencyKeys"
   | "exportsExpired"
   | "exportsFailed"
-  | "auditLogs",
+  | "auditLogs"
+  | "analyticsEvents",
   number
 >;
 
@@ -101,6 +102,13 @@ export class RetentionService {
         })
       ).count,
       auditLogs: await this.purgeAuditLogs(this.auditCutoff(now)),
+      // Pseudonymous analytics events (X14, ADR-0018): ANALYTICS_RETENTION_MONTHS (default 24).
+      analyticsEvents: await this.batched(
+        (limit) => this.prisma.$executeRaw`
+          DELETE FROM analytics_events WHERE id IN (
+            SELECT id FROM analytics_events WHERE occurred_at < ${this.analyticsCutoff(now)}
+            LIMIT ${limit})`,
+      ),
     };
     if (Object.values(counts).some((n) => n > 0)) {
       await this.audit.record({
@@ -110,6 +118,13 @@ export class RetentionService {
       });
     }
     return counts;
+  }
+
+  /** `now` minus ANALYTICS_RETENTION_MONTHS. */
+  analyticsCutoff(now: Date): Date {
+    const cutoff = new Date(now);
+    cutoff.setUTCMonth(cutoff.getUTCMonth() - this.config.env.ANALYTICS_RETENTION_MONTHS);
+    return cutoff;
   }
 
   /** `now` minus AUDIT_RETENTION_MONTHS, never later than the 12-month floor. */

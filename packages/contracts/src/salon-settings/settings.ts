@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { setupStateSchema } from "./setup";
 import { localizedLongTextSchema } from "../catalog/catalog";
 import { uuidV7Schema } from "../common/ids";
 import { intervalSchema, nonOverlapping, weekdaySchema } from "../team/team";
@@ -119,5 +120,7 @@ export const onboardingSchema = z.object({
     unassignedServices: z.number().int(),
     staffWithoutServices: z.number().int(),
   }),
+  /** Wizard progress for salons created by the email-only signup; null for older salons. */
+  setup: setupStateSchema.nullable(),
 });
 export type Onboarding = z.infer<typeof onboardingSchema>;
