@@ -11,13 +11,18 @@ export type StaffMember = { id: string; name: string };
 export type TimelineItem =
   | {
       kind: "booking";
+      /** Unique per block; equals the booking id except for later blocks of a chain. */
       id: string;
+      /** Booking to open (set for multi-service blocks; defaults to `id`). */
+      bookingId?: string;
       staffId: string;
       start: Date;
       end: Date;
       status: BookingStatus;
       service: string;
       customer: string;
+      /** Multi-service booking (06 M6.8): this block's position among the staff blocks. */
+      chain?: { index: number; count: number };
     }
   | { kind: "break"; id: string; staffId: string; start: Date; end: Date; label?: string };
 

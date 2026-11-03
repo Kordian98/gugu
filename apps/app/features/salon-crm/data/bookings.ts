@@ -2,10 +2,12 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import type {
   Availability,
+  BookingFeatureSet,
   BookingStatusValue,
   ClientSuggestion,
   CreateSalonBookingInput,
   EarliestSlots,
+  NextService,
   OfflineSale,
   OfflineSaleInput,
   RescheduleInput,
@@ -67,7 +69,24 @@ export type AvailabilityRequest = {
   date: string;
   /** Inclusive end date (≤ 31 days); defaults to `date`. */
   to?: string | undefined;
+  /** Further services in sequence (06 M6.8); empty = single service. */
+  nextServices?: NextService[] | undefined;
 };
+
+/** `nextServices` query param (JSON array), omitted for a single service. */
+const chainParam = (next: NextService[] | undefined): Record<string, string> =>
+  next?.length ? { nextServices: JSON.stringify(next) } : {};
+
+/** Booking engine switches for this salon (e.g. several services per appointment). */
+export function useBookingFeatures() {
+  const salonId = useOptionalSalon()?.salonId ?? "";
+  return useQuery({
+    queryKey: ["salon", salonId, "booking-features"],
+    queryFn: () => apiFetch<BookingFeatureSet>(`/salons/${salonId}/booking-features`),
+    enabled: salonId !== "",
+    staleTime: 5 * 60_000,
+  });
+}
 
 export function useAvailability(req: AvailabilityRequest | null) {
   const salonId = useOptionalSalon()?.salonId ?? "";
@@ -79,6 +98,7 @@ export function useAvailability(req: AvailabilityRequest | null) {
         ...(req.variantId ? { variantId: req.variantId } : {}),
         ...(req.staffId ? { staffId: req.staffId } : {}),
         ...(req.addOnIds.length ? { addOnIds: req.addOnIds.join(",") } : {}),
+        ...chainParam(req.nextServices),
       }).toString()
     : "";
   return useQuery({
@@ -102,6 +122,7 @@ export function useEarliestSlots(
         ...(req.variantId ? { variantId: req.variantId } : {}),
         ...(req.staffId ? { staffId: req.staffId } : {}),
         ...(req.addOnIds.length ? { addOnIds: req.addOnIds.join(",") } : {}),
+        ...chainParam(req.nextServices),
       }).toString()
     : "";
   return useQuery({
@@ -215,13 +236,19 @@ export function customerLabel(
   return b.customer?.name ?? labels.walkIn;
 }
 
-/** Localized booking service name ("Sơn gel · Tay"). */
-export function serviceLabel(b: SalonBooking, locale: "vi" | "en"): string {
-  const name = (locale === "en" && b.service.name.en) || b.service.name.vi;
-  const variant = b.service.variantName
-    ? (locale === "en" && b.service.variantName.en) || b.service.variantName.vi
-    : null;
+type BookedService = Pick<SalonBooking["service"], "name" | "variantName">;
+
+/** Localized name of one booked service ("Sơn gel · Tay"). */
+export function lineLabel(l: BookedService, locale: "vi" | "en"): string {
+  const name = (locale === "en" && l.name.en) || l.name.vi;
+  const variant = l.variantName ? (locale === "en" && l.variantName.en) || l.variantName.vi : null;
   return variant ? `${name} · ${variant}` : name;
+}
+
+/** Every service of the booking ("Sơn gel · Tay + Pedicure", 06 M6.8). */
+export function serviceLabel(b: SalonBooking, locale: "vi" | "en"): string {
+  const lines = b.services.length > 0 ? b.services : [b.service];
+  return lines.map((l) => lineLabel(l, locale)).join(" + ");
 }
 
 /**
@@ -240,16 +267,51 @@ export function dayTimeline(
   for (const b of bookings) {
     const status = bookingStatusUi(b.status);
     if (!status) continue;
-    items.push({
-      kind: "booking",
-      id: b.id,
-      staffId: b.staffId,
-      start: new Date(b.startsAt),
-      end: new Date(b.endsAt),
-      status,
-      service: serviceLabel(b, locale),
-      customer: customerLabel(b, labels),
-    });
+    const customer = customerLabel(b, labels);
+    if (b.services.length <= 1) {
+      items.push({
+        kind: "booking",
+        id: b.id,
+        staffId: b.staffId,
+        start: new Date(b.startsAt),
+        end: new Date(b.endsAt),
+        status,
+        service: serviceLabel(b, locale),
+        customer,
+      });
+      continue;
+    }
+    // Multi-service (06 M6.8): one block per service in that staff member's column; consecutive
+    // services of the same person merge into one block. All open the same booking.
+    const blocks: { staffId: string; start: string; end: string; names: string[] }[] = [];
+    for (const l of b.services) {
+      const prev = blocks.at(-1);
+      if (prev && prev.staffId === l.staffId) {
+        prev.end = l.endsAt;
+        prev.names.push(lineLabel(l, locale));
+      } else {
+        blocks.push({
+          staffId: l.staffId,
+          start: l.startsAt,
+          end: l.endsAt,
+          names: [lineLabel(l, locale)],
+        });
+      }
+    }
+    for (const [i, blk] of blocks.entries()) {
+      items.push({
+        kind: "booking",
+        id: i === 0 ? b.id : `${b.id}#${String(i)}`,
+        bookingId: b.id,
+        staffId: blk.staffId,
+        start: new Date(blk.start),
+        end: new Date(blk.end),
+        status,
+        service: blk.names.join(" + "),
+        customer,
+        chain: { index: i + 1, count: blocks.length },
+      });
+    }
   }
   const weekday = isoWeekday(date);
   const dayStart = Date.parse(instantAt(date, 0, tz));

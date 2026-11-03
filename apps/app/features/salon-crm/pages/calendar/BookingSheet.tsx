@@ -11,6 +11,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import {
   bookingStatusUi,
+  lineLabel,
   serviceLabel,
   useOfflineSale,
   useRecordSale,
@@ -67,7 +68,13 @@ export function BookingSheet({
   const canWrite = can("bookings.write");
   const busy = transition.isPending || recordSale.isPending;
   const start = new Date(booking.startsAt);
-  const who = staff.find((s) => s.id === booking.staffId)?.displayName ?? "";
+  const nameOf = (id: string) => staff.find((s) => s.id === id)?.displayName ?? "";
+  // Multi-service bookings (06 M6.8): every staff member, in order, without repeats.
+  const who = [...new Set([booking.staffId, ...booking.services.map((l) => l.staffId)])]
+    .map(nameOf)
+    .filter(Boolean)
+    .join(", ");
+  const chain = booking.services.length > 1;
   const status = bookingStatusUi(booking.status);
   const price =
     booking.totalPriceMaxMinor !== null && booking.totalPriceMaxMinor > booking.totalPriceMinor
@@ -142,17 +149,45 @@ export function BookingSheet({
           </Text>
         )}
       </Row>
-      <Row icon="tag" label={t("booking.service")}>
-        <View style={{ gap: 2 }}>
-          <Text role="uiSemiBold" size={15} color={c.ink}>
-            {serviceLabel(booking, locale)}
-          </Text>
-          {booking.service.addOns.map((a) => (
-            <Text key={a.addOnId} size={13} color={c.body}>
-              {`+ ${(locale === "en" && a.name.en) || a.name.vi}`}
+      <Row icon="tag" label={chain ? t("booking.services") : t("booking.service")}>
+        {chain ? (
+          <View testID="crm-booking-lines" style={{ gap: 8 }}>
+            {booking.services.map((l, i) => (
+              <View
+                key={`${l.serviceId}-${String(i)}`}
+                testID="crm-booking-line"
+                style={{ gap: 2 }}
+              >
+                <Text role="uiSemiBold" size={15} color={c.ink}>
+                  {lineLabel(l, locale)}
+                </Text>
+                <Text size={13} color={c.body}>
+                  {t("booking.lineDetail", {
+                    time: `${formatTime(new Date(l.startsAt), locale, tz)} – ${formatTime(new Date(l.endsAt), locale, tz)}`,
+                    staff: nameOf(l.staffId),
+                    price: formatVND(l.priceMinor, locale),
+                  })}
+                </Text>
+                {l.addOns.map((a) => (
+                  <Text key={a.addOnId} size={13} color={c.body}>
+                    {`+ ${(locale === "en" && a.name.en) || a.name.vi}`}
+                  </Text>
+                ))}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={{ gap: 2 }}>
+            <Text role="uiSemiBold" size={15} color={c.ink}>
+              {serviceLabel(booking, locale)}
             </Text>
-          ))}
-        </View>
+            {booking.service.addOns.map((a) => (
+              <Text key={a.addOnId} size={13} color={c.body}>
+                {`+ ${(locale === "en" && a.name.en) || a.name.vi}`}
+              </Text>
+            ))}
+          </View>
+        )}
       </Row>
       <Row icon="team" label={t("booking.staff")}>
         <Text size={15} color={c.ink}>
