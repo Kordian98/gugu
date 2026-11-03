@@ -1,0 +1,21 @@
+{
+  "name": "@gugu/e2e-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@gugu/config": "workspace:*",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.6",
+    "@types/pg": "8.23.1",
+    "eslint": "9.39.5",
+    "ioredis": "6.0.0",
+    "pg": "8.23.1",
+    "typescript": "~6.0.3"
+  }
+}
