@@ -21,6 +21,7 @@ import {
 import { CATALOG, channelEnabled, customerDef, teamDef } from "../domain/catalog";
 import { buildIcs } from "../domain/ics";
 import { coveringZaloReminder } from "../domain/reminders";
+import { recipientKey } from "../domain/recipient-key";
 import { customerSkipReason, zaloGate } from "../domain/send-checks";
 import { renderCustomerEmail, renderTeamEmail } from "../templates/email-templates";
 import {
@@ -125,6 +126,13 @@ export class SenderService {
       await this.release(d.id, { fallbackOf: "zalo_template" });
       return { kind: "deferred", until: decision.until };
     }
+    if (
+      d.audience === "customer" &&
+      !(await this.reserve(d.id, d.salonId, recipientKey(decision.message.to), now))
+    ) {
+      await this.finish(d.id, { status: "skipped", reason: "cap" });
+      return { kind: "skipped", reason: "cap" };
+    }
     try {
       const { providerMessageId } = await this.email.send(decision.message);
       await this.finish(d.id, {
@@ -141,7 +149,8 @@ export class SenderService {
       const permanent = error instanceof PermanentChannelError;
       if (permanent || finalAttempt) {
         const reason = permanent ? error.code : "provider_error";
-        await this.finish(d.id, { status: "failed", reason });
+        // A failed send gives its reserved quota back.
+        await this.finish(d.id, { status: "failed", reason, reservedAt: null });
         this.logger.warn({ deliveryId: d.id, reason }, "notification email failed");
         return { kind: "failed", reason };
       }
@@ -162,6 +171,7 @@ export class SenderService {
         | "units"
         | "costEstimateVnd"
         | "fallbackOf"
+        | "reservedAt"
       >
     >,
   ) {
@@ -172,10 +182,49 @@ export class SenderService {
     });
   }
 
+  /** Back to the queue for a retry; a quota reserved for this send is returned. */
   private async release(id: string, data: { fallbackOf?: string } = {}) {
     await this.prisma.notificationDelivery.updateMany({
       where: { id, status: "queued" },
-      data: { ...data, lockedUntil: null },
+      data: { ...data, lockedUntil: null, reservedAt: null },
+    });
+  }
+
+  /**
+   * Abuse caps (security review): customer addresses are typed by staff and never verified, so a
+   * member could script bookings to email strangers in the salon's name from our domain. Before
+   * sending, the worker atomically reserves quota under Postgres advisory locks (salon, then
+   * canonical address — fixed order, no deadlock): sent + in-flight reserved customer emails in
+   * the last 24 h must stay under the per-salon, per-address-per-salon and per-address-across-
+   * salons limits. Aliases share one canonical key (`recipientKey`). Rows store the key's hash,
+   * never the address.
+   */
+  private async reserve(id: string, salonId: string, key: string, now: Date): Promise<boolean> {
+    const env = this.config.env;
+    const since = new Date(now.getTime() - 86_400_000);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`notify-cap-salon:${salonId}`}))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`notify-cap-addr:${key}`}))`;
+      const [c] = await tx.$queryRaw<{ salon: bigint; addr_salon: bigint; addr_all: bigint }[]>`
+        SELECT count(*) FILTER (WHERE salon_id = ${salonId}::uuid) AS salon,
+               count(*) FILTER (WHERE salon_id = ${salonId}::uuid AND recipient_key = ${key}) AS addr_salon,
+               count(*) FILTER (WHERE recipient_key = ${key}) AS addr_all
+        FROM notification_deliveries
+        WHERE audience = 'customer' AND status IN ('queued', 'sent')
+          AND reserved_at > ${since} AND id <> ${id}::uuid
+          AND (salon_id = ${salonId}::uuid OR recipient_key = ${key})`;
+      if (
+        Number(c?.salon ?? 0) >= env.NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY ||
+        Number(c?.addr_salon ?? 0) >= env.NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY ||
+        Number(c?.addr_all ?? 0) >= env.NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY_ALL_SALONS
+      ) {
+        return false;
+      }
+      const { count } = await tx.notificationDelivery.updateMany({
+        where: { id, status: "queued" },
+        data: { recipientKey: key, reservedAt: now },
+      });
+      return count === 1;
     });
   }
 
@@ -202,7 +251,6 @@ export class SenderService {
     if (!b.customerEmail || b.customerAnonymisedAt || b.customerName === null) {
       return { kind: "skip", reason: "no_contact" };
     }
-    if (await this.overCap(d.salonId, b.customerEmail, now)) return { kind: "skip", reason: "cap" };
     const meta = (d.meta ?? {}) as {
       startsAt?: string;
       offsetMinutes?: number;
@@ -232,27 +280,6 @@ export class SenderService {
       fallback,
       message: this.customerMessage(d, event, b, replyTo, now),
     };
-  }
-
-  /**
-   * Abuse caps (security review): the customer address is typed by staff and never verified, so a
-   * salon member could script bookings to email arbitrary people in the salon's name from our
-   * domain. Customer emails are capped per salon and per address per 24 h; hits are logged as
-   * `skipped/cap`. The address itself is never stored in the log (it is joined from the booking).
-   */
-  private async overCap(salonId: string, email: string, now: Date): Promise<boolean> {
-    const since = new Date(now.getTime() - 86_400_000);
-    const perSalon = await this.prisma.notificationDelivery.count({
-      where: { salonId, audience: "customer", status: "sent", sentAt: { gt: since } },
-    });
-    if (perSalon >= this.config.env.NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY) return true;
-    const [row] = await this.prisma.$queryRaw<{ n: bigint }[]>`
-      SELECT count(*) AS n
-      FROM notification_deliveries d
-      JOIN bookings b ON b.id = d.booking_id AND b.salon_id = d.salon_id
-      WHERE d.salon_id = ${salonId}::uuid AND d.audience = 'customer' AND d.status = 'sent'
-        AND d.sent_at > ${since} AND b.customer_email = ${email}::citext`;
-    return Number(row?.n ?? 0) >= this.config.env.NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY;
   }
 
   /**

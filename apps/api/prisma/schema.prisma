@@ -1825,6 +1825,10 @@ model NotificationDelivery {
   costEstimateVnd   Int                        @default(0) @map("cost_estimate_vnd")
   /// Booking version the send was planned for (reminders: stale versions are dropped).
   entityVersion     Int?                       @map("entity_version")
+  /// sha256 of the canonical customer address (abuse caps; never the address itself).
+  recipientKey      String?                    @map("recipient_key")
+  /// Quota reserved for this send (customer email caps count sent + reserved in-flight rows).
+  reservedAt        DateTime?                  @map("reserved_at") @db.Timestamptz(6)
   /// Ids and codes only: source event id, Zalo dedup key, planned start.
   meta              Json                       @default("{}")
   sentAt            DateTime?                  @map("sent_at") @db.Timestamptz(6)
@@ -1834,6 +1838,8 @@ model NotificationDelivery {
   @@index([salonId, bookingId, createdAt])
   @@index([status, scheduledFor])
   @@index([salonId, createdAt])
+  @@index([recipientKey, reservedAt])
+  @@index([salonId, reservedAt])
   @@map("notification_deliveries")
 }
 

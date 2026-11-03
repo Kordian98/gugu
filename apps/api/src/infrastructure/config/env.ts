@@ -56,6 +56,8 @@ export const envSchema = z
     NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY: z.coerce.number().int().min(1).default(500),
     /** …and per recipient address per salon per day. */
     NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY: z.coerce.number().int().min(1).default(10),
+    /** …and per canonical address across all salons per day. */
+    NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY_ALL_SALONS: z.coerce.number().int().min(1).default(20),
     /** Comma-separated OAuth client IDs; empty = provider disabled (Apple/Google sign-in, R5). */
     GOOGLE_CLIENT_IDS: z.string().default(""),
     APPLE_CLIENT_IDS: z.string().default(""),

@@ -35,6 +35,7 @@ import { RemindersService } from "./application/reminders.service";
 import { EMAIL_PROVIDER, SenderService } from "./application/sender.service";
 import { PermanentChannelError } from "./channels/channel";
 import { AppConfig } from "../../infrastructure/config/app-config";
+import { mailAddressOf } from "../../infrastructure/mail/mail.service";
 import { NotificationsWorkerModule } from "./notifications.module";
 
 let now = new Date("2026-12-01T01:00:00Z"); // 08:00 in Ho Chi Minh City
@@ -287,7 +288,7 @@ describe("notifications by email (integration)", () => {
     // Delivery is at-least-once across a crash *after* SMTP accepted (documented); a resend
     // carries the same deterministic Message-ID so mail systems can recognise it.
     expect((await mailTo(customer)).messageId).toBe(
-      `${confirmation[0]?.idempotencyKey ?? ""}@gugu.local`,
+      `${confirmation[0]?.idempotencyKey ?? ""}@${mailAddressOf(app.get(AppConfig).env.MAIL_FROM).split("@")[1] ?? ""}`,
     );
     expect(await countMailsTo(customer)).toBe(1);
   });
@@ -711,6 +712,14 @@ describe("notifications by email (integration)", () => {
       costEstimateVnd: 0,
     });
     expect(await sender.send(id, true)).toEqual({ kind: "failed", reason: "provider_error" });
+    expect(await prisma.notificationDelivery.findUnique({ where: { id } })).toMatchObject({
+      status: "failed",
+      reason: "provider_error",
+      lockedUntil: null,
+      reservedAt: null,
+      units: 0,
+      costEstimateVnd: 0,
+    });
 
     const other = await book(testEmail("bounce"), vnAt("2026-12-04", "12:00"));
     await pump();
@@ -721,6 +730,9 @@ describe("notifications by email (integration)", () => {
       reason: "smtp_550",
     });
     expect(spy).toHaveBeenCalledTimes(3);
+    expect(
+      await prisma.notificationDelivery.findUnique({ where: { id: bounce?.id ?? "" } }),
+    ).toMatchObject({ status: "failed", reason: "smtp_550", lockedUntil: null, units: 0 });
 
     // A failure while deciding (e.g. Zalo lookup) releases the lease for the retry.
     const third = await book(testEmail("decide"), vnAt("2026-12-04", "13:00"));
@@ -779,6 +791,117 @@ describe("notifications by email (integration)", () => {
     }
     expect(skipped).toBe(1);
     expect(await countMailsTo(victim)).toBe(cap);
+  });
+
+  /** Temporarily lower a cap (config is read at send time). */
+  async function withCap<T>(
+    name:
+      | "NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY"
+      | "NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY"
+      | "NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY_ALL_SALONS",
+    value: number,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    const env = app.get(AppConfig).env as Record<string, unknown>;
+    const before = env[name];
+    env[name] = value;
+    try {
+      return await run();
+    } finally {
+      env[name] = before;
+    }
+  }
+
+  it("counts Gmail aliases of one mailbox against one cap", async () => {
+    const tag = Math.random().toString(36).slice(2, 8);
+    const aliases = [
+      `lan${tag}@gmail.com`,
+      `lan${tag}+spa@gmail.com`,
+      `l.a.n${tag}@googlemail.com`,
+    ];
+    const kinds = await withCap("NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY", 2, async () => {
+      const out: string[] = [];
+      for (const [i, email] of aliases.entries()) {
+        const id = await book(email, vnAt("2026-12-04", `${String(10 + i)}:00`), s.staffIds[i % 2]);
+        await pump();
+        const row = (await deliveries(id)).find((r) => r.event === "booking.confirmed");
+        out.push((await sender.send(row?.id ?? "", true)).kind);
+      }
+      return out;
+    });
+    expect(kinds).toEqual(["sent", "sent", "skipped"]);
+    const keys = await prisma.notificationDelivery.findMany({
+      where: { salonId: s.salonId, event: "booking.confirmed", recipientKey: { not: null } },
+      select: { recipientKey: true },
+    });
+    expect(new Set(keys.map((k) => k.recipientKey)).size).toBe(1);
+    // The log stores a hash, never the address.
+    expect(JSON.stringify(keys)).not.toContain("gmail");
+  });
+
+  it("caps across salons per mailbox", async () => {
+    const victim = `x${Math.random().toString(36).slice(2, 8)}@gmail.com`;
+    const first = await book(victim);
+    await pump();
+    const r1 = (await deliveries(first)).find((r) => r.event === "booking.confirmed");
+    // Another salon already emailed this mailbox today.
+    const other = await createBookableSalon(prisma);
+    await prisma.notificationDelivery.create({
+      data: {
+        salonId: other.salonId,
+        event: "booking.confirmed",
+        audience: "customer",
+        channel: "email",
+        idempotencyKey: `other-${String(Date.now())}`,
+        status: "sent",
+        recipientKey: (await import("./domain/recipient-key")).recipientKey(victim),
+        reservedAt: now,
+        sentAt: now,
+      },
+    });
+    const kind = await withCap("NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY_ALL_SALONS", 1, () =>
+      sender.send(r1?.id ?? "", true),
+    );
+    expect(kind).toEqual({ kind: "skipped", reason: "cap" });
+  });
+
+  it("caps per salon and lets the 24 h window slide", async () => {
+    const addrs = [testEmail("s1"), testEmail("s2"), testEmail("s3")];
+    const kinds = await withCap("NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY", 2, async () => {
+      const out: string[] = [];
+      for (const [i, email] of addrs.entries()) {
+        const id = await book(email, vnAt("2026-12-04", `${String(10 + i)}:00`), s.staffIds[i % 2]);
+        await pump();
+        const row = (await deliveries(id)).find((r) => r.event === "booking.confirmed");
+        out.push((await sender.send(row?.id ?? "", true)).kind);
+      }
+      // A day later the window has moved on: the salon may send again.
+      now = new Date(now.getTime() + 86_400_000 + 60_000);
+      const later = await book(addrs[2] ?? "", vnAt("2026-12-06", "10:00"));
+      await pump();
+      const row = (await deliveries(later)).find((r) => r.event === "booking.confirmed");
+      out.push((await sender.send(row?.id ?? "", true)).kind);
+      return out;
+    });
+    expect(kinds).toEqual(["sent", "sent", "skipped", "sent"]);
+  });
+
+  it("reserves the quota atomically when sends run in parallel", async () => {
+    const victim = `p${Math.random().toString(36).slice(2, 8)}@example.test`;
+    const ids: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      const id = await book(victim, vnAt("2026-12-04", `${String(10 + i)}:00`), s.staffIds[i % 2]);
+      await pump();
+      const row = (await deliveries(id)).find((r) => r.event === "booking.confirmed");
+      ids.push(row?.id ?? "");
+    }
+    const results = await withCap("NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY", 1, () =>
+      Promise.all(ids.map((id) => sender.send(id, true))),
+    );
+    expect(results.filter((r) => r.kind === "sent")).toHaveLength(1);
+    expect(results.filter((r) => r.kind === "skipped")).toHaveLength(3);
+    await mailTo(victim);
+    expect(await countMailsTo(victim)).toBe(1);
   });
 
   it("hides the reply-to from non-editors and keeps bell counts and reads per member", async () => {

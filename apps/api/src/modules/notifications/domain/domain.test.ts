@@ -4,6 +4,7 @@ import { CATALOG, channelEnabled } from "./catalog";
 import { idempotencyKey } from "./idempotency";
 import { coveringZaloReminder, planReminders } from "./reminders";
 import { customerSkipReason, zaloGate } from "./send-checks";
+import { formatWhen } from "../application/booking-view";
 
 const HOUR = 3_600_000;
 
@@ -161,5 +162,16 @@ describe("send-time checks", () => {
     const later = new Date(since.getTime() + 16 * 60_000);
     expect(zaloGate(null, since, later, limits)).toEqual({ kind: "fallback" });
     expect(zaloGate("queued", since, later, limits)).toEqual({ kind: "fallback" });
+  });
+});
+
+describe("rendered time across a DST change (Europe/Warsaw)", () => {
+  it("shows local wall-clock time on both sides of the change, vi and en", () => {
+    const after = new Date("2026-03-29T12:00:00Z"); // CEST, UTC+2
+    const before = new Date("2026-03-28T12:00:00Z"); // CET, UTC+1
+    expect(formatWhen(after, "vi", "Europe/Warsaw")).toMatch(/^14:00, /);
+    expect(formatWhen(before, "vi", "Europe/Warsaw")).toMatch(/^13:00, /);
+    expect(formatWhen(after, "en", "Europe/Warsaw")).toMatch(/ at 2:00 PM$/);
+    expect(formatWhen(before, "en", "Europe/Warsaw")).toMatch(/ at 1:00 PM$/);
   });
 });

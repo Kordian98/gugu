@@ -20,7 +20,7 @@ Durable reference for customer accounts, favorites, reviews/moderation, privacy 
 ## Invariants
 - Notifications are produced only via the outbox (booking events from topic 06, `zalo.handoff_requested` from topic 09, `notifications.settings_updated`).
 - One delivery per idempotency key (BullMQ jobId + DB unique index); the send worker claims a delivery with a lease (`locked_until`), so a duplicate job or second worker gets `noop`. SMTP has no idempotency: if a worker dies *after* the provider accepted the email but before recording it, the retry after the lease (2 min) sends again — at-least-once in that window only; both copies carry the same `Message-ID` (`<idempotency key>@<mail domain>`).
-- Abuse caps (customer addresses are typed by staff and unverified): at most `NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY` (500) customer emails per salon and `NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY` (10) per address per salon per 24 h; hits are `skipped/cap`. Bounce/complaint tracking per salon is for topic 13 with the real provider.
+- Abuse caps (customer addresses are typed by staff and unverified), per rolling 24 h: `NOTIFY_CUSTOMER_EMAILS_PER_SALON_DAY` (500) per salon, `NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY` (10) per mailbox per salon, `NOTIFY_CUSTOMER_EMAILS_PER_ADDRESS_DAY_ALL_SALONS` (20) per mailbox across salons. Mailboxes are compared by a canonical key (lower-case, `+tag` removed, Gmail dots dropped, googlemail → gmail; `domain/recipient-key.ts`) stored as a sha256 hash in `recipient_key`. The quota is reserved atomically before sending (`SenderService.reserve`: advisory locks on salon then key, count sent + in-flight reserved rows, set `reserved_at`); a retry or failure gives it back. Hits are `skipped/cap`. Bounce/complaint tracking per salon is for topic 13 with the real provider.
 - Customers get messages only for changes the salon made (`actorType = salon_member`); changes made in the Zalo chat were already answered there.
 - Customer emails speak as the salon (sender name = salon name, reply-to = salon's address), never mention GuGu and contain no link to a booking surface (owner, 2026-11-03) — only `tel:` for the salon phone. No staff-typed cancellation reason, no notes.
 - Reminder sends re-check booking status, version and start time in the worker; stale → `skipped/stale`.
@@ -33,14 +33,14 @@ Durable reference for customer accounts, favorites, reviews/moderation, privacy 
 - Moderation is rule-based + manual queue; no personal data goes to any LLM.
 
 ## Data model
-Migration `apps/api/prisma/migrations/20261104090000_add_notifications`.
+Migrations `apps/api/prisma/migrations/20261104090000_add_notifications`, `20261104091000_notification_recipient_key`.
 
 | Table | Purpose |
 |---|---|
 | `bookings.customer_email` | Optional customer email entered by staff (citext). Same visibility rule as the phone (`customers.phone.read`, masked otherwise). Cleared by anonymisation. |
 | `notification_settings` | 1:1 salon. `events` JSON `{ "<event>": { "email": bool, "in_app": bool } }` (missing = catalog default), `reply_to_email`. |
 | `salon_settings.reminder_offsets` | Reminder offsets in minutes (default `[1440, 120]`; max 3, 30 min – 7 days). Written by the notifications settings endpoint. |
-| `notification_deliveries` | Send log: salon, booking/conversation, event, variant (`1440m`), audience (`customer`/`team`), recipient user (team), channel (`email`/`in_app`), idempotency key (unique), status (`scheduled`, `queued`, `sent`, `delivered`, `failed`, `skipped`), reason, `fallback_of`, locale, `scheduled_for`, lease, attempts, provider message id, units, `cost_estimate_vnd`, entity version, `meta` (source event id, Zalo dedup key, planned start, offset). Check constraint `notification_deliveries_valid`. |
+| `notification_deliveries` | Send log: salon, booking/conversation, event, variant (`1440m`), audience (`customer`/`team`), recipient user (team), channel (`email`/`in_app`), idempotency key (unique), status (`scheduled`, `queued`, `sent`, `delivered`, `failed`, `skipped`), reason, `fallback_of`, locale, `scheduled_for`, lease, attempts, provider message id, units, `cost_estimate_vnd`, entity version, `recipient_key` (hash of the canonical customer address) and `reserved_at` (cap reservation), `meta` (source event id, Zalo dedup key, planned start, offset). Check constraint `notification_deliveries_valid`. |
 | `notifications` | Team bell item per in-app delivery (`delivery_id` unique). Display data is joined at read time. |
 | `notification_member_prefs` | A member's own "also email me" switch per salon. |
 
