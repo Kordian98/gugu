@@ -30,7 +30,7 @@ const stamp = Date.now();
 const ownerEmail = arg("email", `owner-${stamp}@demo.gugu`);
 
 const db = new URL(process.env.DATABASE_URL ?? "");
-if (!/gugu_payroll$/.test(db.pathname)) {
+if (!/gugu_payroll(_[a-z0-9]+)?$/.test(db.pathname)) {
   throw new Error(`refusing to write history outside the payroll preview DB (${db.pathname})`);
 }
 
@@ -286,12 +286,15 @@ await call(owner, `/salons/${S}/payroll/staff/${staff.linh}/pay`, "PUT", {
   baseType: "monthly",
   baseAmount: 9_000_000,
   commissionPercent: 10,
+  // "Chi phí thực tế" (ADR-0017): employer insurance as the accountant gave it.
+  employerCost: { kind: "percent", percent: 21.5 },
 });
 await call(owner, `/salons/${S}/payroll/staff/${staff.mai}/pay`, "PUT", {
   effectiveFrom: `${lastMonth}-01`,
   baseType: "daily",
   baseAmount: 320_000,
   commissionPercent: 15,
+  employerCost: { kind: "fixed", amount: 1_200_000 },
   overrides: [{ serviceId: svc["Đắp bột"].id, variantId: null, kind: "fixed", amount: 60_000 }],
 });
 await call(owner, `/salons/${S}/payroll/staff/${staff.tuan}/pay`, "PUT", {
@@ -312,6 +315,7 @@ await call(owner, `/salons/${S}/payroll/staff/${staff.linh}/pay`, "PUT", {
   baseType: "monthly",
   baseAmount: 10_000_000,
   commissionPercent: 12,
+  employerCost: { kind: "percent", percent: 21.5 },
 });
 for (const [name, category, amount, recurring, m] of [
   ["Tiền thuê mặt bằng", "rent", 18_000_000, true, lastMonth],

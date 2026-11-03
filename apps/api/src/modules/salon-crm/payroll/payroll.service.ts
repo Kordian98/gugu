@@ -92,6 +92,16 @@ export class PayrollService {
     return { month, staffId, items };
   }
 
+  /** The member's own commission lines (payroll.self.read); 404 without a staff profile here. */
+  async myLines(ctx: SalonContext, userId: string, month: Month): Promise<CommissionLines> {
+    const profile = await this.prisma.staffProfile.findFirst({
+      where: { salonId: ctx.salonId, deletedAt: null, member: { userId } },
+      select: { id: true },
+    });
+    if (!profile) throw payrollError.staff();
+    return this.lines(ctx, month, profile.id);
+  }
+
   /** The member's own estimate (payroll.self.read). Never takes a staff id from the client. */
   async mine(ctx: SalonContext, userId: string, month: Month): Promise<MyEarnings> {
     const now = this.clock.now();

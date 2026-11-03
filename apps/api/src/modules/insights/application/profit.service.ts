@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { type Profit, payrollSnapshotSchema } from "@gugu/contracts";
+import type { Profit } from "@gugu/contracts";
 import {
   METRICS,
   type MetricDefinition,
@@ -23,6 +23,7 @@ const VALUE: Record<ProfitMetricKey, (r: ProfitResult) => number | null> = {
   "profit.revenue_total": (r) => r.revenueTotal,
   "profit.service_costs": (r) => r.serviceCosts,
   "profit.payroll": (r) => r.payroll,
+  "profit.employer_costs": (r) => r.employerCosts,
   "profit.other_costs": (r) => r.otherCosts,
   "profit.net": (r) => r.netProfit,
   "profit.gross_margin": (r) => r.grossMargin,
@@ -95,8 +96,8 @@ export class ProfitService {
     }
 
     const closed = c.dto.status === "closed";
-    const snap = closed ? payrollSnapshotSchema.parse(loaded.closed?.snapshot) : null;
-    const totals = snap?.totals ?? c.dto.totals;
+    // A closed month's rows and totals already come from its snapshot (computeMonth).
+    const totals = c.dto.totals;
     const commissionUpcoming = closed
       ? 0
       : c.dto.rows.reduce((n, r) => n + r.projectedCommission, 0);
@@ -112,6 +113,10 @@ export class ProfitService {
       commissionEarned: totals.commission,
       commissionUpcoming,
       adjustments: totals.bonus - totals.deduction,
+      employerCostsActual: totals.employerCost,
+      employerCostsUpcoming: closed
+        ? 0
+        : c.dto.rows.reduce((n, r) => n + r.projectedEmployerCost, 0),
       otherCosts: costList.total,
       elapsedDays: progress.elapsedDays,
       daysInMonth: progress.daysInMonth,

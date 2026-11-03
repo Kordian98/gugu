@@ -184,7 +184,21 @@ export const METRICS = {
     readModels: ["staff_pay_settings", "booking_services", "payroll_adjustments"],
     definition:
       "Whole team, one total: base pay for the full month + commission earned + commission " +
-      "expected on upcoming appointments + bonuses − deductions. Before tax and insurance.",
+      "expected on upcoming appointments + bonuses − deductions, plus the employer costs the " +
+      "salon entered per person (real cost). GuGu computes no tax or insurance itself.",
+    agentExposed: true,
+    window: "month",
+    requiresPermission: "payroll.read",
+    basis: "mixed",
+  },
+  "profit.employer_costs": {
+    unit: "vnd",
+    revenueKind: "estimated_from_bookings",
+    readModels: ["staff_pay_settings", "booking_services", "payroll_adjustments"],
+    definition:
+      "Whole team, one total: what the salon pays on top of gross pay (taxes, social insurance, " +
+      "other contributions) as the salon entered it per person ('real cost'). 0 when not set. " +
+      "Included in profit.payroll.",
     agentExposed: true,
     window: "month",
     requiresPermission: "payroll.read",

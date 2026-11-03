@@ -14,6 +14,8 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import {
   type AdjustmentInput,
   adjustmentInputSchema,
+  type CommissionBulkInput,
+  commissionBulkInputSchema,
   type CommissionLines,
   commissionLinesSchema,
   type CommissionPolicyInput,
@@ -122,6 +124,23 @@ export class PayrollController {
   ): Promise<MyEarnings> {
     const month = q.month ?? (await this.payroll.currentMonth(salon.salonId));
     return this.payroll.mine(salon, user.userId, month);
+  }
+
+  @Get("payroll/me/lines")
+  @RequirePermission("payroll.self.read")
+  @ApiOperation({
+    operationId: "payroll.getMyCommissionLines",
+    summary: "The caller's own commission per service in a month (never anyone else's).",
+  })
+  @ApiResponse({ status: 200, description: "Own lines.", standardSchema: commissionLinesSchema })
+  @ApiResponse({ status: 404, description: "No staff profile.", standardSchema: problemSchema })
+  myLines(
+    @Param({ schema: salonParamsSchema }) _p: SalonP,
+    @Query({ schema: linesQuerySchema }) q: { month: string },
+    @CurrentSalon() salon: SalonContext,
+    @CurrentUser() user: UserPrincipal,
+  ): Promise<CommissionLines> {
+    return this.payroll.myLines(salon, user.userId, q.month);
   }
 
   @Get("payroll/staff/:staffId/lines")
@@ -324,6 +343,26 @@ export class PayrollController {
     @CurrentSalon() salon: SalonContext,
   ): Promise<PayrollSettings> {
     return this.settings.setManagerAccess(salon, p.memberId, body.granted);
+  }
+
+  @Post("payroll/commission/bulk")
+  @RequirePermission("payroll.manage")
+  @HttpCode(200)
+  @ApiOperation({
+    operationId: "payroll.bulkCommission",
+    summary:
+      "Set the same default % or own service rate for several people from a date (also in versions scheduled later). Audited.",
+  })
+  @ApiResponse({ status: 200, description: "Saved.", standardSchema: payrollSettingsSchema })
+  @ApiResponse({ status: 404, description: "Staff not found.", standardSchema: problemSchema })
+  @ApiResponse({ status: 409, description: "Month closed.", standardSchema: problemSchema })
+  bulkCommission(
+    @Param({ schema: salonParamsSchema }) _p: SalonP,
+    @Body({ schema: commissionBulkInputSchema }) body: CommissionBulkInput,
+    @CurrentSalon() salon: SalonContext,
+    @CurrentUser() user: UserPrincipal,
+  ): Promise<PayrollSettings> {
+    return this.settings.bulkCommission(salon, user.userId, body);
   }
 
   @Get("payroll/staff/:staffId/pay")

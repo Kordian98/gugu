@@ -2052,20 +2052,26 @@ enum SalonCostCategory {
 /// One effective-dated version of a staff member's pay (history is kept: a change never rewrites
 /// earlier months). The version in force on a date is the latest `effective_from` ≤ that date.
 model StaffPaySetting {
-  id              String      @id @default(uuid(7)) @db.Uuid
-  salonId         String      @map("salon_id") @db.Uuid
-  staffId         String      @map("staff_id") @db.Uuid
-  effectiveFrom   DateTime    @map("effective_from") @db.Date
-  baseType        BasePayType @map("base_type")
+  id                      String      @id @default(uuid(7)) @db.Uuid
+  salonId                 String      @map("salon_id") @db.Uuid
+  staffId                 String      @map("staff_id") @db.Uuid
+  effectiveFrom           DateTime    @map("effective_from") @db.Date
+  baseType                BasePayType @map("base_type")
   /// VND per month / working day / hour (by base_type); 0 for none.
-  baseAmountMinor BigInt      @default(0) @map("base_amount_minor")
+  baseAmountMinor         BigInt      @default(0) @map("base_amount_minor")
   /// Default commission on services, basis points (10 % = 1000).
-  commissionBps   Int         @default(0) @map("commission_bps")
-  currency        String      @default("VND") @db.Char(3)
+  commissionBps           Int         @default(0) @map("commission_bps")
+  /// "Chi phí thực tế" (owner 2026-11-03): what the person really costs the salon on top of
+  /// gross pay, entered by the salon from its accountant (GuGu computes no tax or insurance).
+  /// Either a % of gross (basis points) or a fixed VND amount per month; both null = not set.
+  /// CHECK `staff_pay_settings_employer_cost_valid` (raw SQL).
+  employerCostBps         Int?        @map("employer_cost_bps")
+  employerCostAmountMinor BigInt?     @map("employer_cost_amount_minor")
+  currency                String      @default("VND") @db.Char(3)
   /// Member who saved it (no FK: kept when the user is anonymised, like audit_logs.actor_id).
-  createdByUserId String      @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByUserId         String      @map("created_by_user_id") @db.Uuid
+  createdAt               DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   staff     StaffProfile              @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
   overrides StaffCommissionOverride[]
