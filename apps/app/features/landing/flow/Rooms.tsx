@@ -396,12 +396,7 @@ export function Businesses() {
             <img src={PHOTO[k]} alt="" loading="lazy" decoding="async" />
             <div className="bz-body">
               <span className="bz-type">{t(`flow.biz.${k}.t`)}</span>
-              <b className="bz-num">{t(`flow.biz.${k}.n`)}</b>
-              <p className="bz-what">{t(`flow.biz.${k}.w`)}</p>
-              <p className="bz-how">
-                <i aria-hidden>{SPARK}</i>
-                {t(`flow.biz.${k}.f`)}
-              </p>
+              <p className="bz-say">{t(`flow.biz.${k}.s`)}</p>
             </div>
           </article>
         ))}

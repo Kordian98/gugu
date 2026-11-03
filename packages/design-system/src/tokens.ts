@@ -36,6 +36,9 @@ export const color = {
   dangerTint: "#FDE2E4",
   /** Zalo brand blue, only for Zalo message chips. */
   zalo: "#0068FF",
+  /** Zalo chat surfaces (client-perspective phone mock only). */
+  zaloChat: "#E4E9F0",
+  zaloSent: "#D5E6FF",
   /** Paper props in illustrations (notebook, price list) and spreadsheet cells. */
   paper: "#FFFBEF",
   paperLine: "#EADFC2",

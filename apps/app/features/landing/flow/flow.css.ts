@@ -38,8 +38,6 @@ export const FLOW_CSS = `
 .jr-plaque .jr-go i{font-style:normal}
 .jr-plaque{flex-wrap:wrap;row-gap:6px}
 .jr-plaque p{flex:1 1 220px}
-.jr-or{order:3;flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-family:${font.ui};font-size:13px;color:${color.ink2}}
-.jr-or button{border:0;background:none;padding:6px 2px;min-height:32px;font-family:${font.uiSemiBold};font-size:13px;color:${color.ink};text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .jr-static.done .jr-plaque{display:none}
 /* "Center view": fixed at the top while the journey is partly out of the viewport */
 .jr-center{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:30;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:99px;border:1px solid ${color.line};background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 12px 30px rgba(42,20,38,.16);color:${color.ink};font-family:${font.uiSemiBold};font-size:13.5px;cursor:pointer}
@@ -365,69 +363,207 @@ export const FLOW_CSS = `
 .jr-views button{border:0;background:none;cursor:pointer;min-height:40px;padding:0 16px;border-radius:99px;font-family:${font.uiSemiBold};font-size:13.5px;color:${color.ink2};white-space:nowrap}
 .jr-views button.on{background:${color.ink};color:${color.white}}
 .jr-stage.v-client .jr-frame,.jr-stage.v-ai .jr-frame,.jr-stage.v-client .jr-hud,.jr-stage.v-ai .jr-hud{visibility:hidden}
-.cs{position:absolute;inset:0;z-index:6;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,64px);align-items:center;padding:clamp(76px,10vh,110px) var(--g) calc(var(--hud) + 20px);box-sizing:border-box;opacity:0;visibility:hidden;transition:opacity ${String(motion.duration.deliberate)}ms ${motion.ease.out},visibility ${String(motion.duration.deliberate)}ms}
+.cs{position:absolute;inset:0;z-index:6;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(20px,3vw,48px);align-items:center;padding:clamp(76px,10vh,104px) var(--g) calc(var(--hud) + 22px);box-sizing:border-box;opacity:0;visibility:hidden;transition:opacity ${String(motion.duration.deliberate)}ms ${motion.ease.out},visibility ${String(motion.duration.deliberate)}ms}
+.cs.has-side{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
 .jr-stage.v-client .cs-phone,.jr-stage.v-ai .cs-panel{opacity:1;visibility:visible}
-.cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
-.cs-veil{position:absolute;inset:0;background:rgba(253,250,247,.88);z-index:-1}
-.cs-copy{max-width:560px;justify-self:end}
-.cs-copy .fl-h{font-size:clamp(30px,3.2vw,52px);margin-bottom:0}
-.cs-step{margin-top:clamp(14px,2.4vh,26px);background:${color.white};border-radius:22px;padding:clamp(16px,2vw,26px);box-shadow:0 22px 60px rgba(42,20,38,.12);animation:csIn ${String(motion.duration.deliberate)}ms ${motion.ease.out}}
-.cs-step b{display:block;font-family:${font.uiSemiBold};font-size:clamp(18px,1.6vw,23px);line-height:1.25;color:${color.ink}}
-.cs-step p{margin:8px 0 0;font-family:${font.ui};font-size:clamp(14.5px,1.15vw,17px);line-height:1.5;color:${color.ink2};text-wrap:pretty}
+.cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;filter:blur(2px) saturate(.9)}
+.cs-veil{position:absolute;inset:0;background:linear-gradient(120deg,rgba(253,250,247,.94),rgba(238,231,252,.9));z-index:-1}
+.cs-copy{max-width:460px;justify-self:end;align-self:center}
+.cs-copy .fl-h{font-size:clamp(28px,2.8vw,46px);margin-bottom:0}
+.cs-steps{display:grid;margin-top:clamp(16px,2.6vh,28px)}
+.cs-step{grid-area:1/1;position:relative;min-height:clamp(150px,19vh,190px);box-sizing:border-box;background:${color.white};border-radius:24px;padding:clamp(18px,2vw,26px) clamp(18px,2vw,26px) clamp(22px,2.4vw,30px) clamp(64px,5.4vw,86px);box-shadow:0 24px 60px rgba(42,20,38,.12);overflow:hidden}
+.cs-step.out{animation:csOut 300ms cubic-bezier(.4,0,1,1) forwards;pointer-events:none;z-index:1;box-shadow:none;background:transparent}
+.cs-step.in .cs-stepn>span{display:inline-block;animation:csRoll 420ms ${motion.ease.out} both}
+.cs-step.in.back .cs-stepn>span{animation-name:csRollBack}
+.cs-step.in b{animation:csIn 380ms ${motion.ease.out} 90ms both}
+.cs-step.in p{animation:csIn 380ms ${motion.ease.out} 170ms both}
+.cs-stepn{overflow:hidden;line-height:1.05}
+.cs-stepbar{position:absolute;left:0;right:0;bottom:0;height:3px;background:${color.lineSoft}}
+.cs-stepbar i{display:block;height:100%;background:${cssGradient(gradient.glowSoft)};transition:width 450ms ${motion.ease.out}}
+.cs-stepn{position:absolute;left:clamp(16px,1.6vw,24px);top:clamp(14px,1.6vw,22px);font-family:${font.display};font-size:clamp(30px,2.6vw,40px);line-height:1;color:${color.lilac500}}
+.cs-stepn>span{background:${cssGradient(gradient.glowHere)};-webkit-background-clip:text;background-clip:text;color:transparent}
+.cs-step b{display:block;font-family:${font.uiSemiBold};font-size:clamp(17px,1.45vw,21px);line-height:1.3;color:${color.ink}}
+.cs-step p{margin:8px 0 0;font-family:${font.ui};font-size:clamp(14px,1.08vw,16px);line-height:1.55;color:${color.ink2};text-wrap:pretty}
 .cs-note{margin:12px 0 0;font-family:${font.ui};font-size:12px;color:${color.ink2}}
-.cs-device{justify-self:start;width:min(100%,400px);height:min(100%,640px);display:flex;flex-direction:column;background:${color.white};border-radius:34px;box-shadow:0 30px 80px rgba(42,20,38,.22);overflow:hidden;border:8px solid ${color.plum950}}
-.cs-panel .cs-device{width:min(100%,520px);border-radius:22px;border:1px solid ${color.lineSoft}}
-.cs-top{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid ${color.lineSoft};background:${color.canvas}}
-.cs-phone .cs-top{background:${color.zalo};color:${color.white};border-bottom:0}
-.cs-ava{flex:0 0 36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:${font.uiSemiBold};font-size:13px;background:${color.lilac100};color:${color.ink}}
-.cs-top b{display:block;font-family:${font.uiSemiBold};font-size:14.5px}
-.cs-top small{display:block;font-family:${font.ui};font-size:12px;opacity:.85}
-.cs-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:${color.tile}}
-.cs-panel .cs-log{background:${color.white}}
-.cs-msg{display:flex;flex-direction:column;align-items:flex-start;max-width:86%;animation:csIn ${String(motion.duration.slow)}ms ${motion.ease.out}}
-.cs-msg.me{align-self:flex-end;align-items:flex-end}
+/* phone: frame, island, status bar, Zalo OA chat */
+.cs-devicecol{display:flex;flex-direction:column;align-items:center;gap:12px;height:100%;min-height:0;justify-content:center}
+.cs-phoneframe{position:relative;width:clamp(300px,24vw,340px);height:min(100%,700px);min-height:0;box-sizing:border-box;padding:11px;border-radius:54px;background:linear-gradient(145deg,#2b1a2a,${color.plum950});box-shadow:0 0 0 1.5px rgba(255,255,255,.08) inset,0 40px 90px rgba(42,20,38,.35),0 12px 24px rgba(42,20,38,.18)}
+.cs-phoneframe::before,.cs-phoneframe::after{content:"";position:absolute;width:3px;border-radius:3px;background:${color.plum950}}
+.cs-phoneframe::before{left:-3px;top:120px;height:56px}.cs-phoneframe::after{right:-3px;top:150px;height:84px}
+.cs-island{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:96px;height:28px;border-radius:20px;background:#000;z-index:3}
+.cs-screen{height:100%;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;background:${color.zaloChat}}
+.cs-status{display:flex;justify-content:space-between;align-items:center;padding:16px 26px 6px;background:${color.zalo};color:${color.white}}
+.cs-status b{font-family:${font.uiSemiBold};font-size:13px}
+.cs-sig{display:flex;gap:2px;align-items:flex-end;height:11px}.cs-sig i{width:3px;background:${color.white};border-radius:1px}
+.cs-sig i:nth-child(1){height:4px}.cs-sig i:nth-child(2){height:6px}.cs-sig i:nth-child(3){height:8px}.cs-sig i:nth-child(4){height:11px}
+.cs-phone .cs-top{display:flex;align-items:center;gap:10px;padding:6px 14px 10px;background:${color.zalo};color:${color.white}}
+.cs-back{font-size:26px;line-height:1;margin-right:-2px;opacity:.95}
+.cs-ava{position:relative;flex:0 0 36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:${font.uiSemiBold};font-size:12.5px;background:${cssGradient(gradient.glowSoft, "135deg")};color:${color.white}}
+.cs-ava em{position:absolute;right:-4px;bottom:-3px;font-style:normal;font-family:${font.uiSemiBold};font-size:8px;padding:1px 4px;border-radius:6px;background:${color.white};color:${color.zalo}}
+.cs-who b{display:block;font-family:${font.uiSemiBold};font-size:14.5px;line-height:1.2}
+.cs-who small{display:block;font-family:${font.ui};font-size:11.5px;opacity:.85}
+.cs-log{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;padding:12px 12px 8px;display:flex;flex-direction:column;gap:8px}
+.cs-log::-webkit-scrollbar{display:none}
+.cs-day{align-self:center;font-family:${font.uiMedium};font-size:11px;color:${color.ink2};background:rgba(255,255,255,.7);padding:3px 10px;border-radius:99px}
+.cs-msg{display:flex;align-items:flex-end;gap:8px;max-width:84%;animation:csMsg ${String(motion.duration.slow)}ms ${motion.ease.out} both}
+.cs-col{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.cs-msg.me{align-self:flex-end}.cs-msg.me .cs-col{align-items:flex-end}
 .cs-msg.sys{align-self:center;max-width:94%}
-.cs-bubble{font-family:${font.ui};font-size:14px;line-height:1.45;padding:9px 13px;border-radius:18px;background:${color.white};color:${color.ink};box-shadow:0 2px 8px rgba(42,20,38,.06);white-space:pre-line}
-.cs-panel .cs-msg.them .cs-bubble{background:${color.lilac100}}
-.cs-msg.me .cs-bubble{background:${color.ink};color:${color.white}}
-.cs-phone .cs-msg.me .cs-bubble{background:${color.zalo}}
-.cs-msg.staff .cs-bubble{background:${color.white};border:1px solid ${color.lilac300}}
-.cs-msg.sys .cs-bubble{background:none;box-shadow:none;font-size:12.5px;color:${color.ink2};text-align:center;padding:4px 8px}
-.cs-msg.card .cs-bubble{border-left:4px solid ${color.lilac500};font-family:${font.uiMedium}}
-.cs-src{margin-top:4px;font-family:${font.uiMedium};font-size:11.5px;color:${color.ink2};background:${color.canvas};border:1px solid ${color.lineSoft};padding:2px 8px;border-radius:99px}
-.cs-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.cs-btns span{font-family:${font.uiSemiBold};font-size:12.5px;padding:7px 11px;border-radius:12px;background:${color.white};border:1px solid ${color.line};color:${color.ink}}
-.cs-typing{display:flex;gap:4px;padding:12px 14px}
-.cs-typing i{width:7px;height:7px;border-radius:50%;background:${color.lilac500};animation:csDot 1s infinite ease-in-out}
+.cs-bubble{font-family:${font.ui};font-size:13.5px;line-height:1.45;padding:9px 12px;border-radius:18px 18px 18px 6px;background:${color.white};color:${color.ink};white-space:pre-line;box-shadow:0 1px 2px rgba(20,30,50,.08)}
+.cs-msg.me .cs-bubble{border-radius:18px 18px 6px 18px;background:${color.zaloSent}}
+.cs-msg.staff .cs-bubble{border:1.5px solid ${color.lilac300}}
+.cs-msg.sys .cs-bubble{background:rgba(255,255,255,.7);box-shadow:none;font-family:${font.uiMedium};font-size:11.5px;color:${color.ink2};padding:3px 10px;border-radius:99px}
+.cs-msg.card .cs-bubble{border-left:4px solid ${color.lilac500};font-family:${font.uiMedium};padding:11px 13px}
+.cs-time{margin-top:3px;font-family:${font.ui};font-size:10.5px;color:${color.muted}}
+.cs-btns{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.cs-btns span{font-family:${font.uiSemiBold};font-size:12px;padding:6px 11px;border-radius:99px;background:${color.white};border:1px solid ${color.zalo};color:${color.zalo}}
+.cs-typing{display:flex;align-items:center;gap:4px;padding:11px 13px}
+.cs-typing i{width:6px;height:6px;border-radius:50%;background:${color.lilac500};animation:csDot 1s infinite ease-in-out}
 .cs-typing i:nth-child(2){animation-delay:.15s}.cs-typing i:nth-child(3){animation-delay:.3s}
-.cs-input{padding:10px 14px;border-top:1px solid ${color.lineSoft};font-family:${font.ui};font-size:13px;color:${color.muted}}
-.cs-nav{position:absolute;left:50%;bottom:clamp(14px,3vh,28px);transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:99px;background:rgba(255,255,255,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(42,20,38,.16)}
+.cs-typing span{margin-left:6px;font-family:${font.ui};font-size:12.5px;color:${color.ink2}}
+.cs-input{display:flex;align-items:center;gap:8px;padding:8px 10px 14px;background:${color.white}}
+.cs-field{flex:1;font-family:${font.ui};font-size:13px;color:${color.muted};background:${color.tile};border-radius:99px;padding:8px 14px}
+.cs-send{flex:0 0 32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${color.zalo};color:${color.white};font-size:15px}
+/* GuGu Studio, live next to the phone */
+.cs-side{align-self:center;justify-self:start;width:min(100%,340px)}
+.cs-strip{display:none}
+.sy{position:relative;background:${color.white};border-radius:24px;padding:16px;box-shadow:0 28px 70px rgba(42,20,38,.16);display:flex;flex-direction:column;gap:10px}
+.sy-head{display:flex;justify-content:space-between;align-items:center}
+.sy-head b{font-family:${font.uiSemiBold};font-size:14px;color:${color.ink}}
+.sy-live{display:inline-flex;align-items:center;gap:6px;font-family:${font.uiMedium};font-size:11.5px;color:${color.ink2}}
+.sy-live::before{content:"";width:7px;height:7px;border-radius:50%;background:${color.lilac500};box-shadow:0 0 0 0 rgba(169,139,235,.6);animation:syLive 1.6s infinite}
+.sy-card{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:16px;background:${color.canvas};border:1px solid ${color.lineSoft};opacity:.4;filter:grayscale(1);transition:opacity ${String(motion.duration.slow)}ms ${motion.ease.out},filter ${String(motion.duration.slow)}ms,transform ${String(motion.duration.slow)}ms ${motion.ease.out}}
+.sy-card.on{opacity:1;filter:none;animation:syPop ${String(motion.duration.deliberate)}ms ${motion.ease.out}}
+.sy-card b{display:block;font-family:${font.uiSemiBold};font-size:13px;color:${color.ink}}
+.sy-card small{display:block;font-family:${font.ui};font-size:12px;color:${color.ink2}}
+.sy-dot{flex:0 0 26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;color:${color.white};background:${color.lilac500}}
+.sy-dot.zalo{background:${color.zalo}}.sy-dot.alert{background:${color.danger}}
+.sy-cal{border:1px solid ${color.lineSoft};border-radius:16px;overflow:hidden;opacity:.5;transition:opacity ${String(motion.duration.slow)}ms}
+.sy-cal.on{opacity:1}
+.sy-calhead,.sy-calrow{display:grid;grid-template-columns:44px 1fr 1fr}
+.sy-calhead span{font-family:${font.uiSemiBold};font-size:11.5px;color:${color.ink};padding:7px 8px;background:${color.canvas}}
+.sy-calrow{height:34px;border-top:1px solid ${color.lineSoft}}
+.sy-calrow>span:first-child{font-family:${font.ui};font-size:11px;color:${color.muted};padding:6px 8px}
+.sy-cell{position:relative;border-left:1px solid ${color.lineSoft}}
+.sy-slot{position:absolute;inset:3px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 7px;font-style:normal;opacity:0;transform:scale(.92);transition:all ${String(motion.duration.slow)}ms ${motion.ease.out}}
+.sy-slot b{font-family:${font.uiSemiBold};font-size:11px;color:${color.ink};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sy-slot.hold{opacity:1;transform:none;border:1.5px dashed ${color.lilac500};background:rgba(169,139,235,.08)}
+.sy-slot.booked{opacity:1;transform:none;border:1.5px solid ${color.lilac500};background:${color.lilac100}}
+.sy-slot.other{opacity:1;transform:none;background:${color.tile};font-family:${font.ui};font-size:11px;color:${color.ink2}}
+.sy-chip{font-style:normal;font-family:${font.uiSemiBold};font-size:10px;padding:2px 6px;border-radius:99px;background:${color.white};color:${color.ink2};white-space:nowrap}
+.sy-slot.booked .sy-chip{background:${color.ink};color:${color.white};animation:syChip ${String(motion.duration.deliberate)}ms ${motion.ease.out}}
+.sy-slot.sure .sy-chip{background:${color.lilac500};animation:syChip ${String(motion.duration.deliberate)}ms ${motion.ease.out}}
+.sy-toast{position:absolute;left:16px;right:16px;bottom:-22px;transform:translateY(100%);font-family:${font.uiSemiBold};font-size:12.5px;color:${color.white};background:${color.ink};padding:9px 12px;border-radius:12px;box-shadow:0 14px 30px rgba(34,16,36,.25);animation:syToast 2.4s ${motion.ease.out} both}
+.sy-stripin{display:inline-flex;align-items:center;gap:8px;font-family:${font.uiSemiBold};font-size:12.5px;color:${color.ink};background:${color.white};border-radius:99px;padding:8px 14px;box-shadow:0 10px 26px rgba(42,20,38,.14);animation:csMsg ${String(motion.duration.slow)}ms ${motion.ease.out} both}
+.sy-stripin i{width:8px;height:8px;border-radius:50%;background:${color.lilac500}}
+/* assistant "Gu": a panel over the real CRM screen */
+.cs-window{position:relative;justify-self:start;width:100%;max-width:760px;aspect-ratio:16/11.5;max-height:100%;border-radius:22px;overflow:hidden;box-shadow:0 34px 90px rgba(42,20,38,.24);border:1px solid ${color.lineSoft};background:${color.canvas}}
+.cs-app{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:left top;filter:saturate(.85)}
+.cs-window::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(253,250,247,.35),rgba(34,16,36,.18))}
+.cs-assist{position:absolute;z-index:1;top:14px;right:14px;bottom:14px;width:min(400px,60%);display:flex;flex-direction:column;background:${color.white};border-radius:20px;box-shadow:0 24px 60px rgba(34,16,36,.28);overflow:hidden}
+.cs-panel .cs-top{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid ${color.lineSoft}}
+.cs-panel .cs-ava{font-size:12px}
+.cs-panel .cs-who b{display:flex;align-items:center;gap:6px;color:${color.ink};font-size:14px}
+.cs-panel .cs-who small{color:${color.ink2};opacity:1}
+.cs-plan{font-style:normal;font-family:${font.uiSemiBold};font-size:10px;padding:2px 7px;border-radius:99px;background:${color.ink};color:${color.white}}
+.cs-panel .cs-log{background:${color.white};gap:12px}
+.cs-gu{flex:0 0 24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:${font.uiSemiBold};font-size:9.5px;color:${color.white};background:${cssGradient(gradient.glowSoft, "135deg")}}
+.cs-panel .cs-msg{max-width:92%}
+.cs-panel .cs-msg.has-viz{max-width:100%}
+.cs-panel .cs-msg.has-viz .cs-col{flex:1}
+.cs-panel .cs-msg.me .cs-bubble{background:${color.ink};color:${color.white};border-radius:16px 16px 4px 16px;box-shadow:none}
+.cs-panel .cs-msg.them .cs-bubble{background:${color.lilac100};border-radius:4px 16px 16px 16px;box-shadow:none;width:100%;box-sizing:border-box}
+.cs-src{display:inline-flex;align-items:center;gap:5px;margin-top:5px;font-family:${font.uiMedium};font-size:11px;color:${color.ink2};background:${color.canvas};border:1px solid ${color.lineSoft};padding:2px 8px;border-radius:99px}
+.cs-src i{width:6px;height:6px;border-radius:50%;background:${color.lilac500}}
+.cs-panel .cs-input{padding:10px 12px 6px;border-top:1px solid ${color.lineSoft}}
+.cs-panel .cs-send{background:${color.ink}}
+.cs-privacy{margin:0;padding:0 14px 10px;font-family:${font.ui};font-size:10.5px;line-height:1.4;color:${color.ink2}}
+.cs-viz{margin-top:9px;background:${color.white};border-radius:12px;padding:10px;animation:csIn ${String(motion.duration.deliberate)}ms ${motion.ease.out} both}
+.av-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.av-tile{border-radius:10px;padding:7px 8px;background:${color.canvas}}
+.av-tile b{display:block;font-family:${font.uiSemiBold};font-size:17px;color:${color.ink};font-variant-numeric:tabular-nums}
+.av-tile small{display:block;font-family:${font.ui};font-size:10.5px;color:${color.ink2}}
+.av-tile.k3 b{color:${color.danger}}
+.av-week{display:flex;align-items:flex-end;gap:5px;height:54px;margin-top:9px}
+.av-week span{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end}
+.av-week i{width:100%;border-radius:4px 4px 2px 2px;background:${color.lilac300};transform-origin:bottom;animation:avGrow ${String(motion.duration.deliberate)}ms ${motion.ease.out} both}
+.av-week span.top i{background:${cssGradient(gradient.glowSoft, "180deg")}}
+.av-week em{font-style:normal;font-family:${font.ui};font-size:9.5px;color:${color.muted}}
+.av-util,.av-fall{display:flex;flex-direction:column;gap:7px}
+.av-row{display:grid;grid-template-columns:minmax(0,1fr) 1.4fr auto;gap:8px;align-items:center;font-family:${font.ui};font-size:12px;color:${color.ink2}}
+.av-row b{font-family:${font.uiSemiBold};color:${color.ink};font-variant-numeric:tabular-nums;white-space:nowrap}
+.av-bar{position:relative;height:9px;border-radius:5px;background:${color.tile};overflow:hidden}
+.av-bar i{position:absolute;top:0;bottom:0;left:0;border-radius:5px;background:${cssGradient(gradient.glowSoft)};transform-origin:left;animation:avBar ${String(motion.duration.deliberate)}ms ${motion.ease.out} both}
+.av-fall .av-row.neg .av-bar i{background:${color.dangerTint};border:1px solid ${color.danger}}
+.av-fall .av-row.net{padding-top:6px;border-top:1px solid ${color.lineSoft}}
+.av-fall .av-row.net span:first-child,.av-fall .av-row.net b{font-family:${font.uiSemiBold};color:${color.ink}}
+.av-rev{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.av-rev>div{border-radius:10px;padding:9px 10px;background:${color.canvas}}
+.av-rev small{display:block;font-family:${font.ui};font-size:11px;color:${color.ink2}}
+.av-rev b{display:block;margin-top:2px;font-family:${font.uiSemiBold};font-size:15.5px;color:${color.ink};font-variant-numeric:tabular-nums}
+.av-rev em{display:inline-block;margin-top:5px;font-style:normal;font-family:${font.uiMedium};font-size:10px;padding:2px 7px;border-radius:99px;background:${color.lilac100};color:${color.ink}}
+.av-rev em.rec{background:${color.ink};color:${color.white}}
+/* nav */
+.cs-nav{position:absolute;left:50%;bottom:clamp(14px,3vh,28px);transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:99px;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(42,20,38,.16)}
 .cs-bars{display:flex;gap:4px}
-.cs-bars span{width:28px;height:4px;border-radius:4px;background:${color.lineSoft}}
+.cs-bars span{width:28px;height:4px;border-radius:4px;background:${color.lineSoft};transition:background ${String(motion.duration.slow)}ms}
 .cs-bars span.on{background:${cssGradient(gradient.glowSoft)}}
 .cs-count{font-family:${font.uiSemiBold};font-size:12.5px;color:${color.ink2};font-variant-numeric:tabular-nums;white-space:nowrap}
 .cs-nav button{white-space:nowrap;flex:0 0 auto}
 .cs-nav .hud-prev:disabled{opacity:.35}
 .cs-alt{min-height:44px;padding:0 16px;border-radius:99px;border:1px solid ${color.line};background:${color.white};color:${color.ink};font-family:${font.uiSemiBold};font-size:13.5px;cursor:pointer;white-space:nowrap}
+@keyframes csIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes csOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-14px)}}
+@keyframes csRoll{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}
+@keyframes csRollBack{from{opacity:0;transform:translateY(-100%)}to{opacity:1;transform:none}}
+@keyframes csFade{from{opacity:0}to{opacity:1}}
+@keyframes csFadeOut{from{opacity:1}to{opacity:0}}
+@keyframes csMsg{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes csDot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+@keyframes syPop{0%{transform:scale(.96);box-shadow:0 0 0 0 rgba(169,139,235,.5)}50%{transform:scale(1.02);box-shadow:0 0 0 6px rgba(169,139,235,.18)}100%{transform:none;box-shadow:0 0 0 0 rgba(169,139,235,0)}}
+@keyframes syChip{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:none}}
+@keyframes syLive{0%{box-shadow:0 0 0 0 rgba(169,139,235,.6)}100%{box-shadow:0 0 0 8px rgba(169,139,235,0)}}
+@keyframes syToast{0%{opacity:0;transform:translateY(calc(100% + 8px))}12%,82%{opacity:1;transform:translateY(100%)}100%{opacity:0;transform:translateY(100%)}}
+@keyframes avGrow{from{transform:scaleY(0)}to{transform:none}}
+@keyframes avBar{from{transform:scaleX(0)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.cs-step.in b,.cs-step.in p,.cs-step.in .cs-stepn>span{animation:none!important}.cs-step.in{animation:csFade 200ms both!important}.cs-step.out{animation:csFadeOut 200ms forwards!important}.cs-stepbar i{transition:none}.cs-msg,.cs-viz,.sy-card.on,.sy-slot .sy-chip,.av-week i,.av-bar i,.sy-stripin{animation:none!important}.cs-typing i,.sy-live::before{animation:none}.cs,.sy-slot,.sy-card{transition:none}.sy-toast{animation:none;opacity:1}}
+@media (max-width:1199px){.cs.has-side{grid-template-columns:minmax(0,1fr) auto}.cs-side{display:none}.cs-strip{display:block}}
 .jr-end{position:absolute;right:var(--g);top:clamp(70px,9vh,96px);display:none;gap:8px;z-index:6}
 .jr-stage:has(.jr-hud[data-settled="9"]) .jr-end{display:flex}
 @keyframes csIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes csOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-14px)}}
+@keyframes csRoll{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}
+@keyframes csRollBack{from{opacity:0;transform:translateY(-100%)}to{opacity:1;transform:none}}
+@keyframes csFade{from{opacity:0}to{opacity:1}}
+@keyframes csFadeOut{from{opacity:1}to{opacity:0}}
 @keyframes csDot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
 @media (prefers-reduced-motion:reduce){.cs-step,.cs-msg{animation:none}.cs-typing i{animation:none}.cs{transition:none}}
 @media (max-width:899px){
   .jr-views{top:10px;max-width:calc(100% - 24px)}
   .jr-views button{padding:0 11px;font-size:12.5px}
-  .cs{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:10px;padding:62px 14px calc(var(--hud) + 8px);align-items:stretch}
+  .cs,.cs.has-side{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:8px;padding:60px 14px calc(var(--hud) + 6px);align-items:stretch}
   .cs-copy{justify-self:stretch;max-width:none}
-  .cs-copy .fl-eye{display:none}
-  .cs-copy .fl-h{font-size:22px}
-  .cs-step{margin-top:6px;padding:10px 14px;border-radius:16px}
-  .cs-step b{font-size:15px}.cs-step p{font-size:12.5px;margin-top:3px}
+  .cs-copy .fl-eye,.cs-copy .fl-h{display:none}
+  .cs-steps{margin-top:0}
+  .cs-step{min-height:92px;padding:10px 14px 12px 52px;border-radius:16px}
+  .cs-stepn{left:14px;top:11px;font-size:24px}
+  .cs-step b{font-size:14.5px}.cs-step p{font-size:12.5px;margin-top:2px;line-height:1.45}
   .cs-note{display:none}
-  .cs-device,.cs-panel .cs-device{justify-self:stretch;width:100%;height:auto;min-height:0;border-width:5px;border-radius:24px}
+  .cs-devicecol{gap:8px}
+  .cs-phoneframe{width:min(100%,300px);height:auto;flex:1;padding:8px;border-radius:42px}
+  .cs-island{top:14px;width:80px;height:22px}
+  .cs-screen{border-radius:34px}
+  .cs-status{padding:11px 22px 4px}
+  .cs-strip{display:block}
+  .cs-window{aspect-ratio:auto;height:100%;border:0;box-shadow:none;background:none;overflow:visible}
+  .cs-app,.cs-window::after{display:none}
+  .cs-assist{position:relative;inset:auto;width:100%;height:100%;box-shadow:0 22px 60px rgba(42,20,38,.16)}
+  .cs-privacy{display:none}
   .cs-nav{left:12px;right:12px;transform:none;bottom:12px;justify-content:space-between;flex-wrap:wrap;border-radius:24px;padding:6px}
   .cs-count{display:none}
   .cs-alt{padding:0 11px;font-size:12.5px}
+  /* phones: the tabs at the top switch perspectives, so the end row keeps Prev + Finish only */
+  .cs-nav .cs-alt{display:none}
   .jr-end{left:14px;right:14px;top:auto;bottom:calc(var(--hud) + 10px);flex-wrap:wrap;justify-content:center}
   /* last salon page on phones: make room for the two perspective buttons above the HUD */
   .jr-stage:has(.jr-hud[data-settled="9"]) .sw-old,.jr-stage:has(.jr-hud[data-settled="9"]) .sw-arrow{display:none}
@@ -609,13 +745,13 @@ export const FLOW_CSS = `
 .bz-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,10,20,.05) 15%,rgba(20,10,20,.8))}
 .bz-body{position:relative;z-index:1;padding:22px 22px 20px;color:${color.white}}
 .bz-type{display:inline-block;font-family:${font.uiSemiBold};font-size:12.5px;letter-spacing:.04em;padding:5px 10px;border-radius:99px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.bz-num{display:block;margin-top:10px;font-family:${font.display};font-weight:400;font-size:clamp(40px,3.6vw,58px);line-height:1;letter-spacing:-.03em;background:linear-gradient(90deg,${color.white},${color.pink300});-webkit-background-clip:text;background-clip:text;color:transparent}
 .bz-what{margin:6px 0 0;font-family:${font.uiSemiBold};font-size:16px;line-height:1.35}
 .bz-how{display:flex;gap:7px;align-items:flex-start;margin:8px 0 0;font-family:${font.ui};font-size:13.5px;line-height:1.4;opacity:.92}
 .bz-how i{font-style:normal;color:${color.pink300}}
+.bz-say{margin:12px 0 0;font-family:${font.uiMedium};font-size:clamp(15px,1.15vw,17px);line-height:1.5;color:${color.white};max-width:34ch;text-wrap:pretty}
 .bz-note{margin:16px 0 0;font-family:${font.ui};font-size:12px;color:${color.ink2}}
 @media (max-width:1099px){.bz-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:599px){.bz-grid{grid-template-columns:1fr;gap:12px}.bz-tile{min-height:220px}.bz-num{font-size:44px}}
+@media (max-width:599px){.bz-grid{grid-template-columns:1fr;gap:12px}.bz-tile{min-height:220px}}
 
 /* assistant + switch */
 .tc{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,5vw,80px);align-items:center}

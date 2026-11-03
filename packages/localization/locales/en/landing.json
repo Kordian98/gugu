@@ -152,28 +152,24 @@
   },
   "pricing": {
     "eyebrow": "Pricing",
-    "monthly": "Monthly",
-    "yearly": "Yearly",
     "priceSoon": "Price coming soon",
-    "billedMonthly": "billed monthly",
-    "billedYearly": "billed yearly",
     "cta": "Start free trial",
     "popular": "Most popular",
     "trial": "Basic is free for every salon for the first year, then {{price}}/month. New salons get a 14-day Pro trial first, then move to free Basic automatically. Basic includes AI setup from your price list; the AI assistant starts at Pro.",
     "basic": {
       "name": "Basic",
       "tagline": "Everything to run one salon",
-      "items": "Team calendar\nClients\nZalo reminders\nAI setup from your price list\nInsights"
+      "items": "Team calendar and clients\nZalo OA: booking bot, inbox and reminders\nAI setup from a photo of your price list\nInsights, payroll and commissions\nUnlimited team members"
     },
     "pro": {
       "name": "Pro",
       "tagline": "AI that works for your salon",
-      "items": "Everything in Basic\nAI assistant\nMonthly AI business review\nZalo inbox\nHigher message quota"
+      "items": "Everything in Basic, plus:\nGu, the AI assistant for your salon's figures\nMonthly AI business review\nHigher AI usage limit\n300 Zalo template messages a month (Basic: 100)"
     },
     "ultra": {
       "name": "Ultra",
       "tagline": "For chains and growing brands",
-      "items": "Everything in Pro\nMultiple locations with combined reporting\nHighest AI usage limit\nAdvanced analytics"
+      "items": "Everything in Pro, plus:\nMultiple locations with combined reporting\nAdvanced analytics\nHighest AI usage limit\n1,000 Zalo template messages a month"
     },
     "basicFree": "Free for the first year",
     "basicThen": "then {{price}}/month",
@@ -182,8 +178,7 @@
     "titlePre": "More free hours, more revenue. Year one is ",
     "titleGlow": "free",
     "titlePost": ".",
-    "basicCtaGain": "Get {{n}} h/month back · free",
-    "proCta": "Try Pro 14 days · free"
+    "proCta": "Try Pro free for 14 days"
   },
   "cta": {
     "title": "Ready to glow? Your first year of Basic is free.",
@@ -400,39 +395,27 @@
       "eyebrow": "Every kind of beauty business",
       "nails": {
         "t": "Nail bars",
-        "n": "0",
-        "w": "double-booked chairs or UV lamps",
-        "f": "because every service holds its own chair and device"
+        "s": "No more double-booked chairs or UV lamps, because every service holds its own chair and device."
       },
       "hair": {
         "t": "Hair salons",
-        "n": "−6 h",
-        "w": "of 'any slot?' messages a week",
-        "f": "because clients book themselves in your salon's Zalo OA"
+        "s": "About 6 hours a week saved on 'any free slot?' messages, because clients book themselves in your salon's Zalo OA."
       },
       "barber": {
         "t": "Barbershops",
-        "n": "1 queue",
-        "w": "for walk-ins and bookings",
-        "f": "because the whole shop shares one appointment list"
+        "s": "Walk-ins and bookings share one queue, because the whole shop works from one appointment list."
       },
       "spa": {
         "t": "Spas",
-        "n": "−25%",
-        "w": "no-shows",
-        "f": "because of Zalo reminders 24 h and 2 h before"
+        "s": "Fewer no-shows, thanks to automatic Zalo reminders 24 h and 2 h before."
       },
       "lash": {
         "t": "Lash studios",
-        "n": "10 min",
-        "w": "to a complete service menu",
-        "f": "because AI reads a photo of your price list"
+        "s": "A complete service menu in about 10 minutes, because AI reads a photo of your price list."
       },
       "brow": {
         "t": "Brow studios",
-        "n": "0 h",
-        "w": "adding up commissions by hand",
-        "f": "because payroll works it out per service"
+        "s": "No more adding up commissions by hand, because payroll works it out per service."
       },
       "note": "Illustrative examples for a typical salon; no-show reduction per Robotham et al., BMJ Open 2016 (clinics). Photos are illustrative, not customers.",
       "titlePre": "Nails, hair, spa or lashes: ",
@@ -505,21 +488,21 @@
   },
   "roi": {
     "title": "Your salon",
-    "sub": "Set two numbers; every plan shows what you get.",
+    "sub": "Set two numbers to see what Basic saves you.",
     "weekly": "Bookings per week",
     "perWeek": "{{n}} / week",
     "price": "Average service price",
     "less": "Decrease",
     "more": "Increase",
     "note": "Illustrative estimate, not a promise: assumes about 3 minutes of admin per booking (confirming, reminding, rescheduling), 10% no-shows and 25% fewer with reminders (BMJ Open 2016, clinics). Your salon's results may differ.",
-    "gives": "Every month you get back",
-    "gainsSub": "time and revenue kept (estimate)",
-    "plusHours": "+{{n}} h",
-    "plusMoney": "+{{v}}"
+    "save": "You save every month (estimate)",
+    "saveHours": "~{{n}} h",
+    "saveMoney": "keep ~{{v}} in revenue",
+    "saveSub": "less confirming and reminding, fewer no-shows",
+    "saveNote": "An estimate of time you save and revenue you keep through fewer no-shows; not money paid to your salon. Actual results may differ."
   },
   "views": {
     "label": "Perspectives",
-    "or": "Or see it as:",
     "tab": {
       "salon": "Salon owner",
       "client": "Your clients",
@@ -587,16 +570,55 @@
       "m14": "Thank you, see you tomorrow!",
       "m15": "Talk to staff",
       "m16": "I've let the team know, someone will be with you shortly.",
-      "m17": "Hi, it's Lan here. How can I help?"
+      "m17": "Hi, it's Lan here. How can I help?",
+      "day": "Today",
+      "clock": "9:41",
+      "t1": "8:41 PM",
+      "t2": "8:42 PM",
+      "t3": "8:43 PM",
+      "t4": "2:00 PM",
+      "t5": "2:02 PM",
+      "t6": "2:05 PM",
+      "sys": {
+        "title": "Your salon's GuGu Studio",
+        "live": "Live",
+        "inbox": "New message on your Zalo OA",
+        "inboxSub": "The bot answers for you",
+        "day": "Saturday",
+        "staff1": "Mai",
+        "staff2": "Linh",
+        "slot": "Gel polish",
+        "holding": "Holding",
+        "booked": "Booked",
+        "coming": "Coming ✓",
+        "other": "Acrylic",
+        "rem": "24 h reminder",
+        "remPlanned": "Scheduled · Friday 2:00 PM",
+        "remSent": "Sent via Zalo ✓",
+        "hand": "Needs a person",
+        "handSub": "Moved to the Zalo inbox",
+        "handTaken": "Lan took the chat",
+        "waiting": "Your salon is waiting for a message"
+      },
+      "fx": {
+        "inbox": "New message · the bot answers",
+        "slots": "Bot reads real free times from the calendar",
+        "hold": "14:00 held for Mai",
+        "booked": "New booking · Booked",
+        "remSent": "24 h reminder sent",
+        "confirmed": "Client confirmed they're coming",
+        "handoff": "Inbox: client needs a person",
+        "taken": "Lan took the chat"
+      }
     },
     "ai": {
       "eyebrow": "AI assistant · Pro",
       "title": "Ask about your salon, get the answer in seconds.",
       "note": "Illustrative chat with example figures. In the Pro and Ultra plans.",
-      "avatar": "AI",
-      "who": "GuGu Assistant",
-      "whoSub": "Reads only your salon's figures",
-      "input": "Ask about bookings, revenue, profit…",
+      "avatar": "Gu",
+      "who": "Gu · AI assistant",
+      "whoSub": "Ask about bookings, revenue and capacity",
+      "input": "Ask Gu, e.g. How many bookings today?",
       "s1": {
         "h": "Ask in plain words, like asking an assistant",
         "b": "Owners ask about their own salon's bookings, revenue, pay and profit, in Vietnamese or English."
@@ -611,26 +633,52 @@
       },
       "s4": {
         "h": "This month's profit, without anyone's pay",
-        "b": "The assistant sees the team's pay total only, never one person's salary or commission."
-      },
-      "s5": {
-        "h": "No client data goes to the AI",
-        "b": "A message with a client's name or phone number is not sent; the AI works with aggregate figures only."
+        "b": "Gu sees the team's pay total only, never one person's salary or commission, and never client data."
       },
       "m1": "How many bookings did we have this week?",
-      "m2": "64 bookings this week: 52 completed, 4 no-shows, 8 upcoming. Saturday was busiest with 18.",
-      "src1": "Source: bookings",
+      "m2": "64 bookings this week. Saturday was busiest with 18.",
+      "src1": "Bookings",
       "m3": "Who is the most booked?",
-      "m4": "Mai is booked 92% of her working hours, Linh 78%, Tuấn 61%. Tuấn has the most free time on Tuesday and Wednesday afternoons.",
-      "src2": "Source: utilization",
+      "m4": "Mai is the most booked. Tuấn has the most free time on Tuesday and Wednesday afternoons.",
+      "src2": "Capacity",
       "m5": "How is revenue this month?",
-      "m6": "An estimated 64,150,000đ from completed bookings; the salon recorded 10,904,000đ at the desk.",
-      "src3": "Source: revenue",
+      "m6": "Estimated revenue from completed bookings, and what the salon recorded at the desk:",
+      "src3": "Revenue",
       "m7": "What's this month's estimated profit?",
-      "m8": "Estimated net profit 12,400,000đ, a 19% margin, after team pay, service costs and other costs.",
-      "src4": "Source: this month's profit",
-      "m9": "How many times has Ms Hoa 0901 234 567 booked?",
-      "m10": "Not sent: the message contains a client's phone number. Ask about your salon's figures instead."
+      "m8": "This month's estimated net profit is 12,400,000đ, a 19% margin:",
+      "src4": "This month's profit",
+      "plan": "Pro",
+      "thinking": "Gu is checking the figures…",
+      "privacy": "Gu sees business figures only, never clients' names, phone numbers or notes.",
+      "viz": {
+        "k1": "Bookings",
+        "k1n": "64",
+        "k2": "Completed",
+        "k2n": "52",
+        "k3": "No-shows",
+        "k3n": "4",
+        "k4": "Upcoming",
+        "k4n": "8",
+        "d1": "Mon",
+        "d2": "Tue",
+        "d3": "Wed",
+        "d4": "Thu",
+        "d5": "Fri",
+        "d6": "Sat",
+        "d7": "Sun",
+        "p1": "Mai",
+        "p2": "Linh",
+        "p3": "Tuấn",
+        "r1": "Estimated",
+        "r1tag": "From bookings",
+        "r2": "Recorded",
+        "r2tag": "At the salon",
+        "w1": "Revenue",
+        "w2": "Service costs",
+        "w3": "Team pay",
+        "w4": "Other costs",
+        "w5": "Net profit"
+      }
     }
   }
 }

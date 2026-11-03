@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Button, Icon, Text, checkableA11y, color } from "@gugu/design-system";
+import { Button, Icon, Text, color } from "@gugu/design-system";
 import { formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -14,12 +13,10 @@ import { Container, SectionHead } from "./Section";
 import type { LandingNavActions } from "./useLandingNav";
 
 const PLANS = ["basic", "pro", "ultra"] as const;
-const PERIODS = ["monthly", "yearly"] as const;
 
 /** Basic / Pro / Ultra (X17, q75, X25): Basic free for the first year then 99,000 VND/month; Pro/Ultra prices TBA. */
 export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boolean }) {
   const { t } = useTranslation("landing");
-  const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const locale = useLocale();
   const price = formatVND(BASIC_MONTHLY_VND, locale);
   const roi = useRoi();
@@ -31,29 +28,8 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
           title={t("pricing.titlePre")}
           glow={{ words: t("pricing.titleGlow"), after: t("pricing.titlePost") }}
         />
-        <View
-          accessibilityRole="radiogroup"
-          className="flex-row self-start rounded-full bg-white p-1"
-          style={{ borderWidth: 1, borderColor: color.line }}
-        >
-          {PERIODS.map((p) => (
-            <Pressable
-              key={p}
-              {...checkableA11y("radio", period === p)}
-              onPress={() => {
-                setPeriod(p);
-              }}
-              className="min-h-11 justify-center rounded-full px-5 py-2.5"
-              style={{ backgroundColor: period === p ? color.ink : "transparent" }}
-            >
-              <Text role="uiSemiBold" size={14} color={period === p ? color.white : color.body}>
-                {t(`pricing.${p}`)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
-      {/* "Your salon": two numbers drive the benefit shown in every card, right above its CTA (owner). */}
+      {/* "Your salon": two numbers drive the savings estimate on the Basic card, above its CTA. */}
       <RoiInputs roi={roi} stacked={stacked} />
       <View className={stacked ? "gap-5" : "flex-row gap-5"}>
         {PLANS.map((plan) => {
@@ -105,23 +81,20 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
                     <Text role="uiSemiBold" size={22} color={pro ? "#FBF1F6" : color.ink}>
                       {t("pricing.priceSoon")}
                     </Text>
-                    <Text size={13.5} color={pro ? "#BBA6B6" : color.muted}>
-                      {t(period === "monthly" ? "pricing.billedMonthly" : "pricing.billedYearly")}
-                    </Text>
                   </>
                 )}
               </View>
               {/* Benefit + CTA directly under the price: what this plan gives back, then buy. */}
-              <RoiBenefit roi={roi} dark={pro} />
+              {plan === "basic" ? <RoiBenefit roi={roi} /> : null}
               <View className="gap-2">
                 <Button
-                  label={
+                  label={t(
                     plan === "basic"
-                      ? t("pricing.basicCtaGain", { n: roi.hours })
+                      ? "pricing.basicCta"
                       : plan === "pro"
-                        ? t("pricing.proCta")
-                        : t("pricing.cta")
-                  }
+                        ? "pricing.proCta"
+                        : "pricing.cta",
+                  )}
                   onPress={nav.trial}
                   height={54}
                   fontSize={16}
@@ -134,26 +107,37 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
               <View className="gap-3">
                 {t(`pricing.${plan}.items`)
                   .split("\n")
-                  .map((item) => (
-                    <View key={item} className="flex-row items-start gap-3">
-                      <View
-                        className="mt-0.5 h-5 w-5 items-center justify-center rounded-full"
-                        style={{ backgroundColor: pro ? color.pink300 : color.lilac100 }}
+                  .map((item) =>
+                    item.endsWith(":") ? (
+                      <Text
+                        key={item}
+                        role="uiSemiBold"
+                        size={14.5}
+                        color={pro ? color.white : color.ink}
                       >
-                        <Icon
-                          name="check"
-                          size={12}
-                          color={pro ? color.plum950 : color.lilac700}
-                          strokeWidth={2.6}
-                        />
+                        {item}
+                      </Text>
+                    ) : (
+                      <View key={item} className="flex-row items-start gap-3">
+                        <View
+                          className="mt-0.5 h-5 w-5 items-center justify-center rounded-full"
+                          style={{ backgroundColor: pro ? color.pink300 : color.lilac100 }}
+                        >
+                          <Icon
+                            name="check"
+                            size={12}
+                            color={pro ? color.plum950 : color.lilac700}
+                            strokeWidth={2.6}
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text size={15} lineHeight={22} color={pro ? "#F3E6EE" : color.ink2}>
+                            {item}
+                          </Text>
+                        </View>
                       </View>
-                      <View className="flex-1">
-                        <Text size={15} lineHeight={22} color={pro ? "#F3E6EE" : color.ink2}>
-                          {item}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
+                    ),
+                  )}
               </View>
             </View>
           );

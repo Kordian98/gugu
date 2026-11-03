@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 /**
- * A stepped, scripted chat (web) used by the two extra perspectives of the story: the client's Zalo
- * chat with the salon and the owner's AI assistant. Left: the benefit of the current step; right: the
- * device with the conversation so far. Steps move only by Next/Prev, ← / → (while shown) and horizontal
- * swipes, like the salon story. New messages type in one by one; reduced motion shows them at once.
- * Everything is illustrative copy from i18n; nothing is sent anywhere.
+ * A stepped, scripted chat (web) for the extra perspectives of the story: the client's Zalo chat with
+ * the salon (phone) and the owner's assistant "Gu" (panel over the real CRM screen). Left: the benefit
+ * of the current step; middle: the device; optionally right: a live system panel (`side`) reacting to
+ * effects (`fx`) attached to messages. Steps move only by Next/Prev, ← / → (while shown) and horizontal
+ * swipes. New messages type in one by one; reduced motion shows them at once. Illustrative copy only;
+ * nothing is sent anywhere.
  */
 export type ChatMsg = {
-  /** me = the person on this device, them = the other side (salon bot / assistant), staff, sys = note */
+  /** me = the person on this device, them = the other side (salon bot / Gu), staff, sys = note */
   from: "me" | "them" | "staff" | "sys";
   k: string;
   /** i18n keys of quick-reply buttons under the message */
@@ -18,12 +19,21 @@ export type ChatMsg = {
   card?: boolean;
   /** source chip under an assistant answer */
   source?: string;
+  /** small timestamp under the bubble (i18n key) */
+  time?: string;
+  /** a visual rendered inside the answer (assistant) */
+  viz?: string;
+  /** an effect the side panel reacts to once this message is shown */
+  fx?: string;
 };
 export type ChatStep = { k: string; msgs: readonly ChatMsg[] };
 
 const ARROW_R = "→";
 const ARROW_L = "←";
 const DOTS = ["d1", "d2", "d3"] as const;
+const BACK = "‹";
+const SEND = "↑";
+const OA = "OA";
 
 export function ChatStory({
   ns,
@@ -34,6 +44,10 @@ export function ChatStory({
   bg,
   onFinish,
   ends,
+  side,
+  strip,
+  viz,
+  windowImg,
 }: {
   /** i18n prefix, e.g. "views.client" */
   ns: string;
@@ -45,12 +59,31 @@ export function ChatStory({
   onFinish: () => void;
   /** buttons on the last step: label key + action */
   ends: readonly { k: string; go: () => void; primary?: boolean }[];
+  /** live system panel next to the device (desktop), from the effects fired so far */
+  side?: (fired: ReadonlySet<string>, latest: string | null) => ReactNode;
+  /** compact one-line version of `side` under the device (phones) */
+  strip?: (latest: string | null) => ReactNode;
+  /** renders a visual inside an answer */
+  viz?: (k: string) => ReactNode;
+  /** the app screen behind the assistant panel */
+  windowImg?: string;
 }) {
   const { t: typed } = useTranslation("landing");
   // Keys are built from the script (`${ns}.m3`), so they are plain strings here.
   const t = typed as unknown as (k: string, o?: Record<string, unknown>) => string;
   const [step, setStep] = useState(0);
   const [count, setShown] = useState(0);
+  /** The step whose copy is animating out (cleared after the transition). */
+  const [prev, setPrev] = useState<number | null>(null);
+  useEffect(() => {
+    if (prev === null) return;
+    const id = window.setTimeout(() => {
+      setPrev(null);
+    }, 460);
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, [prev]);
   const root = useRef<HTMLDivElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const last = steps.length - 1;
@@ -74,7 +107,7 @@ export function ChatStory({
       () => {
         setShown(shown + 1);
       },
-      typing ? 900 : 450,
+      typing ? 1000 : 520,
     );
     return () => {
       window.clearTimeout(id);
@@ -85,6 +118,14 @@ export function ChatStory({
     const el = log.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: reduce ? "auto" : "smooth" });
   }, [shown, typing, reduce]);
+
+  const fired = new Set(
+    all
+      .slice(0, shown)
+      .map((m) => m.fx)
+      .filter((x): x is string => Boolean(x)),
+  );
+  const latest = [...all.slice(0, shown)].reverse().find((m) => m.fx)?.fx ?? null;
 
   const go = (d: 1 | -1) => {
     if (d > 0) {
@@ -98,8 +139,10 @@ export function ChatStory({
         return;
       }
       setShown(target);
+      setPrev(step);
       setStep(step + 1);
     } else if (step > 0) {
+      setPrev(step);
       setStep(step - 1);
       setShown(upTo(step - 1));
     }
@@ -127,17 +170,17 @@ export function ChatStory({
     const r = root.current;
     let sx = 0;
     let sy = 0;
-    let fired = false;
+    let swiped = false;
     const ts = (e: TouchEvent) => {
       sx = e.touches[0]?.clientX ?? 0;
       sy = e.touches[0]?.clientY ?? 0;
-      fired = false;
+      swiped = false;
     };
     const tm = (e: TouchEvent) => {
       const dx = (e.touches[0]?.clientX ?? sx) - sx;
       const dy = (e.touches[0]?.clientY ?? sy) - sy;
-      if (!fired && Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy)) {
-        fired = true;
+      if (!swiped && Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy)) {
+        swiped = true;
         goRef.current(dx < 0 ? 1 : -1);
       }
     };
@@ -152,57 +195,161 @@ export function ChatStory({
   }, [active]);
 
   const cur = steps[step];
+  const messages = (
+    <div className="cs-log" ref={log} aria-live="polite">
+      {kind === "phone" ? <div className="cs-day">{t(`${ns}.day`)}</div> : null}
+      {all.slice(0, shown).map((m, i) => (
+        <div
+          key={`${m.k}-${String(i)}`}
+          className={`cs-msg ${m.from}${m.card ? " card" : ""}${m.viz ? " has-viz" : ""}`}
+        >
+          {kind === "panel" && m.from === "them" ? (
+            <span className="cs-gu" aria-hidden>
+              {t(`${ns}.avatar`)}
+            </span>
+          ) : null}
+          <div className="cs-col">
+            <div className="cs-bubble">
+              {t(`${ns}.${m.k}`)}
+              {m.viz && viz ? <div className="cs-viz">{viz(m.viz)}</div> : null}
+            </div>
+            {m.source ? (
+              <span className="cs-src">
+                <i aria-hidden />
+                {t(`${ns}.${m.source}`)}
+              </span>
+            ) : null}
+            {m.buttons ? (
+              <div className="cs-btns" aria-hidden>
+                {m.buttons.map((b) => (
+                  <span key={b}>{t(`${ns}.${b}`)}</span>
+                ))}
+              </div>
+            ) : null}
+            {m.time ? <span className="cs-time">{t(`${ns}.${m.time}`)}</span> : null}
+          </div>
+        </div>
+      ))}
+      {typing ? (
+        <div className="cs-msg them">
+          {kind === "panel" ? (
+            <span className="cs-gu" aria-hidden>
+              {t(`${ns}.avatar`)}
+            </span>
+          ) : null}
+          <div className="cs-col">
+            <div className="cs-bubble cs-typing" aria-hidden>
+              {DOTS.map((d) => (
+                <i key={d} />
+              ))}
+              {kind === "panel" ? <span>{t(`${ns}.thinking`)}</span> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
-    <div className={`cs cs-${kind}`} ref={root} inert={!active}>
+    <div className={`cs cs-${kind}${side ? " has-side" : ""}`} ref={root} inert={!active}>
       <img className="cs-bg" src={bg} alt="" decoding="async" loading="lazy" />
       <div className="cs-veil" />
       <div className="cs-copy">
         <div className="fl-eye">{t(`${ns}.eyebrow`)}</div>
         <h2 className="fl-h">{t(`${ns}.title`)}</h2>
-        <div className="cs-step" key={cur?.k}>
-          <b>{t(`${ns}.${cur?.k ?? "s1"}.h`)}</b>
-          <p>{t(`${ns}.${cur?.k ?? "s1"}.b`)}</p>
+        {/* Step copy: the old card slides up and out while the new one comes in (number, title, body
+            staggered); both share one grid cell, so there is no layout jump. */}
+        <div className="cs-steps">
+          {prev !== null && prev !== step ? (
+            <div className="cs-step out" key={`o-${String(prev)}`} aria-hidden>
+              <span className="cs-stepn">
+                <span>{String(prev + 1).padStart(2, "0")}</span>
+              </span>
+              <b>{t(`${ns}.${steps[prev]?.k ?? "s1"}.h`)}</b>
+              <p>{t(`${ns}.${steps[prev]?.k ?? "s1"}.b`)}</p>
+            </div>
+          ) : null}
+          <div
+            className={`cs-step in${prev !== null && prev > step ? " back" : ""}`}
+            key={`i-${String(step)}`}
+          >
+            <span className="cs-stepn" aria-hidden>
+              <span>{String(step + 1).padStart(2, "0")}</span>
+            </span>
+            <b>{t(`${ns}.${cur?.k ?? "s1"}.h`)}</b>
+            <p>{t(`${ns}.${cur?.k ?? "s1"}.b`)}</p>
+            <span className="cs-stepbar" aria-hidden>
+              <i style={{ width: `${String(((step + 1) / steps.length) * 100)}%` }} />
+            </span>
+          </div>
         </div>
         <p className="cs-note">{t(`${ns}.note`)}</p>
       </div>
-      <div className="cs-device">
-        <div className="cs-top">
-          <i className="cs-ava" aria-hidden>
-            {t(`${ns}.avatar`)}
-          </i>
-          <div>
-            <b>{t(`${ns}.who`)}</b>
-            <small>{t(`${ns}.whoSub`)}</small>
-          </div>
-        </div>
-        <div className="cs-log" ref={log} aria-live="polite">
-          {all.slice(0, shown).map((m, i) => (
-            <div key={`${m.k}-${String(i)}`} className={`cs-msg ${m.from}${m.card ? " card" : ""}`}>
-              <div className="cs-bubble">{t(`${ns}.${m.k}`)}</div>
-              {m.source ? <span className="cs-src">{t(`${ns}.${m.source}`)}</span> : null}
-              {m.buttons ? (
-                <div className="cs-btns" aria-hidden>
-                  {m.buttons.map((b) => (
-                    <span key={b}>{t(`${ns}.${b}`)}</span>
-                  ))}
+
+      {kind === "phone" ? (
+        <div className="cs-devicecol">
+          <div className="cs-phoneframe">
+            <span className="cs-island" aria-hidden />
+            <div className="cs-screen">
+              <div className="cs-status" aria-hidden>
+                <b>{t(`${ns}.clock`)}</b>
+                <span className="cs-sig">
+                  <i />
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              </div>
+              <div className="cs-top">
+                <span className="cs-back" aria-hidden>
+                  {BACK}
+                </span>
+                <i className="cs-ava" aria-hidden>
+                  {t(`${ns}.avatar`)}
+                  <em>{OA}</em>
+                </i>
+                <div className="cs-who">
+                  <b>{t(`${ns}.who`)}</b>
+                  <small>{t(`${ns}.whoSub`)}</small>
                 </div>
-              ) : null}
-            </div>
-          ))}
-          {typing ? (
-            <div className="cs-msg them">
-              <div className="cs-bubble cs-typing" aria-hidden>
-                {DOTS.map((d) => (
-                  <i key={d} />
-                ))}
+              </div>
+              {messages}
+              <div className="cs-input" aria-hidden>
+                <span className="cs-field">{t(`${ns}.input`)}</span>
+                <span className="cs-send">{SEND}</span>
               </div>
             </div>
-          ) : null}
+          </div>
+          {strip ? <div className="cs-strip">{strip(latest)}</div> : null}
         </div>
-        <div className="cs-input" aria-hidden>
-          <span>{t(`${ns}.input`)}</span>
+      ) : (
+        <div className="cs-window">
+          {windowImg ? <img className="cs-app" src={windowImg} alt="" decoding="async" /> : null}
+          <div className="cs-assist">
+            <div className="cs-top">
+              <i className="cs-ava" aria-hidden>
+                {t(`${ns}.avatar`)}
+              </i>
+              <div className="cs-who">
+                <b>
+                  {t(`${ns}.who`)}
+                  <em className="cs-plan">{t(`${ns}.plan`)}</em>
+                </b>
+                <small>{t(`${ns}.whoSub`)}</small>
+              </div>
+            </div>
+            {messages}
+            <div className="cs-input" aria-hidden>
+              <span className="cs-field">{t(`${ns}.input`)}</span>
+              <span className="cs-send">{SEND}</span>
+            </div>
+            <p className="cs-privacy">{t(`${ns}.privacy`)}</p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {side ? <div className="cs-side">{side(fired, latest)}</div> : null}
+
       <nav className="cs-nav" aria-label={t(`${ns}.title`)}>
         <span className="cs-bars" aria-hidden>
           {steps.map((s, i) => (

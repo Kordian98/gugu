@@ -151,11 +151,10 @@ export function RoiInputs({ roi, stacked }: { roi: Roi; stacked: boolean }) {
   );
 }
 
-/** The benefit right above a plan's CTA: hours and revenue back every month (live, gradient). */
-export function RoiBenefit({ roi, dark }: { roi: Roi; dark: boolean }) {
+/** Basic only: what it saves every month (time + revenue kept), live, right above its CTA. */
+export function RoiBenefit({ roi }: { roi: Roi }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
-  const big = { fontFamily: font.display, fontSize: 38, lineHeight: 42 } as const;
   return (
     <View
       accessibilityLiveRegion="polite"
@@ -163,26 +162,28 @@ export function RoiBenefit({ roi, dark }: { roi: Roi; dark: boolean }) {
         gap: 4,
         padding: 16,
         borderRadius: 20,
-        backgroundColor: dark ? "rgba(255,255,255,0.08)" : color.canvas,
+        backgroundColor: color.canvas,
         borderWidth: 1,
-        borderColor: dark ? "rgba(255,255,255,0.14)" : color.lineSoft,
+        borderColor: color.lineSoft,
       }}
     >
-      <Text size={13} color={dark ? color.lilac100 : color.ink2}>
-        {t("roi.gives")}
+      <Text role="uiSemiBold" size={13} color={color.ink2}>
+        {t("roi.save")}
       </Text>
-      <View
-        style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: 12 }}
+      <GradientText
+        colors={gradient.glowHere}
+        style={{ fontFamily: font.display, fontSize: 40, lineHeight: 44 }}
       >
-        <GradientText colors={gradient.glowHere} style={big}>
-          {t("roi.plusHours", { n: roi.hours })}
-        </GradientText>
-        <GradientText colors={gradient.glowHere} style={big}>
-          {t("roi.plusMoney", { v: formatVND(roi.recovered, locale) })}
-        </GradientText>
-      </View>
-      <Text size={13} color={dark ? color.lilac100 : color.ink2}>
-        {t("roi.gainsSub")}
+        {t("roi.saveHours", { n: roi.hours })}
+      </GradientText>
+      <Text role="uiSemiBold" size={16} color={color.ink}>
+        {t("roi.saveMoney", { v: formatVND(roi.recovered, locale) })}
+      </Text>
+      <Text size={12.5} color={color.ink2}>
+        {t("roi.saveSub")}
+      </Text>
+      <Text size={11.5} lineHeight={16} color={color.ink2} style={{ marginTop: 4 }}>
+        {t("roi.saveNote")}
       </Text>
     </View>
   );

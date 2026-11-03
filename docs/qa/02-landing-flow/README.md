@@ -110,6 +110,26 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **`srcset` + `sizes`:** derived from the displayed width (box width × crop aspect ÷ box aspect). `width`/`height` attributes give the ratio before lazy load, which fixes a 0 px image on phones.
 - **Measured upscale** (displayed device px ÷ chosen file px; ≤ 1.15 required): 1440@2× 0.76–1.00, 1280@1× 0.44–0.52, 390@3× 0.60–0.82, 360@3× 0.59–0.82.
 
+## Round 3 (owner, 2026-11-04)
+
+- **AI view:**
+  - the "Gu · Trợ lý AI" panel floats over the real CRM screen, using the CRM's own naming ("Gu đang xem số liệu…", source chips);
+  - answers carry visuals: KPI tiles with a week chart, capacity bars, estimated vs recorded revenue, a profit waterfall;
+  - the phone-number step and the firewall demo are removed.
+- **Client view:**
+  - realistic Zalo phone: frame with Dynamic Island, status bar, OA header with badge, timestamps, sent and received bubbles, quick-reply pills, composer;
+  - a live "GuGu Studio của salon" panel reacts per step: inbox ping, real slots, 14:00 held then booked ("Đã đặt" pops), reminder sent, "Sẽ đến ✓" flip, hand-off then "Lan đã nhận";
+  - phones and widths under 1200 px show a compact strip under the phone instead.
+- **Step copy:** the old card slides up and out; the new one rolls in (number, then title, then body), with a progress segment and reserved height. Reduced motion uses a crossfade.
+- **Business tiles:** an elegant sentence per business with the feature named; no bare big numbers. The "illustrative" note stays.
+- **Pricing:**
+  - savings only on Basic: "Tiết kiệm mỗi tháng (ước tính): ~N giờ · giữ lại ~X doanh thu", with a disclaimer that it is an estimate, not money paid to the salon, and results may differ;
+  - Pro and Ultra lists read "Mọi thứ trong …, cộng thêm:" with real extras from the plan catalog; the wrong "Zalo inbox in Pro" is removed;
+  - CTAs are "Bắt đầu miễn phí", "Dùng thử Pro 14 ngày" and "Dùng thử miễn phí";
+  - the monthly/yearly toggle and "billed" lines are gone (Pro/Ultra prices are not set yet).
+- **Defaults:** the salon journey always opens first. Side views reset to "Chủ salon" once the story leaves the viewport, and Start always opens the salon journey. The hero plaque links are removed.
+- **Checks:** layout pass at 1440/1280/390/360 in Chromium and WebKit (vi and en): no problems. vi/en parity: 14/14.
+
 ## Three perspectives (owner, 2026-11-04)
 
 - **Tabs at the top of the story:** "Chủ salon · Khách hàng · Trợ lý AI". They show after the intro, or whenever a side perspective is open.

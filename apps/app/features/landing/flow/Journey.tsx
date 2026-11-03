@@ -11,7 +11,15 @@ import type { LandingNavActions } from "../useLandingNav";
 import { PHOTO } from "./media";
 import { ChatStory } from "./ChatStory";
 import { InsightsPanel } from "./Insights";
-import { AI_STEPS, CLIENT_STEPS, ViewTabs, type View } from "./Perspectives";
+import {
+  AI_STEPS,
+  AiViz,
+  CLIENT_STEPS,
+  ClientStrip,
+  ClientSystem,
+  ViewTabs,
+  type View,
+} from "./Perspectives";
 import { PayrollPanel } from "./Payroll";
 import { FeaturesPanel, OfficePanel, SwitchPanel } from "./Rooms";
 import { WalkPlayer, frameUrl, type Segment } from "./sequence";
@@ -165,6 +173,16 @@ export function Journey({
     // "Center view": book.ts onCenter shows it while the journey is partly out of the viewport. It is
     // appended to <body> so `position: fixed` is relative to the viewport (the RN Web scroll content would
     // otherwise be its containing block).
+    // The salon owner's journey is always the default: once the story leaves the viewport, a client or AI
+    // perspective resets, so scrolling back, the intro and Start always open "Chủ salon" (owner).
+    const stageEl = el.querySelector<HTMLElement>(".jr-stage");
+    const reset = new IntersectionObserver((es) => {
+      if (es.some((e) => !e.isIntersecting)) {
+        setView("salon");
+        ch.current?.setActive(true);
+      }
+    });
+    if (stageEl) reset.observe(stageEl);
     const centerBtn = document.createElement("button");
     centerBtn.type = "button";
     centerBtn.className = "jr-center";
@@ -285,6 +303,7 @@ export function Journey({
         : null;
     if (__DEV__) (window as unknown as { __book?: BookApi | null }).__book = ch.current;
     return () => {
+      reset.disconnect();
       centerBtn.remove();
       window.removeEventListener("resize", syncHero);
       ch.current?.destroy();
@@ -304,9 +323,8 @@ export function Journey({
         width={width}
         heroRef={heroBlock}
         onStart={() => {
-          ch.current?.start();
+          pick("salon");
         }}
-        onView={pick}
       />
       <div className="jr" ref={track}>
         <div className={`jr-stage v-${view}`}>
@@ -523,6 +541,8 @@ export function Journey({
             reduce={reduce}
             bg={PHOTO.customer}
             onFinish={exit}
+            side={(fired, latest) => <ClientSystem fired={fired} latest={latest} />}
+            strip={(latest) => <ClientStrip latest={latest} />}
             ends={[
               {
                 k: "views.toAi",
@@ -547,6 +567,8 @@ export function Journey({
             reduce={reduce}
             bg={PHOTO.calm169}
             onFinish={exit}
+            viz={(k) => <AiViz k={k} />}
+            windowImg={Asset.fromModule(screen(locale, "overview")).uri}
             ends={[
               {
                 k: "views.toClient",
