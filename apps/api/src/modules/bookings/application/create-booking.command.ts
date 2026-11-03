@@ -40,7 +40,7 @@ export interface CreateBookingRequest {
   source: BookingSource;
   selection: ServiceSelection & { staffId: string | null; startsAt: Date };
   /** E.164 already normalised; null only for anonymous walk-ins. */
-  customer: { name: string; phoneE164: string } | null;
+  customer: { name: string; phoneE164: string; email?: string | null } | null;
   note: string | null;
   overrides: readonly RuleOverride[];
   overrideReason: string | null;
@@ -191,6 +191,7 @@ export class CreateBookingCommand {
         customerUserId: actor.kind === "customer" ? actor.userId : null,
         customerName: req.customer?.name ?? null,
         customerPhoneE164: req.customer?.phoneE164 ?? null,
+        customerEmail: req.customer?.email?.trim().toLowerCase() || null,
         customerPhoneHash: phoneHash,
         customerNote: req.note,
         staffId: option.staffId,
@@ -276,6 +277,10 @@ export class CreateBookingCommand {
         source: req.source,
         staffId: option.staffId,
         startsAt: new Date(option.start).toISOString(),
+        // Booking version and actor: notification idempotency keys and "changed by someone else".
+        version: booking.version,
+        actorType: actor.kind,
+        actorId: actor.kind === "salon_member" ? actor.userId : null,
       },
     });
     if (applied.length > 0 && actor.kind === "salon_member") {

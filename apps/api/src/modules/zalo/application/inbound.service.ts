@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { createI18n } from "@gugu/localization";
 import { normalizeVnPhone } from "@gugu/domain";
 import { Prisma, type ZaloConversation } from "../../../infrastructure/prisma/generated/client";
+import { appendOutbox } from "../../../infrastructure/outbox/outbox.writer";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { ZALO_CLIENT, type ZaloClient } from "../client/zalo-client";
 import { runBot } from "../domain/bot/engine";
@@ -242,6 +243,14 @@ export class InboundService {
               update.staffNoticeAt = null;
               await tx.zaloStaffNotification.create({
                 data: { salonId, kind: "handoff_requested", conversationId: conv.id },
+              });
+              // Topic 11: bell + email for the team (ids only, no chat text or names).
+              await appendOutbox(tx, {
+                salonId,
+                aggregateType: "zalo_conversation",
+                aggregateId: conv.id,
+                type: "zalo.handoff_requested",
+                payload: { conversationId: conv.id },
               });
             } else {
               await tx.zaloStaffNotification.create({

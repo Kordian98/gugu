@@ -71,6 +71,7 @@ export class BookingAnonymiser {
       data: {
         customerName: ANONYMISED_CUSTOMER_NAME,
         customerPhoneE164: null,
+        customerEmail: null,
         customerPhoneHash: null,
         customerNote: null,
         customerUserId: null,

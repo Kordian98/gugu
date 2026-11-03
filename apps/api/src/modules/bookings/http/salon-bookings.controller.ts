@@ -197,7 +197,11 @@ export class SalonBookingsController {
           startsAt: new Date(body.startsAt),
         },
         customer: body.customer
-          ? { name: body.customer.name, phoneE164: normalizedPhone(body.customer.phone) }
+          ? {
+              name: body.customer.name,
+              phoneE164: normalizedPhone(body.customer.phone),
+              email: body.customer.email ?? null,
+            }
           : null,
         note: body.note ?? null,
         overrides: body.overrides,

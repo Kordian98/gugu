@@ -1,0 +1,173 @@
+{
+  "email": {
+    "when": "{{date}} at {{time}}",
+    "greeting": "Hi {{name}},",
+    "greetingNoName": "Hello,",
+    "labels": {
+      "service": "Service",
+      "when": "When",
+      "staff": "With",
+      "code": "Booking code",
+      "price": "Estimated price",
+      "address": "Address",
+      "phone": "Phone",
+      "customer": "Customer"
+    },
+    "payAtSalon": "You pay at the salon.",
+    "contact": "To change or cancel, please contact {{salon}}.",
+    "contactReply": "To change or cancel, just reply to this email or contact {{salon}}.",
+    "calendarHint": "Open the attachment to add the appointment to your calendar.",
+    "footer": "You are receiving this email because you booked with {{salon}}.",
+    "bookingConfirmed": {
+      "subject": "Your appointment at {{salon}} is confirmed",
+      "preheader": "{{when}} · {{service}}",
+      "heading": "Appointment confirmed",
+      "intro": "{{salon}} has confirmed your appointment. See you soon!"
+    },
+    "bookingRescheduled": {
+      "subject": "Your appointment at {{salon}} has a new time",
+      "preheader": "New time: {{when}}",
+      "heading": "Appointment rescheduled",
+      "intro": "{{salon}} has moved your appointment to the new time below."
+    },
+    "bookingCancelledBySalon": {
+      "subject": "Your appointment at {{salon}} was cancelled",
+      "preheader": "{{when}} · {{service}}",
+      "heading": "Appointment cancelled",
+      "intro": "Sorry, {{salon}} had to cancel your appointment on {{when}}. We hope to see you another time."
+    },
+    "bookingReminder": {
+      "subject": "Reminder: {{when}} at {{salon}}",
+      "preheader": "{{service}}",
+      "heading": "Your appointment is coming up",
+      "intro": "{{salon}} would like to remind you of your upcoming appointment."
+    },
+    "team": {
+      "open": "Open the calendar in GuGu Studio",
+      "openZalo": "Open the Zalo inbox",
+      "footer": "You can turn these emails off in the GuGu Studio notification bell.",
+      "salonBookingReceived": {
+        "subject": "New booking {{code}}: {{when}}",
+        "heading": "New booking",
+        "intro": "A new booking was just added at {{salon}}."
+      },
+      "salonBookingRescheduled": {
+        "subject": "Booking {{code}} moved to {{when}}",
+        "heading": "Booking rescheduled",
+        "intro": "Booking {{code}} at {{salon}} was moved to a new time."
+      },
+      "salonBookingCancelled": {
+        "subject": "Booking {{code}} on {{when}} was cancelled",
+        "heading": "Booking cancelled",
+        "intro": "Booking {{code}} at {{salon}} was cancelled. The time is free again."
+      },
+      "salonZaloHandoff": {
+        "subject": "A customer is waiting on Zalo – {{salon}}",
+        "heading": "A customer wants to talk to a person",
+        "intro": "A customer just asked for a staff member in the Zalo OA of {{salon}}. Please reply in the Zalo inbox."
+      }
+    }
+  },
+  "ics": {
+    "summary": "{{service}} – {{salon}}"
+  },
+  "panel": {
+    "settings": {
+      "title": "Notifications",
+      "intro": "Customer messages go by Zalo first. Email is sent only when the customer has an email address and Zalo could not reach them.",
+      "zaloConnected": "Zalo is connected: email is the fallback.",
+      "zaloNotConnected": "Zalo is not connected: customers with an email address get email.",
+      "customers": "To customers",
+      "team": "To the team",
+      "email": "Email",
+      "inApp": "Bell",
+      "reminders": "Reminders before the appointment",
+      "remindersHint": "Pick up to 3, between 30 minutes and 7 days before the start.",
+      "remindersMax": "You have picked 3 already.",
+      "replyTo": "Reply-to email for customers",
+      "replyToHint": "Customer replies go to this address. Leave empty if not needed.",
+      "replyToInvalid": "This email address doesn't look right.",
+      "readOnly": "Only the owner or a manager can change this."
+    },
+    "events": {
+      "booking_confirmed": "Booking confirmed",
+      "booking_rescheduled": "Booking rescheduled",
+      "booking_cancelled_by_salon": "Cancelled by the salon",
+      "booking_reminder": "Appointment reminder",
+      "salon_booking_received": "New booking added by someone else",
+      "salon_booking_rescheduled": "Booking moved by someone else",
+      "salon_booking_cancelled": "Booking cancelled",
+      "salon_zalo_handoff": "Customer waiting for staff on Zalo"
+    },
+    "offset": {
+      "minutes": "{{count}} min",
+      "hours": "{{count}} h",
+      "days": "{{count}} d"
+    },
+    "messages": {
+      "title": "Messages sent to the customer",
+      "empty": "No messages for this booking yet.",
+      "noEmail": "This booking has no customer email.",
+      "fallback": "Fallback for Zalo",
+      "scheduledFor": "Planned {{when}}",
+      "sentAt": "Sent {{when}}",
+      "createdAt": "Created {{when}}",
+      "reminder": "Reminder ({{offset}} before)",
+      "channels": {
+        "email": "Email",
+        "zalo_template": "Zalo (template)",
+        "zalo_chat": "Zalo (chat)"
+      },
+      "kinds": {
+        "booking_confirmed": "Booking confirmation",
+        "booking_rescheduled": "Rescheduled",
+        "booking_cancelled_by_salon": "Cancellation",
+        "booking_reminder": "Reminder",
+        "booking_confirmation": "Booking confirmation",
+        "booking_cancelled": "Cancellation",
+        "reminder_24h": "Reminder (24 hours before)",
+        "reminder_2h": "Reminder (2 hours before)",
+        "other": "Message"
+      },
+      "status": {
+        "scheduled": "Scheduled",
+        "queued": "Sending",
+        "sent": "Sent",
+        "delivered": "Delivered",
+        "failed": "Failed",
+        "skipped": "Not sent",
+        "rejected": "Refused by Zalo"
+      },
+      "reasons": {
+        "sent_via_zalo": "Delivered via Zalo",
+        "no_contact": "No Zalo and no email",
+        "disabled": "Turned off by the salon",
+        "stale": "The booking changed",
+        "superseded": "Replaced by a newer message",
+        "too_late": "Too late to send",
+        "provider_error": "The email server reported an error",
+        "window_closed": "Zalo messaging window closed",
+        "no_template": "No Zalo template yet",
+        "no_phone": "No phone number",
+        "quota_exceeded": "Zalo message limit reached",
+        "not_connected": "Zalo not connected",
+        "user_unreachable": "Customer unreachable on Zalo",
+        "other": "Other reason"
+      }
+    },
+    "inbox": {
+      "title": "Notifications",
+      "empty": "No notifications yet.",
+      "markAllRead": "Mark all as read",
+      "emailMe": "Also email me",
+      "unread": "Unread notifications: {{count}}",
+      "deletedCustomer": "Deleted customer",
+      "items": {
+        "salon_booking_received": "New booking {{code}}",
+        "salon_booking_rescheduled": "Booking {{code}} rescheduled",
+        "salon_booking_cancelled": "Booking {{code}} cancelled",
+        "salon_zalo_handoff": "A customer is waiting on Zalo"
+      }
+    }
+  }
+}

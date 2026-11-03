@@ -50,6 +50,8 @@ export const envSchema = z
     WEB_ORIGINS: z.string().default("http://localhost:8097"),
     SMTP_URL: z.url({ protocol: /^smtps?$/ }).default("smtp://127.0.0.1:11025"),
     MAIL_FROM: z.string().default("GuGu <no-reply@gugu.local>"),
+    /** Indicative cost of one email in VND for the per-salon send log (q33; SES ≈ 0.1 USD/1000). */
+    NOTIFY_EMAIL_COST_VND: z.coerce.number().int().min(0).default(3),
     /** Comma-separated OAuth client IDs; empty = provider disabled (Apple/Google sign-in, R5). */
     GOOGLE_CLIENT_IDS: z.string().default(""),
     APPLE_CLIENT_IDS: z.string().default(""),

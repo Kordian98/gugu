@@ -45,6 +45,7 @@ export const AUDIT_ACTIONS = [
   "zalo.settings_updated",
   "zalo.conversation_taken_over",
   "zalo.conversation_released",
+  "notifications.settings_updated",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

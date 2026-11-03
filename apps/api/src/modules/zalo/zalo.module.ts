@@ -7,6 +7,7 @@ import { ZaloBookingEventsHandler } from "./application/booking-events.handler";
 import { BookingUpdatesService } from "./application/booking-updates.service";
 import { BotPortsFactory } from "./application/bot-ports";
 import { ConnectionService } from "./application/connection.service";
+import { ZaloDeliveryQueries } from "./application/delivery.queries";
 import { InboundService } from "./application/inbound.service";
 import { InboxService } from "./application/inbox.service";
 import { OutboundService } from "./application/outbound.service";
@@ -34,6 +35,7 @@ const shared: Provider[] = [
   UsageQueries,
   ConnectionService,
   OutboundService,
+  ZaloDeliveryQueries,
   {
     provide: TokenCipher,
     inject: [AppConfig],
@@ -63,6 +65,8 @@ const shared: Provider[] = [
 @Module({
   controllers: [ZaloPanelController, ZaloWebhookController, ZaloEmulatorController],
   providers: [...shared, WebhookIngestService, InboxService, StatsQueries, EmulatorOnlyGuard],
+  // Topic 11 reads Zalo delivery state (route, outcome, booking timeline) through this.
+  exports: [ZaloDeliveryQueries],
 })
 export class ZaloModule {}
 
@@ -81,6 +85,6 @@ export class ZaloModule {}
     FunnelSweepService,
     ZaloJobs,
   ],
-  exports: [ZaloJobs, ZaloBookingEventsHandler],
+  exports: [ZaloJobs, ZaloBookingEventsHandler, ZaloDeliveryQueries],
 })
 export class ZaloWorkerModule {}

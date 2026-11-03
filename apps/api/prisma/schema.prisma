@@ -532,6 +532,7 @@ model Salon {
   zaloConnection         ZaloOaConnection?
   zaloConversations      ZaloConversation[]
   assistantConversations AssistantConversation[]
+  notificationSettings   NotificationSettings?
 
   @@unique([organizationId, id])
   @@index([organizationId])
@@ -1018,6 +1019,8 @@ model Booking {
   /// Contact snapshot of the person attending (no booking on behalf of others, q16). Null only for anonymous walk-ins.
   customerName         String?          @map("customer_name")
   customerPhoneE164    String?          @map("customer_phone_e164")
+  /// Optional email for confirmations and reminders (topic 11); entered by staff, never verified.
+  customerEmail        String?          @map("customer_email") @db.Citext
   /// HMAC of the E.164 phone: per-phone limits and reliability history without scanning raw numbers.
   customerPhoneHash    String?          @map("customer_phone_hash")
   identityVerified     Boolean          @default(false) @map("identity_verified")
@@ -1746,4 +1749,118 @@ model ZaloFunnelEvent {
   @@index([salonId, occurredAt])
   @@index([salonId, sessionId])
   @@map("zalo_funnel_events")
+}
+
+// ─── Notifications (topic 11; docs/domains/customer-notifications.md) ───────────────────────────
+// Customer emails (fallback after Zalo), staff in-app + email. Rows hold ids and codes only: the
+// recipient address is resolved at send time, so the log never stores emails or message bodies.
+
+enum NotificationDeliveryStatus {
+  /// Reminder waiting for its time (delayed BullMQ job).
+  scheduled
+  queued
+  sent
+  /// Provider confirmed delivery (webhook; not wired for SMTP).
+  delivered
+  failed
+  /// Not sent on purpose; `reason` says why (sent_via_zalo, no_email, disabled, stale, …).
+  skipped
+
+  @@map("notification_delivery_status")
+}
+
+enum NotificationAudience {
+  customer
+  team
+
+  @@map("notification_audience")
+}
+
+/// Per-salon notification settings (1:1). Reminder offsets live in salon_settings.reminder_offsets.
+model NotificationSettings {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  salonId      String   @unique @map("salon_id") @db.Uuid
+  /// `{ "<event>": { "<channel>": boolean } }`; a missing entry means the catalog default.
+  events       Json     @default("{}")
+  /// Replies to customer emails go here (the salon's own inbox).
+  replyToEmail String?  @map("reply_to_email") @db.Citext
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  salon Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+
+  @@map("notification_settings")
+}
+
+/// One planned send (one recipient × channel × event × variant). Unique idempotency key =
+/// sha256(event|entity|version|recipient|channel|variant), also the BullMQ job id.
+model NotificationDelivery {
+  id                String                     @id @default(uuid(7)) @db.Uuid
+  salonId           String                     @map("salon_id") @db.Uuid
+  bookingId         String?                    @map("booking_id") @db.Uuid
+  conversationId    String?                    @map("conversation_id") @db.Uuid
+  /// Notification event from the catalog, e.g. `booking.confirmed`, `salon.booking_cancelled`.
+  event             String
+  /// Reminder offset (`1440m`) or empty.
+  variant           String                     @default("")
+  audience          NotificationAudience
+  /// Team member recipient (audience = team); customers have no account (X23).
+  recipientUserId   String?                    @map("recipient_user_id") @db.Uuid
+  /// email | in_app
+  channel           String
+  idempotencyKey    String                     @unique @map("idempotency_key")
+  status            NotificationDeliveryStatus
+  /// Skip/failure reason code.
+  reason            String?
+  /// Set when this send only goes out if the primary channel (zalo_template) did not deliver.
+  fallbackOf        String?                    @map("fallback_of")
+  locale            Locale                     @default(vi)
+  scheduledFor      DateTime?                  @map("scheduled_for") @db.Timestamptz(6)
+  /// Send lease: a crashed worker's claim expires and the retry may take over.
+  lockedUntil       DateTime?                  @map("locked_until") @db.Timestamptz(6)
+  attempts          Int                        @default(0)
+  providerMessageId String?                    @map("provider_message_id")
+  /// Billable units (1 per email) and estimated cost in VND (q33: tracked per salon).
+  units             Int                        @default(0)
+  costEstimateVnd   Int                        @default(0) @map("cost_estimate_vnd")
+  /// Booking version the send was planned for (reminders: stale versions are dropped).
+  entityVersion     Int?                       @map("entity_version")
+  /// Ids and codes only: source event id, Zalo dedup key, planned start.
+  meta              Json                       @default("{}")
+  sentAt            DateTime?                  @map("sent_at") @db.Timestamptz(6)
+  createdAt         DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([salonId, bookingId, createdAt])
+  @@index([status, scheduledFor])
+  @@index([salonId, createdAt])
+  @@map("notification_deliveries")
+}
+
+/// Staff in-app inbox item (bell). Display data is joined at read time; nothing personal is copied.
+model Notification {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  salonId        String    @map("salon_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  event          String
+  bookingId      String?   @map("booking_id") @db.Uuid
+  conversationId String?   @map("conversation_id") @db.Uuid
+  /// The delivery that created it (one inbox item per delivery).
+  deliveryId     String    @unique @map("delivery_id") @db.Uuid
+  readAt         DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, userId, createdAt])
+  @@map("notifications")
+}
+
+/// A team member's own choice for this salon (email copies of team notifications).
+model NotificationMemberPref {
+  salonId      String   @map("salon_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  emailEnabled Boolean  @default(true) @map("email_enabled")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([salonId, userId])
+  @@map("notification_member_prefs")
 }

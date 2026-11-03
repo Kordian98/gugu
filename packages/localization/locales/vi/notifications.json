@@ -1,0 +1,173 @@
+{
+  "email": {
+    "when": "{{time}}, {{date}}",
+    "greeting": "Chào {{name}},",
+    "greetingNoName": "Xin chào,",
+    "labels": {
+      "service": "Dịch vụ",
+      "when": "Thời gian",
+      "staff": "Nhân viên",
+      "code": "Mã lịch hẹn",
+      "price": "Giá dự kiến",
+      "address": "Địa chỉ",
+      "phone": "Điện thoại",
+      "customer": "Khách hàng"
+    },
+    "payAtSalon": "Thanh toán trực tiếp tại salon.",
+    "contact": "Nếu cần đổi hoặc hủy lịch, vui lòng liên hệ {{salon}}.",
+    "contactReply": "Nếu cần đổi hoặc hủy lịch, bạn chỉ cần trả lời email này hoặc liên hệ {{salon}}.",
+    "calendarHint": "Mở tệp đính kèm để thêm lịch hẹn vào lịch của bạn.",
+    "footer": "Bạn nhận được email này vì đã đặt lịch tại {{salon}}.",
+    "bookingConfirmed": {
+      "subject": "Lịch hẹn tại {{salon}} đã được xác nhận",
+      "preheader": "{{when}} · {{service}}",
+      "heading": "Lịch hẹn đã được xác nhận",
+      "intro": "{{salon}} xác nhận lịch hẹn của bạn. Hẹn gặp bạn nhé!"
+    },
+    "bookingRescheduled": {
+      "subject": "Lịch hẹn tại {{salon}} đã được đổi giờ",
+      "preheader": "Giờ mới: {{when}}",
+      "heading": "Lịch hẹn đã được đổi giờ",
+      "intro": "{{salon}} đã chuyển lịch hẹn của bạn sang thời gian mới dưới đây."
+    },
+    "bookingCancelledBySalon": {
+      "subject": "Lịch hẹn tại {{salon}} đã bị hủy",
+      "preheader": "{{when}} · {{service}}",
+      "heading": "Lịch hẹn đã bị hủy",
+      "intro": "Rất tiếc, {{salon}} đã hủy lịch hẹn của bạn lúc {{when}}. Mong được đón bạn vào dịp khác."
+    },
+    "bookingReminder": {
+      "subject": "Nhắc lịch hẹn lúc {{when}} tại {{salon}}",
+      "preheader": "{{service}}",
+      "heading": "Bạn sắp có lịch hẹn",
+      "intro": "{{salon}} xin nhắc bạn lịch hẹn sắp tới."
+    },
+    "team": {
+      "open": "Mở lịch trong GuGu Studio",
+      "openZalo": "Mở hộp thư Zalo",
+      "footer": "Anh/chị có thể tắt email này trong chuông thông báo của GuGu Studio.",
+      "salonBookingReceived": {
+        "subject": "Lịch hẹn mới {{code}}: {{when}}",
+        "heading": "Có lịch hẹn mới",
+        "intro": "Một lịch hẹn mới vừa được thêm tại {{salon}}."
+      },
+      "salonBookingRescheduled": {
+        "subject": "Lịch hẹn {{code}} đổi sang {{when}}",
+        "heading": "Lịch hẹn đã được đổi giờ",
+        "intro": "Lịch hẹn {{code}} tại {{salon}} đã được chuyển sang thời gian mới."
+      },
+      "salonBookingCancelled": {
+        "subject": "Lịch hẹn {{code}} lúc {{when}} đã bị hủy",
+        "heading": "Lịch hẹn đã bị hủy",
+        "intro": "Lịch hẹn {{code}} tại {{salon}} đã bị hủy. Khung giờ này đã trống."
+      },
+      "salonZaloHandoff": {
+        "subject": "Khách đang chờ trên Zalo – {{salon}}",
+        "heading": "Khách muốn nói chuyện với nhân viên",
+        "intro": "Một khách hàng vừa nhờ gặp nhân viên trong Zalo OA của {{salon}}. Anh/chị vào hộp thư Zalo để trả lời nhé."
+      }
+    }
+  },
+  "ics": {
+    "summary": "{{service}} – {{salon}}"
+  },
+  "panel": {
+    "settings": {
+      "title": "Thông báo",
+      "intro": "Tin nhắn cho khách được gửi qua Zalo trước. Email chỉ được gửi khi khách có email và không nhận được tin qua Zalo.",
+      "zaloConnected": "Zalo đã kết nối: email là phương án dự phòng.",
+      "zaloNotConnected": "Chưa kết nối Zalo: khách có email sẽ nhận tin qua email.",
+      "customers": "Gửi cho khách",
+      "team": "Gửi cho đội ngũ",
+      "email": "Email",
+      "inApp": "Chuông",
+      "reminders": "Nhắc lịch trước giờ hẹn",
+      "remindersHint": "Chọn tối đa 3 mốc, từ 30 phút đến 7 ngày trước giờ hẹn.",
+      "remindersMax": "Đã chọn đủ 3 mốc.",
+      "replyTo": "Email nhận phản hồi của khách",
+      "replyToHint": "Khách trả lời email sẽ gửi đến địa chỉ này. Để trống nếu không cần.",
+      "replyToInvalid": "Email chưa đúng định dạng.",
+      "readOnly": "Chỉ chủ salon hoặc quản lý được thay đổi."
+    },
+    "events": {
+      "booking_confirmed": "Xác nhận lịch hẹn",
+      "booking_rescheduled": "Đổi giờ lịch hẹn",
+      "booking_cancelled_by_salon": "Salon hủy lịch hẹn",
+      "booking_reminder": "Nhắc lịch hẹn",
+      "salon_booking_received": "Lịch hẹn mới do người khác thêm",
+      "salon_booking_rescheduled": "Lịch hẹn được người khác đổi giờ",
+      "salon_booking_cancelled": "Lịch hẹn bị hủy",
+      "salon_zalo_handoff": "Khách chờ nhân viên trên Zalo"
+    },
+    "offset": {
+      "minutes": "{{count}} phút",
+      "hours": "{{count}} giờ",
+      "days": "{{count}} ngày"
+    },
+    "messages": {
+      "title": "Tin nhắn đã gửi cho khách",
+      "empty": "Chưa có tin nhắn nào cho lịch hẹn này.",
+      "noEmail": "Lịch hẹn chưa có email của khách.",
+      "fallback": "Dự phòng cho Zalo",
+      "scheduledFor": "Dự kiến {{when}}",
+      "sentAt": "Đã gửi {{when}}",
+      "createdAt": "Tạo lúc {{when}}",
+      "reminder": "Nhắc lịch ({{offset}} trước)",
+      "channels": {
+        "email": "Email",
+        "zalo_template": "Zalo (tin mẫu)",
+        "zalo_chat": "Zalo (tin tư vấn)"
+      },
+      "kinds": {
+        "booking_confirmed": "Xác nhận lịch hẹn",
+        "booking_rescheduled": "Đổi giờ",
+        "booking_cancelled_by_salon": "Hủy lịch",
+        "booking_reminder": "Nhắc lịch",
+        "booking_confirmation": "Xác nhận lịch hẹn",
+        "booking_cancelled": "Hủy lịch",
+        "reminder_24h": "Nhắc lịch (24 giờ trước)",
+        "reminder_2h": "Nhắc lịch (2 giờ trước)",
+        "other": "Tin nhắn"
+      },
+      "status": {
+        "scheduled": "Đã lên lịch",
+        "queued": "Đang gửi",
+        "sent": "Đã gửi",
+        "delivered": "Đã nhận",
+        "failed": "Gửi lỗi",
+        "skipped": "Không gửi",
+        "rejected": "Zalo từ chối"
+      },
+      "reasons": {
+        "sent_via_zalo": "Khách đã nhận qua Zalo",
+        "no_contact": "Khách không có Zalo và email",
+        "disabled": "Salon đã tắt loại tin này",
+        "stale": "Lịch hẹn đã thay đổi",
+        "superseded": "Thay bằng tin mới hơn",
+        "too_late": "Đã quá giờ gửi",
+        "provider_error": "Máy chủ email báo lỗi",
+        "window_closed": "Đã quá hạn nhắn tin Zalo",
+        "no_template": "Chưa có tin mẫu Zalo",
+        "no_phone": "Chưa có số điện thoại",
+        "quota_exceeded": "Hết hạn mức tin Zalo",
+        "not_connected": "Zalo chưa kết nối",
+        "user_unreachable": "Không liên lạc được qua Zalo",
+        "other": "Lý do khác"
+      }
+    },
+    "inbox": {
+      "title": "Thông báo",
+      "empty": "Chưa có thông báo nào.",
+      "markAllRead": "Đánh dấu đã đọc",
+      "emailMe": "Gửi kèm email cho tôi",
+      "unread": "{{count}} thông báo chưa đọc",
+      "deletedCustomer": "Khách đã xóa tài khoản",
+      "items": {
+        "salon_booking_received": "Lịch hẹn mới {{code}}",
+        "salon_booking_rescheduled": "Lịch hẹn {{code}} đã đổi giờ",
+        "salon_booking_cancelled": "Lịch hẹn {{code}} đã bị hủy",
+        "salon_zalo_handoff": "Khách đang chờ trên Zalo"
+      }
+    }
+  }
+}

@@ -2,3 +2,9 @@
 export { ZaloModule, ZaloWorkerModule } from "./zalo.module";
 export { ZaloJobs } from "./application/zalo-jobs";
 export { ZaloBookingEventsHandler } from "./application/booking-events.handler";
+export {
+  ZaloDeliveryQueries,
+  type ZaloBookingSend,
+  type ZaloRoute,
+  type ZaloSendOutcome,
+} from "./application/delivery.queries";
