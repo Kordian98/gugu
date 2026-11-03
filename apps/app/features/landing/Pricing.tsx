@@ -25,7 +25,11 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
   return (
     <Container className="gap-10 py-20">
       <View className="gap-6 min-[900px]:flex-row min-[900px]:items-end min-[900px]:justify-between">
-        <SectionHead eyebrow={t("pricing.eyebrow")} title={t("pricing.title")} />
+        <SectionHead
+          eyebrow={t("pricing.eyebrow")}
+          title={t("pricing.titlePre")}
+          glow={{ words: t("pricing.titleGlow"), after: t("pricing.titlePost") }}
+        />
         <View
           accessibilityRole="radiogroup"
           className="flex-row self-start rounded-full bg-white p-1"
@@ -48,6 +52,8 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
           ))}
         </View>
       </View>
+      {/* Benefits first, right under the headline and next to a CTA (owner): the calculator. */}
+      <RoiCalculator stacked={stacked} onStart={nav.trial} />
       <View className={stacked ? "gap-5" : "flex-row gap-5"}>
         {PLANS.map((plan) => {
           const pro = plan === "pro";
@@ -147,7 +153,6 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
       <Text size={14.5} lineHeight={22} color={color.muted} style={{ maxWidth: 760 }}>
         {t("pricing.trial", { price })}
       </Text>
-      <RoiCalculator stacked={stacked} />
     </Container>
   );
 }

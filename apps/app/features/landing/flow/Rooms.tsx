@@ -416,7 +416,11 @@ export function Businesses() {
       <div className="bz-head">
         <div>
           <div className="fl-eye rv">{t("flow.biz.eyebrow")}</div>
-          <h2 className="fl-h rv">{t("flow.biz.title")}</h2>
+          <h2 className="fl-h rv">
+            {t("flow.biz.titlePre")}
+            <span className="fy-glow">{t("flow.biz.titleGlow")}</span>
+            {t("flow.biz.titlePost")}
+          </h2>
         </div>
         <div className="bz-nav">
           <span>{t("flow.biz.hint")}</span>

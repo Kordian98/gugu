@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Text, color } from "@gugu/design-system";
+import { Button, GradientText, Text, color, font, gradient } from "@gugu/design-system";
 import { formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -89,7 +89,7 @@ function Stepper({
   );
 }
 
-export function RoiCalculator({ stacked }: { stacked: boolean }) {
+export function RoiCalculator({ stacked, onStart }: { stacked: boolean; onStart: () => void }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const [weekly, setWeekly] = useState(80);
@@ -113,9 +113,18 @@ export function RoiCalculator({ stacked }: { stacked: boolean }) {
       <Text size={13.5} color={dark ? color.lilac100 : color.ink2}>
         {t(`roi.${k}`)}
       </Text>
-      <Text role="display" size={34} lineHeight={38} color={dark ? color.white : color.ink}>
-        {value}
-      </Text>
+      {dark ? (
+        <Text role="display" size={40} lineHeight={44} color={color.white}>
+          {value}
+        </Text>
+      ) : (
+        <GradientText
+          colors={gradient.glowHere}
+          style={{ fontFamily: font.display, fontSize: 40, lineHeight: 44 }}
+        >
+          {value}
+        </GradientText>
+      )}
       <Text size={13} color={dark ? color.lilac100 : color.ink2}>
         {sub}
       </Text>
@@ -164,11 +173,21 @@ export function RoiCalculator({ stacked }: { stacked: boolean }) {
         {tile("money", vnd(recovered), t("roi.moneySub"))}
         {tile("cost", vnd(0), t("roi.costSub", { price: vnd(BASIC_MONTHLY_VND) }), true)}
       </View>
-      <Text role="uiSemiBold" size={16} color={color.ink}>
-        {recovered >= BASIC_MONTHLY_VND * 2
-          ? t("roi.verdict", { x: multiple })
-          : t("roi.verdictLow", { price: vnd(BASIC_MONTHLY_VND) })}
-      </Text>
+      <View className={stacked ? "gap-4" : "flex-row items-center justify-between gap-6"}>
+        <Text role="uiSemiBold" size={17} color={color.ink} style={{ flexShrink: 1 }}>
+          {recovered >= BASIC_MONTHLY_VND * 2
+            ? t("roi.verdict", { x: multiple })
+            : t("roi.verdictLow", { price: vnd(BASIC_MONTHLY_VND) })}
+        </Text>
+        <Button
+          label={t("roi.cta")}
+          onPress={onStart}
+          height={56}
+          fontSize={16.5}
+          paddingX={30}
+          trailingArrow
+        />
+      </View>
       <Text size={12.5} lineHeight={19} color={color.ink2}>
         {t("roi.note")}
       </Text>

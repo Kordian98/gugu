@@ -18,8 +18,8 @@ import { gsap } from "gsap";
  *   touch swipe per page. ↑ ↓ PgUp PgDn Space and vertical swipes scroll the page. Scroll, swipes, ← and chapters are ignored
  *   while the intro plays; Next / → / ↓ again speed it up. A turn plays the timeline from one composed page to
  *   the next at the original pacing and cannot stop half-way. Pressing Next / → again during a forward
- *   turn (or Prev / ← during a backward one) speeds it up to finish within 0.45 s, without skipping a
- *   page; the opposite direction reverses it. Page 1 has no Prev (nothing replays).
+ *   turn (or Prev / ← during a backward one) speeds it up early in the turn, or (in its second half, which already
+ *   looks still) finishes it and turns one page on; the opposite direction reverses it. Page 1 has no Prev (nothing replays).
  * - Reduced motion: the intro and every turn are short crossfades.
  */
 
@@ -213,6 +213,19 @@ export function book(o: Opts): BookApi {
     if (adjacent) return clamp(dt * 9, 0.8, 2.6);
     return clamp(dt * 14, 1.2, 6);
   };
+  /**
+   * A press in the same direction while a turn runs: early in the turn it speeds the turn up; in the
+   * second half (where the out-eased motion is already nearly still, so it looks finished) it completes
+   * the turn at once and the press counts as the next page — one press, one visible step (owner).
+   */
+  const pressDuringTurn = (dir: 1 | -1) => {
+    if (!turn) return;
+    const done = turn.duration() > 0 ? turn.time() / turn.duration() : 1;
+    if (done >= 0.5) {
+      queued = dir;
+      turn.progress(1);
+    } else fastForward();
+  };
   const fastForward = () => {
     if (!turn) return;
     const rem = turn.duration() - turn.time();
@@ -230,9 +243,9 @@ export function book(o: Opts): BookApi {
     if (then) after = then;
   };
   function next() {
-    // Next / → again while the intro plays speeds it up (owner); nothing is queued, no page is skipped.
+    // Next / → again while the intro plays: speeds it up, or (late in it) finishes it and turns on.
     if (intro === "playing") {
-      fastForward();
+      pressDuringTurn(1);
       return;
     }
     if (intro === "todo") {
@@ -242,7 +255,7 @@ export function book(o: Opts): BookApi {
     if (turn) {
       // Next / → while a page turns: speed the running animation up (no extra page). Against a running
       // backward turn it turns forward again.
-      if (turnDir > 0) fastForward();
+      if (turnDir > 0) pressDuringTurn(1);
       else play(page + 1, durFor(page + 1, true));
       return;
     }
@@ -257,7 +270,7 @@ export function book(o: Opts): BookApi {
     if (turn) {
       queued = 0;
       // Prev / ← while a page turns back: speed it up; against a forward turn: reverse it.
-      if (turnDir < 0) fastForward();
+      if (turnDir < 0) pressDuringTurn(-1);
       else if (page > 1) play(page - 1, durFor(page - 1, true));
       return;
     }
@@ -384,7 +397,7 @@ export function book(o: Opts): BookApi {
     if (!focusOk) return;
     if (intro === "playing") {
       e.preventDefault(); // scroll keys and ← are ignored; → / ↓ / PgDn / Space speed the intro up
-      if (k === "ArrowRight" || down) fastForward();
+      if (k === "ArrowRight" || down) pressDuringTurn(1);
       return;
     }
     // ← → turn pages (and → / ↓ / PgDn / Space at the hero commit the intro, like a small scroll).

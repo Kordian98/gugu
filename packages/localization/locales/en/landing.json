@@ -151,8 +151,7 @@
     "aesthetics": "Aesthetics & makeup"
   },
   "pricing": {
-    "eyebrow": "Plans",
-    "title": "Simple plans for every salon",
+    "eyebrow": "Pricing",
     "monthly": "Monthly",
     "yearly": "Yearly",
     "priceSoon": "Price coming soon",
@@ -179,7 +178,10 @@
     "basicFree": "Free for the first year",
     "basicThen": "then {{price}}/month",
     "basicCta": "Start free",
-    "noCard": "No card or payment needed to start."
+    "noCard": "No card or payment needed to start.",
+    "titlePre": "More free hours, more revenue. Year one is ",
+    "titleGlow": "free",
+    "titlePost": "."
   },
   "cta": {
     "title": "Ready to glow? Your first year of Basic is free.",
@@ -394,7 +396,6 @@
     },
     "biz": {
       "eyebrow": "Every kind of beauty business",
-      "title": "Built for the way you work.",
       "hint": "Swipe, drag or use the arrows",
       "prev": "Previous",
       "next": "Next",
@@ -428,7 +429,10 @@
         "b": "Short services that fit between longer ones.",
         "c": "Brow shaping · 30 min"
       },
-      "note": "Illustrative photos, not customers."
+      "note": "Illustrative photos, not customers.",
+      "titlePre": "Nails, hair, spa or lashes: ",
+      "titleGlow": "fuller chairs",
+      "titlePost": ", less busywork."
     },
     "hud": {
       "c1": "Front desk",
@@ -495,8 +499,8 @@
     }
   },
   "roi": {
-    "title": "What you get back, and what you put in",
-    "sub": "Pick your bookings per week and your average service price.",
+    "title": "How much does your salon win back every month?",
+    "sub": "Set your bookings and service price; the numbers update live.",
     "weekly": "Bookings per week",
     "perWeek": "{{n}} / week",
     "price": "Average service price",
@@ -511,6 +515,7 @@
     "costSub": "Basic is free for the first year, then {{price}}/month",
     "verdict": "After the first year, the revenue kept is about {{x}}× the Basic fee (estimate).",
     "verdictLow": "Free for the first year; from year two Basic is {{price}}/month.",
-    "note": "Illustrative estimate, not a promise: assumes about 3 minutes of admin per booking (confirming, reminding, rescheduling), 10% no-shows and 25% fewer with reminders (BMJ Open 2016, clinics). Your salon's results may differ."
+    "note": "Illustrative estimate, not a promise: assumes about 3 minutes of admin per booking (confirming, reminding, rescheduling), 10% no-shows and 25% fewer with reminders (BMJ Open 2016, clinics). Your salon's results may differ.",
+    "cta": "Start free"
   }
 }

@@ -151,8 +151,7 @@
     "aesthetics": "Thẩm mỹ & trang điểm"
   },
   "pricing": {
-    "eyebrow": "Các gói",
-    "title": "Gói đơn giản cho mọi salon",
+    "eyebrow": "Bảng giá",
     "monthly": "Theo tháng",
     "yearly": "Theo năm",
     "priceSoon": "Giá sắp công bố",
@@ -179,7 +178,10 @@
     "basicFree": "Miễn phí năm đầu",
     "basicThen": "sau đó {{price}}/tháng",
     "basicCta": "Bắt đầu miễn phí",
-    "noCard": "Không cần thẻ hay thanh toán khi đăng ký."
+    "noCard": "Không cần thẻ hay thanh toán khi đăng ký.",
+    "titlePre": "Thêm giờ rảnh, thêm doanh thu. Năm đầu ",
+    "titleGlow": "miễn phí",
+    "titlePost": "."
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
@@ -394,7 +396,6 @@
     },
     "biz": {
       "eyebrow": "Mọi loại hình làm đẹp",
-      "title": "Phù hợp với cách bạn làm việc.",
       "hint": "Vuốt, kéo hoặc dùng mũi tên",
       "prev": "Trước",
       "next": "Tiếp",
@@ -428,7 +429,10 @@
         "b": "Dịch vụ ngắn, xếp xen giữa các lịch dài.",
         "c": "Tạo dáng chân mày · 30 phút"
       },
-      "note": "Ảnh minh hoạ, không phải khách hàng."
+      "note": "Ảnh minh hoạ, không phải khách hàng.",
+      "titlePre": "Nail, tóc, spa hay mi: ghế ",
+      "titleGlow": "kín hơn",
+      "titlePost": ", bớt việc vặt."
     },
     "hud": {
       "c1": "Quầy lễ tân",
@@ -495,8 +499,8 @@
     }
   },
   "roi": {
-    "title": "Bạn lấy lại được bao nhiêu, và bỏ ra bao nhiêu?",
-    "sub": "Chọn số lịch hẹn mỗi tuần và giá dịch vụ trung bình của salon.",
+    "title": "Mỗi tháng, salon của bạn lấy lại được bao nhiêu?",
+    "sub": "Kéo số lịch hẹn và giá dịch vụ của salon, con số tự cập nhật.",
     "weekly": "Lịch hẹn mỗi tuần",
     "perWeek": "{{n}} / tuần",
     "price": "Giá dịch vụ trung bình",
@@ -511,6 +515,7 @@
     "costSub": "gói Basic miễn phí năm đầu, sau đó {{price}}/tháng",
     "verdict": "Sau năm đầu, doanh thu giữ lại ước tính gấp khoảng {{x}} lần phí gói Basic.",
     "verdictLow": "Năm đầu miễn phí; từ năm thứ hai, gói Basic là {{price}}/tháng.",
-    "note": "Ước tính minh hoạ, không phải cam kết: giả định khoảng 3 phút làm việc cho mỗi lịch hẹn (xác nhận, nhắc, đổi lịch), 10% khách không đến và giảm 25% nhờ nhắc lịch (BMJ Open 2016, phòng khám). Kết quả thực tế của salon có thể khác."
+    "note": "Ước tính minh hoạ, không phải cam kết: giả định khoảng 3 phút làm việc cho mỗi lịch hẹn (xác nhận, nhắc, đổi lịch), 10% khách không đến và giảm 25% nhờ nhắc lịch (BMJ Open 2016, phòng khám). Kết quả thực tế của salon có thể khác.",
+    "cta": "Bắt đầu miễn phí"
   }
 }
