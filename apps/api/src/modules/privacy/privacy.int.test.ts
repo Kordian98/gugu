@@ -51,7 +51,7 @@ describe("privacy tools (integration)", () => {
   /** Each seeded client books on its own day so slots never collide. */
   let slot = 0;
 
-  const api = (method: "get" | "post", path: string, bearer: string, body?: object) => {
+  const api = (method: "get" | "post" | "patch", path: string, bearer: string, body?: object) => {
     const r = request(http(app))[method](`/api/v1/${path}`).set("authorization", bearer);
     return body ? r.send(body) : r;
   };
@@ -95,7 +95,7 @@ describe("privacy tools (integration)", () => {
     return hit.id;
   };
 
-  /** A client with an upcoming and a past (completed) booking, a note, a Zalo chat and sends. */
+  /** A client with an upcoming and a past (completed) booking, a stored email, a note and a Zalo chat. */
   const seedClient = async (salon: BookableSalonFixture, bearer: string) => {
     const phone = randomPhone();
     slot += 1;
@@ -121,6 +121,11 @@ describe("privacy tools (integration)", () => {
       },
     });
     const profileId = await profileFor(salon, bearer, phone.e164);
+    // q87: the email is stored on the profile (never used for sending).
+    const email = `ha.${phone.local}@example.vn`;
+    await api("patch", `salons/${salon.salonId}/customers/${profileId}`, bearer, {
+      email,
+    }).expect(204);
     await api("post", `salons/${salon.salonId}/customers/${profileId}/notes`, bearer, {
       body: "Dị ứng tinh dầu",
     }).expect(204);
@@ -170,22 +175,7 @@ describe("privacy tools (integration)", () => {
         occurredAt: new Date(),
       },
     });
-    const delivery = (bookingId: string, reservedAt: Date) => ({
-      salonId: salon.salonId,
-      bookingId,
-      event: "booking.confirmed",
-      audience: "customer" as const,
-      channel: "email",
-      idempotencyKey: `idem-${randomUUID()}`,
-      status: "sent" as const,
-      recipientKey: `rk-${randomUUID()}`,
-      reservedAt,
-      sentAt: reservedAt,
-    });
-    await prisma.notificationDelivery.createMany({
-      data: [delivery(past, new Date(Date.now() - 3 * DAY)), delivery(upcoming, new Date())],
-    });
-    return { phone, upcoming, past, profileId, conv };
+    return { phone, upcoming, past, profileId, conv, email };
   };
 
   beforeAll(async () => {
@@ -279,17 +269,20 @@ describe("privacy tools (integration)", () => {
         ).body,
       );
       const { json, text } = res;
-      expect(json.client).toMatchObject({ id: c.profileId, phone: c.phone.e164 });
+      expect(json.client).toMatchObject({
+        id: c.profileId,
+        phone: c.phone.e164,
+        email: c.email,
+      });
       expect(json.bookings.map((x) => x.id).sort()).toEqual([c.upcoming, c.past].sort());
       expect(json.bookings.find((x) => x.id === c.past)?.history.some((h) => h.reasonText)).toBe(
         true,
       );
       expect(json.notes.map((n) => n.body)).toEqual(["Dị ứng tinh dầu"]);
       expect(json.zalo[0]?.messages.map((m) => m.text)).toEqual(["Cho em đặt lịch", "Dạ vâng"]);
-      expect(json.notificationDeliveries).toHaveLength(2);
-      expect(JSON.stringify(json)).not.toContain("rk-"); // recipient hashes are not exported
       expect(text).toContain("Trần Thu Hà");
       expect(text).toContain("Dị ứng tinh dầu");
+      expect(text).toContain(c.email);
       expect(text).toContain("Cho em đặt lịch");
       expect(text).toContain(locale === "vi" ? "Lịch hẹn" : "Bookings");
     }
@@ -329,7 +322,6 @@ describe("privacy tools (integration)", () => {
       expect(r).toMatchObject({
         customerName: "[deleted]",
         customerPhoneE164: null,
-        customerEmail: null,
         customerPhoneHash: null,
         customerNote: null,
       });
@@ -362,12 +354,12 @@ describe("privacy tools (integration)", () => {
     });
     expect(await prisma.zaloWebhookEvent.count({ where: { oaId: c.conv.oaId } })).toBe(0);
 
-    // Notification log kept (ids/codes); recipient hash cleared outside the 24 h cap window only.
-    const deliveries = await prisma.notificationDelivery.findMany({
-      where: { bookingId: { in: [c.upcoming, c.past] }, idempotencyKey: { startsWith: "idem-" } },
-    });
-    expect(deliveries.find((d) => d.bookingId === c.past)?.recipientKey).toBeNull();
-    expect(deliveries.find((d) => d.bookingId === c.upcoming)?.recipientKey).not.toBeNull();
+    // The stored email went with the profile (q87): nothing in the salon still holds it.
+    expect(
+      await prisma.customerSalonProfile.count({
+        where: { salonId: a.salonId, email: c.email },
+      }),
+    ).toBe(0);
 
     // The CRM shows the bookings as "deleted customer" and never re-creates the client.
     const view = salonBookingSchema.parse(
@@ -638,25 +630,23 @@ describe("privacy tools (integration)", () => {
     ).rejects.toThrow(/append-only/);
   });
 
-  it("retention purges old notification log rows, stale secrets and recipient hashes", async () => {
+  it("retention purges old notification log rows and stale secrets", async () => {
     const now = new Date();
     const old = new Date(now);
     old.setUTCMonth(old.getUTCMonth() - 13);
     const recent = new Date(now.getTime() - 3 * DAY);
-    const mk = (createdAt: Date, recipientKey: string | null) => ({
+    const mk = (createdAt: Date) => ({
       salonId: a.salonId,
-      event: "booking.confirmed",
-      audience: "customer" as const,
+      event: "salon.booking_received",
+      audience: "team" as const,
+      recipientUserId: a.ownerUserId,
       channel: "email",
       idempotencyKey: `ret-${randomUUID()}`,
       status: "sent" as const,
-      recipientKey,
-      reservedAt: createdAt,
       createdAt,
     });
-    const oldRow = await prisma.notificationDelivery.create({ data: mk(old, null) });
-    const recentRow = await prisma.notificationDelivery.create({ data: mk(recent, "rk-recent") });
-    const freshRow = await prisma.notificationDelivery.create({ data: mk(now, "rk-fresh") });
+    const oldRow = await prisma.notificationDelivery.create({ data: mk(old) });
+    const recentRow = await prisma.notificationDelivery.create({ data: mk(recent) });
     const inbox = await prisma.notification.create({
       data: {
         salonId: a.salonId,
@@ -689,12 +679,7 @@ describe("privacy tools (integration)", () => {
     expect(counts.notificationDeliveries).toBeGreaterThanOrEqual(1);
     expect(await prisma.notificationDelivery.count({ where: { id: oldRow.id } })).toBe(0);
     expect(await prisma.notification.count({ where: { id: inbox.id } })).toBe(0);
-    expect(
-      await prisma.notificationDelivery.findUniqueOrThrow({ where: { id: recentRow.id } }),
-    ).toMatchObject({ recipientKey: null });
-    expect(
-      await prisma.notificationDelivery.findUniqueOrThrow({ where: { id: freshRow.id } }),
-    ).toMatchObject({ recipientKey: "rk-fresh" });
+    expect(await prisma.notificationDelivery.count({ where: { id: recentRow.id } })).toBe(1);
     expect(await prisma.session.count({ where: { id: ended.id } })).toBe(0);
     expect(await prisma.magicLinkToken.count({ where: { id: link.id } })).toBe(0);
     // The owner's live sessions survive.

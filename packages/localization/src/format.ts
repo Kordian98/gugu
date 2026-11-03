@@ -121,3 +121,8 @@ export function formatLocalDate(date: string, locale: AppLocale): string {
     timeZone: "UTC",
   }).format(new Date(`${date}T12:00:00Z`));
 }
+
+/** Percentage points 12.5 → "12,5%" (vi) / "12.5%" (en), 10 → "10%"; up to two decimals. */
+export function formatPercentPoints(points: number, locale: AppLocale): string {
+  return `${new Intl.NumberFormat(tag(locale), { maximumFractionDigits: 2 }).format(points)}%`;
+}

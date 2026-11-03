@@ -23,7 +23,22 @@ const oaMessages = (emu: Page) => emu.locator("#chat .msg.oa");
 async function botTap(emu: Page, title: string | RegExp, reply: string | RegExp): Promise<void> {
   const matching = oaMessages(emu).filter({ hasText: reply });
   const before = await matching.count();
-  await oaMessages(emu).getByRole("button", { name: title }).last().click();
+  // The emulator re-renders #chat via innerHTML on every outbox poll (3 s, plus 0.6 s / 1.6 s after
+  // each send). A re-render landing mid-click detaches the button and the tap is silently lost (seen
+  // on webkit). So confirm the tap by its POST /events, armed before the click, and re-tap only when
+  // none went out — a tap is never sent twice.
+  await expect(
+    async () => {
+      const sent = emu.waitForRequest(
+        (r) => r.method() === "POST" && r.url().endsWith("/dev/zalo-emulator/events"),
+        { timeout: 2_000 },
+      );
+      sent.catch(() => undefined); // a failed click below must not leave an unhandled rejection
+      await oaMessages(emu).getByRole("button", { name: title }).last().click({ timeout: 2_000 });
+      await sent;
+    },
+    `tap ${String(title)} sends an emulator event`,
+  ).toPass({ timeout: 15_000 });
   await expect(
     matching,
     `new bot message ${String(reply)} after tapping ${String(title)}`,

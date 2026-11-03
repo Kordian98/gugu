@@ -1,10 +1,11 @@
 // Flow 1 (vi): a new owner registers, runs the first-run wizard, adds a service with staff
-// checkboxes, books with "find the earliest slot", drag-reschedules in the calendar and cancels.
-// Customer emails are asserted in Mailpit and in the drawer's "messages sent" timeline.
+// checkboxes, books with "find the earliest slot", stores a client's email on the profile,
+// drag-reschedules in the calendar and cancels. GuGu never emails a salon's customers (X26):
+// Mailpit must stay empty for them, and the drawer says the salon has no Zalo OA to reach them.
 import { expect, test } from "@playwright/test";
 import { signInViaUi } from "../support/auth";
-import { t, tx } from "../support/i18n";
-import { waitForMail } from "../support/mailpit";
+import { t } from "../support/i18n";
+import { expectNoMail } from "../support/mailpit";
 import { mail } from "../support/seed";
 import { addDays, vnDate } from "../support/time";
 import { dragVertically, fillField, hydrated, tap } from "../support/ui";
@@ -107,14 +108,14 @@ test.describe("owner journey @vi", () => {
       await expect(row).toContainText("45");
     });
 
-    const salon = "Mây Nail & Spa E2E";
     const tomorrow = addDays(vnDate(), 1);
 
     await test.step("book with 'find the earliest slot' (Trần Mai is the only one who can)", async () => {
       await tap(page.getByTestId("crm-new-appointment"));
       await fillField(page.getByTestId("crm-client-name"), "Lê Minh Châu");
       await fillField(page.getByTestId("crm-client-phone"), "0909 000 333");
-      await fillField(page.getByTestId("crm-client-email"), earliestEmail);
+      // X26 / q87: the booking form has no email field any more.
+      await expect(page.getByTestId("crm-client-email")).toHaveCount(0);
       await tap(page.getByTestId("crm-chip").filter({ hasText: "Vẽ móng nghệ thuật" }));
       await tap(page.getByTestId("crm-find-earliest"));
       const first = page.getByTestId("crm-earliest-slot").first();
@@ -122,24 +123,30 @@ test.describe("owner journey @vi", () => {
       await tap(first);
       await tap(page.getByTestId("crm-new-confirm"));
       await expect(page.getByTestId("crm-new-confirm")).toHaveCount(0);
-      await waitForMail(earliestEmail, {
-        subject: tx(L, "notifications:email.bookingConfirmed.subject", { salon }),
-      });
     });
 
-    await test.step("book tomorrow 10:00 for a customer with email", async () => {
+    await test.step("book tomorrow 10:00 for Võ Thị Hồng", async () => {
       await tap(page.getByTestId("crm-new-appointment"));
       await fillField(page.getByTestId("crm-client-name"), "Võ Thị Hồng");
       await fillField(page.getByTestId("crm-client-phone"), "0977 123 456");
-      await fillField(page.getByTestId("crm-client-email"), customerEmail);
       await tap(page.getByTestId("crm-chip").filter({ hasText: "Sơn gel" }));
       await tap(page.getByRole("button", { name: tomorrow, exact: true }));
       await tap(page.getByTestId("crm-slot").filter({ hasText: /^10:00$/ }));
       await tap(page.getByTestId("crm-new-confirm"));
       await expect(page.getByTestId("crm-new-confirm")).toHaveCount(0);
-      await waitForMail(customerEmail, {
-        subject: tx(L, "notifications:email.bookingConfirmed.subject", { salon }),
-      });
+    });
+
+    await test.step("store the client's email on the profile (q87: saved, never used)", async () => {
+      await page.goto("/vi/business/customers");
+      await tap(await hydrated(page.getByRole("button", { name: /Võ Thị Hồng/ }).first()));
+      const field = page.getByTestId("crm-customer-email");
+      await expect(page.getByText(t(L, "crm:customers.emailHint"))).toBeVisible();
+      await fillField(field, customerEmail);
+      await tap(page.getByTestId("crm-customer-email-save"));
+      await expect(page.getByText(t(L, "crm:customers.emailSaved"))).toBeVisible();
+      await page.reload();
+      await tap(await hydrated(page.getByRole("button", { name: /Võ Thị Hồng/ }).first()));
+      await expect(page.getByTestId("crm-customer-email")).toHaveValue(customerEmail);
     });
 
     const block = page.getByRole("button", { name: /^\d\d:\d\d Sơn gel, Võ Thị Hồng,/ });
@@ -155,68 +162,42 @@ test.describe("owner journey @vi", () => {
       if (!h10 || !h14) throw new Error("hour labels not found in the timeline");
       await dragVertically(page, block, h14.y - h10.y);
       await expect(block).toHaveAccessibleName(/^14:00 /);
-      await waitForMail(customerEmail, {
-        subject: tx(L, "notifications:email.bookingRescheduled.subject", { salon }),
-      });
     });
 
-    await test.step("drawer shows the messages sent; cancel the booking", async () => {
+    await test.step("drawer: no Zalo OA, so no message to the customer (and no email)", async () => {
       await tap(block);
       const messages = page.getByTestId("crm-booking-messages");
       await expect(messages.getByText(t(L, "notifications:panel.messages.title"))).toBeVisible();
-      const items = messages.getByTestId("crm-booking-message");
-      await expect(
-        items.filter({ hasText: t(L, "notifications:panel.messages.kinds.booking_confirmed") }),
-      ).toHaveCount(1);
-      await expect(
-        items.filter({ hasText: t(L, "notifications:panel.messages.kinds.booking_rescheduled") }),
-      ).toHaveCount(1);
+      await expect(messages.getByTestId("crm-booking-message")).toHaveCount(0);
+      await expect(messages.getByTestId("crm-booking-messages-unreachable")).toHaveText(
+        t(L, "notifications:panel.messages.reach.not_connected"),
+      );
+      // The drawer no longer shows a customer email.
+      await expect(page.getByTestId("crm-booking-email")).toHaveCount(0);
     });
 
-    await test.step("cancel (salon reason) → cancellation email and timeline entry", async () => {
+    await test.step("cancel (salon reason): still nothing reaches the customer by email", async () => {
       await tap(page.getByRole("button", { name: t(L, "crm:booking.cancel"), exact: true }));
+      await expect(page.getByText(t(L, "crm:booking.cancelNotice"))).toBeVisible();
       await tap(page.getByRole("radio", { name: t(L, "crm:booking.reasons.salon"), exact: true }));
       await tap(page.getByTestId("crm-cancel-confirm"));
       await expect(page.getByTestId("crm-cancel-confirm")).toHaveCount(0);
-      await waitForMail(customerEmail, {
-        subject: tx(L, "notifications:email.bookingCancelledBySalon.subject", { salon }),
-      });
       await expect(block).toHaveCount(0);
-      // Exactly one confirmation, one reschedule and one cancellation reached the customer's inbox.
-      const all = await waitForMail(customerEmail, { count: 3 });
-      expect(all.map((m) => m.Subject).sort()).toEqual(
-        [
-          t(L, "notifications:email.bookingCancelledBySalon.subject", { salon }),
-          t(L, "notifications:email.bookingConfirmed.subject", { salon }),
-          t(L, "notifications:email.bookingRescheduled.subject", { salon }),
-        ].sort(),
-      );
+      // Confirmation, reschedule and cancellation happened: GuGu sent no email to the customer,
+      // not even to the address stored on the profile (X26, q85/q86/q87).
+      await expectNoMail(customerEmail);
+      await expectNoMail(earliestEmail, 0);
     });
 
-    await test.step("cancelled booking's drawer lists the cancellation message", async () => {
+    await test.step("cancelled booking's drawer lists no message", async () => {
       await page.goto("/vi/business/appointments");
       await hydrated(page.getByTestId("crm-nav-appointments"));
       const row = page.getByRole("button", { name: /Võ Thị Hồng/ });
       await expect(row).toContainText(t(L, "crm:booking.status.cancelled_by_salon"));
       await tap(row);
-      const items = page.getByTestId("crm-booking-messages").getByTestId("crm-booking-message");
-      const sent = t(L, "notifications:panel.messages.status.sent");
-      for (const kind of [
-        "booking_confirmed",
-        "booking_rescheduled",
-        "booking_cancelled_by_salon",
-      ]) {
-        await expect(
-          items
-            .filter({ hasText: t(L, `notifications:panel.messages.kinds.${kind}`) })
-            .filter({ hasText: sent }),
-          `timeline entry ${kind} with status "${sent}"`,
-        ).toHaveCount(1);
-      }
-      // The pending reminder must not go out for a cancelled booking.
-      await expect(
-        items.filter({ hasText: t(L, "notifications:panel.messages.status.scheduled") }),
-      ).toHaveCount(0);
+      const messages = page.getByTestId("crm-booking-messages");
+      await expect(messages.getByTestId("crm-booking-message")).toHaveCount(0);
+      await expect(messages.getByTestId("crm-booking-messages-unreachable")).toBeVisible();
     });
   });
 });

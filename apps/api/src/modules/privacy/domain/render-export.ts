@@ -40,6 +40,7 @@ export function renderClientExportText(data: ClientExport, locale: Locale, tz: s
     ...section("client"),
     line("name", c.displayName),
     line("phone", c.phone),
+    line("email", c.email),
     line("tags", c.tags.join(", ")),
     line("consent", consent),
     line("source", c.source),
@@ -58,7 +59,6 @@ export function renderClientExportText(data: ClientExport, locale: Locale, tz: s
       line("total", formatVND(b.totalPriceMinor, locale)),
       line("name", b.customerName),
       line("phone", b.customerPhone),
-      line("email", b.customerEmail),
       line("note", b.customerNote),
     );
     if (b.cancellationReason) out.push(line("cancellation", b.cancellationReason));
@@ -91,13 +91,6 @@ export function renderClientExportText(data: ClientExport, locale: Locale, tz: s
       const arrow = m.direction === "inbound" ? "←" : "→";
       out.push(`  ${when(m.at, locale, tz)} ${arrow} [${m.sender}] ${m.text ?? `(${m.kind})`}`);
     }
-  }
-  out.push(...section("notifications"));
-  if (data.notificationDeliveries.length === 0) out.push(none);
-  for (const d of data.notificationDeliveries) {
-    out.push(
-      `- ${when(d.createdAt, locale, tz)} · ${f("channel")} ${d.channel} · ${f("event")} ${d.event}${d.bookingReference ? ` (#${d.bookingReference})` : ""} · ${d.status}${d.reason ? ` (${d.reason})` : ""}`,
-    );
   }
   return `${out.join("\n")}\n`;
 }

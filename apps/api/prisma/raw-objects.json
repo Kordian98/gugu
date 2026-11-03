@@ -37,6 +37,7 @@
     "admin_mfa_factors_step_valid",
     "staff_commission_overrides_valid",
     "staff_pay_settings_valid",
+    "staff_pay_settings_employer_cost_valid",
     "payroll_adjustments_valid",
     "payroll_months_first_day",
     "salon_costs_valid"

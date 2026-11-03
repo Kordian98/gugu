@@ -77,6 +77,7 @@ export const AUDIT_ACTIONS = [
   // free-text reason of an adjustment, never names.
   "payroll.pay_settings_saved",
   "payroll.commission_policy_saved",
+  "payroll.commission_bulk_saved",
   "payroll.manager_access_changed",
   "payroll.adjustment_added",
   "payroll.adjustment_removed",

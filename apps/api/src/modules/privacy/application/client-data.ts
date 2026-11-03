@@ -10,9 +10,10 @@ const name = (v: unknown): { vi: string; en: string } => {
 
 /**
  * Everything one salon keeps about one client, keyed the way the CRM links it: the profile (plus
- * profiles merged into it), bookings by the profiles' phone numbers, notes, Zalo conversations with
- * those phones or linked to those bookings, and customer notifications about those bookings or
- * conversations. Every query is scoped by `salonId` (server-resolved SalonContext).
+ * profiles merged into it, with the stored email), bookings by the profiles' phone numbers, notes
+ * and Zalo conversations with those phones or linked to those bookings. GuGu sends customers
+ * nothing but the salon's Zalo messages (X26), which the Zalo part covers. Every query is scoped
+ * by `salonId` (server-resolved SalonContext).
  */
 export async function loadClientScope(db: Db, salonId: string, profileId: string) {
   const profile = await db.customerSalonProfile.findFirst({
@@ -58,7 +59,7 @@ export async function buildClientExport(
 ): Promise<ClientExport> {
   const { profile, bookingIds, conversations, profileIds } = scope;
   const conversationIds = conversations.map((c) => c.id);
-  const [bookings, notes, convs, deliveries] = await Promise.all([
+  const [bookings, notes, convs] = await Promise.all([
     db.booking.findMany({
       where: { salonId: salon.id, id: { in: bookingIds } },
       orderBy: { startsAt: "asc" },
@@ -77,16 +78,7 @@ export async function buildClientExport(
       where: { salonId: salon.id, id: { in: conversationIds } },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     }),
-    db.notificationDelivery.findMany({
-      where: {
-        salonId: salon.id,
-        audience: "customer",
-        OR: [{ bookingId: { in: bookingIds } }, { conversationId: { in: conversationIds } }],
-      },
-      orderBy: { createdAt: "asc" },
-    }),
   ]);
-  const refById = new Map(bookings.map((b) => [b.id, b.referenceCode]));
   const consent = (profile.marketingConsent ?? {}) as Partial<
     Record<"zalo" | "email" | "sms", boolean>
   >;
@@ -98,6 +90,7 @@ export async function buildClientExport(
       id: profile.id,
       displayName: profile.displayName,
       phone: profile.phoneE164,
+      email: profile.email,
       tags: profile.tags,
       marketingConsent: {
         zalo: consent.zalo === true,
@@ -119,7 +112,6 @@ export async function buildClientExport(
       currency: b.currency,
       customerName: b.customerName,
       customerPhone: b.customerPhoneE164,
-      customerEmail: b.customerEmail,
       customerNote: b.customerNote,
       cancellationReason: b.cancellationReason,
       createdAt: b.createdAt.toISOString(),
@@ -152,15 +144,6 @@ export async function buildClientExport(
         kind: m.kind,
         text: m.text,
       })),
-    })),
-    notificationDeliveries: deliveries.map((d) => ({
-      bookingReference: d.bookingId ? (refById.get(d.bookingId) ?? null) : null,
-      event: d.event,
-      channel: d.channel,
-      status: d.status,
-      reason: d.reason,
-      createdAt: d.createdAt.toISOString(),
-      sentAt: d.sentAt?.toISOString() ?? null,
     })),
   };
 }

@@ -339,7 +339,24 @@
     "margin": "Lãi gộp {{amount}} · {{pct}}%",
     "resources": "Cần phòng / thiết bị",
     "resourcesHint": "Chọn nếu dịch vụ cần dùng riêng giường, ghế hay phòng. Chỉ nhận lịch khi còn chỗ trống.",
-    "resourceNone": "Chưa có cái nào đang hoạt động"
+    "resourceNone": "Chưa có cái nào đang hoạt động",
+    "commission": {
+      "title": "Hoa hồng cho dịch vụ này",
+      "hint": "Mỗi người nhận theo mức mặc định của mình, trừ khi đặt mức riêng ở đây. Lưu cùng dịch vụ, áp dụng từ hôm nay.",
+      "nobody": "Chưa có ai làm dịch vụ này.",
+      "source": {
+        "default": "Theo mức mặc định",
+        "service": "Mức riêng cho dịch vụ này",
+        "variant": "Mức riêng theo loại"
+      },
+      "unsaved": "chưa lưu",
+      "change": "Đổi hoa hồng của {{name}} cho dịch vụ này",
+      "backToDefault": "Về mức mặc định ({{percent}})",
+      "variant": "Loại {{name}}: {{rate}}",
+      "sameForAll": "Cùng một mức cho mọi người làm dịch vụ này",
+      "applyAll_other": "Áp dụng cho {{count}} người",
+      "applyAll_one": "Áp dụng cho {{count}} người"
+    }
   },
   "team": {
     "subtitle": "Nhân viên, vai trò, giờ làm việc và lời mời",
@@ -407,7 +424,11 @@
     "unassignedServices": "{{count}} dịch vụ chưa có nhân viên thực hiện nên không đặt được.",
     "noServicesWarning": "Chưa có dịch vụ",
     "noHoursWarning": "Chưa có giờ làm",
-    "noServicesBookable": "Không đặt được: người này chưa làm dịch vụ nào."
+    "noServicesBookable": "Không đặt được: người này chưa làm dịch vụ nào.",
+    "pay": {
+      "open": "Lương & hoa hồng của {{name}}",
+      "setNow": "Chưa cài lương · Cài ngay"
+    }
   },
   "settings": {
     "profile": "Thông tin salon",
@@ -513,9 +534,6 @@
     "clientSearch": "Tìm theo số điện thoại hoặc tên",
     "newClientName": "Tên khách",
     "newClientPhone": "Số điện thoại",
-    "newClientEmail": "Email (không bắt buộc)",
-    "newClientEmailHint": "Để gửi xác nhận và nhắc lịch qua email khi khách không nhận được tin Zalo.",
-    "newClientEmailInvalid": "Email chưa đúng định dạng.",
     "service": "Dịch vụ",
     "staff": "Nhân viên",
     "time": "Thời gian",
@@ -599,7 +617,7 @@
     },
     "reasonText": "Ghi chú lý do",
     "reasonPlaceholder": "Không bắt buộc",
-    "cancelNotice": "Khách sẽ được báo khi có kênh thông báo (Zalo/email).",
+    "cancelNotice": "Nếu khách đã nhắn với Zalo OA của salon, khách sẽ nhận tin báo hủy qua Zalo. Nếu không, anh/chị nhớ gọi báo khách nhé.",
     "correctReason": "Lý do sửa trạng thái",
     "amountTitle": "Số tiền khách đã trả tại salon",
     "amountHint": "Không bắt buộc. Chỉ để salon theo dõi, GuGu không xử lý thanh toán.",
@@ -738,7 +756,11 @@
     "upcoming": "Lịch sắp tới",
     "history": "Lịch sử",
     "noUpcoming": "Chưa có lịch hẹn sắp tới.",
-    "noHistory": "Chưa có lượt ghé nào."
+    "noHistory": "Chưa có lượt ghé nào.",
+    "email": "Email (không bắt buộc)",
+    "emailHint": "Chỉ để lưu thông tin. GuGu không gửi email cho khách.",
+    "emailInvalid": "Email chưa đúng định dạng.",
+    "emailSaved": "Đã lưu email."
   },
   "insights": {
     "subtitle": "Số liệu từ lịch hẹn của salon. Doanh thu là ước tính, không phải tiền đã thu.",
@@ -769,7 +791,8 @@
       "profit_net": "Lãi ròng ước tính",
       "profit_gross_margin": "Biên lãi gộp",
       "profit_net_margin": "Biên lãi ròng",
-      "profit_month_progress": "Tiến độ tháng"
+      "profit_month_progress": "Tiến độ tháng",
+      "profit_employer_costs": "Thuế/BH salon đóng"
     },
     "vsPrevious": "so với kỳ trước",
     "noPrevious": "Kỳ trước chưa có số liệu",
@@ -799,7 +822,8 @@
       "profit_net": "Doanh thu cả tháng − chi phí dịch vụ − lương − chi phí khác. Ước tính trước thuế.",
       "profit_gross_margin": "(Doanh thu cả tháng − chi phí dịch vụ) ÷ doanh thu cả tháng.",
       "profit_net_margin": "Lãi ròng ước tính ÷ doanh thu cả tháng.",
-      "profit_month_progress": "Số ngày đã qua (tính cả hôm nay) ÷ số ngày trong tháng."
+      "profit_month_progress": "Số ngày đã qua (tính cả hôm nay) ÷ số ngày trong tháng.",
+      "profit_employer_costs": "Tổng số salon đóng thêm ngoài lương gross (thuế, BHXH, các khoản khác) theo số anh/chị nhập cho từng người. Chưa nhập thì bằng 0. Đã gồm trong lương & hoa hồng."
     }
   },
   "today": {
@@ -1041,9 +1065,188 @@
       "total": "Còn nhận",
       "paidOn": "Ngày trả",
       "totals": "Tổng cộng",
-      "note": "Số ước tính trước thuế TNCN và BHXH, chỉ dùng để ghi sổ."
+      "note": "Số ước tính trước thuế TNCN và BHXH, chỉ dùng để ghi sổ.",
+      "gross": "Lương (gross)",
+      "realCost": "Chi phí thực tế",
+      "realCostNote": "Chi phí thực tế = lương gross + thuế/BH theo số salon nhập (GuGu không tự tính)."
     },
-    "services": "{{count}} dịch vụ"
+    "services": "{{count}} dịch vụ",
+    "tabs": {
+      "month": "Bảng lương tháng",
+      "rates": "Mức lương & hoa hồng"
+    },
+    "monthStatus": {
+      "future": "Chưa tới",
+      "open": "Đang mở",
+      "closed": "Đã chốt",
+      "paid": "Đã trả lương"
+    },
+    "month": {
+      "export": "Tải về",
+      "earned": "Còn nhận",
+      "projected": "Dự kiến thêm",
+      "projectedNote": "Từ lịch hẹn sắp tới · cả tháng ≈ {{amount}}",
+      "realCost": "Chi phí thực tế",
+      "realCostNote": "Lương gross + thuế/BH theo số anh/chị nhập",
+      "realCostNotSet": "Chưa nhập thuế/BH nên bằng lương gross",
+      "explain": {
+        "future": "Tháng chưa bắt đầu: số dưới đây chỉ là dự kiến.",
+        "open": "Tháng đang mở: số tự cập nhật theo lịch hẹn. Chốt khi hết tháng để giữ nguyên số liệu, vẫn mở lại được.",
+        "closed": "Đã chốt ngày {{date}}: số liệu không đổi nữa. Muốn sửa thì mở lại (cần ghi lý do).",
+        "paid_other": "Đã chốt và đã trả lương cho cả {{count}} người. Muốn sửa thì mở lại (cần ghi lý do).",
+        "paid_one": "Đã chốt và đã trả lương cho cả {{count}} người. Muốn sửa thì mở lại (cần ghi lý do)."
+      },
+      "earnedNote_other": "Lương cứng cả tháng + hoa hồng đã kiếm ({{count}} người)",
+      "earnedNote_one": "Lương cứng cả tháng + hoa hồng đã kiếm ({{count}} người)"
+    },
+    "table": {
+      "commission": "Hoa hồng đã kiếm",
+      "adjustments": "Thưởng / trừ",
+      "gross": "Lương (gross)",
+      "realCost": "Chi phí thực tế",
+      "projected": "+{{amount}} dự kiến",
+      "employerPart": "gồm {{amount}} thuế/BH",
+      "notSet": "chưa nhập thuế/BH",
+      "advance": "đã ứng {{amount}}",
+      "openPerson": "Xem chi tiết lương của {{name}}"
+    },
+    "person": {
+      "toPay": "Còn nhận",
+      "projected_other": "Dự kiến thêm {{amount}} từ {{count}} lịch hẹn sắp tới",
+      "closed": "Bảng lương đã chốt: số liệu không đổi.",
+      "commissionEarned": "Hoa hồng đã kiếm",
+      "realCostSet": "{{amount}} (gồm {{extra}} thuế/BH)",
+      "realCostNotSet": "{{amount}} (chưa nhập thuế/BH)",
+      "editPay": "Sửa lương",
+      "linesTitle": "Dịch vụ có hoa hồng",
+      "earnedTitle_other": "Đã làm · {{count}} dịch vụ · {{amount}}",
+      "projectedTitle_other": "Sắp tới (dự kiến) · {{count}} dịch vụ · {{amount}}",
+      "ratePercent": "{{percent}} của {{base}}",
+      "openBooking": "Mở lịch hẹn {{service}} ngày {{date}}",
+      "addAdjustment": "Thêm thưởng / trừ / ứng",
+      "reasonPlaceholder": "Ví dụ: thưởng doanh số tuần",
+      "paidTitle": "Đã trả lương",
+      "showLess": "Thu gọn",
+      "showMore_other": "Xem thêm {{count}} dịch vụ",
+      "projected_one": "Dự kiến thêm {{amount}} từ {{count}} lịch hẹn sắp tới",
+      "earnedTitle_one": "Đã làm · {{count}} dịch vụ · {{amount}}",
+      "projectedTitle_one": "Sắp tới (dự kiến) · {{count}} dịch vụ · {{amount}}",
+      "showMore_one": "Xem thêm {{count}} dịch vụ"
+    },
+    "summary": {
+      "monthly": "{{amount}}/tháng",
+      "daily": "{{amount}}/ngày công",
+      "hourly": "{{amount}}/giờ",
+      "none": "Không có lương cứng",
+      "withCommission": "{{base}} + {{percent}} hoa hồng",
+      "commissionOnly": "Chỉ hoa hồng {{percent}}"
+    },
+    "sheet": {
+      "title": "{{name}} · Lương & hoa hồng",
+      "save": "Lưu thay đổi",
+      "now": "Đang áp dụng",
+      "scheduled": "Đã hẹn từ {{date}}: {{summary}}",
+      "base": "Lương cứng",
+      "noneHint": "Người này chỉ nhận hoa hồng, không có lương cứng.",
+      "commission": "Hoa hồng mặc định",
+      "example": "Ví dụ: dịch vụ {{price}} → {{amount}} hoa hồng. Dùng cho mọi dịch vụ không có mức riêng.",
+      "overrides": "Hoa hồng riêng theo dịch vụ",
+      "overridesHint": "Chỉ thêm khi một dịch vụ khác mức mặc định.",
+      "noOverrides": "Chưa có mức riêng: mọi dịch vụ tính {{percent}}.",
+      "addOverride": "Thêm dịch vụ có mức riêng",
+      "removeOverride": "Bỏ mức riêng của {{name}}",
+      "kind": {
+        "percent": "%",
+        "fixed": "đ"
+      },
+      "fixedHint": "Số tiền cố định cho mỗi lần làm dịch vụ này.",
+      "unknownService": "Dịch vụ đã xoá",
+      "searchService": "Tìm dịch vụ",
+      "noServiceMatch": "Không có dịch vụ nào khớp.",
+      "variantOnly": "Chỉ loại: {{name}}",
+      "alreadyAdded": "Đã có",
+      "donePicking": "Xong",
+      "from": "Áp dụng từ",
+      "history_other": "Lịch sử thay đổi ({{count}})",
+      "upcoming": "Sắp áp dụng",
+      "history_one": "Lịch sử thay đổi ({{count}})"
+    },
+    "effective": {
+      "today": "Từ hôm nay ({{date}})",
+      "monthStart": "Từ đầu tháng ({{date}})",
+      "custom": "Chọn ngày khác",
+      "preview": {
+        "today": "Áp dụng từ {{date}}; các tháng trước không đổi.",
+        "future": "Áp dụng từ {{date}}; tới ngày đó vẫn tính theo mức cũ.",
+        "backdated": "Áp dụng từ {{date}}: dịch vụ đã làm từ ngày đó trong tháng này sẽ tính lại; các tháng trước không đổi.",
+        "earlierMonth": "Áp dụng từ {{date}}: các tháng đang mở từ ngày đó sẽ tính lại; tháng đã chốt không đổi."
+      }
+    },
+    "employer": {
+      "title": "Chi phí thực tế (không bắt buộc)",
+      "hint": "Salon thực sự tốn bao nhiêu cho người này, gồm thuế, BHXH và các khoản đóng khác. Chỉ chủ salon thấy.",
+      "kind": {
+        "none": "Chưa nhập",
+        "percent": "% trên lương",
+        "fixed": "Số tiền mỗi tháng"
+      },
+      "noneHint": "Chưa nhập thì chi phí thực tế bằng lương gross.",
+      "accountant": "Lấy số từ kế toán của salon. GuGu không tự tính thuế hay bảo hiểm và không đảm bảo số này đúng luật.",
+      "example": "Ví dụ: lương {{gross}} → chi phí thực tế {{real}}/tháng. Lấy số từ kế toán; GuGu không tự tính thuế hay bảo hiểm."
+    },
+    "rates": {
+      "fromTitle": "Thay đổi ở trang này áp dụng từ",
+      "defaultsTitle": "Lương cứng & hoa hồng mặc định",
+      "defaultsHint": "Chọn nhiều người để đặt cùng một mức hoa hồng.",
+      "selectAll": "Chọn tất cả",
+      "pick": "Chọn {{name}}",
+      "scheduled": "Từ {{date}}: hoa hồng {{percent}}",
+      "defaultLabel": "mặc định",
+      "editDefault": "Đổi hoa hồng mặc định của {{name}}",
+      "ownCount_other": "{{count}} dịch vụ có mức riêng",
+      "editPay": "Sửa lương",
+      "bulkTitle_other": "Đã chọn {{count}} người · đặt cùng hoa hồng mặc định",
+      "bulkApply_other": "Đặt {{percent}} cho {{count}} người",
+      "overridesTitle": "Hoa hồng riêng theo dịch vụ",
+      "overridesHint": "Dịch vụ → mức → người được áp dụng. Người không có trong danh sách tính theo mức mặc định.",
+      "add": "Thêm mức riêng",
+      "colService": "Dịch vụ",
+      "colRate": "Mức",
+      "colStaff": "Nhân viên",
+      "noOverrides": "Chưa có dịch vụ nào có mức riêng.",
+      "editRate": "Sửa mức của {{name}}",
+      "removeRate": "Bỏ mức riêng của {{name}}",
+      "addStep1": "1. Chọn dịch vụ (chọn được nhiều)",
+      "addStep2": "2. Mức hoa hồng",
+      "addStep3": "3. Áp dụng cho ai",
+      "changeServices": "Đổi dịch vụ",
+      "addSave": "Lưu cho {{services}} dịch vụ × {{people}} người",
+      "ownCount_one": "{{count}} dịch vụ có mức riêng",
+      "bulkTitle_one": "Đã chọn {{count}} người · đặt cùng hoa hồng mặc định",
+      "bulkApply_one": "Đặt {{percent}} cho {{count}} người"
+    },
+    "undo": {
+      "action": "Hoàn tác",
+      "overrideRemoved": "Đã bỏ mức riêng của {{name}}",
+      "rateRemoved": "Đã bỏ mức riêng của {{name}}",
+      "adjustmentRemoved": "Đã xoá khoản thưởng / trừ",
+      "unpaid": "Đã bỏ đánh dấu đã trả"
+    },
+    "validation": {
+      "fixBelow": "Anh/chị xem lại các ô được đánh dấu bên dưới.",
+      "amountRequired": "Nhập số tiền, ví dụ 8.000.000.",
+      "percentRequired": "Nhập phần trăm hoa hồng, ví dụ 10.",
+      "percentRange": "Hoa hồng từ 0 đến 100%.",
+      "overrideRequired": "Nhập mức hoa hồng cho dịch vụ này.",
+      "employerPercentRequired": "Nhập phần trăm, ví dụ 21,5.",
+      "employerAmountRequired": "Nhập số tiền mỗi tháng.",
+      "amount_low": "Số này có vẻ nhỏ. Anh/chị kiểm tra lại số 0 nhé.",
+      "amount_high": "Số này có vẻ lớn. Anh/chị kiểm tra lại số 0 nhé.",
+      "reasonRequired": "Ghi lý do để sau này còn nhớ.",
+      "serviceRequired": "Chọn ít nhất một dịch vụ.",
+      "staffRequired": "Chọn ít nhất một người."
+    },
+    "currencySuffix": "đ"
   },
   "profit": {
     "tabs": {
@@ -1101,10 +1304,40 @@
       "earned": "Đã có",
       "upcoming": "Sắp tới",
       "net": "Lãi ước tính",
-      "open": "Xem chi tiết"
+      "open": "Xem chi tiết",
+      "payroll": "Bảng lương"
     },
     "forbiddenTitle": "Chỉ chủ salon xem được lãi ước tính",
-    "forbiddenBody": "Lãi ước tính có tổng lương của cả nhóm."
+    "forbiddenBody": "Lãi ước tính có tổng lương của cả nhóm.",
+    "headline": "Lãi ròng ước tính · {{month}}",
+    "negative": "Đang lỗ",
+    "basis": {
+      "actual": "Đã có",
+      "projected": "Dự kiến",
+      "mixed": "Cả tháng (đã có + dự kiến)",
+      "assumption": "Giả định"
+    },
+    "waterfall": {
+      "title": "Từ doanh thu tới lãi",
+      "steps": {
+        "revenue": "Doanh thu",
+        "noShow": "Trừ khách có thể vắng",
+        "serviceCosts": "Chi phí dịch vụ",
+        "payroll": "Lương & hoa hồng",
+        "otherCosts": "Chi phí khác",
+        "net": "Lãi ròng ước tính"
+      },
+      "split": "Đã có {{actual}} · dự kiến {{projected}}",
+      "onlyActual": "Đã có {{actual}}",
+      "onlyProjected": "Dự kiến {{projected}}",
+      "payrollParts": "Lương cứng {{base}} · hoa hồng {{commission}}.",
+      "employerIncluded": "Gồm {{amount}} thuế/BH theo số anh/chị nhập."
+    },
+    "tileNote": {
+      "profit_revenue_earned": "Từ lịch hẹn đã xong",
+      "profit_revenue_upcoming": "Từ lịch hẹn sắp tới (dự kiến)",
+      "profit_net_margin": "Lãi ròng trên doanh thu, cả tháng"
+    }
   },
   "myEarnings": {
     "title": "Thu nhập tháng này (ước tính)",
@@ -1112,11 +1345,21 @@
     "commissionEarned": "Hoa hồng đã làm",
     "commissionProjected": "Hoa hồng sắp tới",
     "adjustments": "Thưởng / trừ / ứng",
-    "total": "Ước tính cuối tháng",
+    "total": "Dự kiến nhận tháng này",
     "note": "Trước thuế và bảo hiểm. Chỉ anh/chị thấy số này.",
     "noPay": "Chủ salon chưa cài lương cho anh/chị.",
     "paid": "Đã trả ngày {{date}}",
     "closed": "Bảng lương đã chốt",
-    "services": "{{count}} dịch vụ"
+    "services": "{{count}} dịch vụ",
+    "earnedSoFar": "Lương cứng + hoa hồng đã làm",
+    "stillExpected_other": "Dự kiến thêm ({{count}} lịch hẹn)",
+    "commissionFrom_other": "Hoa hồng từ {{count}} dịch vụ: {{amount}}",
+    "serviceLine_other": "{{name}} × {{count}}",
+    "noServicesYet": "Chưa có dịch vụ nào hoàn thành tháng này.",
+    "baseLine": "Lương cứng: {{base}}",
+    "baseAndAdjustments": "Lương cứng: {{base}} · Thưởng / trừ / ứng: {{adjustments}}",
+    "stillExpected_one": "Dự kiến thêm ({{count}} lịch hẹn)",
+    "commissionFrom_one": "Hoa hồng từ {{count}} dịch vụ: {{amount}}",
+    "serviceLine_one": "{{name}} × {{count}}"
   }
 }

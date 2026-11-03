@@ -73,3 +73,21 @@ export async function latestMagicLink(to: string, after = 0): Promise<string> {
   if (!link) throw new Error(`no magic link in latest mail to ${to}: ${latest?.Subject ?? "none"}`);
   return link;
 }
+
+/**
+ * Asserts that `to` receives no email for `forMs` (polling). GuGu never emails a salon's
+ * customers (X26): before X26 a confirmation reached Mailpit within a second or two, so a quiet
+ * window this long catches a regression without slowing the suite much.
+ */
+export async function expectNoMail(to: string, forMs = 5_000): Promise<void> {
+  const deadline = Date.now() + forMs;
+  for (;;) {
+    const got = await searchMail(`to:"${to}"`);
+    expect(
+      got.map((m) => m.Subject),
+      `no email may reach ${to}`,
+    ).toEqual([]);
+    if (Date.now() >= deadline) return;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+}

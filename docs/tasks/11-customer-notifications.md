@@ -8,7 +8,7 @@ Spec for the customer account lifecycle, reviews and ratings, and the centralize
 - Customer profile, preferences, favorites (salons + services), booking history views, cancel/reschedule entry points (engine rules owned by 06).
 - Account deletion and personal data export.
 - Reviews: eligibility, create/edit/delete policy, photos, salon response, reporting, moderation (rule-based + manual queue; AI classifier deferred), rating aggregation.
-- Notification platform: event catalog, orchestration on BullMQ, templates (vi/en), channel providers (push, in-app, email, `zalo_template` when Zalo is live; SMS as a mock adapter only — X12), fallback, dedup, reminders, quiet hours, preferences and consent, delivery log.
+- Notification platform: event catalog, orchestration on BullMQ, templates (vi/en), channel providers (push, in-app, email for team members only — never a salon's customers (X26), `zalo_template` when Zalo is live; SMS as a mock adapter only — X12), fallback, dedup, reminders, quiet hours, preferences and consent, delivery log.
 
 **Out**
 - Sign-in, contact verification and sessions (05). Per X12 there is no SMS and no SMS OTP for now: verification is an email link or a Zalo message; its *delivery* reuses this channel layer on its own priority queue.
@@ -30,7 +30,7 @@ Spec for the customer account lifecycle, reviews and ratings, and the centralize
 | G7 | "Prevent duplicate notifications" — no mechanism. | Deterministic idempotency key per (event, entity, recipient, channel, variant) used as BullMQ `jobId` + unique index on `notification_delivery.idempotency_key`. |
 | G8 | Reminders break on reschedule/cancel. | Reminder jobs keyed by `booking_id + offset + booking.version`; on reschedule/cancel remove scheduled jobs and enqueue new ones; worker re-checks booking state & version at send time (stale → drop). |
 | G9 | No quiet hours; Vietnam Decree 91/2020 restricts advertising messages (consent, 7:00–22:00, frequency caps). | Two message classes: **transactional** (booking lifecycle, verification, security) and **marketing**. Marketing requires explicit opt-in per channel, quiet hours 21:00–08:00 salon-local by default, frequency cap. Transactional respects quiet hours only for non-urgent items (review requests deferred to morning). Consent records also follow the PDPL 91/2025/QH15 + Decree 356/2025/ND-CP regime (cross-topic X1). Legal review required before marketing launch — we don't claim compliance. |
-| G10 | Channel fallback order and cost not defined; paid channels cost money. | Per-event channel policy (see §4.3). No SMS for now (X12). Customer transactional: push + in-app always; `zalo_template` once Zalo is live (reminders go to Zalo by default, q40); email as fallback when push is undeliverable and a verified email exists. GuGu pays messaging inside the plan (q33); cost is tracked per salon. |
+| G10 | Channel fallback order and cost not defined; paid channels cost money. | Per-event channel policy (see §4.3). No SMS for now (X12). Customer transactional: push + in-app always; `zalo_template` once Zalo is live (reminders go to Zalo by default, q40); no customer email at all (X26, owner q85/q86). GuGu pays messaging inside the plan (q33); cost is tracked per salon. |
 | G11 | Salon-side recipients (owner/receptionist/staff) not modelled. | Recipients resolved by role + permission (05) per salon; salon members have their own preferences; "new booking" goes to members with `bookings.read` for that staff/salon. |
 | G12 | Push token lifecycle missing. | `PushDevice` table (user, platform, Expo push token, locale, last_seen); prune on `DeviceNotRegistered` receipts; tokens tied to session, removed on logout. |
 | G13 | Locale of a notification ambiguous. | Recipient's preferred language; fallback to salon default, then `vi`. Times rendered in the **salon's** timezone with explicit label when recipient tz differs. |
@@ -91,16 +91,16 @@ domain tx → outbox row → outbox relay (poll/LISTEN) → queue "notify.dispat
 ### 4.3 Default channel policy (customer)
 | Event | Primary | Fallback (if primary undeliverable) | Class |
 |---|---|---|---|
-| booking.confirmed / created | push + in_app | zalo_template → email | transactional, critical |
-| booking.cancelled_by_salon | push + in_app | zalo_template → email | transactional, critical |
-| booking.rescheduled | push + in_app | zalo_template → email | transactional, critical |
-| booking.reminder 24h | push + in_app + zalo_template (default when live, q40) | email | transactional |
-| booking.reminder 2h | push + zalo_template (default when live, q40) | email | transactional, critical |
-| review.requested | push + in_app | email | transactional, deferrable |
+| booking.confirmed / created | push + in_app | zalo_template (never email, X26) | transactional, critical |
+| booking.cancelled_by_salon | push + in_app | zalo_template (never email, X26) | transactional, critical |
+| booking.rescheduled | push + in_app | zalo_template (never email, X26) | transactional, critical |
+| booking.reminder 24h | push + in_app + zalo_template (default when live, q40) | — (never email, X26) | transactional |
+| booking.reminder 2h | push + zalo_template (default when live, q40) | — (never email, X26) | transactional, critical |
+| review.requested | push + in_app | — (never email, X26) | transactional, deferrable |
 | account.* | in_app + email | push | transactional |
 Salon members: push + in_app; email digest optional. Policies live in config (DB-overridable by admin, 12).
 
-**Owner decision for the email milestone (2026-11-03, overrides the table above while there is no customer app — X23):** customer channels are `zalo_template` (Zalo first, module `zalo`) → `email` (only when the booking has an email and Zalo did not deliver) → none; no push, no customer in-app. Team members get bell (in-app) + email. Emails speak as the salon, never advertise GuGu, and carry no link to a booking surface. Implemented as described in `docs/domains/customer-notifications.md`.
+**Owner decision X26 (q85/q86/q87, 2026-11-04; replaces the 2026-11-03 email-milestone rule and overrides the table above while there is no customer app — X23):** GuGu sends **no email to a salon's customers**, for any event. The channel policy for every customer event (confirmed, rescheduled, cancelled by the salon, reminders) is: the salon's Zalo OA (module `zalo`: ZBS Template Message `zalo_template` or a consultation message) if the OA can reach the customer, otherwise nothing. No email fallback, no reply-to address, no `.ics`; no push and no customer in-app. When Zalo cannot reach the customer, the booking drawer says so (so staff can call). Staff may store a client's email on the CRM client profile (same visibility as the phone); GuGu never uses it for sending (q87). Team members keep the bell (in-app) + "also email me"; magic links and invitations are unchanged. Implemented as described in `docs/domains/customer-notifications.md`.
 
 ### 4.4 Data (coordinate with 04)
 `Notification` (in-app inbox item), `NotificationDelivery`, `NotificationTemplate`, `NotificationPreference` (user × event-category × channel), `PushDevice`, `ConsentRecord`, `OutboxEvent`, `Review`, `ReviewRevision`, `ReviewPhoto`, `ReviewResponse`, `ReviewReport`, `ModerationAction`, `Favorite`, `DataExportRequest`, `AccountDeletionRequest`.
@@ -112,12 +112,13 @@ Features: `features/account`, `features/favorites`, `features/reviews`, `feature
 1. Booking confirmation creates exactly one push + one in-app item per recipient even if the event is published twice or the worker crashes mid-send (integration test with duplicate outbox replay).
 2. Rescheduling a booking removes old reminders; no reminder is sent for the old time (test with fake clock).
 3. Cancelled booking → no pending reminder sends (worker version check test).
-4. Push token marked `DeviceNotRegistered` is pruned and the critical event falls back to `zalo_template` (when live) or email.
+4. Push token marked `DeviceNotRegistered` is pruned and the critical event falls back to `zalo_template` (when live), never to email (X26).
 5. Marketing send without consent is skipped with reason `no_consent`; quiet-hour send is deferred.
 6. Every event × channel × locale in the catalog has vi and en templates; CI test fails otherwise; variable schemas validated.
 7. Customer cannot review a booking that is not theirs, not completed, older than 30 days, or already reviewed (API returns 403/409; DB unique enforced).
 8. Edit after salon response is rejected; revision history stored.
 9. Three distinct reports auto-hide a review; moderator restores it; actions audit-logged.
+9a. No email ever reaches a salon's customer for any event — confirmation, reschedule, cancellation, reminders — even when the client profile has an email (X26; integration test `notifications.int.test.ts` and web E2E `owner-journey`/`multi-service` assert Mailpit stays empty).
 10. Deletion request → email-link or Zalo verification → after the 30-day grace period PII fields are anonymized, bookings remain with salon, login impossible; web deletion page works logged out.
 11. Export job produces a downloadable archive within 15 min (staging) and link expires after 7 days.
 12. Internal salon notes never appear in exports, notifications, or review responses (test).
@@ -141,7 +142,7 @@ Features: `features/account`, `features/favorites`, `features/reviews`, `feature
 1. M11.1 Notification core: outbox, planner, in-app channel, templates + CI coverage test.
 2. M11.2 Push channel (Expo), device registry, receipts; booking lifecycle events.
 3. M11.3 Reminders with reschedule/cancel correctness + reconciliation cron.
-4. M11.4 Email adapter, SMS mock adapter, fallback chain, provider rate limits, per-salon cost tracking; `zalo_template` slot wired for 09.
+4. M11.4 Email adapter (team members only — never customers, X26), SMS mock adapter, provider rate limits, per-salon cost tracking; `zalo_template` slot wired for 09.
 5. M11.5 Preferences + consent + quiet hours.
 6. M11.6 Reviews create/edit/respond/report + aggregation.
 7. M11.7 Rule-based moderation + manual moderator queue. (AI classifier: deferred, pending privacy decision.)
@@ -160,8 +161,8 @@ Features: `features/account`, `features/favorites`, `features/reviews`, `feature
 | `reviews.list` | R | salonId, filters(rating, unanswered, period), cursor → review metadata only (id, rating, date, answered, moderation state) | `reviews.read` | no review text or reviewer identity — personal data never goes to the LLM |
 | `reviews.draftResponse` | — | deferred | — | needs review text → blocked until the privacy decision |
 | `notifications.deliveryStats` | R | salonId, period → sent/failed by channel, reminder no-show correlation | `analytics.read` | |
-| `notifications.bookingLog` | R | bookingId → delivery timeline (channel, status, timestamps) | `bookings.read` | no recipient phone/email or message content |
-| `reminders.settings.get` / `.update` | R / W | salonId, offsets | `settings.manage` | update requires explicit confirmation |
+| `notifications.bookingLog` | R | bookingId → Zalo delivery timeline (channel, status, timestamps) + whether the OA can reach the customer | `bookings.read` | no recipient phone/email or message content |
+| `reminders.settings.get` / `.update` | R / W | salonId → Zalo 24 h / 2 h reminder switches (module `zalo`) | `settings.manage` | update requires explicit confirmation; there are no email reminder offsets (X26) |
 Customer-facing agent tools are out of scope for MVP.
 
 ## 10. Open questions for the product owner
@@ -169,6 +170,6 @@ Customer-facing agent tools are out of scope for MVP.
 2. ~~Who pays for Zalo template messages~~ — resolved (q33): GuGu pays inside the plan; track cost per salon.
 3. ~~Review windows~~ — resolved (q38): 30 days to write, 7 days to edit; no AI moderation.
 4. Should salons be able to dispute/flag reviews with priority, and may verified salons hide reviews? (Recommendation: no hiding, only reporting.)
-5. Email provider preference (SES in Singapore region vs Resend/Postmark)?
+5. Email provider preference (SES in Singapore region vs Resend/Postmark)? Only for team emails, magic links and invitations — customers get no email (X26).
 6. Do we keep CustomerSalonProfile notes after a customer deletes their account (salon's own records) — needs legal review under PDPL 91/2025/QH15 + Decree 356/2025/ND-CP.
 7. Privacy decision needed to unblock the deferred AI classifier and `reviews.draftResponse`: may review text be sent to an LLM (provider, region, redaction, privacy notice)? Until then nothing personal goes to any LLM.

@@ -210,7 +210,7 @@ Facts are tagged **[official]** (oa.zalo.me / developers.zalo.me / miniapp.zalop
   - a two-salon isolation test.
 - **ZR:** Switching any path live requires **no code change**: only secrets, config and flags, documented in `docs/runbooks/zalo-go-live.md`. Verified by flipping `zalo.client` between `emulated` and a stubbed `http` with the same tests.
 - **ZR:** With all Zalo flags off (prod default), no Zalo UI beyond Z0 is visible and no Zalo channel appears in the fallback order.
-- **Z1:** A booking created in GuGu, for a customer whose phone has Zalo, triggers exactly one approved `booking_confirmed` template. Retrying the job sends nothing new (dedup verified by test). With Zalo disabled, the push or email fallback fires (no SMS, X12).
+- **Z1:** A booking created in GuGu, for a customer whose phone has Zalo, triggers exactly one approved `booking_confirmed` template. Retrying the job sends nothing new (dedup verified by test). With Zalo disabled, the push fallback (no customer email, X26) fires (no SMS, X12).
 - **Z1:** Template params failing the Zod schema are rejected before any API call, and the failure is logged with the template key.
 - **Z1:** A Zalo verification message delivers its code or link; the code is never logged; the email-link fallback fires within the configured timeout (X12).
 - **Z2:** An OA connect / disconnect / reauth cycle works. Revoked tokens put the connection into `needs_reauth` and the owner is notified.

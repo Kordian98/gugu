@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { maskPhone, normalizeVnPhone } from "./vn-phone";
+import { maskEmail, maskPhone, normalizeVnPhone } from "./vn-phone";
 
 describe("normalizeVnPhone", () => {
   it.each([
@@ -20,5 +20,12 @@ describe("maskPhone", () => {
   it("keeps only the country code and the last 3 digits", () => {
     expect(maskPhone("+84912345678")).toBe("+84 ••• ••• 678");
     expect(maskPhone("+84912345678")).not.toContain("912");
+  });
+});
+
+describe("maskEmail", () => {
+  it("keeps the first letter and the domain only", () => {
+    expect(maskEmail("lan.nguyen@example.vn")).toBe("l•••@example.vn");
+    expect(maskEmail("broken")).toBe("•••");
   });
 });

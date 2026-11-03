@@ -1,8 +1,7 @@
-// Customer notifications of a salon suspended by GuGu (q89, ADR-0010), against the local stack
-// (TEST_DATABASE_URL, Valkey DB 15, Mailpit), fake clock, worker inline. Confirmations and
-// reminders are re-checked at send time: while suspended they are logged `skipped` with reason
-// `salon_suspended`; after unsuspend a reminder whose time is still to come goes out, one whose
-// time fell inside the suspension does not. Team notifications are not affected.
+// Notifications of a salon suspended by GuGu (q89, ADR-0010), against the local stack
+// (TEST_DATABASE_URL, TEST_REDIS_DB, Mailpit), fake clock, worker inline. Customers hear only from
+// the salon's Zalo OA, which module `zalo` pauses while suspended (zalo-suspension.int.test.ts);
+// this module never emails customers (X26). Team notifications keep going.
 import type { Server } from "node:http";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
@@ -20,7 +19,6 @@ import {
   steppedUpBearerFor,
   testEmail,
 } from "../../../test/factories/identity";
-import { countMailsTo } from "../../../test/mailpit";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
@@ -37,7 +35,7 @@ import { NotificationsWorkerModule } from "./notifications.module";
 let now = new Date("2026-12-01T01:00:00Z"); // 08:00 in Ho Chi Minh City
 const clock = { now: () => new Date(now) };
 
-describe("customer notifications of a suspended salon (integration)", () => {
+describe("notifications of a suspended salon (integration)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let handler: NotificationEventsHandler;
@@ -113,22 +111,7 @@ describe("customer notifications of a suspended salon (integration)", () => {
     }
   }
 
-  /** Runs the send worker for every due customer delivery of this salon. */
-  async function sendDue(): Promise<void> {
-    const due = await prisma.notificationDelivery.findMany({
-      where: {
-        salonId: s.salonId,
-        audience: "customer",
-        channel: "email",
-        status: { in: ["queued", "scheduled"] },
-        OR: [{ scheduledFor: null }, { scheduledFor: { lte: now } }],
-      },
-      orderBy: { createdAt: "asc" },
-    });
-    for (const d of due) await sender.send(d.id, true);
-  }
-
-  async function book(email: string): Promise<string> {
+  async function book(): Promise<string> {
     const res = await http()
       .post(`/api/v1/salons/${s.salonId}/bookings`)
       .set("authorization", owner)
@@ -138,74 +121,12 @@ describe("customer notifications of a suspended salon (integration)", () => {
         staffId: s.staffIds[0],
         startsAt: vnAt("2026-12-04", "10:00"),
         source: "phone",
-        customer: { name: "Nguyễn Thị Lan", phone: "0912 345 678", email },
+        customer: { name: "Nguyễn Thị Lan", phone: "0912 345 678" },
       })
       .expect(201);
     return salonBookingSchema.parse(res.body).id;
   }
 
-  const customerRows = (bookingId: string) =>
-    prisma.notificationDelivery.findMany({
-      where: { salonId: s.salonId, bookingId, audience: "customer" },
-      orderBy: [{ createdAt: "asc" }, { scheduledFor: "asc" }, { id: "asc" }],
-    });
-
-  it("skips the confirmation and the reminder due while suspended; sends the later one after unsuspend", async () => {
-    const customer = testEmail("susp-customer");
-    const bookingId = await book(customer);
-    await pump();
-    await adminAction("suspend");
-
-    // The confirmation planned before the suspension is re-checked at send time.
-    await sendDue();
-    const confirmation = (await customerRows(bookingId)).find(
-      (r) => r.event === "booking.confirmed",
-    );
-    expect(confirmation).toMatchObject({ status: "skipped", reason: "salon_suspended" });
-
-    // The 24 h reminder's time comes while suspended: skipped, never sent later.
-    now = new Date(vnAt("2026-12-03", "10:00"));
-    await sendDue();
-    let reminders = (await customerRows(bookingId)).filter((r) => r.event === "booking.reminder");
-    expect(reminders.map((r) => [r.variant, r.status, r.reason])).toEqual([
-      ["1440m", "skipped", "salon_suspended"],
-      ["120m", "scheduled", null],
-    ]);
-
-    await adminAction("unsuspend");
-    now = new Date(vnAt("2026-12-03", "10:05"));
-    await sendDue();
-    expect(await countMailsTo(customer)).toBe(0);
-
-    // The 2 h reminder is still to come after unsuspend: it goes out, once.
-    now = new Date(vnAt("2026-12-04", "08:00"));
-    await sendDue();
-    await sendDue();
-    reminders = (await customerRows(bookingId)).filter((r) => r.event === "booking.reminder");
-    expect(reminders.map((r) => [r.variant, r.status])).toEqual([
-      ["1440m", "skipped"],
-      ["120m", "sent"],
-    ]);
-    expect(await countMailsTo(customer)).toBe(1);
-  });
-
-  it("leaves other salons' customers alone (tenant isolation)", async () => {
-    const other = s;
-    const otherCustomer = testEmail("susp-other");
-    const otherBooking = await book(otherCustomer);
-    await pump();
-
-    s = await createBookableSalon(prisma);
-    owner = await bearerFor(app, s.ownerUserId);
-    await adminAction("suspend");
-
-    s = other;
-    await sendDue();
-    expect(
-      (await customerRows(otherBooking)).find((r) => r.event === "booking.confirmed"),
-    ).toMatchObject({ status: "sent" });
-    expect(await countMailsTo(otherCustomer)).toBe(1);
-  });
   it("keeps team notifications going while the salon is suspended (only customers are paused)", async () => {
     // The booked staff member has an account: they get the team email about the new booking.
     const staffUserId = await addSalonMember(prisma, s.salonId, "staff");
@@ -216,8 +137,7 @@ describe("customer notifications of a suspended salon (integration)", () => {
       where: { id: s.staffIds[0] },
       data: { salonMemberId: member.id },
     });
-    const customer = testEmail("susp-team-customer");
-    const bookingId = await book(customer);
+    const bookingId = await book();
     await pump();
     await adminAction("suspend");
     const team = await prisma.notificationDelivery.findMany({
@@ -231,8 +151,11 @@ describe("customer notifications of a suspended salon (integration)", () => {
     expect(after.map((d) => [d.event, d.status, d.reason])).toEqual(
       team.map((d) => [d.event, "sent", null]),
     );
-    // The customer side of the same booking stays paused.
-    await sendDue();
-    expect(await countMailsTo(customer)).toBe(0);
+    // Nothing for the customer in this module's log, suspended or not (X26).
+    expect(
+      await prisma.notificationDelivery.count({
+        where: { salonId: s.salonId, audience: "customer" },
+      }),
+    ).toBe(0);
   });
 });

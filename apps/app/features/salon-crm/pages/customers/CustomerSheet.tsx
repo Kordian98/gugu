@@ -12,7 +12,7 @@ import { salonDate } from "../../data/dates";
 import { useAddNote, useCustomer, useDeleteNote, useUpdateCustomer } from "../../data/customers";
 import { useSalon } from "../../data/SalonContext";
 import { useErrorText } from "../../ui/errors";
-import { ErrorBanner, Input, Sheet, Toggle } from "../../ui/form";
+import { ErrorBanner, Field, Input, Sheet, Toggle } from "../../ui/form";
 import { NewAppointmentSheet } from "../calendar/NewAppointmentSheet";
 import { ClientPrivacySection } from "./ClientPrivacySection";
 import { useCalendarData } from "../calendar/useCalendarData";
@@ -21,8 +21,9 @@ import { useCalendarData } from "../calendar/useCalendarData";
 const CONSENT_CHANNELS = ["zalo", "email", "sms"] as const;
 
 /**
- * Client profile (07 §3.5): stats (estimated spend labelled), tags, marketing consent, team-only
- * notes, upcoming and past visits, and "Book again" with the client and favourite service prefilled.
+ * Client profile (07 §3.5): stats (estimated spend labelled), optional stored email (q87, never
+ * used for sending — X26), tags, marketing consent, team-only notes, upcoming and past visits, and
+ * "Book again" with the client and favourite service prefilled.
  */
 export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const { c } = useCalm();
@@ -40,6 +41,8 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
   const cal = useCalendarData(salonDate(new Date()));
   const d = detail.data;
   const canEdit = can("customers.read");
+  // The email follows the phone's visibility rule; only members who see it unmasked may edit it.
+  const canContact = can("customers.phone.read");
   const canPrivacy = can("customers.export") && can("customers.erase");
   const tz = cal.tz;
 
@@ -101,6 +104,11 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
                 {d.phone}
               </Text>
             ) : null}
+            {canEdit && canContact ? null : d.email ? (
+              <Text testID="crm-customer-email-text" size={14} color={c.body}>
+                {d.email}
+              </Text>
+            ) : null}
             <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
               {d.atRisk ? <Pill tone="brand" label={t("customers.atRisk")} /> : null}
               {d.noShows > 0 ? (
@@ -108,6 +116,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
               ) : null}
             </View>
           </View>
+          {canEdit && canContact ? <EmailField key={id} id={id} initial={d.email} /> : null}
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Stat label={t("customers.visits")} value={String(d.visits)} />
             <Stat
@@ -298,6 +307,62 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
         </>
       )}
     </Sheet>
+  );
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Optional email kept on the profile (q87). The hint says plainly that GuGu never emails it. */
+function EmailField({ id, initial }: { id: string; initial: string | null }) {
+  const { t } = useTranslation("crm");
+  const update = useUpdateCustomer();
+  const [value, setValue] = useState(initial ?? "");
+  const [saved, setSaved] = useState(false);
+  const trimmed = value.trim();
+  const invalid = trimmed !== "" && !EMAIL_RE.test(trimmed);
+  const changed = trimmed.toLowerCase() !== (initial ?? "");
+  return (
+    <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
+      <Field
+        flex={1}
+        label={t("customers.email")}
+        hint={saved ? t("customers.emailSaved") : t("customers.emailHint")}
+        error={invalid ? t("customers.emailInvalid") : null}
+      >
+        <Input
+          testID="crm-customer-email"
+          label={t("customers.email")}
+          keyboardType="email-address"
+          value={value}
+          invalid={invalid}
+          onChangeText={(v) => {
+            setSaved(false);
+            setValue(v);
+          }}
+        />
+      </Field>
+      {changed ? (
+        <View style={{ paddingBottom: 22 }}>
+          <CalmButton
+            testID="crm-customer-email-save"
+            size="sm"
+            variant="secondary"
+            label={t("common.save")}
+            onPress={() => {
+              if (invalid) return;
+              update.mutate(
+                { id, body: { email: trimmed === "" ? null : trimmed } },
+                {
+                  onSuccess: () => {
+                    setSaved(true);
+                  },
+                },
+              );
+            }}
+          />
+        </View>
+      ) : null}
+    </View>
   );
 }
 

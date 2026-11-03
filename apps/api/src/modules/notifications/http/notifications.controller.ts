@@ -36,7 +36,8 @@ type BookingParams = { salonId: string; bookingId: string };
 
 /**
  * Salon panel endpoints of the notifications module (topic 11): Settings → Notifications, the
- * per-booking "messages sent" timeline and the member's own bell. No customer-facing routes (X23).
+ * per-booking Zalo "messages sent" timeline and the member's own bell. No customer-facing routes
+ * (X23); no customer email (X26).
  */
 @ApiTags("notifications")
 @Controller("salons/:salonId")
@@ -51,29 +52,22 @@ export class NotificationsController {
   @RequirePermission("salon.read")
   @ApiOperation({
     operationId: "notifications.settings",
-    summary: "Notification settings: events on/off per channel, reminder offsets, reply-to.",
+    summary: "Team notification settings, and what the salon's Zalo OA sends to customers.",
   })
   @ApiResponse({
     status: 200,
     description: "Settings.",
     standardSchema: notificationSettingsSchema,
   })
-  async getSettings(
-    @Param({ schema: salonParamsSchema }) p: SalonParams,
-    @CurrentSalon() salon: SalonContext,
-  ): Promise<NotificationSettings> {
-    const settings = await this.settings.get(p.salonId);
-    // The reply-to address is shown only to members who can change it (security review).
-    return salon.permissions.has("salon.settings.write")
-      ? settings
-      : { ...settings, replyToEmail: null };
+  getSettings(@Param({ schema: salonParamsSchema }) p: SalonParams): Promise<NotificationSettings> {
+    return this.settings.get(p.salonId);
   }
 
   @Put("notifications/settings")
   @RequirePermission("salon.settings.write")
   @ApiOperation({
     operationId: "notifications.updateSettings",
-    summary: "Update notification settings (audited; re-plans pending reminders).",
+    summary: "Update team notification settings (audited).",
   })
   @ApiResponse({ status: 200, description: "Saved.", standardSchema: notificationSettingsSchema })
   @ApiResponse({ status: 400, description: "Invalid input.", standardSchema: problemSchema })

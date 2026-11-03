@@ -28,7 +28,16 @@ services:
   valkey:
     # Redis-protocol compatible; BullMQ and ioredis work unchanged.
     image: valkey/valkey:8.1-alpine
-    command: ["valkey-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    command:
+      [
+        "valkey-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory-policy",
+        "noeviction",
+        "--databases",
+        "64",
+      ]
     ports:
       - "127.0.0.1:${REDIS_PORT:-16379}:6379"
     volumes:

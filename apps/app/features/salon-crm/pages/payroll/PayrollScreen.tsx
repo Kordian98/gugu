@@ -1,52 +1,32 @@
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, CalmCard, Pill, Text, useCalm } from "@gugu/design-system";
-import { COMMISSION_BASE_VALUES, type PayrollMonth, type PayrollRow } from "@gugu/contracts";
-import { formatDateLong, formatMonth, formatVND } from "@gugu/localization";
+import { CalmButton, CalmCard, Icon, Pill, Text, useCalm } from "@gugu/design-system";
+import type { PayrollMonth, PayrollRow } from "@gugu/contracts";
+import { formatLocalDate, formatMonth, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 import { saveBase64File, saveTextFile } from "@/services/files/share";
 
 import { salonDate } from "../../data/dates";
-import {
-  useCloseMonth,
-  useExportPayroll,
-  useManagerAccess,
-  usePayroll,
-  usePayrollSettings,
-  useReopenMonth,
-  useSaveCommissionBase,
-} from "../../data/payroll";
+import { useCloseMonth, useExportPayroll, usePayroll, useReopenMonth } from "../../data/payroll";
 import { useSalon } from "../../data/SalonContext";
 import { useWorkspace } from "../../data/useWorkspace";
 import { PageHeader } from "../../shell/PageHeader";
 import { useBreakpoint } from "../../shell/useBreakpoint";
 import { EmptyState } from "../../ui/EmptyState";
 import { useErrorText } from "../../ui/errors";
-import {
-  ConfirmDialog,
-  ErrorBanner,
-  Field,
-  Input,
-  Segmented,
-  Sheet,
-  SettingRow,
-  Toggle,
-} from "../../ui/form";
-import {
-  DOT,
-  MonthSwitcher,
-  Note,
-  RetryError,
-  SectionTitle,
-  signedVnd,
-  SkeletonRows,
-} from "./parts";
+import { ConfirmDialog, ErrorBanner, Field, Input, Sheet } from "../../ui/form";
+import { BigNumber, StatusChip, Tabs } from "./kit";
+import { monthStatus, monthSummary } from "./model";
+import { baseDetail, MonthSwitcher, Note, RetryError, signedVnd, SkeletonRows } from "./parts";
 import { PaySheet } from "./PaySheet";
+import { RatesTab } from "./RatesTab";
 import { StaffPayrollSheet } from "./StaffPayrollSheet";
 
+type Tab = "month" | "rates";
 type Open =
   | { kind: "row"; staffId: string }
   | { kind: "pay"; staffId: string; name: string }
@@ -55,27 +35,60 @@ type Open =
   | null;
 
 /**
- * Payroll (owner; managers only with the owner's grant): one row per person, base + commission ±
- * adjustments = to pay. One primary action: close the month. Bookkeeping only, estimates before
- * tax and insurance (always stated).
+ * "Lương & hoa hồng" (owner; managers only with the owner's grant), redesigned after the owner's
+ * review 2026-11-03: two tabs — the month (one clean table, totals in the footer, cards on a
+ * phone) and the rates (everyone's pay and commission, bulk changes). One primary action per
+ * state, explained in one line. Bookkeeping only: estimates before tax and insurance.
  */
 export function PayrollScreen() {
   const { t } = useTranslation("crm");
-  const locale = useLocale();
   const bp = useBreakpoint();
   const ws = useWorkspace();
-  const { summary, can } = useSalon();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string }>();
   const mobile = bp === "mobile";
+  const tab: Tab = params.tab === "rates" ? "rates" : "month";
+  return (
+    <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+      <PageHeader
+        title={t("pages.payroll.title")}
+        subtitle={t("payroll.subtitle")}
+        workspace={ws}
+      />
+      <Tabs<Tab>
+        testID="crm-payroll-tab"
+        value={tab}
+        onChange={(v) => {
+          router.setParams({ tab: v === "month" ? undefined : v });
+        }}
+        options={[
+          { id: "month", label: t("payroll.tabs.month") },
+          { id: "rates", label: t("payroll.tabs.rates") },
+        ]}
+      />
+      {tab === "month" ? <MonthTab mobile={mobile} /> : <RatesTab mobile={mobile} />}
+    </ScrollView>
+  );
+}
+
+function MonthTab({ mobile }: { mobile: boolean }) {
+  const { t } = useTranslation("crm");
+  const locale = useLocale();
+  const { summary, can } = useSalon();
   const [month, setMonth] = useState(salonDate(new Date(), summary?.timezone).slice(0, 7));
   const q = usePayroll(month);
   const p = q.data?.data ?? null;
   const canManage = can("payroll.manage");
   const [open, setOpen] = useState<Open>(null);
+  const [exporting, setExporting] = useState(false);
   const close = useCloseMonth();
   const exp = useExportPayroll();
   const errorText = useErrorText();
   const opened =
     open?.kind === "row" ? (p?.rows.find((r) => r.staffId === open.staffId) ?? null) : null;
+  const status = p ? monthStatus(p) : null;
+  const sum = p ? monthSummary(p) : null;
+  const vnd = (n: number) => formatVND(n, locale);
 
   const download = (format: "csv" | "xlsx") => {
     exp.mutate(
@@ -91,70 +104,56 @@ export function PayrollScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
-      <PageHeader
-        title={t("pages.payroll.title")}
-        subtitle={t("payroll.subtitle")}
-        workspace={ws}
-      />
+    <View style={{ gap: 16 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <MonthSwitcher testID="crm-payroll-month" month={month} onChange={setMonth} />
-        {p ? (
-          <Pill
-            tone={p.status === "closed" ? "up" : "neutral"}
-            label={
-              p.status === "closed" && p.closedAt
-                ? t("payroll.closedOn", {
-                    date: formatDateLong(new Date(p.closedAt), locale, summary?.timezone),
-                  })
-                : t(`payroll.status.${p.status}`)
-            }
-          />
-        ) : null}
+        {status ? <StatusChip testID="crm-payroll-status" status={status} /> : null}
         <View style={{ flex: 1 }} />
         {p && p.rows.length ? (
-          <>
+          exporting ? (
+            <View style={{ flexDirection: "row", gap: 6 }}>
+              <CalmButton
+                variant="secondary"
+                label={t("payroll.exportCsv")}
+                onPress={() => {
+                  download("csv");
+                }}
+              />
+              <CalmButton
+                variant="secondary"
+                label={t("payroll.exportXlsx")}
+                onPress={() => {
+                  download("xlsx");
+                }}
+              />
+            </View>
+          ) : (
             <CalmButton
-              size="sm"
-              variant="secondary"
-              label={t("payroll.exportCsv")}
+              testID="crm-payroll-export"
+              variant="ghost"
+              icon="upload"
+              label={t("payroll.month.export")}
               onPress={() => {
-                download("csv");
+                setExporting(true);
               }}
             />
-            <CalmButton
-              size="sm"
-              variant="secondary"
-              label={t("payroll.exportXlsx")}
-              onPress={() => {
-                download("xlsx");
-              }}
-            />
-          </>
-        ) : null}
-        {p && canManage && p.status === "open" && p.phase !== "future" && p.rows.length ? (
-          <CalmButton
-            testID="crm-payroll-close"
-            icon="check"
-            label={t("payroll.close")}
-            onPress={() => {
-              setOpen({ kind: "close" });
-            }}
-          />
-        ) : null}
-        {p && canManage && p.status === "closed" ? (
-          <CalmButton
-            testID="crm-payroll-reopen"
-            size="sm"
-            variant="ghost"
-            label={t("payroll.reopen")}
-            onPress={() => {
-              setOpen({ kind: "reopen" });
-            }}
-          />
+          )
         ) : null}
       </View>
-      <Note testID="crm-payroll-note" text={t("payroll.estimateNote")} />
+
+      {p && status && !q.data?.forbidden ? (
+        <StatusLine
+          p={p}
+          status={status}
+          canManage={canManage}
+          onClose={() => {
+            setOpen({ kind: "close" });
+          }}
+          onReopen={() => {
+            setOpen({ kind: "reopen" });
+          }}
+        />
+      ) : null}
       <ErrorBanner text={errorText(close.error ?? exp.error)} />
 
       {q.isPending ? (
@@ -185,16 +184,59 @@ export function PayrollScreen() {
           body={t("payroll.emptyBody")}
         />
       ) : (
-        <PayrollTable
-          p={p}
-          mobile={mobile}
-          onOpen={(staffId) => {
-            setOpen({ kind: "row", staffId });
-          }}
-        />
+        <>
+          {sum ? (
+            <CalmCard testID="crm-payroll-summary" style={{ gap: 16 }}>
+              <View style={{ flexDirection: "row", gap: 28, flexWrap: "wrap" }}>
+                <BigNumber
+                  testID="crm-payroll-summary-earned"
+                  label={t("payroll.month.earned")}
+                  value={vnd(sum.earned)}
+                  note={t("payroll.month.earnedNote", { count: p.rows.length })}
+                />
+                {sum.projected > 0 ? (
+                  <BigNumber
+                    testID="crm-payroll-summary-projected"
+                    label={t("payroll.month.projected")}
+                    value={`+${vnd(sum.projected)}`}
+                    tone="muted"
+                    size={24}
+                    note={t("payroll.month.projectedNote", { amount: vnd(sum.estimate) })}
+                  />
+                ) : null}
+                <BigNumber
+                  testID="crm-payroll-summary-real"
+                  label={t("payroll.month.realCost")}
+                  value={vnd(sum.realCost)}
+                  tone="muted"
+                  size={24}
+                  note={
+                    sum.employerCostSet
+                      ? t("payroll.month.realCostNote")
+                      : t("payroll.month.realCostNotSet")
+                  }
+                />
+              </View>
+            </CalmCard>
+          ) : null}
+          {mobile ? (
+            <PayrollCards
+              p={p}
+              onOpen={(staffId) => {
+                setOpen({ kind: "row", staffId });
+              }}
+            />
+          ) : (
+            <PayrollTable
+              p={p}
+              onOpen={(staffId) => {
+                setOpen({ kind: "row", staffId });
+              }}
+            />
+          )}
+        </>
       )}
-
-      {canManage && p ? <PayrollSettingsCard month={month} /> : null}
+      <Note testID="crm-payroll-note" text={t("payroll.estimateNote")} />
 
       {opened && p ? (
         <StaffPayrollSheet
@@ -247,154 +289,328 @@ export function PayrollScreen() {
           }}
         />
       ) : null}
-    </ScrollView>
+    </View>
   );
 }
 
-function PayrollTable({
+/** One line that says what the month's state means, next to its one action. */
+function StatusLine({
   p,
-  mobile,
-  onOpen,
+  status,
+  canManage,
+  onClose,
+  onReopen,
 }: {
   p: PayrollMonth;
-  mobile: boolean;
-  onOpen: (id: string) => void;
+  status: ReturnType<typeof monthStatus>;
+  canManage: boolean;
+  onClose: () => void;
+  onReopen: () => void;
 }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
-  const vnd = (n: number) => formatVND(n, locale);
-  const adj = (r: Pick<PayrollRow, "bonus" | "deduction" | "advance">) =>
-    r.bonus - r.deduction - r.advance;
-  const detail = (r: PayrollRow) =>
-    r.baseType === null
-      ? t("payroll.noPay")
-      : r.baseType === "monthly"
-        ? t("payroll.baseDetail.monthly", { days: r.employedDays, dim: daysIn(p.month) })
-        : r.baseType === "daily"
-          ? t("payroll.baseDetail.daily", { count: r.workingDays })
-          : r.baseType === "hourly"
-            ? t("payroll.baseDetail.hourly", { hours: Math.round(r.workMinutes / 6) / 10 })
-            : t("payroll.baseDetail.none");
-  const cols = [
-    t("payroll.columns.base"),
-    t("payroll.columns.commission"),
-    t("payroll.columns.adjustments"),
-    t("payroll.columns.total"),
-  ];
+  const { summary } = useSalon();
+  const closedDate = p.closedAt
+    ? formatLocalDate(salonDate(new Date(p.closedAt), summary?.timezone), locale)
+    : "";
   return (
-    <CalmCard testID="crm-payroll-table" style={{ gap: 4 }}>
-      {mobile ? null : (
-        <View style={{ flexDirection: "row", gap: 8, paddingBottom: 6 }}>
-          <Text size={12} color={c.muted} style={{ flex: 2 }}>
-            {t("payroll.columns.person")}
-          </Text>
-          {cols.map((h) => (
-            <Text key={h} size={12} color={c.muted} style={{ flex: 1, textAlign: "right" }}>
-              {h}
-            </Text>
-          ))}
-        </View>
-      )}
+    <View
+      testID="crm-payroll-status-line"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        flexWrap: "wrap",
+        padding: 14,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: c.line,
+        backgroundColor: c.surface,
+      }}
+    >
+      <Text size={15} color={c.body} style={{ flex: 1, minWidth: 220 }}>
+        {t(`payroll.month.explain.${status}`, {
+          date: closedDate,
+          count: p.rows.filter((r) => r.paidOn !== null).length,
+        })}
+      </Text>
+      {canManage && p.status === "open" && p.phase !== "future" ? (
+        <CalmButton
+          testID="crm-payroll-close"
+          icon="check"
+          label={t("payroll.close")}
+          onPress={onClose}
+        />
+      ) : null}
+      {canManage && p.status === "closed" ? (
+        <CalmButton
+          testID="crm-payroll-reopen"
+          variant="secondary"
+          label={t("payroll.reopen")}
+          onPress={onReopen}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+const adjOf = (r: Pick<PayrollRow, "bonus" | "deduction">) => r.bonus - r.deduction;
+
+function PayrollTable({ p, onOpen }: { p: PayrollMonth; onOpen: (id: string) => void }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  const locale = useLocale();
+  const vnd = (n: number) => formatVND(n, locale);
+  const open = p.status === "open";
+  const head = (label: string, flex = 1, align: "left" | "right" = "right") => (
+    <Text
+      role="uiMedium"
+      size={13}
+      color={c.body}
+      style={{ flex, textAlign: align }}
+      numberOfLines={2}
+    >
+      {label}
+    </Text>
+  );
+  const cell = (
+    value: string,
+    opts: { strong?: boolean; muted?: boolean; size?: number; testID?: string } = {},
+  ) => (
+    <Text
+      testID={opts.testID}
+      role={opts.strong ? "uiSemiBold" : "ui"}
+      size={opts.size ?? 15}
+      color={opts.muted ? c.muted : c.ink}
+      style={{ flex: 1, textAlign: "right" }}
+    >
+      {value}
+    </Text>
+  );
+  return (
+    <CalmCard testID="crm-payroll-table" style={{ gap: 0, paddingVertical: 8 }}>
+      <View style={{ flexDirection: "row", gap: 12, paddingVertical: 10, alignItems: "flex-end" }}>
+        {head(t("payroll.columns.person"), 1.8, "left")}
+        {head(t("payroll.columns.base"))}
+        {head(t("payroll.table.commission"))}
+        {head(t("payroll.table.adjustments"))}
+        {head(t("payroll.table.gross"))}
+        {head(t("payroll.table.realCost"))}
+        {head(t("payroll.columns.total"))}
+        <View style={{ width: 18 }} />
+      </View>
       {p.rows.map((r) => (
         <Pressable
           key={r.staffId}
           testID={`crm-payroll-row-${r.staffId}`}
           accessibilityRole="button"
+          accessibilityLabel={t("payroll.table.openPerson", { name: r.displayName })}
           onPress={() => {
             onOpen(r.staffId);
           }}
-          style={{
-            flexDirection: mobile ? "column" : "row",
-            alignItems: mobile ? "stretch" : "center",
-            gap: mobile ? 4 : 8,
-            paddingVertical: 12,
+          style={(state) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            minHeight: 64,
+            paddingVertical: 10,
             borderTopWidth: 1,
             borderColor: c.line,
-            minHeight: 44,
-          }}
+            backgroundColor: (state as { hovered?: boolean }).hovered
+              ? c.surfaceMuted
+              : "transparent",
+          })}
         >
-          <View style={{ flex: 2, gap: 2 }}>
+          <View style={{ flex: 1.8, gap: 3 }}>
             <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-              <Text role="uiSemiBold" size={15} color={c.ink}>
+              <Text role="uiSemiBold" size={16} color={c.ink}>
                 {r.displayName}
               </Text>
-              {r.removed ? <Pill size={10} label={t("payroll.removed")} /> : null}
-              {r.paidOn ? <Pill size={10} tone="up" label={t("payroll.columns.paid")} /> : null}
+              {r.removed ? <Pill size={11} label={t("payroll.removed")} /> : null}
+              {r.paidOn ? (
+                <Pill
+                  size={11}
+                  tone="up"
+                  label={t("payroll.paidOn", { date: formatLocalDate(r.paidOn, locale) })}
+                />
+              ) : null}
               {r.baseType === null ? (
-                <Pill size={10} tone="down" label={t("payroll.noPay")} />
+                <Pill size={11} tone="down" label={t("payroll.noPay")} />
               ) : null}
             </View>
-            <Text size={12} color={c.muted}>
-              {[
-                r.baseType ? t(`payroll.baseType.${r.baseType}`) : null,
-                detail(r),
-                t("payroll.services", { count: r.commissionLines }),
-              ]
-                .filter(Boolean)
-                .join(DOT)}
+            <Text size={13} color={c.muted}>
+              {baseDetail(r, p.month, t)}
             </Text>
           </View>
-          {[vnd(r.base), vnd(r.commission), signedVnd(adj(r), locale)].map((v, i) => (
-            <Text
-              key={i}
-              size={14}
-              color={c.body}
-              style={{ flex: 1, textAlign: mobile ? "left" : "right" }}
-            >
-              {mobile ? `${cols[i] ?? ""}: ${v}` : v}
+          {cell(vnd(r.base))}
+          <View style={{ flex: 1, alignItems: "flex-end" }}>
+            <Text size={15} color={c.ink}>
+              {vnd(r.commission)}
             </Text>
-          ))}
-          <View style={{ flex: 1, alignItems: mobile ? "flex-start" : "flex-end" }}>
-            <Text role="uiSemiBold" size={16} color={c.ink}>
-              {mobile ? `${cols[3] ?? ""}: ${vnd(r.total)}` : vnd(r.total)}
+            <Text size={12} color={c.muted}>
+              {open && r.projectedCommission > 0
+                ? t("payroll.table.projected", { amount: vnd(r.projectedCommission) })
+                : t("payroll.services", { count: r.commissionLines })}
             </Text>
-            {r.projectedCommission > 0 && p.status === "open" ? (
-              <Text size={11} color={c.muted}>
-                {t("payroll.projected", { amount: vnd(r.projectedCommission) })}
+          </View>
+          {cell(signedVnd(adjOf(r), locale), { muted: adjOf(r) === 0 })}
+          {cell(vnd(r.gross))}
+          <View style={{ flex: 1, alignItems: "flex-end" }}>
+            <Text size={15} color={r.employerCostSet ? c.ink : c.muted}>
+              {vnd(r.realCost)}
+            </Text>
+            <Text size={12} color={c.muted}>
+              {r.employerCostSet
+                ? t("payroll.table.employerPart", { amount: vnd(r.employerCost) })
+                : t("payroll.table.notSet")}
+            </Text>
+          </View>
+          <View style={{ flex: 1, alignItems: "flex-end" }}>
+            <Text role="uiSemiBold" size={17} color={c.ink}>
+              {vnd(r.total)}
+            </Text>
+            {r.advance > 0 ? (
+              <Text size={12} color={c.muted}>
+                {t("payroll.table.advance", { amount: vnd(r.advance) })}
               </Text>
             ) : null}
           </View>
+          <Icon name="chevronRight" size={18} color={c.muted} />
         </Pressable>
       ))}
       <View
         testID="crm-payroll-totals"
         style={{
-          flexDirection: mobile ? "column" : "row",
-          gap: 8,
-          paddingTop: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingVertical: 14,
           borderTopWidth: 2,
           borderColor: c.line,
         }}
       >
-        <Text role="uiSemiBold" size={15} color={c.ink} style={{ flex: 2 }}>
+        <Text role="uiSemiBold" size={16} color={c.ink} style={{ flex: 1.8 }}>
           {t("payroll.totals")}
         </Text>
-        {[vnd(p.totals.base), vnd(p.totals.commission), vnd(adj(p.totals))].map((v, i) => (
-          <Text
-            key={i}
-            size={14}
-            color={c.body}
-            style={{ flex: 1, textAlign: mobile ? "left" : "right" }}
-          >
-            {mobile ? `${cols[i] ?? ""}: ${v}` : v}
-          </Text>
-        ))}
+        {cell(vnd(p.totals.base), { strong: true })}
+        {cell(vnd(p.totals.commission), { strong: true })}
+        {cell(signedVnd(adjOf(p.totals), locale), { strong: true })}
+        {cell(vnd(p.totals.gross), { strong: true })}
         <Text
+          testID="crm-payroll-totals-real"
           role="uiSemiBold"
-          size={16}
+          size={15}
           color={c.ink}
-          style={{ flex: 1, textAlign: mobile ? "left" : "right" }}
+          style={{ flex: 1, textAlign: "right" }}
         >
-          {mobile ? `${cols[3] ?? ""}: ${vnd(p.totals.total)}` : vnd(p.totals.total)}
+          {vnd(p.totals.realCost)}
         </Text>
+        {cell(vnd(p.totals.total), { strong: true, size: 18 })}
+        <View style={{ width: 18 }} />
       </View>
     </CalmCard>
   );
 }
 
-const daysIn = (month: string) =>
-  new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+/** Phone: one card per person, the amount to hand over big, the parts as label: value lines. */
+function PayrollCards({ p, onOpen }: { p: PayrollMonth; onOpen: (id: string) => void }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  const locale = useLocale();
+  const vnd = (n: number) => formatVND(n, locale);
+  const line = (label: string, value: string, muted = false) => (
+    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+      <Text size={15} color={c.body}>
+        {label}
+      </Text>
+      <Text size={15} color={muted ? c.muted : c.ink}>
+        {value}
+      </Text>
+    </View>
+  );
+  return (
+    <View testID="crm-payroll-table" style={{ gap: 10 }}>
+      {p.rows.map((r) => (
+        <Pressable
+          key={r.staffId}
+          testID={`crm-payroll-row-${r.staffId}`}
+          accessibilityRole="button"
+          accessibilityLabel={t("payroll.table.openPerson", { name: r.displayName })}
+          onPress={() => {
+            onOpen(r.staffId);
+          }}
+          style={{
+            gap: 8,
+            padding: 16,
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: c.line,
+            backgroundColor: c.surface,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text role="uiSemiBold" size={17} color={c.ink}>
+                {r.displayName}
+              </Text>
+              <Text size={13} color={c.muted}>
+                {baseDetail(r, p.month, t)}
+              </Text>
+            </View>
+            <Icon name="chevronRight" size={18} color={c.muted} />
+          </View>
+          {r.paidOn || r.baseType === null || r.removed ? (
+            <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+              {r.paidOn ? (
+                <Pill
+                  size={12}
+                  tone="up"
+                  label={t("payroll.paidOn", { date: formatLocalDate(r.paidOn, locale) })}
+                />
+              ) : null}
+              {r.baseType === null ? (
+                <Pill size={12} tone="down" label={t("payroll.noPay")} />
+              ) : null}
+              {r.removed ? <Pill size={12} label={t("payroll.removed")} /> : null}
+            </View>
+          ) : null}
+          <BigNumber label={t("payroll.columns.total")} value={vnd(r.total)} size={26} />
+          {line(t("payroll.columns.base"), vnd(r.base))}
+          {line(t("payroll.table.commission"), vnd(r.commission))}
+          {p.status === "open" && r.projectedCommission > 0
+            ? line(t("payroll.month.projected"), `+${vnd(r.projectedCommission)}`, true)
+            : null}
+          {adjOf(r) !== 0
+            ? line(t("payroll.table.adjustments"), signedVnd(adjOf(r), locale))
+            : null}
+          {r.advance > 0
+            ? line(t("payroll.adjustments.kind.advance"), signedVnd(-r.advance, locale))
+            : null}
+          {line(t("payroll.table.realCost"), vnd(r.realCost), !r.employerCostSet)}
+        </Pressable>
+      ))}
+      <View
+        testID="crm-payroll-totals"
+        style={{ gap: 6, padding: 16, borderRadius: 18, backgroundColor: c.surfaceMuted }}
+      >
+        <Text role="uiSemiBold" size={16} color={c.ink}>
+          {t("payroll.totals")}
+        </Text>
+        {line(t("payroll.table.gross"), vnd(p.totals.gross))}
+        {line(t("payroll.table.realCost"), vnd(p.totals.realCost))}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+          <Text role="uiSemiBold" size={16} color={c.ink}>
+            {t("payroll.columns.total")}
+          </Text>
+          <Text role="uiSemiBold" size={18} color={c.ink}>
+            {vnd(p.totals.total)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 function ReopenSheet({ month, onClose }: { month: string; onClose: () => void }) {
   const { c } = useCalm();
@@ -426,12 +642,12 @@ function ReopenSheet({ month, onClose }: { month: string; onClose: () => void })
       }
     >
       <ErrorBanner text={errorText(reopen.error)} />
-      <Text size={14} color={c.body}>
+      <Text size={15} color={c.body}>
         {t("payroll.reopenBody")}
       </Text>
       <Field
         label={t("payroll.reopenReason")}
-        error={touched && !reason.trim() ? t("common.required") : null}
+        error={touched && !reason.trim() ? t("payroll.validation.reasonRequired") : null}
       >
         <Input
           testID="crm-payroll-reopen-reason"
@@ -441,66 +657,5 @@ function ReopenSheet({ month, onClose }: { month: string; onClose: () => void })
         />
       </Field>
     </Sheet>
-  );
-}
-
-/** Commission base (from the viewed month) and which managers may see payroll (owner only). */
-function PayrollSettingsCard({ month }: { month: string }) {
-  const { c } = useCalm();
-  const { t } = useTranslation("crm");
-  const { can } = useSalon();
-  const q = usePayrollSettings();
-  const s = q.data?.data ?? null;
-  const base = useSaveCommissionBase();
-  const access = useManagerAccess();
-  const errorText = useErrorText();
-  if (!s) return null;
-  return (
-    <CalmCard testID="crm-payroll-settings" style={{ gap: 12 }}>
-      <SectionTitle text={t("payroll.settings.title")} />
-      <ErrorBanner text={errorText(base.error ?? access.error)} />
-      <Field
-        label={t("payroll.settings.commissionBase")}
-        hint={`${t(`payroll.settings.basesHint.${s.commissionBase}`)} ${t("payroll.settings.baseFrom")}`}
-      >
-        <Segmented
-          value={s.commissionBase}
-          onChange={(v) => {
-            base.mutate({ base: v, effectiveFrom: `${month}-01` });
-          }}
-          options={COMMISSION_BASE_VALUES.map((id) => ({
-            id,
-            label: t(`payroll.settings.bases.${id}`),
-          }))}
-        />
-      </Field>
-      {can("members.roles.write") ? (
-        <View style={{ gap: 6 }}>
-          <Text role="uiMedium" size={14} color={c.ink}>
-            {t("payroll.settings.managerAccess")}
-          </Text>
-          <Text size={12} color={c.muted}>
-            {t("payroll.settings.managerAccessHint")}
-          </Text>
-          {s.managers.length === 0 ? (
-            <Text size={13} color={c.muted}>
-              {t("payroll.settings.noManagers")}
-            </Text>
-          ) : (
-            s.managers.map((m) => (
-              <SettingRow key={m.memberId} title={m.displayName}>
-                <Toggle
-                  value={m.granted}
-                  label={t("payroll.settings.managerAccess")}
-                  onChange={(granted) => {
-                    access.mutate({ memberId: m.memberId, granted });
-                  }}
-                />
-              </SettingRow>
-            ))
-          )}
-        </View>
-      ) : null}
-    </CalmCard>
   );
 }

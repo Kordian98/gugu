@@ -27,3 +27,14 @@ export function maskPhone(e164: string): string {
   const cc = e164.startsWith("+84") ? "+84" : "+";
   return `${cc} ${PHONE_MASK.repeat(3)} ${PHONE_MASK.repeat(3)} ${digits.slice(-3)}`;
 }
+
+/**
+ * Masked client email for members without `customers.phone.read` (same rule as the phone, q87):
+ * `lan.nguyen@example.vn` → `l•••@example.vn`. Never reversible.
+ */
+export function maskEmail(email: string): string {
+  const at = email.lastIndexOf("@");
+  return at <= 0
+    ? PHONE_MASK.repeat(3)
+    : `${email.slice(0, 1)}${PHONE_MASK.repeat(3)}${email.slice(at)}`;
+}

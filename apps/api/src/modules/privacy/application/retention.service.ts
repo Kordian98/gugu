@@ -12,8 +12,6 @@ const BATCH = 5_000;
 export const RETENTION = {
   /** Spec 11 R20: the notification send log is kept 12 months. */
   notificationDeliveriesMonths: NOTIFICATION_DELIVERY_RETENTION_MONTHS,
-  /** Recipient hash on a delivery is only needed for the 24 h abuse caps; cleared after 48 h. */
-  recipientKeyMs: 2 * DAY,
   /** Sessions: deleted 30 days after they ended (revoked or expired). */
   endedSessionsMs: 30 * DAY,
   /** Magic links: deleted 1 day after expiry. */
@@ -32,7 +30,6 @@ export const RETENTION = {
 export type RetentionCounts = Record<
   | "notificationDeliveries"
   | "notifications"
-  | "recipientKeysCleared"
   | "sessions"
   | "magicLinks"
   | "idempotencyKeys"
@@ -72,14 +69,6 @@ export class RetentionService {
         (limit) => this.prisma.$executeRaw`
           DELETE FROM notification_deliveries WHERE id IN (
             SELECT id FROM notification_deliveries WHERE created_at < ${deliveriesBefore} LIMIT ${limit})`,
-      ),
-      recipientKeysCleared: await this.batched(
-        (limit) => this.prisma.$executeRaw`
-          UPDATE notification_deliveries SET recipient_key = NULL WHERE id IN (
-            SELECT id FROM notification_deliveries
-            WHERE recipient_key IS NOT NULL
-              AND coalesce(reserved_at, created_at) < ${new Date(now.getTime() - RETENTION.recipientKeyMs)}
-            LIMIT ${limit})`,
       ),
       sessions: await this.purgeSessions(new Date(now.getTime() - RETENTION.endedSessionsMs)),
       magicLinks: await this.batched(

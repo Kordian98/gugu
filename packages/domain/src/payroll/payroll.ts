@@ -109,3 +109,49 @@ export function payrollLine(
     cost: base + commission + bonus - deduction,
   };
 }
+
+/**
+ * The month's employer-cost terms of one person (ADR-0017), weighted by the employed days each
+ * pay version covers (like monthly base pay): a fixed amount is pro-rated (amount × days ÷ days in
+ * month), a % applies to that share of gross. `extra = fixed + gross × bps ÷ 10 000`, so the same
+ * terms price both earned and projected gross.
+ */
+export interface EmployerCostTerms {
+  /** Pro-rated fixed amounts (VND). */
+  fixed: number;
+  /** Day-weighted % of gross, basis points (may be fractional). */
+  bps: number;
+  /** Some employed day of the month has an employer cost set. */
+  set: boolean;
+}
+
+export function employerCostTerms(
+  input: Omit<BasePayInput, "workMinutesByDate">,
+): EmployerCostTerms {
+  const dim = daysInMonth(input.month);
+  const days = new Map<PayVersion, number>();
+  let employed = 0;
+  for (const date of monthDates(input.month)) {
+    if (input.employedUntil !== null && date > input.employedUntil) continue;
+    const v = versionAt(input.versions, date);
+    if (!v) continue;
+    days.set(v, (days.get(v) ?? 0) + 1);
+    employed++;
+  }
+  let fixed = 0;
+  let bps = 0;
+  let set = false;
+  for (const [v, n] of days) {
+    const e = v.employerCost;
+    if (!e) continue;
+    set = true;
+    if (e.kind === "fixed") fixed += roundVnd((Math.max(0, e.amount) * n) / dim);
+    else bps += (Math.max(0, e.bps) * n) / employed;
+  }
+  return { fixed, bps, set };
+}
+
+/** Employer cost on top of a gross amount (never negative). */
+export function employerExtra(terms: EmployerCostTerms, gross: number): number {
+  return terms.fixed + roundVnd((Math.max(0, gross) * terms.bps) / 10_000);
+}

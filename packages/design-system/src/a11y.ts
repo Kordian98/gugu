@@ -33,3 +33,25 @@ export function checkableA11y(
   }
   return props;
 }
+
+/** Minimum touch target (WCAG 2.5.5 / platform guidance): 44 pt. */
+export const MIN_TOUCH = 44;
+
+/**
+ * How much a control that is visually smaller than 44 pt must grow on each side to reach a 44 pt
+ * touch area. Make the pressable that much bigger and cancel it with a negative margin, so the
+ * layout footprint is unchanged (react-native-web ignores `hitSlop`). See `CalmButton`, `Toggle`.
+ */
+export function touchSlop(
+  width: number,
+  height: number,
+): {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+} {
+  const v = Math.max(0, Math.ceil((MIN_TOUCH - height) / 2));
+  const h = Math.max(0, Math.ceil((MIN_TOUCH - width) / 2));
+  return { top: v, bottom: v, left: h, right: h };
+}

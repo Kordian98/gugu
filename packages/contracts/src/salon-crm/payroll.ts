@@ -56,6 +56,17 @@ export const commissionOverrideSchema = z
   });
 export type CommissionOverride = z.infer<typeof commissionOverrideSchema>;
 
+/**
+ * "Chi phí thực tế" (owner 2026-11-03, ADR-0017): employer cost on top of gross pay, entered by
+ * the salon from its accountant — a % of gross or a fixed VND amount per month. null = not set
+ * (real cost = gross). GuGu computes no tax or insurance. Never shown to the staff member.
+ */
+export const employerCostSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("percent"), percent }),
+  z.object({ kind: z.literal("fixed"), amount: vnd }),
+]);
+export type EmployerCost = z.infer<typeof employerCostSchema>;
+
 export const payVersionInputSchema = z
   .object({
     effectiveFrom: localDate,
@@ -63,6 +74,7 @@ export const payVersionInputSchema = z
     baseAmount: vnd.default(0),
     commissionPercent: percent.default(0),
     overrides: z.array(commissionOverrideSchema).max(200).default([]),
+    employerCost: employerCostSchema.nullable().default(null),
   })
   .refine(
     (v) =>
@@ -79,6 +91,7 @@ export const payVersionSchema = z.object({
   baseAmount: vnd,
   commissionPercent: percent,
   overrides: z.array(commissionOverrideSchema),
+  employerCost: employerCostSchema.nullable(),
   createdAt: z.iso.datetime(),
 });
 export type PayVersion = z.infer<typeof payVersionSchema>;
@@ -107,6 +120,8 @@ export const payrollSettingsSchema = z.object({
       staffId: uuidV7Schema,
       displayName: z.string(),
       current: payVersionSchema.nullable(),
+      /** The next version already scheduled after today (shown as "from 15/11: …"), if any. */
+      next: payVersionSchema.nullable(),
     }),
   ),
   /** Managers and whether the owner let them see/manage payroll (override grant). */
@@ -115,6 +130,40 @@ export const payrollSettingsSchema = z.object({
   ),
 });
 export type PayrollSettings = z.infer<typeof payrollSettingsSchema>;
+
+/** One commission rate: a percentage of the base, or a fixed VND amount per service performed. */
+export const commissionRateSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("percent"), percent }),
+  z.object({ kind: z.literal("fixed"), amount: vnd }),
+]);
+export type CommissionRate = z.infer<typeof commissionRateSchema>;
+
+/**
+ * The same commission change for several people at once (Payroll → Rates, service editor): from
+ * `effectiveFrom` on, and also in versions already scheduled after it, so a later version never
+ * silently brings the old rate back. Everything else in each person's pay stays as it is. People
+ * without pay settings get "commission only" from that date. One transaction, one audit entry.
+ */
+export const commissionBulkInputSchema = z.object({
+  effectiveFrom: localDate,
+  staffIds: z.array(uuidV7Schema).min(1).max(100),
+  change: z.discriminatedUnion("target", [
+    /** The person's default % (applies to every service without its own rate). */
+    z.object({ target: z.literal("default"), percent }),
+    z.object({
+      target: z.literal("override"),
+      services: z
+        .array(
+          z.object({ serviceId: uuidV7Schema, variantId: uuidV7Schema.nullable().default(null) }),
+        )
+        .min(1)
+        .max(200),
+      /** null removes the own rate: the service goes back to the person's default %. */
+      rate: commissionRateSchema.nullable(),
+    }),
+  ]),
+});
+export type CommissionBulkInput = z.input<typeof commissionBulkInputSchema>;
 
 export const managerAccessInputSchema = z.object({ granted: z.boolean() });
 
@@ -140,6 +189,16 @@ export const payrollRowSchema = z.object({
   advance: vnd,
   /** base + commission + bonus − deduction − advance. */
   total: signedVnd,
+  /** Gross pay: base + commission + bonus − deduction (an advance is part of it). */
+  gross: signedVnd,
+  /** Employer cost above gross the salon entered (0 when not set); on earned pay. */
+  employerCost: vnd,
+  /** The same on projected commission (open months; 0 once closed). */
+  projectedEmployerCost: vnd,
+  /** An employer cost is set for some day of the month. */
+  employerCostSet: z.boolean(),
+  /** "Chi phí thực tế": gross + employer cost. Equals gross when not set. */
+  realCost: signedVnd,
   paidOn: z.string().nullable(),
 });
 export type PayrollRow = z.infer<typeof payrollRowSchema>;
@@ -151,6 +210,9 @@ export const payrollTotalsSchema = z.object({
   deduction: vnd,
   advance: vnd,
   total: signedVnd,
+  gross: signedVnd,
+  employerCost: vnd,
+  realCost: signedVnd,
 });
 
 export const payrollAdjustmentSchema = z.object({
@@ -180,8 +242,23 @@ export type PayrollMonth = z.infer<typeof payrollMonthSchema>;
 export const payrollSnapshotSchema = z.object({
   version: z.literal(1),
   commissionBase: commissionBaseSchema,
-  rows: z.array(payrollRowSchema.omit({ paidOn: true })),
-  totals: payrollTotalsSchema,
+  /** Snapshots from before ADR-0017 have no employer cost: read as 0 / not set. */
+  rows: z.array(
+    payrollRowSchema
+      .omit({
+        paidOn: true,
+        gross: true,
+        realCost: true,
+        employerCost: true,
+        projectedEmployerCost: true,
+        employerCostSet: true,
+      })
+      .extend({
+        employerCost: vnd.default(0),
+        employerCostSet: z.boolean().default(false),
+      }),
+  ),
+  totals: payrollTotalsSchema.partial({ gross: true, employerCost: true, realCost: true }),
   /** Service costs and commission totals for the profit view of a closed month. */
   payrollCost: signedVnd,
 });
@@ -210,6 +287,27 @@ export const commissionLinesSchema = z.object({
   items: z.array(commissionLineSchema),
 });
 export type CommissionLines = z.infer<typeof commissionLinesSchema>;
+
+/**
+ * A staff member's own commission lines (`GET payroll/me/lines`, payroll.self.read). Deliberately
+ * WITHOUT `price` and `base`: under the `price_minus_cost` policy `price − base` is the internal
+ * service cost, which needs services.cost.read (security review 2026-11-03). Keys are asserted in
+ * apps/api cost-exposure.test.ts.
+ */
+export const myCommissionLineSchema = commissionLineSchema.pick({
+  lineId: true,
+  bookingId: true,
+  date: true,
+  service: true,
+  state: true,
+  rate: true,
+  amount: true,
+});
+export const myCommissionLinesSchema = z.object({
+  month: monthSchema,
+  items: z.array(myCommissionLineSchema),
+});
+export type MyCommissionLines = z.infer<typeof myCommissionLinesSchema>;
 
 export const payrollStaffParamsSchema = z.object({ salonId: uuidV7Schema, staffId: uuidV7Schema });
 export const payrollMonthParamsSchema = z.object({ salonId: uuidV7Schema, month: monthSchema });
@@ -339,6 +437,8 @@ export const profitSchema = z.object({
     commissionEarned: signedVnd,
     commissionProjected: signedVnd,
     adjustments: signedVnd,
+    /** Employer costs above gross the salon entered (included in payroll). */
+    employerCosts: signedVnd,
     payroll: signedVnd,
     otherCosts: signedVnd,
     grossProfit: signedVnd,

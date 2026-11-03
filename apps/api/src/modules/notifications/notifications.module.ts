@@ -10,7 +10,7 @@ import { NotifyClock } from "./application/notify-clock";
 import { NotifyJobs } from "./application/notify-jobs";
 import { PlannerService } from "./application/planner.service";
 import { RecipientsService } from "./application/recipients.service";
-import { RemindersService } from "./application/reminders.service";
+import { ReconcileService } from "./application/reconcile.service";
 import { EMAIL_PROVIDER, SenderService } from "./application/sender.service";
 import { NotificationSettingsService } from "./application/settings.service";
 import { TimelineQueries } from "./application/timeline.queries";
@@ -18,8 +18,9 @@ import { EmailChannel } from "./channels/channel";
 import { NotificationsController } from "./http/notifications.controller";
 
 /**
- * Notifications (topic 11, email milestone): Settings → Notifications, per-booking message
- * timeline and the team bell (HTTP). Planning and sending run in the worker
+ * Notifications (topic 11): Settings → Notifications, per-booking Zalo message timeline and the
+ * team bell (HTTP). Customers are reached only by the salon's Zalo OA (module `zalo`); GuGu never
+ * emails them (X26). Planning and sending run in the worker
  * (NotificationsWorkerModule). Domain doc: docs/domains/customer-notifications.md.
  */
 @Module({
@@ -35,7 +36,7 @@ import { NotificationsController } from "./http/notifications.controller";
 })
 export class NotificationsModule {}
 
-/** Worker slice: outbox consumer (planner), `notify` queue sends, reminders, reconciliation. */
+/** Worker slice: outbox consumer (planner), `notify` queue team sends, reconciliation. */
 @Module({
   // The HTTP app has these globally; the worker process imports them here.
   imports: [AuditModule, MailModule, ZaloWorkerModule],
@@ -45,7 +46,7 @@ export class NotificationsModule {}
     NotificationSettingsService,
     RecipientsService,
     DeliveryQueue,
-    RemindersService,
+    ReconcileService,
     PlannerService,
     SenderService,
     EmailChannel,
