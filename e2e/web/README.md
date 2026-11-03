@@ -46,11 +46,13 @@ only the date is "today in VN" because the engine refuses past times. IDs are in
 The `basic` salon is moved from its trial to the free Basic year (X25) through the admin API by a setup-only admin (`admin-setup.<project>@…`), so the test admin's magic links and TOTP steps stay untouched. The platform admin is granted with `apps/api/scripts/seed-platform-admin.mjs --with-totp`; step-up
 codes come from `apps/api/scripts/totp-code.mjs` (`support/totp.ts`).
 
-Rate-limit budget: magic-link issue/verify allow 30 per IP per 15 min. Browser sign-ins use
-127.0.0.1 (≈ 26 per run); seed sign-ins send `X-Forwarded-For: 10.77.<n>.1` (the backend runs with
-`TRUST_PROXY=loopback`) so they get their own buckets. A magic link is capped at 3 per email per
-15 min: one sign-in per account per test file. Add a new area rather than reusing another file's
-accounts.
+Rate-limit budget: magic-link issue/verify allow 30 per IP /24 per 15 min. Every browser connects
+from 127.0.0.1, so `signInViaUi` (support/auth.ts) rewrites only those two requests with its own
+`X-Forwarded-For: 10.<100+worker>.<n>.1` per sign-in. Seed sign-ins send `10.77.<n>.1`. The backend
+runs with `TRUST_PROXY=loopback`, so each sign-in gets its own bucket. Without this, chromium + webkit
+outgrow the single 127.0.0.1 bucket at 31+ sign-ins, and the last sign-ins see the "too many attempts"
+notice instead of "check inbox". A magic link is capped at 3 per email per 15 min: one sign-in per
+account per test file. Add a new area rather than reusing another file's accounts.
 
 ## Writing tests
 
