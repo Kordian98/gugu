@@ -68,11 +68,11 @@ def main() -> None:
         for i, f in enumerate(files):
             im = Image.open(os.path.join(tmp, f)).convert("RGB")
             w, h = im.size
-            webp(im.resize((2048, round(h * 2048 / w)), Image.LANCZOS), os.path.join(stage, "d", f"{i + 1:03d}.webp"), 52)
+            webp(im.resize((2048, round(h * 2048 / w)), Image.LANCZOS), os.path.join(stage, "d", f"{i + 1:03d}.webp"), 40)
             cw = round(h * 9 / 16)
             x = round(focus(seg, i) * w - cw / 2)
             x = max(0, min(w - cw, x))
-            webp(im.crop((x, 0, x + cw, h)).resize((720, 1280), Image.LANCZOS), os.path.join(stage, "m", f"{i + 1:03d}.webp"), 55)
+            webp(im.crop((x, 0, x + cw, h)).resize((720, 1280), Image.LANCZOS), os.path.join(stage, "m", f"{i + 1:03d}.webp"), 46)
         shutil.rmtree(tmp)
         final = os.path.join(OUT, seg)
         old = os.path.join(OUT, f".{seg}.old")

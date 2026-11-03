@@ -2,7 +2,7 @@
 
 Every fal.ai call for the hero and homepage prototype, generated from `scripts/runs.jsonl` by `scripts/prompts_md.py`. FLUX 3 edit and Kling v4 expose no seed parameter, so the fal request ID plus the exact prompt and reference files are the reproducibility record. Costs are estimates from the fal model pages (2K FLUX tier and BiRefNet price not verified; check the fal dashboard for the actual bill).
 
-**Calls:** 90 · **Estimated spend:** $5.93
+**Calls:** 105 · **Estimated spend:** $5.93
 
 | # | Name | Endpoint | Request ID | Refs | Output | Est. $ |
 |---|---|---|---|---|---|---|
@@ -96,6 +96,21 @@ Every fal.ai call for the hero and homepage prototype, generated from `scripts/r
 | 88 | walk3-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a19dc2-645e-72a3-8571-8f10bc1e0c50` |  |  | 0.000 |
 | 89 | loop-stress-hi | `fal-ai/bytedance-upscaler/upscale/video` | `01a19dc6-338b-7462-9d89-af78ee29d897` |  |  | 0.000 |
 | 90 | loop-calm-hi | `fal-ai/bytedance-upscaler/upscale/video` | `01a19dc6-338f-77f3-83ea-0841f0c1a895` |  |  | 0.000 |
+| 91 | loop-stress-169 | `alibaba/wan-3.0-prime/image-to-video` | `01a19dd9-06e9-75c2-8a98-b9b4f4c00944` |  |  | 0.000 |
+| 92 | loop-calm-169 | `alibaba/wan-3.0-prime/image-to-video` | `01a19dd9-0722-7760-a45b-e4cc6707b031` |  |  | 0.000 |
+| 93 | loop-stress-169-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a19ddf-485a-7ac3-96f3-83aaecdba2ae` |  |  | 0.000 |
+| 94 | loop-calm-169-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a19ddf-485b-7b32-9c57-1ac7ef7db9d8` |  |  | 0.000 |
+| 95 | brand-exterior (4K) | `fal-ai/nano-banana-pro/edit` | `01a19fee-3311-7622-ac7f-d2a47fa7297d` |  |  | 0.000 |
+| 96 | brand-stress (4K) | `fal-ai/nano-banana-pro/edit` | `01a19ff0-336d-7dc3-9bdb-27f5315b4131` |  |  | 0.000 |
+| 97 | brand-calm v1 (rejected: sign mismatch) | `fal-ai/nano-banana-pro/edit` | `01a19ff0-33c6-7352-adfb-2b8c1eae1138` |  |  | 0.000 |
+| 98 | brand-calm | `fal-ai/nano-banana-pro/edit` | `01a19ff1-e679-7681-bff5-e21473f61c79` |  |  | 0.000 |
+| 99 | brand-treatment (4K) | `fal-ai/nano-banana-pro/edit` | `01a19ff0-33ca-77e0-adb7-3b94651c809e` |  |  | 0.000 |
+| 100 | brand-office (4K) | `fal-ai/nano-banana-pro/edit` | `01a19ff0-33c8-7022-a3d2-ae01d646e334` |  |  | 0.000 |
+| 101 | walk1-brand | `alibaba/wan-3.0-prime/image-to-video` | `01a19ff1-e677-7091-8615-b8b9fd6c3f48` |  |  | 0.000 |
+| 102 | loop-stress-brand | `alibaba/wan-3.0-prime/image-to-video` | `01a19ff1-e6b5-7982-94b2-944ef4e898a3` |  |  | 0.000 |
+| 103 | loop-calm-brand | `alibaba/wan-3.0-prime/image-to-video` | `01a19ff3-3d67-7032-86b3-c6899f8344a2` |  |  | 0.000 |
+| 104 | walk3-brand (failed: input >20 MB, not billed) | `alibaba/wan-3.0-prime/image-to-video` | `01a19ff1-e6b3-76b0-afb7-eab50b69786c` |  |  | 0.000 |
+| 105 | walk2-brand (failed: input >20 MB, not billed) | `alibaba/wan-3.0-prime/image-to-video` | `01a19ff3-3da4-76f3-8841-f04bb4b7870d` |  |  | 0.000 |
 
 ## Prompts and settings
 
@@ -670,3 +685,115 @@ First/last frame walk: treatment area -> back office. 6 s.
 ```
 1.5x upscale.
 ```
+
+### 91. loop-stress-169
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+16:9 locked-off loop from stress-169 (matches walk1 end frame).
+```
+
+### 92. loop-calm-169
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+16:9 locked-off loop from calm-169 (matches walk2 start frame).
+```
+
+### 93. loop-stress-169-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 94. loop-calm-169-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 95. brand-exterior (4K)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Exterior with the real gugu logo on the sign (logo as reference image), brand palette.
+```
+
+### 96. brand-stress (4K)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Reception stressed: brand palette + gugu sign behind desk.
+```
+
+### 97. brand-calm v1 (rejected: sign mismatch)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Reception calm: brand palette + sign.
+```
+
+### 98. brand-calm
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Calm reception with the sign matched to brand-stress.
+```
+
+### 99. brand-treatment (4K)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Treatment area: palette, neon gugu sign, owner visible through the far door.
+```
+
+### 100. brand-office (4K)
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Back office: palette, gugu print on the wall.
+```
+
+### 101. walk1-brand
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Exterior (gugu sign) -> reception (stress), 6 s.
+```
+
+### 102. loop-stress-brand
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Locked-off loop on brand-stress.
+```
+
+### 103. loop-calm-brand
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+```
+Locked-off loop on brand-calm.
+```
+
+### 104. walk3-brand (failed: input >20 MB, not billed)
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
+
+### 105. walk2-brand (failed: input >20 MB, not billed)
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T12:55:00+00:00
+- Settings: `{}`
