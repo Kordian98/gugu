@@ -1,5 +1,13 @@
-import { covers, intersect, type Interval, normalize, overlapLength, subtract } from "./intervals";
-import { pickUnits, type ResourceInput } from "./resources";
+import {
+  covers,
+  intersect,
+  type Interval,
+  normalize,
+  overlapLength,
+  overlaps,
+  subtract,
+} from "./intervals";
+import { pickUnits, type ResourceInput, type ResourceRequirement } from "./resources";
 import {
   addDays,
   boundaryInstant,
@@ -64,8 +72,11 @@ export interface OccupancyTerms {
 export interface StaffAvailability {
   staffId: string;
   sortOrder: number;
-  /** Terms for the requested service as this staff member performs it (overrides applied). */
-  terms: OccupancyTerms;
+  /**
+   * Terms for the requested service as this staff member performs it (overrides applied). Used
+   * only when `AvailabilityInput.lines` is omitted (single service); chains carry terms per line.
+   */
+  terms?: OccupancyTerms;
   schedules: readonly StaffScheduleRule[];
   breaks: readonly StaffBreakRule[];
   timeOff: readonly Interval[];
@@ -86,6 +97,20 @@ export interface BookingRules {
 export const RULE_OVERRIDES = ["hours", "lead_time", "horizon"] as const;
 export type RuleOverride = (typeof RULE_OVERRIDES)[number];
 
+/**
+ * One service of a multi-service appointment (M6.8). Lines run in order; each is done by one staff
+ * member (the same or another one) and claims its own staff time and resource units.
+ */
+export interface ServiceLine {
+  /** Staff who may perform this line, with their terms for it (overrides applied). */
+  staffTerms: ReadonlyMap<string, OccupancyTerms>;
+  /** Resource units this line needs, claimed for the line's own occupancy segment. */
+  requirements?: readonly ResourceRequirement[];
+}
+
+/** Most services one appointment may chain (contracts allow the first + 3 more). */
+export const MAX_SERVICE_LINES = 4;
+
 export interface AvailabilityInput {
   timeZone: string;
   now: number;
@@ -95,25 +120,48 @@ export interface AvailabilityInput {
   openingHours: readonly WeeklyHours[];
   holidays: readonly SalonHoliday[];
   staff: readonly StaffAvailability[];
-  /** Units the service needs besides a staff member (M6.6); omitted = none. Never overridable. */
+  /**
+   * Units the service needs besides a staff member (M6.6); omitted = none. Never overridable.
+   * With `lines`, only `units` (the pool, with busy time) is used; requirements come per line.
+   */
   resources?: ResourceInput;
+  /**
+   * Service chain (M6.8). Omitted = one line built from `staff[].terms` and
+   * `resources.requirements` (the single-service contract, a chain of one).
+   */
+  lines?: readonly ServiceLine[];
   overrides?: ReadonlySet<RuleOverride>;
 }
 
-export interface SlotOption {
+/** Where one line of a chain lands: who, when, and what it claims. */
+export interface LinePlan {
   staffId: string;
-  /** Appointment start/end (what the customer sees). */
+  /** Line start/end (what the customer sees for this service). */
   start: number;
   end: number;
-  /** Time the staff member is blocked, buffers included — written to booking_occupancy. */
+  /** Time the staff member is blocked for this line — one booking_occupancy row. */
   occupancy: Interval;
   /** Resource units claimed for the same interval (one occupancy row each). */
   unitIds: string[];
 }
 
+export interface SlotOption {
+  /** Staff of the first line. */
+  staffId: string;
+  /** Appointment start (first line) and end (last line) — what the customer sees. */
+  start: number;
+  end: number;
+  /** Hull of every line's occupancy (single service: exactly its occupancy row). */
+  occupancy: Interval;
+  /** Every unit claimed by the chain (single service: its units). */
+  unitIds: string[];
+  /** One plan per service line, in order (single service: one). Write these to booking_occupancy. */
+  lines: LinePlan[];
+}
+
 export interface Slot {
   start: number;
-  /** Staff who can take the slot, best "any staff" candidate first. */
+  /** One option per first-line staff member who can start the whole chain, best candidate first. */
   options: SlotOption[];
 }
 
@@ -165,10 +213,36 @@ function staffFreeIntervals(
   return subtract(intersect(salonOpen, working), [...breaks, ...staff.timeOff, ...staff.busy]);
 }
 
-function occupancyFor(start: number, terms: OccupancyTerms): Interval {
+/**
+ * Timing of one chain line (spec 06 G12). The first line starts at the slot start. A line done by
+ * the same staff member as the previous one starts after max(after-buffer, before-buffer) — the
+ * cleanup and the prep overlap — and its occupancy begins where the previous one ends, so the two
+ * rows touch but never overlap. A line done by someone else starts as soon as the previous one
+ * ends; that person's before-buffer runs while the customer is still in the previous service.
+ */
+export function lineTiming(
+  prev: { staffId: string; end: number; bufferAfterMinutes: number } | null,
+  staffId: string,
+  terms: OccupancyTerms,
+  chainStart: number,
+): { start: number; end: number; occupancy: Interval } {
+  let start: number;
+  let occupancyStart: number;
+  if (!prev) {
+    start = chainStart;
+    occupancyStart = start - terms.bufferBeforeMinutes * MINUTE;
+  } else if (prev.staffId === staffId) {
+    start = prev.end + Math.max(prev.bufferAfterMinutes, terms.bufferBeforeMinutes) * MINUTE;
+    occupancyStart = prev.end + prev.bufferAfterMinutes * MINUTE;
+  } else {
+    start = prev.end;
+    occupancyStart = start - terms.bufferBeforeMinutes * MINUTE;
+  }
+  const end = start + terms.durationMinutes * MINUTE;
   return {
-    start: start - terms.bufferBeforeMinutes * MINUTE,
-    end: start + (terms.durationMinutes + terms.bufferAfterMinutes) * MINUTE,
+    start,
+    end,
+    occupancy: { start: occupancyStart, end: end + terms.bufferAfterMinutes * MINUTE },
   };
 }
 
@@ -181,12 +255,124 @@ function compareCandidates(
   return a.s.staffId < b.s.staffId ? -1 : a.s.staffId > b.s.staffId ? 1 : 0;
 }
 
+/** The chain to plan: explicit lines, or the single service as a chain of one. */
+function chainLines(input: AvailabilityInput): readonly ServiceLine[] {
+  if (input.lines) return input.lines;
+  const staffTerms = new Map<string, OccupancyTerms>();
+  for (const s of input.staff) if (s.terms) staffTerms.set(s.staffId, s.terms);
+  return [{ staffTerms, requirements: input.resources?.requirements ?? [] }];
+}
+
+interface Candidate {
+  s: StaffAvailability;
+  free: Interval[];
+}
+
+/** Claims already made by earlier lines of the chain being planned. */
+interface ChainClaims {
+  staff: { staffId: string; occupancy: Interval }[];
+  units: { unitId: string; occupancy: Interval }[];
+}
+
+function planLines(
+  input: AvailabilityInput,
+  lines: readonly ServiceLine[],
+  /** Staff with free time that day, best "any staff" candidate first. */
+  ranked: readonly Candidate[],
+  index: number,
+  chainStart: number,
+  prev: { staffId: string; end: number; bufferAfterMinutes: number } | null,
+  claims: ChainClaims,
+  onlyStaffId: string | null,
+): LinePlan[] | null {
+  const line = lines[index];
+  if (!line) return [];
+  // Continuity first: the previous line's staff member, if they can do this one too.
+  const order = prev
+    ? [
+        ...ranked.filter((c) => c.s.staffId === prev.staffId),
+        ...ranked.filter((c) => c.s.staffId !== prev.staffId),
+      ]
+    : ranked;
+  for (const c of order) {
+    const staffId = c.s.staffId;
+    if (onlyStaffId !== null && staffId !== onlyStaffId) continue;
+    const terms = line.staffTerms.get(staffId);
+    if (!terms) continue;
+    const timing = lineTiming(prev, staffId, terms, chainStart);
+    if (!covers(c.free, timing.occupancy)) continue;
+    if (
+      claims.staff.some((x) => x.staffId === staffId && overlaps(x.occupancy, timing.occupancy))
+    ) {
+      continue;
+    }
+    const pool = input.resources?.units ?? [];
+    const unitIds = pickUnits(
+      {
+        requirements: line.requirements ?? [],
+        // Units taken by earlier lines count as busy for this one.
+        units:
+          claims.units.length === 0
+            ? pool
+            : pool.map((u) => {
+                const mine = claims.units.filter((x) => x.unitId === u.unitId);
+                return mine.length === 0
+                  ? u
+                  : { ...u, busy: [...u.busy, ...mine.map((x) => x.occupancy)] };
+              }),
+      },
+      timing.occupancy,
+    );
+    if (!unitIds) continue;
+    const plan: LinePlan = { staffId, ...timing, unitIds };
+    if (index === lines.length - 1) return [plan];
+    const rest = planLines(
+      input,
+      lines,
+      ranked,
+      index + 1,
+      chainStart,
+      { staffId, end: timing.end, bufferAfterMinutes: terms.bufferAfterMinutes },
+      {
+        staff: [...claims.staff, { staffId, occupancy: timing.occupancy }],
+        units: [
+          ...claims.units,
+          ...unitIds.map((unitId) => ({ unitId, occupancy: timing.occupancy })),
+        ],
+      },
+      null,
+    );
+    if (rest) return [plan, ...rest];
+  }
+  return null;
+}
+
+function toOption(lines: LinePlan[]): SlotOption {
+  const first = lines[0] as LinePlan;
+  const last = lines.at(-1) as LinePlan;
+  return {
+    staffId: first.staffId,
+    start: first.start,
+    end: last.end,
+    occupancy: {
+      start: Math.min(...lines.map((l) => l.occupancy.start)),
+      end: Math.max(...lines.map((l) => l.occupancy.end)),
+    },
+    unitIds: [...new Set(lines.flatMap((l) => l.unitIds))],
+    lines,
+  };
+}
+
 function slotsForDate(input: AvailabilityInput, date: LocalDate, earliest: number): Slot[] {
+  const lines = chainLines(input);
+  if (lines.length === 0 || lines.length > MAX_SERVICE_LINES) return [];
   const salonOpen = salonOpenIntervals(input, date);
   if (salonOpen.length === 0) return [];
   const day = dayBounds(date, input.timeZone);
+  const eligible = new Set(lines.flatMap((l) => [...l.staffTerms.keys()]));
   // "Any staff" preference: least booked that day, then sort order (spec 06 G11).
-  const staff = input.staff
+  const ranked = input.staff
+    .filter((s) => eligible.has(s.staffId))
     .map((s) => ({
       s,
       free: staffFreeIntervals(input, s, date, salonOpen),
@@ -194,25 +380,19 @@ function slotsForDate(input: AvailabilityInput, date: LocalDate, earliest: numbe
     }))
     .filter((x) => x.free.length > 0)
     .sort(compareCandidates);
-  if (staff.length === 0) return [];
+  const firstLine = lines[0] as ServiceLine;
+  const firstStaff = ranked.filter((c) => firstLine.staffTerms.has(c.s.staffId));
+  if (firstStaff.length === 0) return [];
 
   const slots: Slot[] = [];
+  const empty: ChainClaims = { staff: [], units: [] };
   for (let minute = 0; minute < 1440; minute += input.rules.slotGranularityMinutes) {
     for (const start of instantsAt(date, minute, input.timeZone)) {
       if (start < earliest) continue;
       const options: SlotOption[] = [];
-      for (const { s, free } of staff) {
-        const occupancy = occupancyFor(start, s.terms);
-        if (!covers(free, occupancy)) continue;
-        const unitIds = pickUnits(input.resources, occupancy);
-        if (!unitIds) continue;
-        options.push({
-          staffId: s.staffId,
-          start,
-          end: start + s.terms.durationMinutes * MINUTE,
-          occupancy,
-          unitIds,
-        });
+      for (const c of firstStaff) {
+        const plan = planLines(input, lines, ranked, 0, start, null, empty, c.s.staffId);
+        if (plan) options.push(toOption(plan));
       }
       if (options.length > 0) slots.push({ start, options });
     }
