@@ -234,7 +234,7 @@ describe("bookability defaults & unavailable reasons (integration)", () => {
     await api()
       .post(`/api/v1/salons/${s.salonId}/bookings`)
       .set("authorization", owner)
-      .set("idempotency-key", `t-${Date.now()}`)
+      .set("idempotency-key", `t-${String(Date.now())}`)
       .send({
         serviceId: s.serviceId,
         staffId: s.staffIds[0],
