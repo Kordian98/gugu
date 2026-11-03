@@ -4,7 +4,7 @@ import { revenueKindSchema } from "../assistant/pii-free";
 
 /**
  * Staff pay & commission, monthly payroll, fixed costs and the owner's "This month" profit view
- * (topic 07, owner request 2026-11-04, ADR-0014). Enum values mirror packages/domain/src/payroll
+ * (topic 07, owner request 2026-11-04, ADR-0016). Enum values mirror packages/domain/src/payroll
  * (parity test in apps/api). Money is whole VND. Bookkeeping only: GuGu pays nobody and computes
  * no tax or social insurance; every figure is an estimate before tax and insurance.
  */

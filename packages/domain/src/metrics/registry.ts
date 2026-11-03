@@ -107,7 +107,7 @@ export const METRICS = {
     agentExposed: false,
     requiresPermission: "services.cost.read",
   },
-  // ─── "This month" profit view (owner request 2026-11-04, ADR-0014) ─────────────────────────
+  // ─── "This month" profit view (owner request 2026-11-04, ADR-0016) ─────────────────────────
   // All salon-level aggregates; per-person pay is never a metric (X10). Owner by default
   // (payroll.read). agentExposed: the assistant gets these totals, never anyone's salary.
   "profit.revenue_earned": {

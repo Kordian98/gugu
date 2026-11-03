@@ -1,4 +1,4 @@
-// Integration: the assistant's month_profit tool (topic 08 × 07, ADR-0014) returns salon totals
+// Integration: the assistant's month_profit tool (topic 08 × 07, ADR-0016) returns salon totals
 // equal to the Insights profit view, passes the PII allowlist, and never carries per-person pay.
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";

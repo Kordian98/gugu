@@ -1,4 +1,4 @@
-# ADR-0014: Staff pay, commissions, monthly payroll and the owner's profit estimate
+# ADR-0016: Staff pay, commissions, monthly payroll and the owner's profit estimate
 
 - Status: proposed
 - Date: 2026-11-04

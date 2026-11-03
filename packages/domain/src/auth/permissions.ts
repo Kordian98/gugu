@@ -110,7 +110,7 @@ export const OWNER_ONLY_PERMISSIONS: readonly SalonPermission[] = [
 /**
  * Owner by default, but the owner may grant them to a **manager** through an override (owner
  * request 2026-11-04). Not owner-only (those can never be granted); grants to receptionists or
- * staff are ignored, because salary data of colleagues is personal (X10 spirit, ADR-0014).
+ * staff are ignored, because salary data of colleagues is personal (X10 spirit, ADR-0016).
  */
 export const MANAGER_GRANTABLE_PERMISSIONS: readonly SalonPermission[] = [
   "payroll.read",

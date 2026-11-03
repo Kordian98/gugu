@@ -1,7 +1,7 @@
 import type { LocalDate } from "../booking/tz";
 
 /**
- * Staff commission engine (owner request 2026-11-04, ADR-0014). Pure functions: the API loads
+ * Staff commission engine (owner request 2026-11-04, ADR-0016). Pure functions: the API loads
  * booking lines and pay settings, this decides who earns what. Rules:
  * - Commission is earned per **completed booking line**, by that line's staff member
  *   (`booking_services.staff_id`), never by the booking's first staff member.

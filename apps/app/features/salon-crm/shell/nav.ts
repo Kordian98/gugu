@@ -52,7 +52,7 @@ export const NAV: { id: NavSectionId; items: NavItem[] }[] = [
     id: "business",
     items: [
       { id: "insights", icon: "chart", path: "/business/insights" },
-      // Owner by default; managers only with the owner's grant (ADR-0014).
+      // Owner by default; managers only with the owner's grant (ADR-0016).
       { id: "payroll", icon: "wallet", path: "/business/payroll", permission: "payroll.read" },
     ],
   },

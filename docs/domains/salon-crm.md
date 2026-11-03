@@ -101,7 +101,7 @@ _TBD_
 - **Incomplete availability.** When `availability.truncated` or `earliest.truncated` is set (ADR-0013 amendment), New appointment shows `calendar.truncated` under the slot grid (`crm-availability-truncated`) and in the earliest list (`crm-earliest-truncated`).
 - **Calendar times.** Calendar blocks use `formatClock24` (`@gugu/localization`) in both locales, so they match the 24-hour hour column. The rest of the CRM keeps `formatTime` (12 h in en).
 
-## Staff pay, commission, payroll and "This month" profit (2026-11-04, ADR-0014)
+## Staff pay, commission, payroll and "This month" profit (2026-11-04, ADR-0016)
 
 Owner request 2026-11-04. Bookkeeping only: GuGu moves no money and computes no personal income tax or social insurance; every screen and the export say "estimates before tax and insurance".
 

@@ -10,7 +10,7 @@ import {
 import { basePayForMonth } from "./payroll";
 import { monthProfit } from "./profit";
 
-/** Properties of the commission engine and base pay (ADR-0014). */
+/** Properties of the commission engine and base pay (ADR-0016). */
 
 const STAFF = ["a", "b", "c"] as const;
 const STATUSES = [

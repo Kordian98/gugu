@@ -19,7 +19,7 @@ export const CANARIES = {
   phoneDigits: "0912345678",
   email: "canary.khach@gmail.com",
   note: "canary-note-di-ung-gel",
-  /** Staff A's monthly salary: per-person pay must never reach the model (X10, ADR-0014). */
+  /** Staff A's monthly salary: per-person pay must never reach the model (X10, ADR-0016). */
   salary: "7654321",
 } as const;
 
@@ -277,7 +277,7 @@ export async function seedEvalSalon(prisma: PrismaService, salonId: string): Pro
       });
     }
   }
-  // Pay settings (ADR-0014): A's salary is a canary; B per day; C commission only. A fixed cost.
+  // Pay settings (ADR-0016): A's salary is a canary; B per day; C commission only. A fixed cost.
   await prisma.staffPaySetting.createMany({
     data: [
       {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Payroll demo (dev only, topic 07 ADR-0014). Usage:
+// Payroll demo (dev only, topic 07 ADR-0016). Usage:
 //   node scripts/seed-payroll-demo.mjs [--api http://localhost:3017] [--mailpit http://localhost:18025]
 // 1. Runs seed-demo-salon.mjs (owner, salon "Lotus Nail & Spa Quận 1", 4 staff, services, the
 //    coming week of bookings) through the API.

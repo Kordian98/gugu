@@ -1,5 +1,5 @@
 // Integration: staff pay & commission, monthly payroll, fixed costs and the owner's profit view
-// (topic 07, ADR-0014), incl. a two-staff chain split by line (security review L2), close/reopen,
+// (topic 07, ADR-0016), incl. a two-staff chain split by line (security review L2), close/reopen,
 // audited adjustments, month boundaries in the salon timezone, permissions and tenant isolation.
 import { randomUUID } from "node:crypto";
 import type { INestApplication } from "@nestjs/common";

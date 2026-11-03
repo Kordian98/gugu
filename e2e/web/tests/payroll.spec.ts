@@ -1,4 +1,4 @@
-// Payroll and the owner's "This month" profit (topic 07, ADR-0014): the owner sees everyone's
+// Payroll and the owner's "This month" profit (topic 07, ADR-0016): the owner sees everyone's
 // pay with the "estimate before tax and insurance" note, adds an adjustment with a reason, closes
 // and reopens the month; the This-month tiles equal the metric registry values from the API; the
 // staff member gets 403 on payroll and only their own estimate (UI card: scripts/e2e/crm-payroll.mjs).

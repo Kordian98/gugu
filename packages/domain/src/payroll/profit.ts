@@ -1,5 +1,5 @@
 /**
- * Owner "This month" profit estimate (ADR-0014): what was earned so far, what upcoming bookings
+ * Owner "This month" profit estimate (ADR-0016): what was earned so far, what upcoming bookings
  * should still bring, minus service costs, payroll and other monthly costs. Pure arithmetic over
  * inputs the API loads; every output is registered in the metric catalogue (`profit.*`).
  *

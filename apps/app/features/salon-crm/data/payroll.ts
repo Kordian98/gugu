@@ -23,7 +23,7 @@ import { ApiError, apiFetch } from "@/services/auth/api";
 import { useOptionalSalon, useSalon } from "./SalonContext";
 
 /**
- * Payroll, pay settings, fixed costs and the profit view (ADR-0014). Query keys include the
+ * Payroll, pay settings, fixed costs and the profit view (ADR-0016). Query keys include the
  * salonId; `forbidden` is a state (permission-denied screen), not an error.
  */
 

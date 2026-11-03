@@ -42,7 +42,7 @@ function Figure({
 }
 
 /**
- * Owner's compact "This month" on Today (ADR-0014): progress, earned so far, still to come and
+ * Owner's compact "This month" on Today (ADR-0016): progress, earned so far, still to come and
  * the estimated net profit; details in Insights → This month. Hidden without payroll.read.
  */
 export function ProfitCard() {

@@ -88,7 +88,7 @@ export class ReadTools {
   }
 
   /**
-   * Salon-level "This month" profit (metric catalogue profit.*, ADR-0014). Totals and margins
+   * Salon-level "This month" profit (metric catalogue profit.*, ADR-0016). Totals and margins
    * only: per-person pay, salaries and commissions are personal data and never reach the model
    * (X10) — the output schema has no staff dimension at all.
    */

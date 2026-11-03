@@ -79,7 +79,7 @@ const linesQuerySchema = z.object({ month: monthSchema });
 const costDeleteQuerySchema = linesQuerySchema;
 
 /**
- * Staff pay, payroll and fixed costs (topic 07, ADR-0014). `payroll.read` / `payroll.manage` are
+ * Staff pay, payroll and fixed costs (topic 07, ADR-0016). `payroll.read` / `payroll.manage` are
  * owner-only by default (grantable to managers); `payroll.self.read` is each member's own pay.
  * Bookkeeping only — no payment is processed; figures are estimates before tax and insurance.
  */

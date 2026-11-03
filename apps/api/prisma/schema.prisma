@@ -2003,7 +2003,7 @@ model NotificationMemberPref {
 
 // ---------------------------------------------------------------------------------------------
 // Staff pay, commissions, monthly payroll and fixed costs (topic 07, owner request 2026-11-04,
-// ADR-0014). Bookkeeping only: GuGu pays nobody. Figures are estimates before tax and insurance.
+// ADR-0016). Bookkeeping only: GuGu pays nobody. Figures are estimates before tax and insurance.
 // ---------------------------------------------------------------------------------------------
 
 enum BasePayType {

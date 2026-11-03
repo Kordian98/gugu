@@ -77,7 +77,7 @@ const AREA_SPEC: Record<
   payroll: { bookings: true, staffAccount: true, receptionist: false, locale: "vi", payroll: true },
 };
 
-/** Pay settings for the payroll area (ADR-0014): Lan monthly + 10 %, Mai per day + 20 %. */
+/** Pay settings for the payroll area (ADR-0016): Lan monthly + 10 %, Mai per day + 20 %. */
 export const PAY = {
   lan: { baseType: "monthly", baseAmount: 8_000_000, commissionPercent: 10 },
   mai: { baseType: "daily", baseAmount: 300_000, commissionPercent: 20 },

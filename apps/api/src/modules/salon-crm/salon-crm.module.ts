@@ -11,7 +11,7 @@ import { SalonCostsService } from "./payroll/salon-costs.service";
 
 /**
  * CRM helpers around bookings: client quick pick and offline sale amounts (07 M7.2), plus staff
- * pay, payroll and fixed costs (ADR-0014). Insights builds the profit view on the payroll exports.
+ * pay, payroll and fixed costs (ADR-0016). Insights builds the profit view on the payroll exports.
  */
 @Module({
   controllers: [SalonCrmController, PayrollController],

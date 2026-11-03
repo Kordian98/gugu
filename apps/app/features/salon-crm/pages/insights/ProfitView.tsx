@@ -40,7 +40,7 @@ const KIND_LABEL = {
 const keyOf = (k: string) => k.replace(/\./g, "_");
 
 /**
- * Owner "This month" (ADR-0014): progress through the month, 4 headline numbers with their
+ * Owner "This month" (ADR-0016): progress through the month, 4 headline numbers with their
  * registry definition, and a plain table "so far / projected / month" ending in the estimated net
  * profit. Other monthly costs are edited right here.
  */

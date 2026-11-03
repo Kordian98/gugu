@@ -3,7 +3,7 @@ import { type PayVersion, versionAt } from "./commission";
 import { daysInMonth, type Month, monthDates } from "./month";
 
 /**
- * Base pay and the monthly payroll line of one staff member (ADR-0014). Estimates before tax and
+ * Base pay and the monthly payroll line of one staff member (ADR-0016). Estimates before tax and
  * social insurance: GuGu computes neither (no legal or tax claims).
  */
 

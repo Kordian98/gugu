@@ -72,7 +72,7 @@ export const AUDIT_ACTIONS = [
   "privacy.salon_export_requested",
   "privacy.salon_export_downloaded",
   "privacy.retention_purged",
-  // Staff pay & payroll (topic 07, ADR-0014). Metadata: dates, kinds, amounts, counts; never the
+  // Staff pay & payroll (topic 07, ADR-0016). Metadata: dates, kinds, amounts, counts; never the
   // free-text reason of an adjustment, never names.
   "payroll.pay_settings_saved",
   "payroll.commission_policy_saved",

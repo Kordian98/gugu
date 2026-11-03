@@ -21,7 +21,7 @@
 - Dashboard and reports: appointments, customers (new vs returning), no-show rate, utilization, popular services, staff utilization, revenue with explicit provenance labels.
 - Read-model / metrics API (`/api/v1/salons/:salonId/insights/*`), shared by dashboards and the AI agent.
 - Offline sale recording (manual "paid at salon" amount at completion). This is not payment processing.
-- Staff pay and commission, monthly payroll (close, reopen, "paid on" bookkeeping, CSV/XLSX export), fixed monthly costs and the owner's "This month" profit estimate (owner request 2026-11-04, ADR-0014). Bookkeeping only: no payment processing, no tax or social insurance.
+- Staff pay and commission, monthly payroll (close, reopen, "paid on" bookkeeping, CSV/XLSX export), fixed monthly costs and the owner's "This month" profit estimate (owner request 2026-11-04, ADR-0016). Bookkeeping only: no payment processing, no tax or social insurance.
 
 ### Out (owned elsewhere)
 - Slot algorithm, holds, concurrency, state machine → **06**.
@@ -51,7 +51,7 @@
 | G17 | Clients without accounts (owner q20, X11). | Salons add clients with no GuGu account, and fully anonymous walk-ins are allowed and can be linked later. Customer self-service bookings arrive without OTP, flagged `identity_verified=false`. The CRM shows a subtle "unverified" marker, never a warning. A salon setting "Confirm bookings from new or unverified clients" is **off by default**, and GuGu shows a **one-tap suggestion** card on Today and in Settings after **3 no-shows from new or unverified clients within 30 days** (q69); it can be dismissed and does not reappear for 30 days. No-show history is visible only for the salon's own history with that client (q68). |
 | G18 | Account deletion (owner q71). | After a customer deletes their GuGu account and the 30-day grace ends, their bookings in the salon stay but are anonymised as "Khách đã xoá / Deleted customer" (name, phone and contact removed; services, times, prices and revenue kept for metrics). The salon's **notes and tags about that customer are deleted**, and the client profile is detached from the account. The salon-created profile of a customer who never had an account is unaffected. The job is owned by 11 (privacy) and the CRM handles the anonymised state in every view. |
 | G19 | Plans (owner q75). | **Basic:** CRM, calendar, AI onboarding import, marketplace listing. **Pro:** + AI assistant, monthly business review, Zalo inbox. **Ultra:** + multi-location chains with combined reporting, admin-level analytics. A 14-day Pro trial. Features are gated by 12 entitlements; the CRM shows locked features as calm upsells, never as broken UI. |
-| G20 | Payroll and profit (owner request 2026-11-04). | Effective-dated pay per person (base none/monthly/per working day/hourly from schedules + default commission %, per-service/variant overrides as % or fixed VND). Commission per **completed booking line** for that line's staff (`booking_services.staff_id`); no-shows and cancellations earn nothing. Monthly payroll = base (pro-rated) + commission + bonus − deduction − advance, with a required reason on every adjustment, closed months read-only, audited reopen, "paid on" marks, CSV/XLSX. Owner "This month": earned so far, still to come, service costs, payroll, other monthly costs, estimated net profit and margins, with an optional no-show allowance labelled as an assumption. Owner by default; managers only by an owner grant. Staff see only their own estimate. Estimates before tax and insurance (no PIT/BHXH). ADR-0014. |
+| G20 | Payroll and profit (owner request 2026-11-04). | Effective-dated pay per person (base none/monthly/per working day/hourly from schedules + default commission %, per-service/variant overrides as % or fixed VND). Commission per **completed booking line** for that line's staff (`booking_services.staff_id`); no-shows and cancellations earn nothing. Monthly payroll = base (pro-rated) + commission + bonus − deduction − advance, with a required reason on every adjustment, closed months read-only, audited reopen, "paid on" marks, CSV/XLSX. Owner "This month": earned so far, still to come, service costs, payroll, other monthly costs, estimated net profit and margins, with an optional no-show allowance labelled as an assumption. Owner by default; managers only by an owner grant. Staff see only their own estimate. Estimates before tax and insurance (no PIT/BHXH). ADR-0016. |
 | G9a | Product owner rule (2026-11): **no personal data may be sent to any LLM** for now. | Every AI feature that needs personal data is **deferred**: paste-from-Zalo → booking draft, chat-to-booking, client search/profile/notes via the agent, agent-drafted bookings for named clients. The agent sees only aggregates and pseudonymous tokens (`staff_3`, `customer_17`), re-hydrated server-side after the model call by 08's PII firewall. Free text (notes, reviews, messages) is never sent. |
 | G9 | No AI-agent readiness, although that is a product requirement. | All dashboard numbers come from documented read-model endpoints with Zod schemas, which are also registered as agent tools (§8). Dashboards hold no business logic of their own. |
 | G10 | "Promote their business" in the vision has no screen. | Placeholder "Grow" tab with a shareable booking link and QR code (attribution source `qr_code` / `direct_link`). Promoted listings come later (12). |
@@ -248,7 +248,7 @@ Initial metrics:
 | `revenue.reported` | Sum of SalonReportedRevenue. Kind `reported_by_salon`. |
 | `bookings.by_source` | Count by attribution source (from 12). |
 | `rebooking.rate` | Customers completing again within N days (default 60). |
-| `profit.*` | "This month" profit view (window `month`, permission `payroll.read`, ADR-0014): `revenue_earned`, `revenue_earned_recorded`, `revenue_upcoming`, `no_show_allowance` (assumption), `revenue_total`, `service_costs`, `payroll` (team total), `other_costs`, `net`, `gross_margin`, `net_margin`, `month_progress`. Definitions in the registry. |
+| `profit.*` | "This month" profit view (window `month`, permission `payroll.read`, ADR-0016): `revenue_earned`, `revenue_earned_recorded`, `revenue_upcoming`, `no_show_allowance` (assumption), `revenue_total`, `service_costs`, `payroll` (team total), `other_costs`, `net`, `gross_margin`, `net_margin`, `month_progress`. Definitions in the registry. |
 
 All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_Chi_Minh` by default.
 
@@ -259,7 +259,7 @@ All metrics are computed in the salon timezone with day boundaries in `Asia/Ho_C
 - All of these degrade gracefully when Zalo is not connected.
 
 ### 4.8 Permissions needed (input for 05)
-Payroll (implemented, ADR-0014): `payroll.read`, `payroll.manage` (owner; grantable to managers only, `MANAGER_GRANTABLE_PERMISSIONS`), `payroll.self.read` (every role, own estimate only).
+Payroll (implemented, ADR-0016): `payroll.read`, `payroll.manage` (owner; grantable to managers only, `MANAGER_GRANTABLE_PERMISSIONS`), `payroll.self.read` (every role, own estimate only).
 
 `calendar.view_all`, `calendar.view_own`, `booking.create`, `booking.update`, `booking.cancel`, `booking.mark_no_show`, `client.view`, `client.view_contact`, `client.notes.read`, `client.notes.write`, `client.merge`, `client.export`, `service.manage`, `team.manage`, `team.schedule.manage`, `salon.profile.manage`, `insights.view_all`, `insights.view_own`, `revenue.view`, `offline_sale.record`, `inbox.use`, `ai_assistant.use`.
 
@@ -284,7 +284,7 @@ Payroll (implemented, ADR-0014): `payroll.read`, `payroll.manage` (owner; granta
 15. **Permissions:** staff role sees only their own calendar and insights, and the receptionist cannot see revenue unless granted. Staff see client phones by default and lose them when the owner revokes `client.view_contact` (integration tests).
 16. **Deleted customer:** after the anonymisation job runs, the CRM shows "Deleted customer" on past bookings, metrics stay unchanged, and the notes and tags for that profile no longer exist (integration test).
 17. **Themes:** every CRM screen passes AA contrast in both light and dark (visual snapshots in both themes); the theme override persists across sessions; the public profile preview renders light while the CRM is dark.
-18. **Payroll (ADR-0014):** a two-staff chain splits commission by line; no-shows/cancellations earn nothing; month boundaries follow the salon timezone; a closed month is read-only and reopening is audited; adjustments need a reason and are audited; staff see only their own pay, a manager without the owner's grant gets 403, other salons 404; profit tiles equal the registry values and the assistant tool returns no per-person pay (integration + Playwright).
+18. **Payroll (ADR-0016):** a two-staff chain splits commission by line; no-shows/cancellations earn nothing; month boundaries follow the salon timezone; a closed month is read-only and reopening is audited; adjustments need a reason and are audited; staff see only their own pay, a manager without the owner's grant gets 403, other salons 404; profit tiles equal the registry values and the assistant tool returns no per-person pay (integration + Playwright).
 
 ---
 
@@ -380,6 +380,6 @@ Resolved by the product owner (tracker answers; kept here for traceability):
 | q75 | Basic / Pro / Ultra plans, 14-day Pro trial; multi-location is Ultra only | G6, G19 |
 | X18 | Dark mode only in the CRM workspace (and admin); public and customer surfaces light-only | §3.11, AC 17 |
 | q66 / q68 | Confirm-new-clients setting off by default; no-show history per salon only | G17 |
-| owner 2026-11-04 | Staff pay, commission, payroll and monthly profit estimate (supersedes "no staff commission" in q21's reading) | G14, G20, ADR-0014 |
+| owner 2026-11-04 | Staff pay, commission, payroll and monthly profit estimate (supersedes "no staff commission" in q21's reading) | G14, G20, ADR-0016 |
 
 Still open: q98 (Vietnamese social insurance and PIT on payroll: later or never?), q99 (no-show allowance on by default?), q100 (team pay total in the assistant for very small teams) — see the tracker.

@@ -88,7 +88,7 @@ type LineRow = {
 /**
  * Loads everything the payroll engine needs for one month of one salon, scoped by `salonId`
  * (tenant guard) and computed in the salon timezone. Lines are attributed by
- * `booking_services.staff_id` (ADR-0014); with `onlyStaffId` every line of bookings that member
+ * `booking_services.staff_id` (ADR-0016); with `onlyStaffId` every line of bookings that member
  * worked on is loaded (the recorded amount is split pro rata over all lines), the caller filters.
  */
 @Injectable()

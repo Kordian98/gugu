@@ -41,7 +41,7 @@ export async function assertMonthOpen(tx: Tx, salonId: string, month: Month): Pr
 }
 
 /**
- * Monthly payroll (ADR-0014): live computation for open months, the snapshot for closed ones.
+ * Monthly payroll (ADR-0016): live computation for open months, the snapshot for closed ones.
  * Every query is scoped by the guard's `salonId`; a staff id of another salon reads as 404.
  * Bookkeeping only: "paid on" is a note, no money moves; no tax or social insurance.
  */

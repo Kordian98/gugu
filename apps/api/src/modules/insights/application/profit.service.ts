@@ -45,7 +45,7 @@ export function profitMetrics(r: ProfitResult): Profit["metrics"] {
 }
 
 /**
- * Owner "This month" profit view (ADR-0014, metric catalogue `profit.*`): earned so far +
+ * Owner "This month" profit view (ADR-0016, metric catalogue `profit.*`): earned so far +
  * still to come − service costs − payroll − other costs. Salon-level aggregates only. A closed
  * payroll month uses its snapshot so Payroll and Insights always agree.
  */
