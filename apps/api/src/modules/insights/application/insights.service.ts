@@ -47,7 +47,9 @@ export class InsightsService {
       this.counts(ctx.salonId, scope, from, to, tz),
       this.counts(ctx.salonId, scope, prev.from, prev.to, tz),
     ]);
-    const values = (c: Counts): Record<MetricKey, number | null> => ({
+    const values = (
+      c: Counts,
+    ): Omit<Record<MetricKey, number | null>, "appointments.upcoming"> => ({
       "appointments.count": Number(c.active),
       "appointments.completed": Number(c.completed),
       "customers.new": Number(c.new_customers),
@@ -61,8 +63,14 @@ export class InsightsService {
       "revenue.offline_recorded": Number(c.offline),
       "margin.estimated": Number(c.margin),
     });
-    const cur = values(now);
-    const old = values(before);
+    const own0 = scope.staffId;
+    const [up] = await this.prisma.$queryRaw<{ n: bigint }[]>`
+      SELECT count(*) AS n FROM bookings b
+      WHERE b.salon_id = ${ctx.salonId}::uuid AND b.status IN ('pending', 'confirmed')
+        AND b.starts_at >= now()
+        AND (${own0}::uuid IS NULL OR b.staff_id = ${own0}::uuid)`;
+    const cur = { ...values(now), "appointments.upcoming": Number(up?.n ?? 0) };
+    const old = { ...values(before), "appointments.upcoming": null };
     const metrics: Insights["metrics"] = {};
     for (const key of METRIC_KEYS) {
       const def: MetricDefinition = METRICS[key];

@@ -708,7 +708,7 @@
       "d90": "90 days"
     },
     "metrics": {
-      "appointments_count": "Appointments",
+      "appointments_count": "Appointments in period",
       "appointments_completed": "Completed",
       "customers_new": "New clients",
       "customers_returning": "Returning clients",
@@ -716,7 +716,8 @@
       "cancellation_rate": "Cancellation rate",
       "revenue_estimated": "Estimated revenue",
       "revenue_offline_recorded": "Recorded at the salon",
-      "margin_estimated": "Estimated gross margin"
+      "margin_estimated": "Estimated gross margin",
+      "appointments_upcoming": "Upcoming appointments"
     },
     "vsPrevious": "vs previous period",
     "noPrevious": "No data for the previous period",
@@ -731,7 +732,9 @@
     "ownScope": "You are seeing figures from your own appointments.",
     "forbiddenTitle": "You can't view reports yet",
     "forbiddenBody": "The salon owner can grant report access in Team.",
-    "marginHint": "Service price minus internal cost, over completed appointments whose services have a cost."
+    "marginHint": "Service price minus internal cost, over completed appointments whose services have a cost.",
+    "fromNow": "From now on, independent of the period",
+    "range": "{{from}} – {{to}} (appointments starting in the period)"
   },
   "today": {
     "unassignedServices": "{{count}} services have no team member assigned — clients and Zalo can't book them.",

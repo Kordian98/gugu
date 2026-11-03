@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { CalmCard, Pill, Text, useCalm } from "@gugu/design-system";
 import type { Insights } from "@gugu/contracts";
-import { formatVND } from "@gugu/localization";
+import { formatDateLong, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
@@ -27,6 +27,7 @@ const DAYS: Record<Period, number> = { d7: 7, d30: 30, d90: 90 };
 /** Headline order; keys come from the metric catalogue (packages/domain metrics registry). */
 const HEADLINE = [
   "appointments.count",
+  "appointments.upcoming",
   "appointments.completed",
   "customers.new",
   "customers.returning",
@@ -65,14 +66,22 @@ export function InsightsScreen() {
         subtitle={t("insights.subtitle")}
         workspace={ws}
       />
-      <Segmented<Period>
-        value={period}
-        onChange={setPeriod}
-        options={(["d7", "d30", "d90"] as const).map((id) => ({
-          id,
-          label: t(`insights.periods.${id}`),
-        }))}
-      />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <Segmented<Period>
+          value={period}
+          onChange={setPeriod}
+          options={(["d7", "d30", "d90"] as const).map((id) => ({
+            id,
+            label: t(`insights.periods.${id}`),
+          }))}
+        />
+        <Text testID="crm-insights-range" size={13} color={c.body}>
+          {t("insights.range", {
+            from: formatDateLong(new Date(`${from}T12:00:00Z`), locale, "UTC"),
+            to: formatDateLong(new Date(`${to}T12:00:00Z`), locale, "UTC"),
+          })}
+        </Text>
+      </View>
       {q.isPending ? (
         <ActivityIndicator color={c.accent} />
       ) : q.data?.forbidden ? (
@@ -184,7 +193,11 @@ function MetricCard({
           />
         ) : null}
         <Text size={11} color={c.muted}>
-          {delta !== null ? t("insights.vsPrevious") : t("insights.noPrevious")}
+          {id === "appointments.upcoming"
+            ? t("insights.fromNow")
+            : delta !== null
+              ? t("insights.vsPrevious")
+              : t("insights.noPrevious")}
         </Text>
       </View>
       {id === "margin.estimated" ? (

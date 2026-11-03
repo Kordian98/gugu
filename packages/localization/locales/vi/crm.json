@@ -708,7 +708,7 @@
       "d90": "90 ngày"
     },
     "metrics": {
-      "appointments_count": "Lịch hẹn",
+      "appointments_count": "Lịch hẹn trong kỳ",
       "appointments_completed": "Hoàn thành",
       "customers_new": "Khách mới",
       "customers_returning": "Khách quay lại",
@@ -716,7 +716,8 @@
       "cancellation_rate": "Tỷ lệ huỷ",
       "revenue_estimated": "Doanh thu ước tính",
       "revenue_offline_recorded": "Đã ghi nhận tại salon",
-      "margin_estimated": "Lợi nhuận gộp ước tính"
+      "margin_estimated": "Lợi nhuận gộp ước tính",
+      "appointments_upcoming": "Lịch hẹn sắp tới"
     },
     "vsPrevious": "so với kỳ trước",
     "noPrevious": "Kỳ trước chưa có số liệu",
@@ -731,7 +732,9 @@
     "ownScope": "Bạn đang xem số liệu từ lịch hẹn của chính mình.",
     "forbiddenTitle": "Bạn chưa có quyền xem báo cáo",
     "forbiddenBody": "Chủ salon có thể cấp quyền xem báo cáo trong mục Nhân viên.",
-    "marginHint": "Giá dịch vụ trừ chi phí nội bộ, tính trên lịch hẹn đã hoàn thành có nhập chi phí."
+    "marginHint": "Giá dịch vụ trừ chi phí nội bộ, tính trên lịch hẹn đã hoàn thành có nhập chi phí.",
+    "fromNow": "Từ bây giờ, không phụ thuộc kỳ đã chọn",
+    "range": "{{from}} – {{to}} (lịch bắt đầu trong kỳ)"
   },
   "today": {
     "unassignedServices": "{{count}} dịch vụ chưa có nhân viên thực hiện — khách và Zalo không đặt được.",
