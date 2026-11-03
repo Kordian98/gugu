@@ -136,6 +136,7 @@ function AssignPlanSheet({
   return (
     <ActionSheet
       testID="admin-assign-plan"
+      highRisk
       open={open}
       onClose={onClose}
       salonId={salon.salon.id}

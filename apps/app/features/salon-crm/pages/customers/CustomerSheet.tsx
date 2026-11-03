@@ -14,6 +14,7 @@ import { useSalon } from "../../data/SalonContext";
 import { useErrorText } from "../../ui/errors";
 import { ErrorBanner, Input, Sheet, Toggle } from "../../ui/form";
 import { NewAppointmentSheet } from "../calendar/NewAppointmentSheet";
+import { ClientPrivacySection } from "./ClientPrivacySection";
 import { useCalendarData } from "../calendar/useCalendarData";
 
 /** Marketing-consent channels stored on the profile (keys, not copy). */
@@ -39,6 +40,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
   const cal = useCalendarData(salonDate(new Date()));
   const d = detail.data;
   const canEdit = can("customers.read");
+  const canPrivacy = can("customers.export") && can("customers.erase");
   const tz = cal.tz;
 
   if (booking && d) {
@@ -292,6 +294,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
             tz={tz}
             empty={t("customers.noHistory")}
           />
+          {canPrivacy ? <ClientPrivacySection id={id} onErased={onClose} /> : null}
         </>
       )}
     </Sheet>

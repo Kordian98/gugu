@@ -13,6 +13,7 @@ import { useBreakpoint } from "../salon-crm/shell/useBreakpoint";
 import { Segmented } from "../salon-crm/ui/form";
 import { useAdminUsage } from "./data";
 import { fmtDate, fmtLimit, fmtNumber, monthVn } from "./format";
+import { MfaBanner } from "./MfaBanner";
 import { LoadError, Loading, Page, Section } from "./ui";
 
 /** Usage overview (M12.6): AI cost per salon vs the hard caps, Zalo template sends, trials ending. */
@@ -46,6 +47,7 @@ export function OverviewScreen() {
         />
       }
     >
+      <MfaBanner />
       {usage.isPending ? (
         <Loading />
       ) : usage.isError || !first ? (

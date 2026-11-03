@@ -4,11 +4,16 @@ import type {
   AdminAssignPlanInput,
   AdminCreateOverrideInput,
   AdminExtendTrialInput,
+  AdminMfaEnrolment,
+  AdminMfaRecoveryCodes,
+  AdminMfaStatus,
   AdminMutationResult,
   AdminReasonInput,
   AdminSalonDetail,
   AdminSalonList,
   AdminSetPaidUntilInput,
+  AdminStepUpInput,
+  AdminStepUpResult,
   AdminUsageOverview,
 } from "@gugu/contracts";
 
@@ -107,3 +112,47 @@ export function useAdminAction(salonId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.all }),
   });
 }
+
+// ─── Second factor (topic 05 step 9, ADR-0011) ───────────────────────────────────────────────
+
+const mfaKey = ["admin", "mfa"] as const;
+
+/** My TOTP status and this session's step-up end. */
+export function useAdminMfa() {
+  return useQuery({
+    queryKey: mfaKey,
+    queryFn: () => apiFetch<AdminMfaStatus>("/admin/mfa"),
+  });
+}
+
+function useMfaMutation<V, R>(fn: (v: V) => Promise<R>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => qc.invalidateQueries({ queryKey: mfaKey }),
+  });
+}
+
+export const useStartEnrolment = () =>
+  useMfaMutation(() => apiFetch<AdminMfaEnrolment>("/admin/mfa/totp/enrol", { method: "POST" }));
+
+export const useConfirmEnrolment = () =>
+  useMfaMutation((code: string) =>
+    apiFetch<AdminMfaRecoveryCodes>("/admin/mfa/totp/confirm", {
+      method: "POST",
+      body: { code },
+    }),
+  );
+
+export const useStepUp = () =>
+  useMfaMutation((body: AdminStepUpInput) =>
+    apiFetch<AdminStepUpResult>("/admin/mfa/step-up", { method: "POST", body }),
+  );
+
+export const useRegenerateRecoveryCodes = () =>
+  useMfaMutation((code: string) =>
+    apiFetch<AdminMfaRecoveryCodes>("/admin/mfa/recovery-codes", {
+      method: "POST",
+      body: { code },
+    }),
+  );

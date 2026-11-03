@@ -255,7 +255,11 @@
     "resource_in_use": "Can't reduce or turn off: upcoming appointments use these places.",
     "resource_not_found": "Room/equipment not found.",
     "resource_type_not_found": "Room/equipment type not found.",
-    "salon_suspended": "This salon is suspended by GuGu. You can view data but not make changes. Contact GuGu support."
+    "salon_suspended": "This salon is suspended by GuGu. You can view data but not make changes. Contact GuGu support.",
+    "privacy_export_in_progress": "An export is already being created. Please wait.",
+    "privacy_export_unavailable": "The export is not ready yet or has expired.",
+    "privacy_export_not_found": "Export not found.",
+    "customers_not_found": "Client not found."
   },
   "services": {
     "subtitle": "Services, options, add-ons and who performs them",
