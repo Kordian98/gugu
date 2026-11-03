@@ -19,7 +19,12 @@ export function useCrmNav() {
   const go = (path: string) => {
     router.push(`/${locale}${path}` as never);
   };
-  return { active, go, locale };
+  /** "+ New appointment": on the calendar keep the viewed day (set the param, don't remount). */
+  const newAppointment = () => {
+    if (rest.startsWith("/business/calendar")) router.setParams({ new: "1" });
+    else go("/business/calendar?new=1");
+  };
+  return { active, go, locale, newAppointment };
 }
 
 /** Navigation the current member may see (role-aware, 07 §3.1). Outside a salon (demo) everything. */

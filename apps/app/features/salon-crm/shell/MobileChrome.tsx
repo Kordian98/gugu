@@ -58,7 +58,7 @@ export function MobileHeader({ onMenu }: { onMenu: () => void }) {
 export function BottomTabs({ onMore }: { onMore: () => void }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
-  const { active, go } = useCrmNav();
+  const { active, go, newAppointment } = useCrmNav();
   const insets = useSafeAreaInsets();
   const tabActive = active !== null && TABS.includes(active);
   const tab = (id: (typeof TABS)[number]) => {
@@ -99,7 +99,7 @@ export function BottomTabs({ onMore }: { onMore: () => void }) {
           accessibilityRole="button"
           accessibilityLabel={t("shell.newAppointment")}
           onPress={() => {
-            go("/business/calendar?new=1");
+            newAppointment();
           }}
           style={{
             width: 52,

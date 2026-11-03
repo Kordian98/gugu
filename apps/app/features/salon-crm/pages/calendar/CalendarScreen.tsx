@@ -53,7 +53,9 @@ export function CalendarScreen() {
   // `?new=1` (header "New appointment"): open the sheet once services are known; without an
   // active service, explain the prerequisites instead.
   const wantsNew = params.new === "1" && !day.services.isPending;
-  const sheet = creating ?? (wantsNew && hasServices ? { date: today } : null);
+  // Start on the day being viewed (never in the past).
+  const sheet =
+    creating ?? (wantsNew && hasServices ? { date: date < today ? today : date } : null);
   const closeNew = () => {
     setCreating(null);
     if (params.new) router.setParams({ new: undefined });
