@@ -173,16 +173,15 @@ describe("platform admin (integration)", () => {
           route.method === "GET" ? { path: route.path, body: {} } : validBody(route, id);
         const url = `/api/v1/${path.replace(":salonId", own.salonId)}`;
         const method = route.method.toLowerCase() as "get" | "post";
-        const anon = await request(http(app))
-          [method](url)
-          .send({ ...body, reason: REASON });
+        const call = () =>
+          method === "get" ? request(http(app)).get(url) : request(http(app)).post(url);
+        const anon = await call().send({ ...body, reason: REASON });
         expect({ route: route.path, status: anon.status }).toEqual({
           route: route.path,
           status: 401,
         });
         for (const [role, bearer] of Object.entries(members)) {
-          const agent = request(http(app));
-          const res = await agent[method](url)
+          const res = await call()
             .set("authorization", bearer)
             .send({ ...body, reason: REASON });
           expect({ route: route.path, role, status: res.status }).toEqual({
