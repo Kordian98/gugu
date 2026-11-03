@@ -174,6 +174,17 @@ describe("multi-service bookings (integration, M6.8)", () => {
     expect(outbox.payload).toMatchObject({ staffIds: [linh], serviceCount: 2 });
   });
 
+  it("DB: booking_services_valid allows lines 1..4 only (SQLSTATE 23514)", async () => {
+    const b = salonBookingSchema.parse((await create(chainBody()).expect(201)).body);
+    const line = await prisma.bookingService.findFirstOrThrow({
+      where: { bookingId: b.id, sequence: 2 },
+    });
+    await prisma.bookingService.update({ where: { id: line.id }, data: { sequence: 4 } });
+    await expect(
+      prisma.$executeRaw`UPDATE booking_services SET sequence = 5 WHERE id = ${line.id}::uuid`,
+    ).rejects.toThrow(/23514|booking_services_valid/);
+  });
+
   it("different staff: Mai starts when Linh finishes; her prep runs during gel", async () => {
     const b = salonBookingSchema.parse((await create(chainBody()).expect(201)).body);
     expect(b.services.map((l) => [l.staffId, l.startsAt, l.endsAt])).toEqual([
