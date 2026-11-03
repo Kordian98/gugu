@@ -10,9 +10,9 @@ import { screen } from "../screens";
 import type { LandingNavActions } from "../useLandingNav";
 import { PHOTO } from "./media";
 import { FeaturesPanel, OfficePanel, SwitchPanel } from "./Rooms";
-import { WalkPlayer } from "./sequence";
-import { scrollStory, type StoryApi } from "./story";
-import { BEATS, WIPE, buildJourney, scrollParent } from "./timelines";
+import { WalkPlayer, type Segment } from "./sequence";
+import { book, type BookApi } from "./book";
+import { PAGES, buildJourney, scrollParent } from "./timelines";
 
 const NOTES = ["n1", "n2", "n3"] as const;
 const ENTRIES = ["e1", "e2", "e3", "e4"] as const;
@@ -27,18 +27,29 @@ const PHONE = "☎";
 const CHECK = "✓";
 const SEP = " · ";
 const ZERO = "0";
-const DOWN = "↓";
+const DOWN = "\u2192";
 /**
  * Navigation chapters → resting beats (BEATS): "front desk" spans before | after, the treatment room its
  * three facts; each beat is one segment of the chapter's bar.
  */
 const HUD = [
-  { k: "c0", stops: [0] },
-  { k: "c1", stops: [1, 2] },
-  { k: "c2", stops: [3, 4, 5] },
-  { k: "c3", stops: [6] },
-  { k: "c4", stops: [7] },
+  { k: "c0", stops: [0, 1] },
+  { k: "c1", stops: [2, 3] },
+  { k: "c2", stops: [4, 5, 6] },
+  { k: "c3", stops: [7] },
+  { k: "c4", stops: [8] },
 ] as const;
+/** Next-button label per page: start the tour, see the after, finish, otherwise "Next". */
+const LABELS = ["start", "next", "after", "finish"] as const;
+const labelFor = (page: number) =>
+  page === 0 ? "start" : page === 2 ? "after" : page === PAGES.length - 1 ? "finish" : "next";
+/** Walk segments' journey-time ranges (must be loaded before a turn plays through them). */
+const WALKS: [Segment, number, number][] = [
+  ["w1", 0, 0.153],
+  ["w2", 0.45, 0.558],
+  ["w3", 0.781, 0.881],
+];
+const PREV = "\u2190";
 const ARROWS = "\u25C0\u25B6";
 
 /**
@@ -53,17 +64,19 @@ export function Journey({
   nav,
   desktop,
   width,
+  reduce,
 }: {
   nav: LandingNavActions;
   desktop: boolean;
   width: number;
+  reduce: boolean;
 }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const track = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const hud = useRef<HTMLElement>(null);
-  const ch = useRef<StoryApi | null>(null);
+  const ch = useRef<BookApi | null>(null);
   const zero = (d: number) =>
     new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(0);
 
@@ -91,31 +104,89 @@ export function Journey({
     const ctx = gsap.context(() => {
       render = buildJourney(el, gsap.utils.selector(el), player, hud.current, locale).render;
     }, el);
+    const sp = el.querySelector<HTMLElement>(".sp");
+    const knob = el.querySelector<HTMLElement>(".sp-knob");
+    const stage = el.querySelector<HTMLElement>(".jr-stage");
+    const h = hud.current;
+    const count = h?.querySelector<HTMLElement>(".hud-count");
+    const lbls = h?.querySelector<HTMLElement>(".hud-lbls");
+    const skipBtn = el.querySelector<HTMLElement>(".jr-skip");
+    const total = PAGES.length;
+    let dragged = false;
+    let lastLabel = "";
+    // Page UI changes the moment a turn starts (label crossfade + width morph, chapter, counter).
+    const onPage = (page: number, settled: boolean) => {
+      if (!h) return;
+      h.dataset["page"] = String(page);
+      if (page > 0) h.classList.remove("hinted");
+      h.querySelectorAll<HTMLElement>(".hud-s").forEach((b) => {
+        const stops = (b.dataset["stops"] ?? "").split(",").map(Number);
+        b.classList.toggle("on", stops.includes(page));
+        b.setAttribute("aria-current", stops.includes(page) ? "step" : "false");
+      });
+      if (count) count.textContent = t("flow.hud.page", { n: page + 1, total });
+      const key = labelFor(page);
+      if (lbls && key !== lastLabel) {
+        lastLabel = key;
+        let w = 0;
+        lbls.querySelectorAll<HTMLElement>("[data-k]").forEach((l) => {
+          const on = l.dataset["k"] === key;
+          l.classList.toggle("on", on);
+          if (on) w = l.offsetWidth;
+        });
+        lbls.style.width = `${String(w)}px`;
+      }
+      skipBtn?.classList.toggle("gone", page === total - 1);
+      // A dragged divider glides back to where the timeline expects it before the turn plays on.
+      if (!settled && dragged && sp) {
+        dragged = false;
+        gsap.to(sp, { "--x": page <= 2 ? "100%" : "0%", duration: 0.25, ease: "power1.out" });
+      }
+    };
+    const ready = (from: number, to: number) => {
+      const lo = Math.min(from, to);
+      const hi = Math.max(from, to);
+      const need = WALKS.filter(([, a, b]) => lo < b && hi > a).map(([seg]) => seg);
+      need.forEach((seg) => {
+        player.load(seg);
+      });
+      const t0 = performance.now();
+      return new Promise<void>((res) => {
+        const check = () => {
+          if (need.every((seg) => player.loaded(seg) >= 0.5) || performance.now() - t0 > 2500)
+            res();
+          else setTimeout(check, 50);
+        };
+        check();
+      });
+    };
     const sc = scrollParent(el);
     ch.current =
-      sc instanceof HTMLElement
-        ? scrollStory({
+      sc instanceof HTMLElement && stage
+        ? book({
             scroller: sc,
             track: el,
-            beats: BEATS,
-            wipe: WIPE,
-            render: (time, px, lay) => {
-              render(time, px, lay);
+            stage,
+            pages: PAGES,
+            doorLen: reduce ? 0 : 1.2,
+            reduce,
+            render: (time) => {
+              render(time);
             },
+            onPage,
+            ready,
             exitTo: () => document.getElementById("fl-biz"),
           })
         : null;
-    if (__DEV__) (window as unknown as { __story?: StoryApi | null }).__story = ch.current;
-    // Before/after handle: dragging it scrubs the scroll through the sweep, so the divider, the story and
-    // the scrollbar always agree (scrolling moves the divider too).
-    const sp = el.querySelector<HTMLElement>(".sp");
-    const knob = el.querySelector<HTMLElement>(".sp-knob");
+    if (__DEV__) (window as unknown as { __book?: BookApi | null }).__book = ch.current;
+    // Before/after handle: drag to compare (writes --x on the split; page turns sweep it too).
     let dragging = false;
     const move = (e: PointerEvent) => {
       if (!dragging || !sp) return;
       const r = sp.getBoundingClientRect();
-      const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-      ch.current?.scrubWipe(1 - x);
+      const x = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+      sp.style.setProperty("--x", `${x.toFixed(1)}%`);
+      dragged = true;
     };
     const down = (e: PointerEvent) => {
       dragging = true;
@@ -139,7 +210,7 @@ export function Journey({
       window.removeEventListener("resize", onResize);
       player.destroy();
     };
-  }, [locale]);
+  }, [locale, reduce, t]);
 
   return (
     <div className="jr" ref={track}>
@@ -326,7 +397,7 @@ export function Journey({
           <SwitchPanel />
         </div>
 
-        <nav className="jr-hud" ref={hud} aria-label={t("flow.hud.label")}>
+        <nav className="jr-hud hinted" ref={hud} aria-label={t("flow.hud.label")} data-page="0">
           <div className="hud-steps">
             {HUD.map((c) => (
               <button
@@ -349,6 +420,19 @@ export function Journey({
               </button>
             ))}
           </div>
+          <span className="hud-count" aria-live="polite">
+            {t("flow.hud.page", { n: 1, total: PAGES.length })}
+          </span>
+          <button
+            type="button"
+            className="hud-prev"
+            aria-label={t("flow.hud.prev")}
+            onClick={() => {
+              ch.current?.prev();
+            }}
+          >
+            {PREV}
+          </button>
           <button
             type="button"
             className="hud-next"
@@ -356,12 +440,19 @@ export function Journey({
               ch.current?.next();
             }}
           >
-            <span className="l-start">{t("flow.hud.start")}</span>
-            <span className="l-next">{t("flow.hud.next")}</span>
-            <span className="l-after">{t("flow.hud.after")}</span>
-            <span className="l-cont">{t("flow.hud.finish")}</span>
+            <span className="hud-lbls">
+              {LABELS.map((k) => (
+                <span key={k} data-k={k} className={k === "start" ? "on" : undefined}>
+                  {t(`flow.hud.${k}`)}
+                </span>
+              ))}
+            </span>
             <i>{DOWN}</i>
           </button>
+          <span className="hud-hint">
+            <span className="k">{t("flow.hud.hintKeys")}</span>
+            <span className="tc">{t("flow.hud.hintTouch")}</span>
+          </span>
         </nav>
         <button
           type="button"

@@ -74,6 +74,13 @@ export class WalkPlayer {
     for (let lane = 0; lane < 4; lane++) next();
   }
 
+  /** Fraction of walk `seg`'s frames loaded (0..1). */
+  loaded(seg: Segment): number {
+    const tr = this.tracks.get(seg);
+    if (!tr) return 0;
+    return tr.imgs.reduce((n, im) => n + (im ? 1 : 0), 0) / FRAMES;
+  }
+
   /** Shows walk `seg` at progress 0..1 (float; neighbouring frames are blended). */
   set(seg: Segment, progress: number) {
     const pos = Math.max(0, Math.min(1, progress)) * (FRAMES - 1);

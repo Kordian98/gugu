@@ -437,7 +437,11 @@
       "label": "Các phần của câu chuyện",
       "after": "Xem sau khi dùng",
       "c4": "Chuyển từ sổ/app cũ",
-      "finish": "Kết thúc hành trình"
+      "finish": "Kết thúc hành trình",
+      "prev": "Trang trước",
+      "page": "{{n}} / {{total}}",
+      "hintKeys": "Nhấn Tiếp theo hoặc dùng phím →",
+      "hintTouch": "Vuốt hoặc nhấn Tiếp theo"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",

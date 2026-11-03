@@ -15,16 +15,18 @@ gsap.registerPlugin(ScrollTrigger);
  * v4 landing flow (web): the hero's arched door grows into ONE full-screen scene that walks through one
  * salon (street → front desk drowning → calm → treatment area features → back office), then the
  * before/after with the time-saved card, business types and switching.
- * Native and reduced motion use StoryStatic.
+ * Reduced motion: the same book, page turns crossfade (no door scrub). Native uses StoryStatic.
  */
 export function Flow({
   nav,
   desktop,
   width,
+  reduce,
 }: {
   nav: LandingNavActions;
   desktop: boolean;
   width: number;
+  reduce: boolean;
 }) {
   const locale = useLocale();
   const root = useRef<HTMLDivElement>(null);
@@ -66,7 +68,7 @@ export function Flow({
     <div className="fl" ref={root}>
       <style>{FLOW_CSS}</style>
 
-      <Journey nav={nav} desktop={desktop} width={width} />
+      <Journey nav={nav} desktop={desktop} width={width} reduce={reduce} />
 
       <Businesses />
     </div>

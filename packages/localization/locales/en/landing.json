@@ -437,7 +437,11 @@
       "label": "Story chapters",
       "after": "See the after",
       "c4": "Switch from your old app",
-      "finish": "Finish journey"
+      "finish": "Finish journey",
+      "prev": "Previous",
+      "page": "{{n}} / {{total}}",
+      "hintKeys": "Press Next or use the → key",
+      "hintTouch": "Swipe or tap Next"
     },
     "calc": {
       "t": "What fewer no-shows are worth",

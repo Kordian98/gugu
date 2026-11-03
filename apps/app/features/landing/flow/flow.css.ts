@@ -20,8 +20,10 @@ export const FLOW_CSS = `
 .lyr{position:absolute;will-change:transform,opacity}
 
 /* journey: ONE sticky full-screen stage (hero door portal → walk → desk → rooms) */
-.jr{position:relative;height:780vh}
-.jr-stage{position:sticky;top:0;height:100vh;width:100%;overflow:hidden;contain:layout paint;background:${color.canvas}}
+.jr{position:relative;height:220vh}
+.jr-stage{position:sticky;top:0;height:100vh;height:100svh;height:var(--sv,100svh);width:100%;overflow:hidden;contain:layout paint;background:${color.canvas};--fade:0}
+/* reduced motion: page turns fade through the canvas colour */
+.jr-stage::after{content:"";position:absolute;inset:0;background:${color.canvas};opacity:var(--fade);pointer-events:none;z-index:5}
 .jr-hero{position:absolute;left:0;top:0;bottom:0;width:52vw;display:flex;align-items:center;padding:96px var(--g) 40px;box-sizing:border-box;z-index:3;will-change:transform,opacity}
 .jr-hero>*{flex:1 1 auto;min-width:0;width:100%}
 .jr-frame{position:absolute;inset:0}
@@ -64,7 +66,6 @@ export const FLOW_CSS = `
 .pn-gi i{flex:0 0 26px;height:26px;border-radius:50%;background:${color.lilac500};color:#fff;font-style:normal;display:flex;align-items:center;justify-content:center;font-size:13px}
 .jr-foot{position:absolute;left:var(--g);bottom:calc(2.6vh + 70px);font-family:${font.ui};font-size:11.5px;color:${color.muted};opacity:0}
 @media (max-width:899px){
-  .jr{height:720vh}
   .jr-hero{width:100%;bottom:auto;height:52vh;align-items:flex-start;padding:100px 16px 12px}
   /* desk scene on phones: pings at the top, headline + number at the bottom above the HUD */
   .jr-pain{left:16px;right:16px;width:auto;top:auto;bottom:46px;justify-content:flex-end;gap:6px}
@@ -97,7 +98,7 @@ export const FLOW_CSS = `
 .sp-h>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:58% 40%}
 .sp-veil{position:absolute;inset:0;background:rgba(253,250,247,.78);opacity:0;will-change:opacity}
 .sp-line{position:absolute;top:0;bottom:0;left:var(--x);width:2px;margin-left:-1px;background:linear-gradient(#A68CF6,#F08DB4);opacity:0}
-.sp-knob{position:absolute;top:50%;left:var(--x);width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:#fff;color:${color.ink};display:flex;align-items:center;justify-content:center;gap:2px;font-size:13px;box-shadow:0 12px 30px rgba(42,20,38,.25);cursor:ew-resize;pointer-events:auto;touch-action:none;opacity:0;z-index:3;border:0}
+.sp-knob{position:absolute;top:50%;left:clamp(34px,var(--x),calc(100% - 34px));width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:#fff;color:${color.ink};display:flex;align-items:center;justify-content:center;gap:2px;font-size:13px;box-shadow:0 12px 30px rgba(42,20,38,.25);cursor:ew-resize;pointer-events:auto;touch-action:none;opacity:0;z-index:3;border:0}
 .sp-knob::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(169,139,235,.5);animation:hudPulse 2.2s ease-out infinite}
 .sp-ui{position:absolute;left:var(--g);right:var(--g);top:clamp(84px,11vh,124px);bottom:calc(var(--hud) + 30px);max-width:1360px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);column-gap:clamp(24px,4vw,64px);row-gap:clamp(8px,1.6vh,16px);align-content:center}
 .sp-ui>*{grid-column:1}
@@ -148,51 +149,68 @@ export const FLOW_CSS = `
   .sp .pn-gi{padding:7px 10px;font-size:12px}
   .sp .jr-foot{bottom:calc(var(--hud) + 4px);font-size:9.5px}
 }
-/* treatment area: 8 features + a resource chip on the calendar */
-.ft-lap{position:relative}
-.ft-chip{position:absolute;left:6%;bottom:18%;display:flex;align-items:center;gap:8px;background:#fff;color:${color.ink};font-family:${font.uiSemiBold};font-size:13px;padding:9px 13px;border-radius:12px;box-shadow:0 16px 40px rgba(42,20,38,.22);opacity:0;will-change:transform,opacity}
-.ft-chip i{font-style:normal;color:${color.lilac500};animation:hudNudge 1.4s ease-in-out infinite}
-.ov-f .ft-list{grid-template-columns:1fr 1fr;gap:10px}
-.ov-f .ft-i{padding:11px 13px}
-.ov-f .ft-i h3{font-size:clamp(12.5px,1vw,15px)}
-.ov-f .ft-i p{font-size:clamp(11px,.85vw,12.5px);line-height:1.4}
-/* treatment area: pain → gain in numbers, real CRM screens (readable crops, all above the HUD) */
-.ov-f{grid-template-rows:auto minmax(0,1fr)}
-.ov-f .t{grid-column:1/6}
-.ov-f .t .fl-h{font-size:clamp(26px,2.8vw,46px)}
-.fx-rows{grid-column:1/6;grid-row:2;display:flex;flex-direction:column;gap:8px;align-self:start;min-height:0}
-.fx{display:grid;grid-template-columns:clamp(70px,6.4vw,100px) 1fr;gap:12px;align-items:center;padding:10px 14px;opacity:0;will-change:transform,opacity}
-.fx-n{font-family:${font.display};font-size:clamp(22px,2.2vw,36px);line-height:1;letter-spacing:-.03em;background:linear-gradient(90deg,#A68CF6,#F08DB4);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center;opacity:0}
-.fx-b h3{font-family:${font.uiSemiBold};font-size:clamp(13px,1vw,15px);margin:0 0 3px}
-.fx-p,.fx-g{display:flex;gap:7px;align-items:flex-start;margin:0;font-family:${font.ui};font-size:clamp(11px,.84vw,12.5px);line-height:1.38}
-.fx-p{color:#9A3B44}.fx-p i{color:#C2414B}
-.fx-p em{font-style:normal;font-family:${font.uiSemiBold};margin-right:4px}
-.fx-g{color:${color.ink2};margin-top:2px;opacity:0}.fx-g i{color:${color.lilac500}}
-.fx-p i,.fx-g i{font-style:normal;flex:0 0 12px;font-size:11px;margin-top:2px}
-.fx-facts{font-family:${font.uiMedium};font-size:11.5px;color:${color.muted};padding:2px 4px;opacity:0}
-.fx-screens{grid-column:6/13;grid-row:1 / 3;min-height:0;display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1.35fr) minmax(0,1fr) minmax(0,1fr);gap:10px;align-self:stretch}
-.fx-scr{position:relative;overflow:hidden;padding:30px 8px 8px;opacity:0;will-change:transform,opacity;min-height:0}
-.fx-scr img{display:block;width:100%;height:auto;border-radius:10px}
-.fx-cal{grid-column:1}
-.fx-lbl{position:absolute;left:12px;top:8px;font-family:${font.uiSemiBold};font-size:11.5px;color:${color.ink2}}
-.fx-cal .ft-chip{left:auto;right:16px;bottom:16px}
+/* treatment area: one headline, then ONE fact + ONE readable CRM screen at a time (scroll steps through
+   three). Solid white panels on a strong veil, plum ink numbers, nothing under the HUD. */
+.ov-f{grid-template-rows:auto minmax(0,1fr) auto;row-gap:clamp(12px,2.2vh,24px)}
+.ov-f .t{grid-column:1/6;grid-row:1}
+.ov-f .t .fl-h{font-size:clamp(30px,3.4vw,56px);margin-bottom:0}
+.tr-dots{display:flex;gap:6px;margin-top:clamp(10px,2vh,20px);opacity:1}
+.tr-dots span{display:block;width:34px;height:4px;border-radius:4px;background:rgba(42,20,38,.12);overflow:hidden}
+.tr-dot{display:block;height:100%;background:${color.ink};transform:scaleX(0);transform-origin:left center}
+.tr-facts{grid-column:1/6;grid-row:2;display:grid;align-self:center;min-height:0}
+.tr-fact{grid-area:1/1;background:#fff;border-radius:24px;padding:clamp(20px,2.4vw,34px);box-shadow:0 24px 60px rgba(42,20,38,.12);opacity:0;will-change:transform,opacity}
+.tr-n{font-family:${font.display};font-size:clamp(64px,7vw,120px);line-height:.9;letter-spacing:-.045em;color:${color.ink};transform-origin:left bottom}
+.tr-fact h3{font-family:${font.uiSemiBold};font-size:clamp(18px,1.6vw,24px);line-height:1.25;color:${color.ink};margin:clamp(8px,1.2vh,14px) 0 6px}
+.tr-g{font-family:${font.ui};font-size:clamp(15px,1.2vw,18px);line-height:1.5;color:${color.ink2};margin:0;max-width:46ch}
+.tr-p{display:flex;gap:8px;align-items:flex-start;margin:clamp(12px,1.8vh,18px) 0 0;padding-top:clamp(10px,1.5vh,14px);border-top:1px solid ${color.lineSoft};font-family:${font.ui};font-size:clamp(13px,1vw,14.5px);line-height:1.45;color:${color.muted}}
+.tr-p i{font-style:normal;color:#C2414B;flex:0 0 auto}
+.tr-p em{font-style:normal;font-family:${font.uiSemiBold};color:#9A3B44;margin-right:6px}
+.tr-shots{grid-column:6/13;grid-row:1 / 3;display:grid;align-self:center;min-height:0}
+.tr-shot{grid-area:1/1;position:relative;margin:0;padding:14px;opacity:0;will-change:transform,opacity;align-self:center}
+.tr-shot figcaption{font-family:${font.uiSemiBold};font-size:14px;color:${color.ink};padding:2px 4px 12px}
+/* each screen is cropped to the detail that matters, at a size where its text is readable (≥ ~12 px) */
+.tr-img{position:relative;overflow:hidden;border-radius:14px;border:1px solid ${color.lineSoft};aspect-ratio:var(--ar);background:#FDFAF7}
+.tr-img img{position:absolute;top:0;left:0;height:100%;width:auto;max-width:none;display:block}
+.tr-shot.cal{--ar:1.62}.tr-shot.appt{--ar:2.25}.tr-shot.svc{--ar:1.95}
+.tr-shot.cal .tr-img img{height:100%}
+.tr-shot.appt .tr-img img{height:100%}
+.tr-shot.svc .tr-img img{height:100%}
+.tr-call{position:absolute;display:flex;align-items:center;gap:8px;background:${color.ink};color:#fff;font-family:${font.uiSemiBold};font-size:clamp(12.5px,1vw,14px);padding:10px 14px;border-radius:14px;box-shadow:0 16px 40px rgba(34,16,36,.3);opacity:0;will-change:transform,opacity;max-width:70%}
+.tr-call i{font-style:normal;color:${color.lilac300}}
+.tr-call::before{content:"";position:absolute;width:12px;height:12px;background:inherit;transform:rotate(45deg)}
+/* callouts point at their detail: the 10:00 booking, the walk-in row, the price ranges */
+.tr-shot.cal .tr-call{left:46%;top:73%}.tr-shot.cal .tr-call::before{left:22px;top:-5px}
+.tr-shot.appt .tr-call{right:22px;top:52%}.tr-shot.appt .tr-call::before{left:-5px;top:calc(50% - 6px)}
+.tr-shot.svc .tr-call{right:18px;bottom:-14px}.tr-shot.svc .tr-call::before{right:22px;top:-5px}
+.tr-note{grid-column:1/13;grid-row:3;margin:0;font-family:${font.ui};font-size:12px;color:${color.muted};opacity:0}
 @media (max-width:899px){
-  .ov-f{display:flex}
-  .fx{grid-template-columns:60px 1fr;gap:10px;padding:8px 10px}
-  .fx-p,.fx-facts{display:none}
-  .fx-n{font-size:20px}
-  .fx-screens{display:flex;flex-direction:column;gap:8px}
-  .fx-scr{height:150px;flex:0 0 auto}
-  .fx-scr:not(.fx-cal){display:none}
+  .ov-f{justify-content:flex-start}
+  .ov-f .t .fl-h{font-size:clamp(24px,6.6vw,30px)}
+  .tr-dots{margin-top:10px}
+  .tr-shots{order:2}.tr-facts{order:3}.tr-note{order:4}
+  .tr-shots,.tr-facts,.tr-shot,.tr-fact{width:100%;box-sizing:border-box}
+  .tr-shot{padding:10px}
+  .tr-shot figcaption{font-size:12.5px;padding:0 2px 8px}
+  .tr-shot.cal{--ar:1.2}.tr-shot.appt{--ar:1.7}.tr-shot.svc{--ar:1.5}
+  .tr-call{font-size:12px;padding:8px 11px;max-width:80%}
+  .tr-shot.cal .tr-call{left:30%;top:auto;bottom:-12px}
+  .tr-shot.appt .tr-call{left:12px}
+  .tr-fact{padding:16px 18px;border-radius:18px}
+  .tr-n{font-size:52px}
+  .tr-fact h3{font-size:17px;margin:6px 0 4px}
+  .tr-g{font-size:14px;line-height:1.45}
+  .tr-p{display:none}
+  .tr-note{font-size:10.5px}
 }
 /* switching (in the office): the AI fills the services screen, styled like the CRM */
 .ov-s .t{grid-column:1/6;grid-row:1 / 3;align-self:center}
+.ov-s .t .fl-h{font-size:clamp(28px,2.9vw,48px)}
 .ov-s .t,.sw-steps li,.sw-list,.sw-win,.sw-row{opacity:0;will-change:transform,opacity}
 .sw-sub{font-size:clamp(14px,1.1vw,17px)!important;margin-top:6px}
 .sw-steps{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .sw-steps li{display:flex;align-items:center;gap:10px;font-family:${font.uiMedium};font-size:clamp(12.5px,1vw,15px);background:#fff;border-radius:14px;padding:9px 12px;box-shadow:0 10px 26px rgba(42,20,38,.08)}
 .sw-steps li b{flex:0 0 24px;height:24px;border-radius:50%;background:${color.lilac100};color:${color.lilac700};display:flex;align-items:center;justify-content:center;font-size:12px}
-.sw-demo{grid-column:6/13;grid-row:1 / 3;align-self:center;position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.35fr);gap:clamp(14px,2vw,28px);align-items:center}
+.sw-demo{grid-column:6/13;grid-row:1 / 3;align-self:center;position:relative;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.35fr);gap:clamp(14px,2vw,28px);align-items:center}
 .ov-s .sw-list{padding:clamp(20px,2.4vw,40px);transform-origin:center}
 .ov-s .sw-list p{font-size:clamp(16px,1.5vw,27px);line-height:1.5;white-space:pre}
 .ov-s .sw-list .lbl{font-size:13px}
@@ -225,7 +243,7 @@ export const FLOW_CSS = `
 
 @keyframes swShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @media (max-width:899px){
-  .sw-sub,.sw-list{display:none}
+  .sw-sub{display:none}
   .sw-demo{grid-template-columns:1fr}
   .sw-steps li{padding:7px 10px;font-size:12px}
   .sw-rows{grid-template-columns:1fr}
@@ -236,6 +254,44 @@ export const FLOW_CSS = `
   .sw-val small{display:none}
   .sw-val b{font-size:13px}
   .sw-val em{font-size:12.5px}
+}
+/* switching: old system → GuGu Studio */
+.sw-old{position:relative;display:flex;flex-direction:column;align-items:stretch}
+.sw-o{position:relative;opacity:0;will-change:transform,opacity}
+.sw-o .lbl{font-family:${font.uiSemiBold};font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:${color.muted}}
+.sw-o.app,.sw-o.xl{background:#fff;border:1px solid ${color.lineSoft};border-radius:16px;box-shadow:0 18px 40px rgba(42,20,38,.12);padding:12px 14px;width:82%}
+.sw-o.app{rotate:-4deg;align-self:flex-start}
+.sw-o.xl{rotate:3deg;align-self:flex-end;margin-top:-10px}
+.sw-app-ui{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.sw-app-ui span{display:block;height:11px;border-radius:6px;background:#EFE8EE}
+.sw-app-ui span:nth-child(2n){width:70%}
+.sw-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-top:8px}
+.sw-grid span{display:block;height:11px;background:#EEF3EC;border:1px solid #DCE6D8}
+.sw-grid span:nth-child(-n+5){background:#DCE6D8}
+.ov-s .sw-o.nb{z-index:1;width:92%;align-self:center;margin-top:-10px;box-sizing:border-box;padding:16px 20px}
+.ov-s .sw-o.nb p{font-size:clamp(15px,1.25vw,20px);line-height:1.45;max-height:7.3em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.sw-arrow{position:absolute;left:calc(40% - 22px);top:50%;width:44px;height:44px;margin-top:-22px;border-radius:50%;background:${color.ink};color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;z-index:2;box-shadow:0 12px 30px rgba(34,16,36,.3);opacity:0}
+.sw-steps li span{flex:1 1 auto}
+.sw-steps .ok{font-style:normal;flex:0 0 22px;height:22px;border-radius:50%;background:${color.ink};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0}
+@media (max-width:899px){
+  .ov-s{justify-content:flex-start}
+  .ov-s .t .fl-h{font-size:clamp(22px,6.2vw,27px);margin-bottom:0}
+  .ov-s .fl-eye{font-size:11px}
+  .sw-demo{display:flex;flex-direction:column;gap:8px}
+  .sw-old{flex-direction:row;gap:6px;justify-content:center;flex-wrap:nowrap}
+  .ov-s .sw-old .sw-o{display:block;width:auto;margin:0;translate:none;rotate:none;padding:6px 11px;border-radius:99px;background:#fff;border:1px solid ${color.lineSoft};box-shadow:0 8px 20px rgba(42,20,38,.1);white-space:nowrap}
+  .ov-s .sw-old .sw-o .lbl{font-size:10.5px}
+  .sw-o .sw-app-ui,.sw-o .sw-grid,.ov-s .sw-o.nb p,.sw-o .sw-scan{display:none}
+  .sw-arrow{position:static;margin:0 auto;width:28px;height:28px;font-size:14px;transform:rotate(90deg)}
+  .sw-steps{gap:5px;margin-top:10px}
+  .ov-s .sw-steps li{padding:6px 10px;font-size:12px;gap:8px}
+  .sw-steps li b{flex-basis:20px;height:20px;font-size:10.5px}
+  .sw-steps .ok{flex-basis:18px;height:18px;font-size:10px}
+  .sw-ai{margin:8px 10px;padding:8px 10px}
+  .sw-bar{padding:7px 12px}
+  .ov-s .sw-row:nth-child(n+5){display:none}
+  .sw-rows{margin:0 10px 10px}
+}
 }
 /* earnings calculator */
 .calc{pointer-events:auto;padding:16px 18px}
@@ -253,7 +309,6 @@ export const FLOW_CSS = `
 @media (max-width:899px){
   .ov-f .ft-i p{display:none}
   .ov-f .ft-i{padding:9px 11px}
-  .ft-chip{font-size:11px;padding:6px 9px;bottom:22%}
   .calc{padding:12px 14px}
   .calc-out b{font-size:28px}
 }
@@ -261,6 +316,8 @@ export const FLOW_CSS = `
 @media (min-width:900px) and (max-height:940px){.of-side .card:last-child{display:none}}
 /* story HUD: chapters + next + skip */
 .jr-hud{position:absolute;left:50%;bottom:clamp(14px,3vh,28px);transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px;border-radius:99px;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(42,20,38,.16);border:1px solid rgba(255,255,255,.7)}
+.jr-hud,.jr-skip{transition:opacity .35s ease,visibility .35s}
+.jr-hud.gone,.jr-skip.gone{opacity:0;visibility:hidden;pointer-events:none}
 .hud-steps{display:flex;gap:12px}
 .hud-s{display:flex;flex-direction:column;gap:6px;background:none;border:0;padding:4px 0;cursor:pointer;min-width:78px;text-align:left}
 .hud-bars{display:flex;gap:3px}
@@ -271,14 +328,21 @@ export const FLOW_CSS = `
 .hud-next{display:flex;align-items:center;gap:8px;border:0;cursor:pointer;background:${color.ink};color:#fff;font-family:${font.uiSemiBold};font-size:14px;padding:12px 18px;border-radius:99px;position:relative}
 .hud-next i{font-style:normal;display:inline-block;animation:hudNudge 1.6s ease-in-out infinite}
 .hud-next::after{content:"";position:absolute;inset:-4px;border-radius:99px;border:2px solid rgba(169,139,235,.55);animation:hudPulse 2.2s ease-out infinite;pointer-events:none}
-.hud-next .l-start,.hud-next .l-cont{display:none}
-.hud-next .l-after{display:none}
-.jr-hud[data-at="start"] .hud-next .l-next,.jr-hud[data-at="end"] .hud-next .l-next,.jr-hud[data-at="before"] .hud-next .l-next{display:none}
-.jr-hud[data-at="before"] .hud-next .l-after{display:inline}
-.jr-hud[data-at="start"] .hud-next .l-start{display:inline}
-.jr-hud[data-at="end"] .hud-next .l-cont{display:inline}
 .jr-skip{position:absolute;right:var(--g);bottom:clamp(20px,3.6vh,34px);z-index:6;border:1px solid ${color.line};background:rgba(255,255,255,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:${color.ink};font-family:${font.uiMedium};font-size:13px;padding:9px 14px;border-radius:99px;cursor:pointer}
 .jr-skip:hover,.hud-s:hover em{color:${color.lilac700}}
+/* Next label: crossfade + width morph the moment a turn starts */
+.hud-lbls{position:relative;display:inline-block;height:1.25em;line-height:1.25em;transition:width .35s cubic-bezier(.2,.7,.2,1);white-space:nowrap;vertical-align:middle}
+.hud-lbls>span{position:absolute;left:0;top:0;opacity:0;transform:translateY(6px);transition:opacity .25s ease,transform .3s cubic-bezier(.2,.7,.2,1)}
+.hud-lbls>span.on{opacity:1;transform:none}
+.hud-count{font-family:${font.uiSemiBold};font-size:12.5px;font-variant-numeric:tabular-nums;color:${color.ink2};min-width:3.2em;text-align:right}
+.hud-prev{width:42px;height:42px;border-radius:50%;border:1px solid ${color.line};background:#fff;color:${color.ink};font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .25s}
+.jr-hud[data-page="0"] .hud-prev{opacity:0;pointer-events:none}
+.hud-prev:hover{border-color:${color.lilac500}}
+.hud-s:focus-visible,.hud-next:focus-visible,.hud-prev:focus-visible,.jr-skip:focus-visible{outline:2px solid ${color.lilac500};outline-offset:3px}
+.hud-hint{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);white-space:nowrap;font-family:${font.uiMedium};font-size:12.5px;color:${color.ink};background:rgba(255,255,255,.9);padding:7px 12px;border-radius:99px;box-shadow:0 10px 30px rgba(42,20,38,.14);opacity:0;transition:opacity .4s ease;pointer-events:none}
+.jr-hud.hinted .hud-hint{opacity:1}
+.hud-hint .tc{display:none}
+@media (pointer:coarse){.hud-hint .k{display:none}.hud-hint .tc{display:inline}}
 @keyframes hudNudge{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
 @keyframes hudPulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.18)}}
 @media (max-width:899px){
@@ -287,11 +351,13 @@ export const FLOW_CSS = `
   .hud-s{min-width:0;flex:1}
   .hud-s em{display:none}
   .hud-next{padding:10px 14px;font-size:13px}
+  .hud-prev{width:36px;height:36px;flex:0 0 36px}
+  .hud-count{display:none}
   .jr-skip{top:16px;bottom:auto;right:12px;font-size:12px;padding:7px 12px}
   .jr-pain{bottom:104px}
   .jr-foot{bottom:70px}
 }
-@media (prefers-reduced-motion:reduce){.hud-next i,.hud-next::after{animation:none}}
+@media (prefers-reduced-motion:reduce){.hud-next i,.hud-next::after,.sp-knob::after,.ft-chip i{animation:none}.hud-lbls,.hud-lbls>span{transition:opacity .2s}.hud-lbls>span{transform:none}}
 
 /* time-saved card */
 .sv{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;padding:14px 20px 14px 14px;width:min(540px,100%);box-sizing:border-box}
@@ -342,7 +408,7 @@ export const FLOW_CSS = `
 .chip{display:inline-block;font-family:${font.uiSemiBold};font-size:12px;padding:.35em .85em;border-radius:99px;background:${color.ink};color:#fff}
 .ft-m{display:none}
 @media (max-width:899px){
-  .ov{display:flex;flex-direction:column;gap:10px;padding:24px 16px 18px;justify-content:center}
+  .ov{display:flex;flex-direction:column;gap:10px;padding:64px 16px calc(var(--hud) + 14px);justify-content:center}
   .ov .lap{padding:6px;border-radius:10px 10px 0 0}
   .ov .lap-base{height:8px}
   .ov-o .of-lap{order:2}.ov-o .t{order:1}.ov-o .of-side{order:3}

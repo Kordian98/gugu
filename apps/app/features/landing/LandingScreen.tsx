@@ -21,8 +21,8 @@ import { useLandingNav } from "./useLandingNav";
 /**
  * GuGu Studio landing (X22/X23): hero, then on web a photoreal scroll-scrubbed walk through one salon
  * (street → front desk pain → calm → treatment area features → back office → business types → switching;
- * CSS sticky + GSAP scrub), plans, final CTA. Light only (X18). Native and reduced motion → static
- * chapters + features + business types.
+ * a book of page turns after the scroll-driven doors), plans, final CTA. Light only (X18). Native → static
+ * chapters + features + business types; reduced motion → the book with crossfades.
  */
 export function LandingScreen() {
   // Plain ScrollView: no per-frame JS scroll handler. The web story pins with CSS sticky inside it.
@@ -32,8 +32,9 @@ export function LandingScreen() {
   const { mounted, width } = useViewport();
   const w = mounted ? width : 1440;
   const desktop = w >= 900;
-  // Web with motion: the photoreal walk (features and business types live inside it).
-  const flow = Platform.OS === "web" && mounted && !reduce;
+  // Web: the photoreal walk as a book (features and business types live inside it); with reduced motion
+  // its pages crossfade instead of playing.
+  const flow = Platform.OS === "web" && mounted;
   return (
     <ScrollView ref={scroll} style={{ flex: 1, backgroundColor: color.canvas }}>
       {flow ? (
@@ -49,7 +50,7 @@ export function LandingScreen() {
       )}
       <Anchor id="story" onY={nav.onAnchorY}>
         {flow ? (
-          <Flow nav={nav} desktop={desktop} width={w} />
+          <Flow nav={nav} desktop={desktop} width={w} reduce={reduce} />
         ) : (
           <StoryStatic width={w} desktop={desktop} />
         )}

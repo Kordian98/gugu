@@ -1,7 +1,7 @@
 import { gsap } from "gsap";
 
 import type { Segment, WalkPlayer } from "./sequence";
-import type { Beat, StoryLayout } from "./story";
+import type { Page } from "./book";
 
 type Q = (sel: string) => Element[];
 type TL = gsap.core.Timeline;
@@ -75,18 +75,20 @@ const SW_END = PH.sw + 0.13 * SWK;
 export const WIPE = [PH.wipe, PH.wipe + 0.055] as const;
 
 /**
- * Resting beats (journey time) and their scroll lengths in screens: hero · before · after · three
- * treatment-area facts · office · switching. `len` = scroll into the beat, `hold` = scroll it rests for.
+ * Book pages (journey time where each is composed) and the seconds each forward turn plays — the original
+ * pacing of the one-gesture transitions (7.0 s hero→before split at the doors, 3.4, 6.2 → treatment room
+ * split into three facts, 6.0, switching 1.6× slower). Page 0 → 1 (doors open) is scroll-driven.
  */
-export const BEATS: readonly Beat[] = [
-  { t: 0, len: 0, hold: 0 },
-  { t: 0.297, len: 1.8, hold: 0.4 },
-  { t: 0.41, len: 0.9, hold: 0.4 },
-  { t: PH.facts[0] + 0.045, len: 1.6, hold: 0.35 },
-  { t: PH.facts[1] + 0.045, len: 0.55, hold: 0.35 },
-  { t: PH.facts[2] + 0.045, len: 0.55, hold: 0.35 },
-  { t: PH.office + 0.088, len: 1.7, hold: 0.4 },
-  { t: SW_END, len: 1.7, hold: 0.45 },
+export const PAGES: readonly Page[] = [
+  { t: 0, dur: 0 },
+  { t: PH.desk, dur: 3.6 },
+  { t: 0.297, dur: 3.4 },
+  { t: 0.41, dur: 3.4 },
+  { t: PH.facts[0] + 0.045, dur: 5.5 },
+  { t: PH.facts[1] + 0.045, dur: 1.5 },
+  { t: PH.facts[2] + 0.045, dur: 1.5 },
+  { t: PH.office + 0.088, dur: 6.0 },
+  { t: SW_END, dur: 5.8 },
 ];
 
 /** Which walk frame to show at journey time t. */
@@ -113,7 +115,7 @@ export function buildJourney(
   hud: HTMLElement | null,
   locale: string,
 ) {
-  // Paused: the scroll driver (story.ts) sets its time from the scroll position every frame.
+  // Paused: the book (book.ts) sets its time — scroll-scrubbed at the doors, page turns after.
   const tl = gsap.timeline({ paused: true, defaults: { ease: "power2.out", duration: 0.02 } });
   const frame = q(".jr-frame")[0] as HTMLElement | undefined;
   const media = q(".jr-media")[0] as HTMLElement | undefined;
@@ -146,38 +148,21 @@ export function buildJourney(
       media.style.transform = `translate3d(${(cx * (1 - e)).toFixed(1)}px,${(cy * (1 - e)).toFixed(1)}px,0)`;
     }
   };
-  // HUD: per-beat fill follows the SCROLL position (continuous, also inside holds), active chapter,
-  // next-button label; hidden once the story is left.
+  // HUD: per-page fill follows the journey time (continuous while a page turns / the doors scrub).
   const fills = hud ? Array.from(hud.querySelectorAll<HTMLElement>(".hud-fill")) : [];
-  const steps = hud ? Array.from(hud.querySelectorAll<HTMLElement>(".hud-s")) : [];
-  const skip = root.querySelector<HTMLElement>(".jr-skip");
   let lastHud = "";
-  const syncHud = (px: number, lay: StoryLayout) => {
+  const syncHud = (t: number) => {
     if (!hud) return;
-    const key = px.toFixed(0);
+    const key = t.toFixed(4);
     if (key === lastHud) return;
     lastHud = key;
-    let active = 0;
-    lay.holdA.forEach((a, i) => {
-      if (px >= a - 2) active = i;
-    });
     fills.forEach((el) => {
       const i = Number(el.dataset["stop"] ?? 0);
-      const a = lay.holdB[i - 1] ?? 0;
-      const b = lay.holdA[i] ?? 0;
-      const f = i === 0 ? 1 : Math.max(0, Math.min(1, (px - a) / Math.max(1, b - a)));
+      const a = PAGES[i - 1]?.t ?? 0;
+      const b = PAGES[i]?.t ?? 0;
+      const f = i === 0 ? 1 : Math.max(0, Math.min(1, (t - a) / Math.max(1e-6, b - a)));
       el.style.transform = `scaleX(${f.toFixed(3)})`;
     });
-    steps.forEach((el) => {
-      const stops = (el.dataset["stops"] ?? "").split(",").map(Number);
-      el.classList.toggle("on", stops.includes(active));
-    });
-    const last = lay.holdA.length - 1;
-    hud.dataset["at"] =
-      px < 2 ? "start" : active === last ? "end" : active === 1 ? "before" : "mid";
-    const gone = px > lay.len + 4;
-    hud.classList.toggle("gone", gone);
-    skip?.classList.toggle("gone", gone || active === last);
   };
   // Counters (write text only when the shown value changes).
   const counter = (sel: string, to: number, at: number, dur: number, digits = 0) => {
@@ -204,8 +189,8 @@ export function buildJourney(
     );
   };
   const loaded = new Set<Segment>(["w1"]);
-  /** Called by the scroll driver each frame the (smoothed) position changes. */
-  const render = (time: number, px: number, lay: StoryLayout) => {
+  /** Called by the book each frame the shown journey time changes. */
+  const render = (time: number) => {
     tl.time(time);
     const t = time;
     const [seg, p] = frameAt(t);
@@ -220,7 +205,7 @@ export function buildJourney(
     }
     player.set(seg, p);
     portal(Math.max(0, Math.min(1, t / PH.portal[1])));
-    syncHud(px, lay);
+    syncHud(t);
   };
   portal(0);
 
@@ -392,15 +377,7 @@ export function buildJourney(
   const swAt = (o: number) => SW + o * SWK;
   const swDur = (o: number) => o * SWK;
   show(tl, q, ".ov-s .t", swAt(0), { y: 50 }, swDur(0.025));
-  stagger(
-    tl,
-    q,
-    ".sw-o",
-    swAt(0.006),
-    swDur(0.008),
-    { y: 30, rotate: -8, scale: 0.9 },
-    swDur(0.022),
-  );
+  stagger(tl, q, ".sw-o", swAt(0.006), swDur(0.008), { y: 30, scale: 0.9 }, swDur(0.022));
   show(tl, q, ".sw-win", swAt(0.016), { x: 40, scale: 0.96 }, swDur(0.025));
   show(tl, q, ".sw-arrow", swAt(0.022), { x: -16 }, swDur(0.015));
   // old cards slide toward the GuGu window and fade back while their content is "moved"
