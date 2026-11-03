@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 
 import { Icon, Logo, Pill, Text, alpha, color, useCalm } from "@gugu/design-system";
 
+import { NotificationBell } from "@/features/notifications/NotificationBell";
+
 import { useThemePreference } from "../theme/CrmThemeProvider";
 import { ALL_ITEMS, TABS } from "./nav";
 import { useCrmNav, useVisibleNav } from "./useCrmNav";
@@ -39,17 +41,20 @@ export function MobileHeader({ onMenu }: { onMenu: () => void }) {
         <Logo height={24} variant="onDark" />
         <Pill align="center" label={t("brandPill")} tone="brand" size={9} />
       </View>
-      <Pressable
-        testID="crm-theme-toggle-mobile"
-        accessibilityRole="button"
-        accessibilityLabel={scheme === "dark" ? t("shell.toLight") : t("shell.toDark")}
-        onPress={() => {
-          setPreference(scheme === "dark" ? "light" : "dark");
-        }}
-        style={{ width: 44, height: 44, alignItems: "flex-end", justifyContent: "center" }}
-      >
-        <Icon name={scheme === "dark" ? "sun" : "moon"} size={20} color={c.sidebarText} />
-      </Pressable>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <NotificationBell iconColor={c.sidebarText} />
+        <Pressable
+          testID="crm-theme-toggle-mobile"
+          accessibilityRole="button"
+          accessibilityLabel={scheme === "dark" ? t("shell.toLight") : t("shell.toDark")}
+          onPress={() => {
+            setPreference(scheme === "dark" ? "light" : "dark");
+          }}
+          style={{ width: 44, height: 44, alignItems: "flex-end", justifyContent: "center" }}
+        >
+          <Icon name={scheme === "dark" ? "sun" : "moon"} size={20} color={c.sidebarText} />
+        </Pressable>
+      </View>
     </View>
   );
 }

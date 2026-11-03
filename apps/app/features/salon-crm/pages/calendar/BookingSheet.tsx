@@ -6,6 +6,7 @@ import { CalmButton, Icon, Pill, Text, useCalm } from "@gugu/design-system";
 import type { BookingStatusValue, SalonBooking, StaffMember } from "@gugu/contracts";
 import { formatDateLong, formatTime, formatVND } from "@gugu/localization";
 
+import { BookingMessages } from "@/features/notifications/BookingMessages";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import {
@@ -129,6 +130,11 @@ export function BookingSheet({
                 {booking.customer.phone}
               </Text>
             ) : null}
+            {booking.customer.email ? (
+              <Text testID="crm-booking-email" size={13} color={c.body}>
+                {booking.customer.email}
+              </Text>
+            ) : null}
           </View>
         ) : (
           <Text size={15} color={c.ink}>
@@ -190,6 +196,10 @@ export function BookingSheet({
             </Text>
           </View>
         </Row>
+      ) : null}
+
+      {mode === "view" && booking.customer && !booking.customerAnonymised ? (
+        <BookingMessages bookingId={booking.id} tz={tz} />
       ) : null}
 
       {mode === "cancel" ? (

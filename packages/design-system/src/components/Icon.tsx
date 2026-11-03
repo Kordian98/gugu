@@ -38,7 +38,8 @@ export type IconName =
   | "arrowDown"
   | "trash"
   | "link"
-  | "chat";
+  | "chat"
+  | "mail";
 
 type Props = {
   name: IconName;
@@ -121,6 +122,15 @@ export function Icon({ name, size, color = tokens.ink, strokeWidth = 2, filled =
           d="M5.5 5h13A2.5 2.5 0 0 1 21 7.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17h0A2.5 2.5 0 0 1 3 14.5v-7A2.5 2.5 0 0 1 5.5 5Z"
           {...common}
         />
+      )}
+      {name === "mail" && (
+        <>
+          <Path
+            d="M4.5 5.5h15A1.5 1.5 0 0 1 21 7v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17V7a1.5 1.5 0 0 1 1.5-1.5Z"
+            {...common}
+          />
+          <Path d="m3.5 7 8.5 6 8.5-6" {...common} />
+        </>
       )}
       {name === "users" && (
         <>

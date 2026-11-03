@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import Head from "expo-router/head";
 import { useTranslation } from "react-i18next";
 
 import { Avatar, CalmButton, Icon, Pill, Text, useCalm } from "@gugu/design-system";
+
+import { NotificationBell } from "@/features/notifications/NotificationBell";
 
 import type { Workspace } from "../data/types";
 import { useBreakpoint } from "./useBreakpoint";
@@ -28,7 +30,6 @@ export function PageHeader({
   const bp = useBreakpoint();
   const { go, newAppointment } = useCrmNav();
   const [query, setQuery] = useState("");
-  const [bellOpen, setBellOpen] = useState(false);
   const mobile = bp === "mobile";
 
   return (
@@ -96,47 +97,7 @@ export function PageHeader({
                 newAppointment();
               }}
             />
-            <View>
-              <Pressable
-                testID="crm-bell"
-                accessibilityRole="button"
-                accessibilityLabel={t("shell.notifications")}
-                accessibilityState={{ expanded: bellOpen }}
-                onPress={() => {
-                  setBellOpen((o) => !o);
-                }}
-                style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-              >
-                <Icon name="bell" size={20} color={c.ink} />
-              </Pressable>
-              {bellOpen ? (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 46,
-                    right: 0,
-                    width: 260,
-                    padding: 16,
-                    gap: 6,
-                    borderRadius: 14,
-                    backgroundColor: c.surface,
-                    borderWidth: 1,
-                    borderColor: c.line,
-                    shadowColor: c.shadow,
-                    shadowOpacity: 0.12,
-                    shadowRadius: 20,
-                    shadowOffset: { width: 0, height: 8 },
-                  }}
-                >
-                  <Text role="uiSemiBold" size={14} color={c.ink}>
-                    {t("shell.notifications")}
-                  </Text>
-                  <Text size={13} color={c.body}>
-                    {t("shell.noNotifications")}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+            <NotificationBell />
             <Avatar name={workspace.user?.name} size={40} />
           </View>
         )}

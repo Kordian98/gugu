@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { createI18n } from "./i18n-core";
-import { formatDateLong, formatRating, formatTime, formatVND, hourInZone } from "./format";
+import {
+  formatDateLong,
+  formatDateTimeShort,
+  formatRating,
+  formatTime,
+  formatVND,
+  hourInZone,
+} from "./format";
 import { resources } from "./resources";
 
 const keys = (obj: unknown, prefix = ""): string[] =>
@@ -51,5 +58,7 @@ describe("date and time formatters", () => {
     expect(formatTime(d, "en")).toBe("2:30 PM");
     expect(hourInZone(d)).toBe(14);
     expect(formatDateLong(d, "en")).toBe("Wednesday, October 14, 2026");
+    expect(formatDateTimeShort(d, "vi")).toBe("14/10 14:30");
+    expect(formatDateTimeShort(d, "en")).toBe("Oct 14, 2:30 PM");
   });
 });

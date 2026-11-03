@@ -50,6 +50,22 @@ export function formatTime(
   }).format(date);
 }
 
+/** "3/12 14:30" (vi) / "Dec 3, 2:30 PM" (en) in the salon's timezone — compact logs and lists. */
+export function formatDateTimeShort(
+  date: Date,
+  locale: AppLocale,
+  timeZone = DEFAULT_SALON_TIMEZONE,
+): string {
+  const day = new Intl.DateTimeFormat(tag(locale), {
+    day: "numeric",
+    month: locale === "vi" ? "numeric" : "short",
+    timeZone,
+  }).format(date);
+  return locale === "vi"
+    ? `${day} ${formatTime(date, locale, timeZone)}`
+    : `${day}, ${formatTime(date, locale, timeZone)}`;
+}
+
 /** Hour of day (0–23) in the salon's timezone. */
 export function hourInZone(date: Date, timeZone = DEFAULT_SALON_TIMEZONE): number {
   const h = new Intl.DateTimeFormat("en-GB", {
