@@ -100,6 +100,8 @@ domain tx → outbox row → outbox relay (poll/LISTEN) → queue "notify.dispat
 | account.* | in_app + email | push | transactional |
 Salon members: push + in_app; email digest optional. Policies live in config (DB-overridable by admin, 12).
 
+**Owner decision for the email milestone (2026-11-03, overrides the table above while there is no customer app — X23):** customer channels are `zalo_template` (Zalo first, module `zalo`) → `email` (only when the booking has an email and Zalo did not deliver) → none; no push, no customer in-app. Team members get bell (in-app) + email. Emails speak as the salon, never advertise GuGu, and carry no link to a booking surface. Implemented as described in `docs/domains/customer-notifications.md`.
+
 ### 4.4 Data (coordinate with 04)
 `Notification` (in-app inbox item), `NotificationDelivery`, `NotificationTemplate`, `NotificationPreference` (user × event-category × channel), `PushDevice`, `ConsentRecord`, `OutboxEvent`, `Review`, `ReviewRevision`, `ReviewPhoto`, `ReviewResponse`, `ReviewReport`, `ModerationAction`, `Favorite`, `DataExportRequest`, `AccountDeletionRequest`.
 
