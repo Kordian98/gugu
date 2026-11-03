@@ -37,7 +37,7 @@ export function CalendarScreen() {
   const bp = useBreakpoint();
   const router = useRouter();
   const ws = useWorkspace();
-  const params = useLocalSearchParams<{ new?: string; date?: string }>();
+  const params = useLocalSearchParams<{ new?: string; date?: string; booking?: string }>();
   const errorText = useErrorText();
   const mobile = bp === "mobile";
   const { summary, can } = useSalon();
@@ -106,6 +106,10 @@ export function CalendarScreen() {
   const openBooking = (id: string) => {
     setOpen(items.find((b) => b.id === id) ?? null);
   };
+  // `?booking=<id>` (e.g. from a payroll commission line): shown once the day has loaded; closing
+  // it clears the param.
+  const linked = params.booking ? (items.find((x) => x.id === params.booking) ?? null) : null;
+  const shown = open ?? linked;
 
   return (
     <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
@@ -285,14 +289,15 @@ export function CalendarScreen() {
           }}
         />
       ) : null}
-      {open ? (
+      {shown ? (
         <BookingSheet
-          key={open.id}
-          booking={open}
+          key={shown.id}
+          booking={shown}
           staff={staff}
           tz={tz}
           onClose={() => {
             setOpen(null);
+            if (params.booking) router.setParams({ booking: undefined });
           }}
         />
       ) : null}

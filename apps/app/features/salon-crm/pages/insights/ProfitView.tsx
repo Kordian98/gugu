@@ -14,6 +14,7 @@ import { useSalon } from "../../data/SalonContext";
 import { EmptyState } from "../../ui/EmptyState";
 import { useErrorText } from "../../ui/errors";
 import { ErrorBanner, Field, Input, MoneyInput, Segmented, Sheet } from "../../ui/form";
+import { waterfall, waterfallRange, type WaterfallStep } from "../payroll/model";
 import {
   MonthSwitcher,
   Note,
@@ -23,13 +24,23 @@ import {
   SkeletonRows,
 } from "../payroll/parts";
 
-/** The four headline tiles (≤ 4 per view, skill UX rule 7); keys from the metric catalogue. */
+/**
+ * The headline numbers (≤ 4 per view, skill UX rule 7); keys from the metric catalogue. The first
+ * one is THE headline (estimated net profit), the other three sit under it, smaller.
+ */
 export const PROFIT_HEADLINE = [
+  "profit.net",
   "profit.revenue_earned",
   "profit.revenue_upcoming",
-  "profit.net",
   "profit.net_margin",
 ] as const;
+type HeadlineKey = (typeof PROFIT_HEADLINE)[number];
+
+const TILE_NOTE = {
+  "profit.revenue_earned": "profit.tileNote.profit_revenue_earned",
+  "profit.revenue_upcoming": "profit.tileNote.profit_revenue_upcoming",
+  "profit.net_margin": "profit.tileNote.profit_net_margin",
+} as const;
 
 const KIND_LABEL = {
   estimated_from_bookings: "revenueKind.estimated",
@@ -40,14 +51,14 @@ const KIND_LABEL = {
 const keyOf = (k: string) => k.replace(/\./g, "_");
 
 /**
- * Owner "This month" (ADR-0016): progress through the month, 4 headline numbers with their
- * registry definition, and a plain table "so far / projected / month" ending in the estimated net
- * profit. Other monthly costs are edited right here.
+ * Owner "This month" (ADR-0016, redesigned after the owner's review 2026-11-03): ONE headline —
+ * the estimated net profit — and a waterfall revenue → service costs → payroll → other costs →
+ * net, every bar split into what already happened (solid) and what is still expected (light,
+ * dashed). Other monthly costs are edited right here.
  */
 export function ProfitView() {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
-  const locale = useLocale();
   const { summary } = useSalon();
   const [month, setMonth] = useState(salonDate(new Date(), summary?.timezone).slice(0, 7));
   const q = useProfit(month);
@@ -58,7 +69,7 @@ export function ProfitView() {
         <MonthSwitcher testID="crm-profit-month" month={month} onChange={setMonth} />
         {p ? (
           <View style={{ flex: 1, minWidth: 200, gap: 6 }}>
-            <Text size={13} color={c.body}>
+            <Text size={14} color={c.body}>
               {t("profit.progress", { elapsed: p.elapsedDays, days: p.daysInMonth })}
             </Text>
             <ProgressBar value={p.breakdown.monthProgress} width="100%" height={8} />
@@ -87,18 +98,8 @@ export function ProfitView() {
         />
       ) : (
         <>
-          <Text role="uiSemiBold" size={20} color={c.ink}>
-            {t("profit.title", { month: formatMonth(month, locale) })}
-          </Text>
-          <View
-            testID="crm-profit-tiles"
-            style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}
-          >
-            {PROFIT_HEADLINE.map((k) => (
-              <ProfitTile key={k} id={k} p={p} />
-            ))}
-          </View>
-          <Breakdown p={p} />
+          <Headline p={p} month={month} />
+          <Waterfall p={p} />
           <CostsCard month={month} costs={p.costs} total={p.breakdown.otherCosts} />
           <Note text={t("profit.note")} />
         </>
@@ -107,233 +108,323 @@ export function ProfitView() {
   );
 }
 
-function ProfitTile({ id, p }: { id: (typeof PROFIT_HEADLINE)[number]; p: Profit }) {
+function metricText(p: Profit, id: HeadlineKey, locale: "vi" | "en"): string {
+  const m = p.metrics[id];
+  if (!m || m.value === null) return "—";
+  return m.unit === "vnd" ? formatVND(m.value, locale) : formatPercent(m.value, locale);
+}
+
+/** Small "i" that reveals the registry definition (rule 7). */
+function InfoToggle({ id, open, onToggle }: { id: string; open: boolean; onToggle: () => void }) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  return (
+    <Pressable
+      testID={`crm-profit-info-${id}`}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      accessibilityLabel={t("profit.definition")}
+      onPress={onToggle}
+      style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+    >
+      <Icon name="info" size={16} color={c.muted} />
+    </Pressable>
+  );
+}
+
+function Headline({ p, month }: { p: Profit; month: string }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
-  const [info, setInfo] = useState(false);
-  const m = p.metrics[id];
-  if (!m) return null;
-  const value =
-    m.value === null
-      ? "—"
-      : m.unit === "vnd"
-        ? formatVND(m.value, locale)
-        : formatPercent(m.value, locale);
+  const [info, setInfo] = useState<string | null>(null);
+  const net = p.metrics["profit.net"]?.value ?? 0;
+  const small: Exclude<HeadlineKey, "profit.net">[] = [
+    "profit.revenue_earned",
+    "profit.revenue_upcoming",
+    "profit.net_margin",
+  ];
   return (
-    <CalmCard testID={`crm-profit-tile-${id}`} style={{ gap: 6, flexBasis: 210, flexGrow: 1 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Text size={13} color={c.muted}>
-          {t(`insights.metrics.${keyOf(id)}`, { defaultValue: id })}
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("profit.definition")}
-          onPress={() => {
-            setInfo((v) => !v);
-          }}
-          style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}
+    <CalmCard style={{ gap: 16 }}>
+      <View testID="crm-profit-tile-profit.net" style={{ gap: 4 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <Text role="uiMedium" size={15} color={c.body} style={{ flex: 1 }}>
+            {t("profit.headline", { month: formatMonth(month, locale) })}
+          </Text>
+          <InfoToggle
+            id="profit.net"
+            open={info === "profit.net"}
+            onToggle={() => {
+              setInfo((v) => (v === "profit.net" ? null : "profit.net"));
+            }}
+          />
+        </View>
+        <Text
+          testID="crm-profit-value-profit.net"
+          role="uiSemiBold"
+          size={40}
+          lineHeight={48}
+          color={net < 0 ? c.attention : c.ink}
         >
-          <Icon name="info" size={16} color={c.muted} />
-        </Pressable>
-      </View>
-      <Text
-        testID={`crm-profit-value-${id}`}
-        role="uiSemiBold"
-        size={24}
-        color={m.value !== null && m.value < 0 ? c.attention : c.ink}
-      >
-        {value}
-      </Text>
-      <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-        <Pill
-          size={10}
-          tone={m.basis === "actual" ? "up" : "neutral"}
-          label={t(
-            m.basis === "actual"
-              ? "profit.cols.actual"
-              : m.basis === "projected"
-                ? "profit.cols.projected"
-                : "profit.cols.total",
-          )}
-        />
-        {m.revenueKind ? (
-          <Pill size={10} tone="accent" label={t(KIND_LABEL[m.revenueKind])} />
+          {metricText(p, "profit.net", locale)}
+        </Text>
+        <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <Pill size={12} label={t("profit.basis.mixed")} />
+          <Pill size={12} tone="accent" label={t(KIND_LABEL.estimated_from_bookings)} />
+          {net < 0 ? (
+            <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }}>
+              <Icon name="arrowDown" size={14} color={c.attention} />
+              <Text size={13} color={c.attention}>
+                {t("profit.negative")}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+        {info === "profit.net" ? (
+          <Text size={13} color={c.body}>
+            {t("insights.definitions.profit_net", { defaultValue: "" })}
+          </Text>
         ) : null}
       </View>
-      {info ? (
-        <Text size={12} color={c.body}>
-          {t(`insights.definitions.${keyOf(id)}`, { defaultValue: "" })}
-        </Text>
-      ) : null}
+      <View
+        testID="crm-profit-tiles"
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 16,
+          borderTopWidth: 1,
+          borderColor: c.line,
+          paddingTop: 12,
+        }}
+      >
+        {small.map((id) => {
+          const m = p.metrics[id];
+          return (
+            <View
+              key={id}
+              testID={`crm-profit-tile-${id}`}
+              style={{ flexBasis: 180, flexGrow: 1, gap: 2 }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text size={14} color={c.body} style={{ flex: 1 }}>
+                  {t(`insights.metrics.${keyOf(id)}`, { defaultValue: id })}
+                </Text>
+                <InfoToggle
+                  id={id}
+                  open={info === id}
+                  onToggle={() => {
+                    setInfo((v) => (v === id ? null : id));
+                  }}
+                />
+              </View>
+              <Text
+                testID={`crm-profit-value-${id}`}
+                role="uiSemiBold"
+                size={22}
+                color={m?.value !== null && (m?.value ?? 0) < 0 ? c.attention : c.ink}
+              >
+                {metricText(p, id, locale)}
+              </Text>
+              <Text size={13} color={c.muted}>
+                {t(TILE_NOTE[id])}
+              </Text>
+              {info === id ? (
+                <Text size={13} color={c.body}>
+                  {t(`insights.definitions.${keyOf(id)}`, { defaultValue: "" })}
+                </Text>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
     </CalmCard>
   );
 }
 
-function Breakdown({ p }: { p: Profit }) {
+/** One horizontal bar per step, floating from the running total before to after it. */
+function Bar({ s, min, max }: { s: WaterfallStep; min: number; max: number }) {
+  const { c } = useCalm();
+  const span = max - min;
+  const pct = (x: number) => `${String(((x - min) / span) * 100)}%` as const;
+  const lo = Math.min(s.from, s.to);
+  const hi = Math.max(s.from, s.to);
+  const width = ((hi - lo) / span) * 100;
+  const positive = s.id === "revenue" || (s.id === "net" && s.amount >= 0);
+  const solid = positive ? c.accentBg : s.id === "net" ? c.attention : c.down.bg;
+  const total = s.actual + s.projected;
+  const actualShare = s.id === "net" || total <= 0 ? 1 : s.actual / total;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ height: 22, borderRadius: 6, backgroundColor: c.surfaceMuted, overflow: "hidden" }}
+    >
+      {min < 0 ? (
+        <View
+          style={{
+            position: "absolute",
+            left: pct(0),
+            top: 0,
+            bottom: 0,
+            width: 2,
+            backgroundColor: c.body,
+          }}
+        />
+      ) : null}
+      <View
+        style={{
+          position: "absolute",
+          left: pct(lo),
+          width: `${String(Math.max(width, 0.5))}%`,
+          top: 2,
+          bottom: 2,
+          flexDirection: s.amount < 0 ? "row-reverse" : "row",
+        }}
+      >
+        <View
+          style={{
+            flex: actualShare,
+            backgroundColor: solid,
+            borderRadius: 4,
+            borderWidth: s.id === "net" ? 0 : 1,
+            borderColor: positive ? c.accentBg : c.attention,
+          }}
+        />
+        {actualShare < 1 ? (
+          <View
+            style={{
+              flex: 1 - actualShare,
+              backgroundColor: positive ? c.accentSoft : c.surface,
+              borderRadius: 4,
+              borderWidth: 1,
+              borderStyle: "dashed",
+              borderColor: positive ? c.accentBg : c.attention,
+            }}
+          />
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function Waterfall({ p }: { p: Profit }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
   const b = p.breakdown;
-  const vnd = (n: number | null) => (n === null ? "" : formatVND(n, locale));
-  const neg = (n: number) => signedVnd(-n, locale);
-  const rows: {
-    id: string;
-    label: string;
-    actual: string;
-    projected: string;
-    total: string;
-    strong?: boolean;
-    hint?: string;
-  }[] = [
-    {
-      id: "revenue",
-      label: t("profit.rows.revenue"),
-      actual: vnd(b.revenueEarned),
-      projected: vnd(b.revenueUpcoming),
-      total: vnd(b.revenueEarned + b.revenueUpcoming),
-      ...(b.revenueEarnedRecorded > 0
-        ? { hint: t("profit.recordedPart", { amount: vnd(b.revenueEarnedRecorded) }) }
-        : {}),
-    },
-    ...(b.noShowAllowance > 0
-      ? [
-          {
-            id: "noShow",
-            label: t("profit.rows.noShow"),
-            actual: "",
-            projected: neg(b.noShowAllowance),
-            total: neg(b.noShowAllowance),
-            hint: t("profit.assumption", { rate: formatPercent(p.noShow.rate ?? 0, locale) }),
-          },
-        ]
-      : []),
-    {
-      id: "serviceCosts",
-      label: t("profit.rows.serviceCosts"),
-      actual: neg(b.serviceCostsActual),
-      projected: neg(b.serviceCostsProjected),
-      total: neg(b.serviceCosts),
-      ...(p.servicesWithoutCost > 0
-        ? { hint: t("profit.missingCost", { count: p.servicesWithoutCost }) }
-        : {}),
-    },
-    {
-      id: "gross",
-      label: t("profit.rows.gross"),
-      actual: "",
-      projected: "",
-      total: vnd(b.grossProfit),
-      strong: true,
-      ...(b.grossMargin !== null
-        ? {
-            hint: `${t("insights.metrics.profit_gross_margin")}: ${formatPercent(b.grossMargin, locale)}`,
-          }
-        : {}),
-    },
-    {
-      id: "commission",
-      label: t("profit.rows.commission"),
-      actual: neg(b.commissionEarned),
-      projected: neg(b.commissionProjected),
-      total: neg(b.commissionEarned + b.commissionProjected),
-    },
-    {
-      id: "basePay",
-      label: t("profit.rows.basePay"),
-      actual: "",
-      projected: "",
-      total: neg(b.basePay),
-      ...(p.payrollClosed ? { hint: t("profit.closedPayroll") } : {}),
-    },
-    ...(b.adjustments !== 0
-      ? [
-          {
-            id: "adjustments",
-            label: t("profit.rows.adjustments"),
-            actual: "",
-            projected: "",
-            total: signedVnd(-b.adjustments, locale),
-          },
-        ]
-      : []),
-    {
-      id: "otherCosts",
-      label: t("profit.rows.otherCosts"),
-      actual: "",
-      projected: "",
-      total: neg(b.otherCosts),
-    },
-  ];
-  const cols = [t("profit.cols.actual"), t("profit.cols.projected"), t("profit.cols.total")];
+  const steps = waterfall(b);
+  const { min, max } = waterfallRange(steps);
+  const vnd = (n: number) => formatVND(n, locale);
+  const hint = (s: WaterfallStep): string | null => {
+    const parts: string[] = [];
+    if (s.id === "revenue" && b.revenueEarnedRecorded > 0)
+      parts.push(t("profit.recordedPart", { amount: vnd(b.revenueEarnedRecorded) }));
+    if (s.id === "noShow")
+      parts.push(t("profit.assumption", { rate: formatPercent(p.noShow.rate ?? 0, locale) }));
+    if (s.id === "serviceCosts" && p.servicesWithoutCost > 0)
+      parts.push(t("profit.missingCost", { count: p.servicesWithoutCost }));
+    if (s.id === "payroll") {
+      parts.push(
+        t("profit.waterfall.payrollParts", {
+          base: vnd(b.basePay),
+          commission: vnd(b.commissionEarned + b.commissionProjected),
+        }),
+      );
+      if (b.employerCosts > 0)
+        parts.push(t("profit.waterfall.employerIncluded", { amount: vnd(b.employerCosts) }));
+      if (p.payrollClosed) parts.push(t("profit.closedPayroll"));
+    }
+    if (s.id === "revenue" && b.noShowAllowance === 0 && b.revenueUpcoming > 0)
+      parts.push(t("profit.noAssumption"));
+    return parts.length ? parts.join(" ") : null;
+  };
   return (
-    <CalmCard testID="crm-profit-breakdown" style={{ gap: 2 }}>
-      <View style={{ flexDirection: "row", gap: 8, paddingBottom: 6 }}>
-        <View style={{ flex: 2 }} />
-        {cols.map((h) => (
-          <Text key={h} size={12} color={c.muted} style={{ flex: 1, textAlign: "right" }}>
-            {h}
-          </Text>
-        ))}
-      </View>
-      {rows.map((r) => (
-        <View
-          key={r.id}
-          testID={`crm-profit-row-${r.id}`}
-          style={{ paddingVertical: 8, borderTopWidth: 1, borderColor: c.line, gap: 2 }}
-        >
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Text role={r.strong ? "uiSemiBold" : "ui"} size={14} color={c.ink} style={{ flex: 2 }}>
-              {r.label}
-            </Text>
-            {[r.actual, r.projected, r.total].map((v, i) => (
-              <Text
-                key={i}
-                role={i === 2 || r.strong ? "uiSemiBold" : "ui"}
-                size={14}
-                color={i === 1 ? c.muted : c.ink}
-                style={{ flex: 1, textAlign: "right" }}
-              >
-                {v}
-              </Text>
-            ))}
-          </View>
-          {r.hint ? (
-            <Text size={12} color={c.muted}>
-              {r.hint}
-            </Text>
-          ) : null}
+    <CalmCard testID="crm-profit-breakdown" style={{ gap: 4 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <View style={{ flex: 1, minWidth: 200 }}>
+          <SectionTitle text={t("profit.waterfall.title")} />
         </View>
-      ))}
-      <View
-        testID="crm-profit-net"
-        style={{
-          flexDirection: "row",
-          gap: 8,
-          paddingTop: 12,
-          borderTopWidth: 2,
-          borderColor: c.line,
-          alignItems: "center",
-        }}
-      >
-        <Text role="uiSemiBold" size={16} color={c.ink} style={{ flex: 2 }}>
-          {t("profit.rows.net")}
-        </Text>
-        <Text
-          role="uiSemiBold"
-          size={20}
-          color={b.netProfit < 0 ? c.attention : c.ink}
-          style={{ flex: 3, textAlign: "right" }}
-        >
-          {`${formatVND(b.netProfit, locale)}${b.netMargin !== null ? ` · ${formatPercent(b.netMargin, locale)}` : ""}`}
-        </Text>
+        <Legend solid label={t("profit.cols.actual")} />
+        <Legend label={t("profit.cols.projected")} />
       </View>
-      {b.noShowAllowance === 0 && b.revenueUpcoming > 0 ? (
-        <Text size={12} color={c.muted}>
-          {t("profit.noAssumption")}
-        </Text>
-      ) : null}
+      {steps.map((s) => {
+        const h = hint(s);
+        const isNet = s.id === "net";
+        return (
+          <View
+            key={s.id}
+            testID={isNet ? "crm-profit-net" : `crm-profit-row-${s.id}`}
+            style={{
+              gap: 6,
+              paddingVertical: 12,
+              borderTopWidth: isNet ? 2 : 1,
+              borderColor: c.line,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+              <Text
+                role={isNet ? "uiSemiBold" : "uiMedium"}
+                size={isNet ? 17 : 15}
+                color={c.ink}
+                style={{ flex: 1 }}
+              >
+                {t(`profit.waterfall.steps.${s.id}`)}
+              </Text>
+              <Text
+                role="uiSemiBold"
+                size={isNet ? 22 : 16}
+                color={isNet && s.amount < 0 ? c.attention : c.ink}
+              >
+                {isNet
+                  ? `${vnd(s.amount)}${b.netMargin !== null ? ` · ${formatPercent(b.netMargin, locale)}` : ""}`
+                  : s.id === "revenue"
+                    ? vnd(s.amount)
+                    : signedVnd(s.amount, locale)}
+              </Text>
+            </View>
+            <Bar s={s} min={min} max={max} />
+            {!isNet && (s.actual > 0 || s.projected > 0) ? (
+              <Text size={13} color={c.body}>
+                {s.projected > 0 && s.actual > 0
+                  ? t("profit.waterfall.split", {
+                      actual: vnd(s.actual),
+                      projected: vnd(s.projected),
+                    })
+                  : s.projected > 0
+                    ? t("profit.waterfall.onlyProjected", { projected: vnd(s.projected) })
+                    : t("profit.waterfall.onlyActual", { actual: vnd(s.actual) })}
+              </Text>
+            ) : null}
+            {h ? (
+              <Text size={12} color={c.muted}>
+                {h}
+              </Text>
+            ) : null}
+          </View>
+        );
+      })}
     </CalmCard>
+  );
+}
+
+function Legend({ solid, label }: { solid?: boolean; label: string }) {
+  const { c } = useCalm();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <View
+        style={{
+          width: 18,
+          height: 12,
+          borderRadius: 3,
+          backgroundColor: solid ? c.accentBg : c.accentSoft,
+          borderWidth: 1,
+          borderStyle: solid ? "solid" : "dashed",
+          borderColor: c.accentBg,
+        }}
+      />
+      <Text size={13} color={c.body}>
+        {label}
+      </Text>
+    </View>
   );
 }
 

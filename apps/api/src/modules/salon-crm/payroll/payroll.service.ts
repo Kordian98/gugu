@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import {
   type AdjustmentInput,
   type CommissionLines,
+  type MyCommissionLines,
   type MyEarnings,
   PAYROLL_ERRORS,
   type PayrollAdjustment,
@@ -90,6 +91,31 @@ export class PayrollService {
         };
       });
     return { month, staffId, items };
+  }
+
+  /**
+   * The member's own commission lines (payroll.self.read); 404 without a staff profile here.
+   * Self-view DTO: no `price` / `base` (cost-derived under price_minus_cost, security review).
+   */
+  async myLines(ctx: SalonContext, userId: string, month: Month): Promise<MyCommissionLines> {
+    const profile = await this.prisma.staffProfile.findFirst({
+      where: { salonId: ctx.salonId, deletedAt: null, member: { userId } },
+      select: { id: true },
+    });
+    if (!profile) throw payrollError.staff();
+    const all = await this.lines(ctx, month, profile.id);
+    return {
+      month: all.month,
+      items: all.items.map((l) => ({
+        lineId: l.lineId,
+        bookingId: l.bookingId,
+        date: l.date,
+        service: l.service,
+        state: l.state,
+        rate: l.rate,
+        amount: l.amount,
+      })),
+    };
   }
 
   /** The member's own estimate (payroll.self.read). Never takes a staff id from the client. */

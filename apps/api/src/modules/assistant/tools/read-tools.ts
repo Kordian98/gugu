@@ -117,7 +117,7 @@ export class ReadTools {
     return {
       name: "month_profit",
       description:
-        "Estimated profit of one calendar month for the whole salon (lãi ước tính, lợi nhuận tháng này): revenue earned so far from completed appointments, revenue still to come from upcoming ones, an optional no-show allowance (an assumption from the salon's own history), service execution costs, the team's payroll as ONE total (base pay + commissions + bonuses − deductions; before tax and insurance), other monthly costs, estimated net profit and gross/net margin. Pass any day of the month (use resolve_period first). Pay of individual people is NOT available to you: never guess or split it. All money is an estimate, not a payment.",
+        "Estimated profit of one calendar month for the whole salon (lãi ước tính, lợi nhuận tháng này): revenue earned so far from completed appointments, revenue still to come from upcoming ones, an optional no-show allowance (an assumption from the salon's own history), service execution costs, the team's payroll as ONE total (base pay + commissions + bonuses − deductions, plus the employer costs such as taxes and insurance that the salon itself entered per person; GuGu computes no tax or insurance), other monthly costs, estimated net profit and gross/net margin. Pass any day of the month (use resolve_period first). Pay of individual people is NOT available to you: never guess or split it. All money is an estimate, not a payment.",
       inputSchema: {
         type: "object",
         properties: {

@@ -30,6 +30,13 @@ export interface CommissionOverride {
   rate: CommissionRate;
 }
 
+/**
+ * "Chi phí thực tế" (owner 2026-11-03, ADR-0017): what the person costs the salon on top of gross
+ * pay (employer insurance and other contributions), as the salon's accountant gave it: a % of gross
+ * or a fixed VND amount per month. GuGu never computes tax or insurance itself.
+ */
+export type EmployerCost = { kind: "percent"; bps: number } | { kind: "fixed"; amount: number };
+
 /** One effective-dated version of a staff member's pay settings. */
 export interface PayVersion {
   effectiveFrom: LocalDate;
@@ -39,6 +46,8 @@ export interface PayVersion {
   /** Default commission on services, basis points. */
   commissionBps: number;
   overrides: readonly CommissionOverride[];
+  /** Not set (null/undefined) = the real cost equals gross pay. */
+  employerCost?: EmployerCost | null;
 }
 
 export interface CommissionPolicyVersion {

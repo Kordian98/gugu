@@ -2,8 +2,10 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import type {
   AdjustmentInput,
+  CommissionBulkInput,
   CommissionLines,
   CommissionPolicyInput,
+  MyCommissionLines,
   MyEarnings,
   PayrollAdjustment,
   PayrollExport,
@@ -69,6 +71,14 @@ export const useCommissionLines = (staffId: string | null, month: string) =>
     staffId !== null,
   );
 
+/** The member's own commission lines (payroll.self.read); only when they have a staff profile. */
+export const useMyLines = (month: string, enabled = true) =>
+  useGated<MyCommissionLines>(
+    ["me", "lines", month],
+    (s) => `/salons/${s}/payroll/me/lines?month=${month}`,
+    enabled,
+  );
+
 export const useMyEarnings = (month: string, enabled = true) =>
   useGated<MyEarnings>(["me", month], (s) => `/salons/${s}/payroll/me?month=${month}`, enabled);
 
@@ -101,6 +111,12 @@ export const useSaveStaffPay = () =>
       body: v.body,
     }),
   );
+/** Same default % or own service rate for several people from a date (one atomic request). */
+export const useBulkCommission = () =>
+  usePayrollMutation((s, body: CommissionBulkInput) =>
+    apiFetch<PayrollSettings>(`/salons/${s}/payroll/commission/bulk`, { method: "POST", body }),
+  );
+
 export const useSaveCommissionBase = () =>
   usePayrollMutation((s, body: CommissionPolicyInput) =>
     apiFetch<PayrollSettings>(`/salons/${s}/payroll/settings/commission-base`, {

@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
+  type CommissionBulkInput,
+  commissionBulkInputSchema,
   type CommissionPolicyInput,
   PAYROLL_ERRORS,
   type PayVersion,
@@ -11,10 +13,22 @@ import {
 import { monthOf, policyAt, versionAt } from "@gugu/domain";
 import type { SalonContext } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
+import type { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../../audit/audit.facade";
+import { applyCommissionChange } from "./commission-change";
 import { dateOf, PayrollClock, PayrollData } from "./payroll-data";
 import { assertMonthOpen, lockPayroll, PayrollService } from "./payroll.service";
+
+type Tx = Prisma.TransactionClient;
+type VersionWrite = {
+  effectiveFrom: string;
+  baseType: PayVersion["baseType"];
+  baseAmount: number;
+  commissionPercent: number;
+  overrides: PayVersion["overrides"];
+  employerCost: PayVersion["employerCost"];
+};
 
 type VersionRow = Awaited<ReturnType<PayrollData["payVersions"]>>[number];
 
@@ -34,6 +48,12 @@ function toDto(r: VersionRow): PayVersion {
       percent: o.kind === "percent" ? (o.bps ?? 0) / 100 : null,
       amount: o.kind === "fixed" ? Number(o.amountMinor ?? 0n) : null,
     })),
+    employerCost:
+      r.employerCostBps !== null
+        ? { kind: "percent", percent: r.employerCostBps / 100 }
+        : r.employerCostAmountMinor !== null
+          ? { kind: "fixed", amount: Number(r.employerCostAmountMinor) }
+          : null,
     createdAt: r.createdAt.toISOString(),
   };
 }
@@ -79,14 +99,17 @@ export class PaySettingsService {
       history: policy,
       staff: staff.map((s) => {
         const mine = versions.filter((v) => v.staffId === s.id);
-        const current = versionAt(
-          mine.map((v) => ({ effectiveFrom: dateOf(v.effectiveFrom), v })),
-          today,
-        );
+        const dated = mine.map((v) => ({ effectiveFrom: dateOf(v.effectiveFrom), v }));
+        const current = versionAt(dated, today);
+        // Oldest version after today = the next scheduled change.
+        const next = dated
+          .filter((d) => d.effectiveFrom > today)
+          .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom))[0];
         return {
           staffId: s.id,
           displayName: s.displayName,
           current: current ? toDto(current.v) : null,
+          next: next ? toDto(next.v) : null,
         };
       }),
       managers: managers.map((m) => {
@@ -124,44 +147,22 @@ export class PaySettingsService {
     raw: PayVersionInput,
   ): Promise<StaffPay> {
     const input = payVersionInputSchema.parse(raw);
-    await this.payroll.assertStaff(ctx.salonId, staffId);
-    await this.assertOverrides(ctx.salonId, input.overrides);
-    const baseAmount = input.baseType === "none" ? 0 : input.baseAmount;
     await this.prisma.$transaction(async (tx) => {
       await lockPayroll(tx, ctx.salonId);
-      await assertMonthOpen(tx, ctx.salonId, monthOf(input.effectiveFrom));
-      const effectiveFrom = new Date(`${input.effectiveFrom}T00:00:00Z`);
-      const existing = await tx.staffPaySetting.findUnique({
-        where: { salonId_staffId_effectiveFrom: { salonId: ctx.salonId, staffId, effectiveFrom } },
-        select: { id: true },
+      await this.payroll.assertStaff(ctx.salonId, staffId, false, tx);
+      // An own rate the person already has may stay on a service deleted since (the sheet sends
+      // it back unchanged); a NEW own rate needs a live service/variant.
+      const had = await tx.staffCommissionOverride.findMany({
+        where: { salonId: ctx.salonId, paySetting: { staffId } },
+        select: { serviceId: true, variantId: true },
       });
-      const fields = {
-        baseType: input.baseType,
-        baseAmountMinor: BigInt(baseAmount),
-        commissionBps: Math.round(input.commissionPercent * 100),
-        createdByUserId: userId,
-      };
-      const version = existing
-        ? await tx.staffPaySetting.update({ where: { id: existing.id }, data: fields })
-        : await tx.staffPaySetting.create({
-            data: { salonId: ctx.salonId, staffId, effectiveFrom, ...fields },
-          });
-      await tx.staffCommissionOverride.deleteMany({
-        where: { salonId: ctx.salonId, paySettingId: version.id },
-      });
-      if (input.overrides.length) {
-        await tx.staffCommissionOverride.createMany({
-          data: input.overrides.map((o) => ({
-            salonId: ctx.salonId,
-            paySettingId: version.id,
-            serviceId: o.serviceId,
-            variantId: o.variantId,
-            kind: o.kind,
-            bps: o.kind === "percent" ? Math.round((o.percent ?? 0) * 100) : null,
-            amountMinor: o.kind === "fixed" ? BigInt(o.amount ?? 0) : null,
-          })),
-        });
-      }
+      await this.assertOverrides(
+        tx,
+        ctx.salonId,
+        input.overrides.map((o) => ({ serviceId: o.serviceId, variantId: o.variantId })),
+        new Set(had.map((o) => `${o.serviceId}:${o.variantId ?? ""}`)),
+      );
+      const replaced = await this.writeVersion(tx, ctx.salonId, userId, staffId, input);
       await this.audit.record(
         {
           action: "payroll.pay_settings_saved",
@@ -172,8 +173,10 @@ export class PaySettingsService {
           metadata: {
             effectiveFrom: input.effectiveFrom,
             baseType: input.baseType,
-            replaced: existing !== null,
+            replaced,
             overrides: input.overrides.length,
+            // Mode only: amounts never go to the audit log.
+            employerCost: input.employerCost?.kind ?? "none",
           },
         },
         tx,
@@ -204,6 +207,92 @@ export class PaySettingsService {
           targetType: "salon",
           targetId: ctx.salonId,
           metadata: { effectiveFrom: input.effectiveFrom, base: input.base },
+        },
+        tx,
+      );
+    });
+    return this.settings(ctx);
+  }
+
+  /**
+   * The same commission change for several people (owner review 2026-11-03): from the date on,
+   * also in versions already scheduled after it. Each person's version in force on that date is
+   * copied (or "commission only" when they have none) so base pay never changes. Atomic.
+   */
+  async bulkCommission(
+    ctx: SalonContext,
+    userId: string,
+    raw: CommissionBulkInput,
+  ): Promise<PayrollSettings> {
+    const input = commissionBulkInputSchema.parse(raw);
+    const staffIds = [...new Set(input.staffIds)];
+    const overrideTargets =
+      input.change.target === "override"
+        ? input.change.services.map((x) => ({ serviceId: x.serviceId, variantId: x.variantId }))
+        : [];
+    const from = input.effectiveFrom;
+    let written = 0;
+    await this.prisma.$transaction(async (tx) => {
+      await lockPayroll(tx, ctx.salonId);
+      // Validated under the lock: a person or service removed concurrently cannot slip in.
+      const found = await tx.staffProfile.findMany({
+        where: { salonId: ctx.salonId, deletedAt: null, id: { in: staffIds } },
+        select: { id: true },
+      });
+      if (found.length !== staffIds.length) {
+        throw new AppError(404, PAYROLL_ERRORS.staffNotFound, "Staff not found");
+      }
+      await this.assertOverrides(tx, ctx.salonId, overrideTargets);
+      const rows = await tx.staffPaySetting.findMany({
+        where: { salonId: ctx.salonId, staffId: { in: staffIds } },
+        include: { overrides: { orderBy: [{ serviceId: "asc" }, { variantId: "asc" }] } },
+      });
+      for (const staffId of staffIds) {
+        const mine = rows.filter((r) => r.staffId === staffId).map(toDto);
+        const atDate = versionAt(mine, from);
+        const later = mine.filter((v) => v.effectiveFrom > from);
+        // The version starting exactly on the date is replaced; otherwise one is created from the
+        // version in force then (or "commission only" when the person has no pay yet).
+        const targets: VersionWrite[] = [
+          atDate ?? {
+            effectiveFrom: from,
+            baseType: "none",
+            baseAmount: 0,
+            commissionPercent: 0,
+            overrides: [],
+            employerCost: null,
+          },
+          ...later,
+        ].map((v) => ({
+          effectiveFrom: v === atDate ? from : v.effectiveFrom,
+          baseType: v.baseType,
+          baseAmount: v.baseAmount,
+          employerCost: v.employerCost,
+          ...applyCommissionChange(v, input.change),
+        }));
+        for (const v of targets) {
+          await this.writeVersion(tx, ctx.salonId, userId, staffId, v);
+          written++;
+        }
+      }
+      await this.audit.record(
+        {
+          action: "payroll.commission_bulk_saved",
+          salonId: ctx.salonId,
+          organizationId: ctx.organizationId,
+          targetType: "salon",
+          targetId: ctx.salonId,
+          metadata: {
+            effectiveFrom: from,
+            staff: staffIds.length,
+            versions: written,
+            target: input.change.target,
+            // Who and what changed (ids only; rates and amounts stay out of the log).
+            staffIds,
+            ...(input.change.target === "override"
+              ? { services: overrideTargets, removed: input.change.rate === null }
+              : {}),
+          },
         },
         tx,
       );
@@ -250,26 +339,79 @@ export class PaySettingsService {
     return this.settings(ctx);
   }
 
+  /**
+   * Create the version of that date or replace it (overrides rewritten). Refuses a date inside a
+   * closed payroll month. Returns whether an existing version was replaced. Caller holds the lock.
+   */
+  private async writeVersion(
+    tx: Tx,
+    salonId: string,
+    userId: string,
+    staffId: string,
+    input: VersionWrite,
+  ): Promise<boolean> {
+    await assertMonthOpen(tx, salonId, monthOf(input.effectiveFrom));
+    const effectiveFrom = new Date(`${input.effectiveFrom}T00:00:00Z`);
+    const existing = await tx.staffPaySetting.findUnique({
+      where: { salonId_staffId_effectiveFrom: { salonId, staffId, effectiveFrom } },
+      select: { id: true },
+    });
+    const fields = {
+      baseType: input.baseType,
+      baseAmountMinor: BigInt(input.baseType === "none" ? 0 : input.baseAmount),
+      commissionBps: Math.round(input.commissionPercent * 100),
+      employerCostBps:
+        input.employerCost?.kind === "percent"
+          ? Math.round(input.employerCost.percent * 100)
+          : null,
+      employerCostAmountMinor:
+        input.employerCost?.kind === "fixed" ? BigInt(input.employerCost.amount) : null,
+      createdByUserId: userId,
+    };
+    const version = existing
+      ? await tx.staffPaySetting.update({ where: { id: existing.id }, data: fields })
+      : await tx.staffPaySetting.create({ data: { salonId, staffId, effectiveFrom, ...fields } });
+    await tx.staffCommissionOverride.deleteMany({ where: { salonId, paySettingId: version.id } });
+    if (input.overrides.length) {
+      await tx.staffCommissionOverride.createMany({
+        data: input.overrides.map((o) => ({
+          salonId,
+          paySettingId: version.id,
+          serviceId: o.serviceId,
+          variantId: o.variantId,
+          kind: o.kind,
+          bps: o.kind === "percent" ? Math.round((o.percent ?? 0) * 100) : null,
+          amountMinor: o.kind === "fixed" ? BigInt(o.amount ?? 0) : null,
+        })),
+      });
+    }
+    return existing !== null;
+  }
+
+  /** Live (not deleted) services/variants of this salon; `keep` = targets the person already has. */
   private async assertOverrides(
+    tx: Tx,
     salonId: string,
     overrides: { serviceId: string; variantId: string | null }[],
+    keep: Set<string> = new Set(),
   ): Promise<void> {
-    if (!overrides.length) return;
-    const serviceIds = [...new Set(overrides.map((o) => o.serviceId))];
-    const variantIds = overrides.flatMap((o) => (o.variantId ? [o.variantId] : []));
+    const check = overrides.filter((o) => !keep.has(`${o.serviceId}:${o.variantId ?? ""}`));
+    if (!check.length) return;
+    const serviceIds = [...new Set(check.map((o) => o.serviceId))];
+    const variantIds = check.flatMap((o) => (o.variantId ? [o.variantId] : []));
     const [services, variants] = await Promise.all([
-      this.prisma.service.findMany({
-        where: { salonId, id: { in: serviceIds } },
+      tx.service.findMany({
+        where: { salonId, id: { in: serviceIds }, deletedAt: null },
         select: { id: true },
       }),
-      this.prisma.serviceVariant.findMany({
-        where: { salonId, id: { in: variantIds } },
+      tx.serviceVariant.findMany({
+        where: { salonId, id: { in: variantIds }, deletedAt: null },
         select: { id: true, serviceId: true },
       }),
     ]);
     const known = new Set(services.map((s) => s.id));
     const variantOf = new Map(variants.map((v) => [v.id, v.serviceId]));
-    for (const o of overrides) {
+    for (const o of check) {
       const ok =
         known.has(o.serviceId) &&
         (o.variantId === null || variantOf.get(o.variantId) === o.serviceId);

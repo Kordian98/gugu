@@ -4,6 +4,8 @@ import {
   type CommissionLineResult,
   commissionTotalsByStaff,
   computeCommissions,
+  employerCostTerms,
+  employerExtra,
   monthOf,
   monthProgress,
   payrollLine,
@@ -50,7 +52,16 @@ export function computeMonth(data: MonthData, now: Date): ComputedMonth {
   let rows: PayrollRow[];
   if (isClosed) {
     const snap = payrollSnapshotSchema.parse(data.closed?.snapshot);
-    rows = snap.rows.map((r) => ({ ...r, paidOn: paid.get(r.staffId) ?? null }));
+    rows = snap.rows.map((r) => {
+      const gross = r.base + r.commission + r.bonus - r.deduction;
+      return {
+        ...r,
+        gross,
+        projectedEmployerCost: 0,
+        realCost: gross + r.employerCost,
+        paidOn: paid.get(r.staffId) ?? null,
+      };
+    });
   } else {
     rows = [];
     for (const s of data.staff) {
@@ -68,6 +79,16 @@ export function computeMonth(data: MonthData, now: Date): ComputedMonth {
         if (adj.length === 0) continue;
       }
       const line = payrollLine(base.amount, c.earned, adj);
+      const terms = employerCostTerms({
+        versions,
+        month: data.month,
+        employedUntil: s.employedUntil,
+      });
+      const employerCost = employerExtra(terms, line.cost);
+      // % part on the projected commission only (the fixed part is already in employerCost).
+      const projectedEmployerCost =
+        employerExtra({ ...terms, fixed: 0 }, line.cost + c.projected) -
+        employerExtra({ ...terms, fixed: 0 }, line.cost);
       rows.push({
         staffId: s.id,
         displayName: s.displayName,
@@ -84,12 +105,27 @@ export function computeMonth(data: MonthData, now: Date): ComputedMonth {
         deduction: line.deduction,
         advance: line.advance,
         total: line.total,
+        gross: line.cost,
+        employerCost,
+        projectedEmployerCost,
+        employerCostSet: terms.set,
+        realCost: line.cost + employerCost,
         paidOn: paid.get(s.id) ?? null,
       });
     }
   }
-  const sum = (k: "base" | "commission" | "bonus" | "deduction" | "advance" | "total") =>
-    rows.reduce((n, r) => n + r[k], 0);
+  const sum = (
+    k:
+      | "base"
+      | "commission"
+      | "bonus"
+      | "deduction"
+      | "advance"
+      | "total"
+      | "gross"
+      | "employerCost"
+      | "realCost",
+  ) => rows.reduce((n, r) => n + r[k], 0);
   return {
     results,
     lines,
@@ -108,6 +144,9 @@ export function computeMonth(data: MonthData, now: Date): ComputedMonth {
         deduction: sum("deduction"),
         advance: sum("advance"),
         total: sum("total"),
+        gross: sum("gross"),
+        employerCost: sum("employerCost"),
+        realCost: sum("realCost"),
       },
       adjustments: data.adjustments.map((a) => ({
         id: a.id,
@@ -141,6 +180,8 @@ export function snapshotOf(dto: PayrollMonth): PayrollSnapshot {
       deduction: r.deduction,
       advance: r.advance,
       total: r.total,
+      employerCost: r.employerCost,
+      employerCostSet: r.employerCostSet,
     })),
     totals: dto.totals,
     payrollCost: dto.totals.base + dto.totals.commission + dto.totals.bonus - dto.totals.deduction,

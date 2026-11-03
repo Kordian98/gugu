@@ -40,7 +40,14 @@ describe("month_profit tool (integration)", () => {
           baseAmountMinor: BigInt(SALARY_CANARY),
           commissionBps: 1000,
         },
-        { staffId: b, baseType: "daily" as const, baseAmountMinor: 250_000n, commissionBps: 2000 },
+        // Real cost entered by the salon (ADR-0017): +21.5 % employer contributions.
+        {
+          staffId: b,
+          baseType: "daily" as const,
+          baseAmountMinor: 250_000n,
+          commissionBps: 2000,
+          employerCostBps: 2150,
+        },
       ].map((v) => ({
         ...v,
         salonId,
@@ -124,6 +131,15 @@ describe("month_profit tool (integration)", () => {
     expect(out["netProfitVnd"]).toBe(view.metrics["profit.net"]?.value);
     expect(out["revenueEarnedVnd"]).toBe(400_000);
     expect(out["payrollTotalVnd"]).toBe(view.breakdown.payroll);
+    // The team total uses the real cost where the salon entered one (still one salon total).
+    expect(view.breakdown.employerCosts).toBeGreaterThan(0);
+    expect(view.breakdown.payroll).toBe(
+      view.breakdown.basePay +
+        view.breakdown.commissionEarned +
+        view.breakdown.commissionProjected +
+        view.breakdown.adjustments +
+        view.breakdown.employerCosts,
+    );
     const json = JSON.stringify(out);
     expect(json).not.toContain(String(SALARY_CANARY));
     expect(json).not.toMatch(/staff_\d|Canary|Linh|Mai/);

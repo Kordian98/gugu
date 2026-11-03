@@ -25,6 +25,10 @@ export interface ProfitInput {
   commissionUpcoming: number;
   /** Bonuses minus deductions of the month (advances are part of pay, not an extra cost). */
   adjustments: number;
+  /** Employer costs the salon entered ("chi phí thực tế" above gross) on earned pay. */
+  employerCostsActual?: number;
+  /** The same on projected commission (scaled by the no-show assumption like the commission). */
+  employerCostsUpcoming?: number;
   otherCosts: number;
   elapsedDays: number;
   daysInMonth: number;
@@ -44,6 +48,9 @@ export interface ProfitResult {
   commissionEarned: number;
   commissionProjected: number;
   adjustments: number;
+  /** Employer costs above gross where the salon entered them (0 when none). */
+  employerCosts: number;
+  /** Real cost of the team: gross pay + employer costs. */
   payroll: number;
   otherCosts: number;
   grossProfit: number;
@@ -64,7 +71,10 @@ export function monthProfit(i: ProfitInput): ProfitResult {
   const serviceCostsProjected = roundVnd(i.serviceCostsUpcoming * keep);
   const serviceCosts = i.serviceCostsActual + serviceCostsProjected;
   const commissionProjected = roundVnd(i.commissionUpcoming * keep);
-  const payroll = i.basePay + i.commissionEarned + commissionProjected + i.adjustments;
+  const employerCosts =
+    (i.employerCostsActual ?? 0) + roundVnd((i.employerCostsUpcoming ?? 0) * keep);
+  const payroll =
+    i.basePay + i.commissionEarned + commissionProjected + i.adjustments + employerCosts;
   const grossProfit = revenueTotal - serviceCosts;
   const netProfit = grossProfit - payroll - i.otherCosts;
   return {
@@ -80,6 +90,7 @@ export function monthProfit(i: ProfitInput): ProfitResult {
     commissionEarned: i.commissionEarned,
     commissionProjected,
     adjustments: i.adjustments,
+    employerCosts,
     payroll,
     otherCosts: i.otherCosts,
     grossProfit,

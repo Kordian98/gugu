@@ -131,6 +131,12 @@ export class PayrollData {
             ? { kind: "percent" as const, bps: o.bps ?? 0 }
             : { kind: "fixed" as const, amount: Number(o.amountMinor ?? 0n) },
       })),
+      employerCost:
+        r.employerCostBps !== null
+          ? { kind: "percent", bps: r.employerCostBps }
+          : r.employerCostAmountMinor !== null
+            ? { kind: "fixed", amount: Number(r.employerCostAmountMinor) }
+            : null,
     };
   }
 

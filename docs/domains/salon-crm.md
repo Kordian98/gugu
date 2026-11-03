@@ -114,22 +114,26 @@ Owner request 2026-11-04. Bookkeeping only: GuGu moves no money and computes no 
 - **Close** snapshots the month; it is read-only afterwards (adjustments, pay versions and policy dated inside it → 409 `payroll.month_closed`). **Reopen** needs a reason (audited). **Paid on** marks only on closed months (kept across a reopen). Writes serialise on a per-salon advisory lock.
 - **Profit** (`profit.*`): earned (recorded amount where entered, else booked price) + still to come − no-show allowance (salon's own 90-day rate, ≥ 20 finished appointments, labelled assumption; also scales projected costs and commission) − service costs − payroll (full-month base + commission earned + projected + bonus − deduction) − other monthly costs. A closed payroll month feeds the profit view from its snapshot.
 - **Permissions**: `payroll.read` / `payroll.manage` owner by default, grantable to managers only (`MANAGER_GRANTABLE_PERMISSIONS`, set by the owner through `PUT members/:memberId/payroll-access`, `members.roles.write`); `payroll.self.read` in every role (own figures only, resolved from the member's own staff profile). Fixed costs and the profit view use the payroll permissions (they contain the team's pay total).
-- **AI assistant**: `month_profit` (salon totals and margins, `payroll.read`). Per-person pay never reaches the model (X10).
+- **AI assistant**: `month_profit` (salon totals and margins, `payroll.read`). Per-person pay never reaches the model (X10). Its payroll total uses the real cost (below), still one salon total.
+- **Real cost ("Chi phí thực tế", ADR-0017)**: optional per pay version, a % of gross or a fixed VND/month entered by the salon (from its accountant; GuGu computes no tax or insurance). Fixed is pro-rated by employed days, a % is weighted by the days its version covers and applied to gross (base + commission + bonus − deduction). Payroll rows show gross and real cost side by side; "to pay" stays gross; the profit payroll line uses real cost (`profit.employer_costs`). Never in `payroll/me`.
+- **Bulk commission (ADR-0017)**: `POST payroll/commission/bulk` sets one default % or own service rate (or removes it) for several people from a date, also in versions scheduled later; atomic, one audit entry.
 
 ### Tables (migration `20261105090000_add_payroll`)
-`staff_pay_settings` (unique salon+staff+effective_from; CHECK `staff_pay_settings_valid`), `staff_commission_overrides` (CHECK `staff_commission_overrides_valid`, unique index `staff_commission_overrides_one_per_target`), `salon_commission_policies`, `payroll_adjustments` (soft delete; CHECK `payroll_adjustments_valid`), `payroll_months` (snapshot JSON; CHECK `payroll_months_first_day`), `payroll_payouts`, `salon_costs` (recurring from start_month to end_month; CHECK `salon_costs_valid`). All tenant tables with composite FKs `(salon_id, x_id)`.
+`staff_pay_settings` (unique salon+staff+effective_from; CHECK `staff_pay_settings_valid`; `employer_cost_bps` / `employer_cost_amount_minor` with CHECK `staff_pay_settings_employer_cost_valid`, migration `20261106090000_add_employer_cost`), `staff_commission_overrides` (CHECK `staff_commission_overrides_valid`, unique index `staff_commission_overrides_one_per_target`), `salon_commission_policies`, `payroll_adjustments` (soft delete; CHECK `payroll_adjustments_valid`), `payroll_months` (snapshot JSON; CHECK `payroll_months_first_day`), `payroll_payouts`, `salon_costs` (recurring from start_month to end_month; CHECK `salon_costs_valid`). All tenant tables with composite FKs `(salon_id, x_id)`.
 
 ### Endpoints (all `/api/v1/salons/:salonId/…`)
 | Method + path | Permission | Notes |
 |---|---|---|
 | `GET payroll?month=` | `payroll.read` | Rows per person (base, detail, commission, projected, adjustments, total, paidOn), totals, status |
-| `GET payroll/me?month=` | `payroll.self.read` | Own estimate only |
+| `GET payroll/me?month=` | `payroll.self.read` | Own estimate only (never the real cost) |
+| `GET payroll/me/lines?month=` | `payroll.self.read` | Own commission lines, self-view DTO without `price`/`base` (cost-derived under `price_minus_cost`; keys pinned in `cost-exposure.test.ts`); 404 `payroll.staff_not_found` without a staff profile |
 | `GET payroll/staff/:staffId/lines?month=` | `payroll.read` | Commission per line (earned / projected) |
-| `GET payroll/export?month=&format=csv\|xlsx&locale=` | `payroll.read` | `{ fileName, mimeType, encoding, content }`; audited |
+| `GET payroll/export?month=&format=csv\|xlsx&locale=` | `payroll.read` | `{ fileName, mimeType, encoding, content }`; gross and real-cost columns; audited |
 | `POST payroll/adjustments` · `DELETE payroll/adjustments/:id` | `payroll.manage` | Reason required; audited (no reason text in the log) |
 | `POST payroll/months/:month/close` · `…/reopen` | `payroll.manage` | Reopen body `{ reason }`; audited |
 | `PUT\|DELETE payroll/months/:month/staff/:staffId/paid` | `payroll.manage` | Closed months only; audited |
-| `GET payroll/settings` · `PUT payroll/settings/commission-base` | `payroll.read` / `payroll.manage` | Policy history, current pay per person, managers + grant |
+| `GET payroll/settings` · `PUT payroll/settings/commission-base` | `payroll.read` / `payroll.manage` | Policy history, current + next scheduled pay per person, managers + grant |
+| `POST payroll/commission/bulk` | `payroll.manage` | `{ effectiveFrom, staffIds, change: default % \| own rate per service/variant (null removes) }`; also applied to later versions; staff/services validated under the payroll lock (deleted services refused); audited `payroll.commission_bulk_saved` with staffIds + service/variant ids, no rates |
 | `GET\|PUT payroll/staff/:staffId/pay` | `payroll.read` / `payroll.manage` | Versions with overrides |
 | `PUT members/:memberId/payroll-access` | `members.roles.write` | Managers only (409 `payroll.not_a_manager`) |
 | `GET\|POST costs`, `PATCH\|DELETE costs/:costId?month=` | `payroll.read` / `payroll.manage` | Changes apply from the viewed month |
@@ -145,6 +149,7 @@ Owner request 2026-11-04. Bookkeeping only: GuGu moves no money and computes no 
 | `profit.revenue_total` | vnd | estimated_from_bookings | mixed | yes |
 | `profit.service_costs` | vnd | estimated_from_bookings | mixed | yes |
 | `profit.payroll` | vnd | estimated_from_bookings | mixed | yes (team total only) |
+| `profit.employer_costs` | vnd | estimated_from_bookings | mixed | yes (team total only; included in `profit.payroll`) |
 | `profit.other_costs` | vnd | estimated_from_bookings | actual | yes |
 | `profit.net` | vnd | estimated_from_bookings | mixed | yes |
 | `profit.gross_margin` · `profit.net_margin` · `profit.month_progress` | ratio | — | mixed / actual | yes |
@@ -159,11 +164,16 @@ Owner request 2026-11-04. Bookkeeping only: GuGu moves no money and computes no 
 | `apps/api/src/modules/assistant/tools/read-tools.ts` | `month_profit` tool; test `assistant/month-profit.int.test.ts` (parity with the profit view, PII allowlist, salary canary) |
 | `apps/api/src/modules/salon-crm/payroll.int.test.ts` | Integration suite (chain split, discount, policy, tz boundaries, adjustments, close/reopen/paid, export, permissions, tenant isolation, costs, profit tiles = registry, DB constraints) |
 | `apps/app/features/salon-crm/data/payroll.ts` | Hooks (query keys include salonId) |
-| `apps/app/features/salon-crm/pages/payroll/` | `PayrollScreen`, `StaffPayrollSheet`, `PaySheet` (also from Team → "Lương"), `parts` |
-| `apps/app/features/salon-crm/pages/insights/ProfitView.tsx` | Insights → "Tháng này / This month" (4 tiles, breakdown, fixed costs) |
-| `apps/app/features/salon-crm/today/MonthCards.tsx` | Today: owner profit card, staff own earnings (also in MyDay) |
+| `apps/app/features/salon-crm/pages/payroll/` | `PayrollScreen` (tabs: month table/cards + status line; rates), `RatesTab` (everyone's pay, bulk default %, own-rates table service → rate → people, settings), `StaffPayrollSheet` (person breakdown: lines with booking link, adjustments with undo, paid), `PaySheet` (single sheet: base type, amount, default %, own rates, real cost, effective date; also from the Team card), `kit` (big inputs, segmented, effective-date preview, undo bar, status chip), `model.ts` (+ `model.test.ts`: pure view logic), `parts` |
+| `apps/app/features/salon-crm/pages/services/ServiceCommission.tsx` | Service editor: commission per person for that service (default vs own), inline change, same % for all; saved with the service via the bulk endpoint |
+| `apps/app/features/salon-crm/pages/insights/ProfitView.tsx` | Insights → "Tháng này / This month" (one headline + 3 small tiles, waterfall done vs expected, fixed costs) |
+| `apps/app/features/salon-crm/today/MonthCards.tsx` | Today: owner profit card (+ link to payroll), staff own earnings: one big number + top services (also in MyDay) |
+| `apps/api/src/modules/salon-crm/payroll/commission-change.ts` | Pure bulk change applied to a version (+ unit test) |
+| `apps/api/src/modules/salon-crm/payroll-ux.int.test.ts` | Bulk endpoint, next version, own lines, real-cost math/effective dates/profit/snapshot/staff never sees it |
 | `apps/api/scripts/seed-payroll-demo.mjs` | Dev-only demo month (history, chains, pay types, costs, closed month, staff + manager logins) |
 | `scripts/e2e/crm-payroll.mjs` | Playwright flow check; screenshots `docs/qa/07-payroll/` |
+| `scripts/e2e/crm-payroll-ux.mjs` | Before/after screenshots of the payroll UX (1440 + 390, vi, + dark) → `docs/qa/07-payroll-ux/` |
+| `e2e/web/tests/payroll.spec.ts` | Team pay card → sheet (validation, grouped amount, real cost), month table totals, breakdown + adjustment undo, bulk %, service commission, phone cards, close/reopen, This-month headline = registry, staff own lines only |
 
 ### Fixed L2 (security review of multi-service)
 Own-scope and per-staff Insights are line-based: a booking is the member's when any line is theirs; revenue per staff and own-scope revenue use their lines' `price_minor`; a recorded amount in own scope is the member's price share. `customers.service.ts` (list, tags, detail), `client-lookup.query.ts` and `offline-sale.service.ts` use the same "any line" read scope as the booking engine.

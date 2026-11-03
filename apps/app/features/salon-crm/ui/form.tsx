@@ -9,7 +9,16 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { alpha, checkableA11y, color, font, Icon, Text, useCalm } from "@gugu/design-system";
+import {
+  alpha,
+  checkableA11y,
+  color,
+  font,
+  Icon,
+  Text,
+  touchSlop,
+  useCalm,
+} from "@gugu/design-system";
 
 import { useBreakpoint } from "../shell/useBreakpoint";
 
@@ -185,6 +194,8 @@ export function TimeInput({
   );
 }
 
+const TOGGLE_SLOP = touchSlop(44, 26);
+
 export function Toggle({
   value,
   onChange,
@@ -197,6 +208,8 @@ export function Toggle({
   testID?: string | undefined;
 }) {
   const { c } = useCalm();
+  // Visually 44×26; the pressable is 44×44 with a negative margin (same layout footprint) so the
+  // touch area meets 44 pt on web too (react-native-web ignores hitSlop).
   return (
     <Pressable
       testID={testID}
@@ -207,23 +220,32 @@ export function Toggle({
       }}
       style={{
         width: 44,
-        height: 26,
-        borderRadius: 13,
-        padding: 3,
-        backgroundColor: value ? c.accentBg : c.surfaceMuted,
-        borderWidth: 1,
-        borderColor: value ? c.accentBg : c.line,
-        alignItems: value ? "flex-end" : "flex-start",
+        height: 26 + TOGGLE_SLOP.top + TOGGLE_SLOP.bottom,
+        marginVertical: -TOGGLE_SLOP.top,
+        justifyContent: "center",
       }}
     >
       <View
         style={{
-          width: 18,
-          height: 18,
-          borderRadius: 9,
-          backgroundColor: value ? c.onAccent : c.muted,
+          width: 44,
+          height: 26,
+          borderRadius: 13,
+          padding: 3,
+          backgroundColor: value ? c.accentBg : c.surfaceMuted,
+          borderWidth: 1,
+          borderColor: value ? c.accentBg : c.line,
+          alignItems: value ? "flex-end" : "flex-start",
         }}
-      />
+      >
+        <View
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: value ? c.onAccent : c.muted,
+          }}
+        />
+      </View>
     </Pressable>
   );
 }
