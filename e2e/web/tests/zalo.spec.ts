@@ -76,7 +76,9 @@ test.describe("zalo @vi", () => {
     await test.step("customer books Sơn gel with Trần Mai tomorrow 12:00 through the bot", async () => {
       await botTap(emu, t(L, "zalo:bot.menu.book"), t(L, "zalo:bot.chooseService"));
       await botTap(emu, SEED.services.gel.vi, t(L, "zalo:bot.chooseStaff"));
-      await botTap(emu, SEED.staff.mai.name, t(L, "zalo:bot.chooseDay"));
+      await botTap(emu, SEED.staff.mai.name, t(L, "zalo:bot.addService"));
+      // Multi-service (M6.8): the bot offers an optional second service; this flow books one.
+      await botTap(emu, t(L, "zalo:bot.addServiceNo"), t(L, "zalo:bot.chooseDay"));
       await botTap(emu, new RegExp(`${dd ?? ""}/${mm ?? ""}$`), /\d\d\/\d\d\?/);
       await botTap(emu, new RegExp(`^${t(L, "zalo:bot.part.afternoon")}`), /12:00/);
       await botTap(emu, /^12:00$/, t(L, "zalo:bot.shareInfoTitle"));

@@ -9,7 +9,7 @@ import { MAIL_DOMAIN } from "./env";
 import { addDays, vnDate, vnInstant, vnNow } from "./time";
 
 export const PROJECTS = ["chromium", "webkit"] as const;
-export const AREAS = ["roles", "zalo", "admin", "assistant", "mobile", "en"] as const;
+export const AREAS = ["roles", "zalo", "admin", "assistant", "mobile", "en", "multi"] as const;
 export type Area = (typeof AREAS)[number];
 
 export const mail = (local: string, project: string): string =>
@@ -58,6 +58,7 @@ const AREA_SPEC: Record<
   assistant: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
   mobile: { bookings: true, staffAccount: false, receptionist: false, locale: "vi" },
   en: { bookings: true, staffAccount: false, receptionist: false, locale: "en" },
+  multi: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
 };
 
 export interface SeededSalon {
