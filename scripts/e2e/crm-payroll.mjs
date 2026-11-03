@@ -28,7 +28,8 @@ try {
 } catch {
   pw = require(join(execFileSync("npm", ["root", "-g"]).toString().trim(), "playwright"));
 }
-const crm = (loc) => JSON.parse(readFileSync(join(root, `packages/localization/locales/${loc}/crm.json`), "utf8"));
+const crm = (loc) =>
+  JSON.parse(readFileSync(join(root, `packages/localization/locales/${loc}/crm.json`), "utf8"));
 const VI = crm("vi");
 const EN = crm("en");
 
@@ -80,19 +81,28 @@ const shot = async (page, name) => {
   }
 };
 const visible = (page, id, timeout = 20_000) =>
-  page.waitForSelector(`[data-testid="${id}"]`, { timeout }).then(() => true, () => false);
+  page.waitForSelector(`[data-testid="${id}"]`, { timeout }).then(
+    () => true,
+    () => false,
+  );
 const text = (page, id) => page.locator(`[data-testid="${id}"]`).first().innerText();
 
 const browser = await pw.chromium.launch({ channel: "chrome" }).catch(() => pw.chromium.launch());
 
 // ── Owner, desktop, vi + en ─────────────────────────────────────────────────────────────────
 const owner = await signIn(browser, arg("owner"));
-for (const [loc, T] of [["vi", VI], ["en", EN]]) {
+for (const [loc, T] of [
+  ["vi", VI],
+  ["en", EN],
+]) {
   const page = await owner.newPage();
   await page.goto(`${base}/${loc}/business/payroll`, { waitUntil: "load" });
   check(await visible(page, "crm-payroll-table"), `${loc} payroll table renders`);
   check(await visible(page, "crm-payroll-note"), `${loc} "estimate before tax and insurance" note`);
-  check((await text(page, "crm-payroll-note")).includes(T.payroll.estimateNote.slice(0, 20)), `${loc} note is localized`);
+  check(
+    (await text(page, "crm-payroll-note")).includes(T.payroll.estimateNote.slice(0, 20)),
+    `${loc} note is localized`,
+  );
   check(await visible(page, "crm-payroll-close"), `${loc} one primary action: close month`);
   await shot(page, `owner-desktop-${loc}-payroll-current`);
   // Last month: closed, read-only, paid marks.
@@ -109,7 +119,10 @@ for (const [loc, T] of [["vi", VI], ["en", EN]]) {
   const ins = await owner.newPage();
   await ins.goto(`${base}/${loc}/business/insights?tab=month`, { waitUntil: "load" });
   check(await visible(ins, "crm-profit-tiles"), `${loc} profit view: 4 headline tiles`);
-  check((await ins.locator('[data-testid^="crm-profit-tile-"]').count()) === 4, `${loc} exactly 4 headline tiles`);
+  check(
+    (await ins.locator('[data-testid^="crm-profit-tile-"]').count()) === 4,
+    `${loc} exactly 4 headline tiles`,
+  );
   check(await visible(ins, "crm-profit-breakdown"), `${loc} actual vs projected breakdown`);
   check(await visible(ins, "crm-profit-costs"), `${loc} other monthly costs listed`);
   await shot(ins, `owner-desktop-${loc}-profit`);
@@ -127,7 +140,10 @@ for (const [loc, T] of [["vi", VI], ["en", EN]]) {
   // Today: compact "This month" card for the owner.
   await page.goto(`${base}/vi/business`, { waitUntil: "load" });
   check(await visible(page, "crm-today-profit"), "Today shows the owner's This-month card");
-  check((await text(page, "crm-today-profit-net")).trim() === tile.trim(), "Today card net = Insights tile");
+  check(
+    (await text(page, "crm-today-profit-net")).trim() === tile.trim(),
+    "Today card net = Insights tile",
+  );
   await shot(page, "owner-desktop-vi-today-profit");
   // Team → Pay & commission per member.
   await page.goto(`${base}/vi/business/team`, { waitUntil: "load" });
@@ -147,12 +163,22 @@ for (const [loc, T] of [["vi", VI], ["en", EN]]) {
   await page.locator('[data-testid^="crm-payroll-row-"]').nth(1).click();
   await visible(page, "crm-adjust-add");
   await page.click('[data-testid="crm-adjust-add"]');
-  check(await page.getByText(VI.common.required).first().isVisible(), "adjustment without amount/reason is refused");
+  check(
+    await page.getByText(VI.common.required).first().isVisible(),
+    "adjustment without amount/reason is refused",
+  );
   await page.fill('[data-testid="crm-adjust-amount"]', "300000");
   await page.fill('[data-testid="crm-adjust-reason"]', "Thưởng doanh số tuần");
   await page.click('[data-testid="crm-adjust-add"]');
   check(
-    await page.getByText("Thưởng doanh số tuần").first().waitFor({ timeout: 10_000 }).then(() => true, () => false),
+    await page
+      .getByText("Thưởng doanh số tuần")
+      .first()
+      .waitFor({ timeout: 10_000 })
+      .then(
+        () => true,
+        () => false,
+      ),
     "adjustment with a reason is added",
   );
   await shot(page, "owner-desktop-vi-payroll-adjustment");
@@ -179,10 +205,16 @@ await owner.close();
   const page = await staff.newPage();
   await page.goto(`${base}/vi/business`, { waitUntil: "load" });
   check(await visible(page, "crm-my-earnings"), "staff my day shows own earnings estimate");
-  check((await text(page, "crm-my-earnings")).includes(VI.myEarnings.note.slice(0, 12)), "own earnings note");
+  check(
+    (await text(page, "crm-my-earnings")).includes(VI.myEarnings.note.slice(0, 12)),
+    "own earnings note",
+  );
   await shot(page, "staff-mobile-vi-my-earnings");
   await page.goto(`${base}/vi/business/payroll`, { waitUntil: "load" });
-  check(await visible(page, "crm-payroll-forbidden"), "staff: payroll page shows permission denied");
+  check(
+    await visible(page, "crm-payroll-forbidden"),
+    "staff: payroll page shows permission denied",
+  );
   await page.goto(`${base}/en/business`, { waitUntil: "load" });
   check(await visible(page, "crm-my-earnings"), "staff en: own earnings estimate");
   await shot(page, "staff-mobile-en-my-earnings");
@@ -197,7 +229,10 @@ if (arg("manager")) {
   check(await visible(page, "crm-payroll-forbidden"), "manager without grant: payroll forbidden");
   await page.goto(`${base}/vi/business/insights`, { waitUntil: "load" });
   await page.waitForTimeout(2000);
-  check((await page.getByText(VI.profit.tabs.month).count()) === 0, "manager without grant: no This-month tab");
+  check(
+    (await page.getByText(VI.profit.tabs.month).count()) === 0,
+    "manager without grant: no This-month tab",
+  );
   await mgr.close();
 }
 
