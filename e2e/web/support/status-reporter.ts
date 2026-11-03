@@ -6,8 +6,10 @@ export default class StatusReporter implements Reporter {
   private passed = 0;
 
   onTestEnd(test: TestCase, result: TestResult): void {
-    if (result.status === "passed") this.passed++;
-    else if (result.status !== "skipped" && test.expectedStatus !== result.status) {
+    if (result.retry < test.retries && test.outcome() !== "expected") return;
+    const outcome = test.outcome();
+    if (outcome === "expected") this.passed++;
+    else if (outcome === "unexpected") {
       const first = (result.error?.message ?? "").split("\n").find((l) => l.trim()) ?? "";
       // eslint-disable-next-line no-control-regex
       const clean = first.replace(/\u001b\[[0-9;]*m/g, "").slice(0, 200);

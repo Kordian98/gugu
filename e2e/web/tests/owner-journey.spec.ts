@@ -7,7 +7,7 @@ import { t, tx } from "../support/i18n";
 import { waitForMail } from "../support/mailpit";
 import { mail } from "../support/seed";
 import { addDays, vnDate } from "../support/time";
-import { fillField, hydrated, tap } from "../support/ui";
+import { dragVertically, fillField, hydrated, tap } from "../support/ui";
 
 const L = "vi" as const;
 
@@ -142,21 +142,12 @@ test.describe("owner journey @vi", () => {
       await page.goto(`/vi/business/calendar?date=${tomorrow}`);
       await hydrated(block);
       await expect(block).toHaveAccessibleName(/^10:00 /);
-      const box = await block.boundingBox();
-      if (!box) throw new Error("booking block has no box");
-      // Measure the grid (hour labels) instead of assuming px per hour; +4 px stays within one snap.
+      // Measure the grid (hour labels) instead of assuming px per hour.
       const timeline = page.getByTestId("crm-timeline");
       const h10 = await timeline.getByText("10:00", { exact: true }).boundingBox();
       const h14 = await timeline.getByText("14:00", { exact: true }).boundingBox();
       if (!h10 || !h14) throw new Error("hour labels not found in the timeline");
-      const dy = h14.y - h10.y + 4;
-      const x = box.x + box.width / 2;
-      const y = box.y + Math.min(12, box.height / 2);
-      await page.mouse.move(x, y);
-      await page.mouse.down();
-      await page.mouse.move(x, y + 20, { steps: 4 });
-      await page.mouse.move(x, y + dy, { steps: 12 });
-      await page.mouse.up();
+      await dragVertically(page, block, h14.y - h10.y);
       await expect(block).toHaveAccessibleName(/^14:00 /);
       await waitForMail(customerEmail, {
         subject: tx(L, "notifications:email.bookingRescheduled.subject", { salon }),
@@ -178,11 +169,7 @@ test.describe("owner journey @vi", () => {
 
     await test.step("cancel (salon reason) → cancellation email and timeline entry", async () => {
       await tap(page.getByRole("button", { name: t(L, "crm:booking.cancel"), exact: true }));
-      await tap(
-        page
-          .getByRole("button", { name: t(L, "crm:booking.reasons.salon"), exact: true })
-          .or(page.getByRole("radio", { name: t(L, "crm:booking.reasons.salon"), exact: true })),
-      );
+      await tap(page.getByRole("radio", { name: t(L, "crm:booking.reasons.salon"), exact: true }));
       await tap(page.getByTestId("crm-cancel-confirm"));
       await expect(page.getByTestId("crm-cancel-confirm")).toHaveCount(0);
       await waitForMail(customerEmail, {

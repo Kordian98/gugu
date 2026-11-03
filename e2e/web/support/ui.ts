@@ -36,3 +36,31 @@ export async function tap(locator: Locator): Promise<void> {
   await hydrated(locator);
   await locator.click();
 }
+
+/**
+ * Drags a calendar block vertically by `dy` px with the mouse, closing the loop on the live drag
+ * preview (the block is translated while dragging): engines differ in how many pointer pixels the
+ * responder swallows before the drag starts, so we steer until the preview sits on the target.
+ */
+export async function dragVertically(page: Page, block: Locator, dy: number): Promise<void> {
+  const start = await block.boundingBox();
+  if (!start) throw new Error(`no bounding box for ${block.toString()}`);
+  const targetY = start.y + dy;
+  const x = start.x + start.width / 2;
+  let y = start.y + Math.min(12, start.height / 2);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  y += 20;
+  await page.mouse.move(x, y, { steps: 5 });
+  y += dy - 20;
+  await page.mouse.move(x, y, { steps: 12 });
+  for (let i = 0; i < 6; i++) {
+    const now = await block.boundingBox();
+    if (!now) break;
+    const err = targetY - now.y;
+    if (Math.abs(err) < 3) break;
+    y += err;
+    await page.mouse.move(x, y, { steps: 4 });
+  }
+  await page.mouse.up();
+}

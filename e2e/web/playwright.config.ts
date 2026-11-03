@@ -3,8 +3,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { apiUrl, webUrl } from "./stack/config.mjs";
 
-// Local iteration only: E2E_REUSE_WEB=1 keeps an already running Expo web server (Metro warm-up is
-// the slow part). The backend always restarts so every run starts from a fresh database.
+// Local iteration only: E2E_REUSE_WEB=1 keeps an already running web server on :8460 (skips the
+// ~30 s export). The backend always restarts so every run starts from a fresh database.
 const reuseWeb = process.env["E2E_REUSE_WEB"] === "1";
 
 export default defineConfig({
@@ -57,7 +57,7 @@ export default defineConfig({
       command: "node stack/web.mjs",
       url: `${webUrl}/vi`,
       reuseExistingServer: reuseWeb,
-      timeout: 240_000,
+      timeout: 300_000,
       stdout: "ignore",
       stderr: "pipe",
       gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
