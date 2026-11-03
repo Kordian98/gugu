@@ -35,6 +35,18 @@
     "team": {
       "w": 2400,
       "h": 1500
+    },
+    "calendar-crop": {
+      "w": 2580,
+      "h": 1020
+    },
+    "appointments-crop": {
+      "w": 3294,
+      "h": 972
+    },
+    "services-crop": {
+      "w": 2736,
+      "h": 930
     }
   },
   "en": {
@@ -73,6 +85,18 @@
     "team": {
       "w": 2400,
       "h": 1500
+    },
+    "calendar-crop": {
+      "w": 2580,
+      "h": 1020
+    },
+    "appointments-crop": {
+      "w": 3294,
+      "h": 972
+    },
+    "services-crop": {
+      "w": 2736,
+      "h": 930
     }
   }
 }

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { screen, type ScreenName } from "../screens";
+import { screen, screenSize, type ScreenName } from "../screens";
 import { PHOTO } from "./media";
 
 const SW_STEPS = ["st1", "st2", "st3", "st4"] as const;
@@ -25,6 +25,11 @@ function useShot() {
   return (name: ScreenName) => Asset.fromModule(screen(locale, name)).uri;
 }
 
+function useShotSize() {
+  const locale = useLocale();
+  return (name: ScreenName) => screenSize(locale, name);
+}
+
 function Laptop({ src, className }: { src: string; className?: string }) {
   return (
     <div className={className}>
@@ -37,10 +42,39 @@ function Laptop({ src, className }: { src: string; className?: string }) {
 }
 
 /** Treatment-area facts, each with the one CRM screen (and detail) it is about. */
+/**
+ * `sizes` = the crop's displayed CSS width (the box shows it at full height, cropped sideways: box width ×
+ * crop aspect ÷ box aspect, see .tr-shot rules). With the 2× / 3× captures the browser never upscales by
+ * more than 1.15× (standing rule), and phones and desktops each download only what they need.
+ */
 const FACTS = [
-  { k: "r1", shot: "calendarCrop", label: "shotCal", call: "chip", cls: "cal" },
-  { k: "r2", shot: "appointmentsCrop", label: "shotAppt", call: "callAppt", cls: "appt" },
-  { k: "r3", shot: "servicesCrop", label: "shotSvc", call: "callSvc", cls: "svc" },
+  {
+    k: "r1",
+    shot: "calendarCrop",
+    shot2x: "calendarCrop2x",
+    label: "shotCal",
+    call: "chip",
+    cls: "cal",
+    sizes: "(max-width: 899px) 210vw, 67vw",
+  },
+  {
+    k: "r2",
+    shot: "appointmentsCrop",
+    shot2x: "appointmentsCrop2x",
+    label: "shotAppt",
+    call: "callAppt",
+    cls: "appt",
+    sizes: "(max-width: 899px) 200vw, 75vw",
+  },
+  {
+    k: "r3",
+    shot: "servicesCrop",
+    shot2x: "servicesCrop2x",
+    label: "shotSvc",
+    call: "callSvc",
+    cls: "svc",
+    sizes: "(max-width: 899px) 196vw, 75vw",
+  },
 ] as const;
 
 /**
@@ -51,6 +85,7 @@ const FACTS = [
 export function FeaturesPanel() {
   const { t } = useTranslation("landing");
   const shot = useShot();
+  const size = useShotSize();
   return (
     <div className="ov ov-f" id="fl-features">
       <div className="t">
@@ -85,7 +120,18 @@ export function FeaturesPanel() {
           <figure key={f.k} className={`card tr-shot ${f.cls}`}>
             <figcaption>{t(`flow.features.${f.label}`)}</figcaption>
             <div className="tr-img">
-              <img src={shot(f.shot)} alt="" decoding="async" loading="lazy" />
+              <img
+                src={shot(f.shot)}
+                srcSet={`${shot(f.shot2x)} ${String(Math.round((size(f.shot).w * 2) / 3))}w, ${shot(f.shot)} ${String(size(f.shot).w)}w`}
+                sizes={f.sizes}
+                // intrinsic ratio before load: with lazy loading and `width: auto` the image would
+                // otherwise lay out 0 px wide and never load
+                width={size(f.shot).w}
+                height={size(f.shot).h}
+                alt=""
+                decoding="async"
+                loading="lazy"
+              />
             </div>
             <div className="tr-call">
               <i aria-hidden>{PIN}</i>

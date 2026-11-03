@@ -10,7 +10,7 @@ import type { LandingNavActions } from "../useLandingNav";
 /**
  * X25, right after the story (where "Finish journey" and "Skip" land): Basic is free for everyone for the
  * first year, then 99,000 VND/month; AI setup from the price list is included, the AI assistant starts
- * at Pro.
+ * at Pro. No card or payment method is ever asked for at sign-up; nothing is charged automatically.
  */
 export function FreeYear({ nav }: { nav: LandingNavActions }) {
   const { t } = useTranslation("landing");
@@ -26,6 +26,7 @@ export function FreeYear({ nav }: { nav: LandingNavActions }) {
           {t("flow.free.post")}
         </h2>
         <p className="fl-sub fy-sub">{t("flow.free.sub", { price })}</p>
+        <p className="fy-nocard">{t("flow.free.noCard")}</p>
         <div className="fy-cta">
           <button type="button" className="fy-btn" onClick={nav.trial}>
             {t("flow.free.cta")}
@@ -40,6 +41,7 @@ export function FreeYear({ nav }: { nav: LandingNavActions }) {
             {t("flow.free.plans")}
           </button>
         </div>
+        <p className="fy-how">{t("flow.free.how", { price })}</p>
       </div>
     </section>
   );

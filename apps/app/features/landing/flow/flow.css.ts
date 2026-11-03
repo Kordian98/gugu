@@ -190,7 +190,7 @@ export const FLOW_CSS = `
 /* each screen is cropped to the detail that matters, at a size where its text is readable (≥ ~12 px) */
 .tr-img{position:relative;overflow:hidden;border-radius:14px;border:1px solid ${color.lineSoft};aspect-ratio:var(--ar);background:${color.canvas}}
 .tr-img img{position:absolute;top:0;left:0;height:100%;width:auto;max-width:none;display:block}
-.tr-shot.cal{--ar:1.62}.tr-shot.appt{--ar:2.25}.tr-shot.svc{--ar:1.95}
+.tr-shot.cal{--ar:1.9}.tr-shot.appt{--ar:2.25}.tr-shot.svc{--ar:1.95}
 .tr-shot.cal .tr-img img{height:100%}
 .tr-shot.appt .tr-img img{height:100%}
 .tr-shot.svc .tr-img img{height:100%}
@@ -211,6 +211,8 @@ export const FLOW_CSS = `
   .tr-shot{padding:10px}
   .tr-shot figcaption{font-size:12.5px;padding:0 2px 8px}
   .tr-shot.cal{--ar:1.2}.tr-shot.appt{--ar:1.7}.tr-shot.svc{--ar:1.5}
+  /* phones: start the calendar at the Trần Mai column so the 10:00 booking sits under its callout */
+  .tr-shot.cal .tr-img img{left:-63%}
   .tr-call{font-size:12px;padding:8px 11px;max-width:80%}
   .tr-shot.cal .tr-call{right:27%;top:56%;max-width:68%}
   .tr-shot.appt .tr-call{left:12px;right:auto;top:auto;bottom:-14px}
@@ -402,6 +404,8 @@ export const FLOW_CSS = `
 .fy-h{font-size:clamp(38px,5.6vw,84px)}
 .fy-glow{background:${cssGradient(gradient.glowSoft)};-webkit-background-clip:text;background-clip:text;color:transparent}
 .fy-sub{margin:0 auto}
+.fy-nocard{margin:14px 0 0;font-family:${font.uiSemiBold};font-size:15px;color:${color.ink}}
+.fy-how{margin:22px auto 0;max-width:640px;font-family:${font.ui};font-size:14px;line-height:1.55;color:${color.ink2};text-wrap:pretty}
 .fy-cta{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:28px}
 .fy-btn{border:0;cursor:pointer;background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:16px;padding:16px 26px;border-radius:99px}
 .fy-link{border:0;background:none;cursor:pointer;min-height:44px;padding:0 12px;font-family:${font.uiSemiBold};font-size:15px;color:${color.ink};text-decoration:underline;text-underline-offset:4px}
@@ -436,6 +440,7 @@ export const FLOW_CSS = `
   .calc{padding:10px 12px}.calc-out b{font-size:24px}.calc-r{margin-top:6px}
   .sw-old,.sw-arrow{display:none}
   .ov-s .sw-row:nth-child(n+3){display:none}
+  .sw-rows{margin-bottom:6px}.sw-ai{margin:6px 10px;padding:6px 10px}
   .ov-s .sw-steps li{padding:5px 9px;font-size:11.5px}
   .ov-p .in-list li:nth-child(2){display:none}
 }

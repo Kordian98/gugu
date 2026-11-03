@@ -104,6 +104,18 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **Intro threshold:** 6 % of the viewport (at least 40 px), and nudges add up.
 - **Harness:** Prev on every page plus ← / → / PgUp / PgDn / touch, in Chromium desktop and mobile and in WebKit desktop: all pass.
 
+## Treatment-room crops: sharp, never upscaled (owner, 2026-11-04)
+
+- **Fresh captures:** real screens of the seeded, set-up demo salon (own DB `landing_gugu_payroll`, API :3041, web :8098) via `scripts/landing-screens.mjs`. Calendar, appointments and services are cropped to the detail at 3× device pixels (2580 / 3294 / 2736 px wide), each with a 2× companion (`-2x.webp`).
+- **`srcset` + `sizes`:** derived from the displayed width (box width × crop aspect ÷ box aspect). `width`/`height` attributes give the ratio before lazy load, which fixes a 0 px image on phones.
+- **Measured upscale** (displayed device px ÷ chosen file px; ≤ 1.15 required): 1440@2× 0.76–1.00, 1280@1× 0.44–0.52, 390@3× 0.60–0.82, 360@3× 0.59–0.82.
+
+## No card, no payment method (owner, 2026-11-04)
+
+- **"Không cần thẻ hay thanh toán khi đăng ký"** is in the hero note, the X25 band, the Basic card and the final CTA.
+- **The X25 band explains the flow:** email sign-up → 14-day Pro trial → Basic free for 12 months → then {{price}}/month. "We contact you before anything is due; nothing is charged automatically." There is no other payment promise.
+- **After the intro:** only the trailing momentum of the gesture that triggered it is swallowed (≤ 450 ms). A new wheel, trackpad, touch or key gesture scrolls past page 1 at once.
+
 ## CRM screenshots
 
 - **Checklist cut from `overview` and `kpis` (vi + en), owner 2026-11-04.** The onboarding checklist ("Thiết lập bằng AI trong vài phút") was removed by cutting its band and stitching the real screen back together; the sidebar stays intact. The manifest sizes are updated. This is interim, until the full retake.

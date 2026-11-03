@@ -17,7 +17,7 @@
     "subtitle": "Less admin, more beauty. Your team calendar, clients, reminders and AI setup — in one calm workspace for your salon.",
     "trialCta": "Start free trial",
     "howCta": "See how it works",
-    "note": "Basic free for your first year · 14-day Pro trial · made for beauty businesses in Vietnam"
+    "note": "Basic free for your first year · 14-day Pro trial · no card or payment needed to start"
   },
   "story": {
     "dive": {
@@ -178,13 +178,15 @@
     },
     "basicFree": "Free for the first year",
     "basicThen": "then {{price}}/month",
-    "basicCta": "Start free"
+    "basicCta": "Start free",
+    "noCard": "No card or payment needed to start."
   },
   "cta": {
     "title": "Ready to glow? Your first year of Basic is free.",
     "body": "Start with a 14-day Pro trial, then move to free Basic for the rest of your first year automatically. Set up in minutes with AI; your clients still pay at your salon as usual.",
     "trial": "Start free trial",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "noCard": "No card or payment needed to start."
   },
   "footer": {
     "tagline": "Salon software made for Vietnam. Team calendar, clients and reminders in one calm workspace.",
@@ -484,7 +486,9 @@
       "post": " for every salon for the first year.",
       "sub": "Then {{price}}/month. Basic includes AI setup from a photo of your price list; the AI assistant starts at Pro.",
       "cta": "Start free",
-      "plans": "See the plans"
+      "plans": "See the plans",
+      "noCard": "No card or payment needed to start.",
+      "how": "Sign up with your email and start with a 14-day Pro trial, then use Basic free for 12 months. After that, Basic is {{price}}/month: we contact you before anything is due, and nothing is charged automatically."
     },
     "payroll": {
       "eyebrow": "Back office · Pay & commissions",

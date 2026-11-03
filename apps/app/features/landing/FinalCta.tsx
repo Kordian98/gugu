@@ -22,6 +22,9 @@ export function FinalCta({ nav }: { nav: LandingNavActions }) {
           <Text size={18} lineHeight={27} color={color.ink2}>
             {t("cta.body")}
           </Text>
+          <Text role="uiSemiBold" size={15.5} color={color.ink}>
+            {t("cta.noCard")}
+          </Text>
           <View className="gap-3 min-[900px]:flex-row">
             <Button
               label={t("cta.trial")}

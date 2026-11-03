@@ -20,6 +20,9 @@ const SCREENS = {
     calendarCrop: require("../../assets/studio/vi/calendar-crop.webp") as number,
     servicesCrop: require("../../assets/studio/vi/services-crop.webp") as number,
     appointmentsCrop: require("../../assets/studio/vi/appointments-crop.webp") as number,
+    calendarCrop2x: require("../../assets/studio/vi/calendar-crop-2x.webp") as number,
+    servicesCrop2x: require("../../assets/studio/vi/services-crop-2x.webp") as number,
+    appointmentsCrop2x: require("../../assets/studio/vi/appointments-crop-2x.webp") as number,
   },
   en: {
     overview: require("../../assets/studio/en/overview.webp") as number,
@@ -34,6 +37,9 @@ const SCREENS = {
     calendarCrop: require("../../assets/studio/en/calendar-crop.webp") as number,
     servicesCrop: require("../../assets/studio/en/services-crop.webp") as number,
     appointmentsCrop: require("../../assets/studio/en/appointments-crop.webp") as number,
+    calendarCrop2x: require("../../assets/studio/en/calendar-crop-2x.webp") as number,
+    servicesCrop2x: require("../../assets/studio/en/services-crop-2x.webp") as number,
+    appointmentsCrop2x: require("../../assets/studio/en/appointments-crop-2x.webp") as number,
   },
 } as const;
 
@@ -41,7 +47,8 @@ export type ScreenName = keyof (typeof SCREENS)["vi"];
 
 /** Pixel sizes written by the capture script (per locale; crops differ slightly with text length). */
 export const screenSize = (locale: AppLocale, name: ScreenName) => {
-  const key = name === "aiSetup" ? "ai-setup" : name;
+  // manifest keys are file names: aiSetup → ai-setup, calendarCrop → calendar-crop
+  const key = name.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
   return (
     (manifest as Record<AppLocale, Record<string, { w: number; h: number }>>)[locale][key] ?? {
       w: 16,

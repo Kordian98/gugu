@@ -21,7 +21,8 @@
  * update docs/qa/02-landing-flow.
  */
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,6 +39,15 @@ const api = arg("api", "http://localhost:3017");
 const mailpit = `${arg("mailpit", "http://localhost:18025")}/api/v1`;
 const email = arg("email", `owner-landing-${Date.now()}@demo.gugu`);
 const seed = !process.argv.includes("--no-seed");
+/** Comma list of shot names to (re)take; default all. */
+const only = arg("only", "")
+  .split(",")
+  .filter(Boolean);
+/**
+ * Crops are taken at 3× device pixels so they stay sharp on retina desktops (2×) and phones (3×) without
+ * ever being upscaled (≤ 1.15× rule); the landing serves them with srcset (`-2x` + full size; not `@2x`, which Metro treats as a scale variant).
+ */
+const CROP_DPR = 3;
 let pw;
 try {
   pw = require("playwright");
@@ -49,8 +59,8 @@ const crm = (loc) =>
 
 /**
  * Each shot: route, then either `card` (crop to the card holding that label), `region` (crop rectangle
- * as fractions of the viewport) or nothing (full screen, resized to 2400 px wide). `tab` clicks a tab
- * label first (e.g. Insights → "Tháng này").
+ * in CSS px of the 1440×900 viewport, captured at CROP_DPR and also written as a 2/3-size `-2x` file for
+ * srcset) or nothing (full screen, resized to 2400 px wide). `tab` clicks a tab label first.
  */
 const SHOTS = (t) => [
   { name: "overview", route: "business" },
@@ -58,29 +68,41 @@ const SHOTS = (t) => [
   { name: "upcoming", route: "business", card: t.upcoming.title },
   { name: "kpis", route: "business", card: t.kpi.revenueToday, row: t.kpi.occupancy },
   { name: "calendar", route: "business/calendar" },
-  { name: "calendar-crop", route: "business/calendar", region: [0.2, 0.06, 0.64, 0.44] },
+  { name: "calendar-crop", route: "business/calendar", region: [276, 66, 860, 340] },
   { name: "appointments", route: "business/appointments" },
-  { name: "appointments-crop", route: "business/appointments", region: [0.2, 0.17, 0.82, 0.24] },
-  { name: "services", route: "business/services" },
-  { name: "services-crop", route: "business/services", region: [0.2, 0.2, 0.65, 0.26] },
+  { name: "appointments-crop", route: "business/appointments", region: [295, 102, 1098, 324] },
+  // Full services screen is not used by the landing (it carries the AI-import banner): skip the check.
+  { name: "services", route: "business/services", unused: true },
+  { name: "services-crop", route: "business/services", region: [278, 208, 912, 310] },
   { name: "insights", route: "business/insights" },
   { name: "insights-month", route: "business/insights", tab: t.profit.tabs.month },
   { name: "payroll", route: "business/payroll" },
   { name: "zalo", route: "business/zalo" },
 ];
 
-function run(cmd, args) {
+function run(cmd, args, cwd = root) {
   console.log("$", cmd, args.join(" "));
-  execFileSync(cmd, args, { stdio: "inherit", cwd: root });
+  execFileSync(cmd, args, { stdio: "inherit", cwd });
 }
 
-/** Magic-link sign-in through Mailpit; returns a logged-in browser context. */
+/**
+ * Magic-link sign-in through Mailpit; returns a logged-in browser context. The session is cached in the
+ * OS temp dir per email (magic links are rate-limited), so re-runs reuse it.
+ */
+const statePath = join(tmpdir(), `gugu-landing-screens-${email.replace(/\W/g, "_")}.json`);
 async function signIn(browser) {
-  const ctx = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
-    deviceScaleFactor: 2,
-    colorScheme: "light",
-  });
+  const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, colorScheme: "light" };
+  if (existsSync(statePath)) {
+    const cached = await browser.newContext({ ...opts, storageState: statePath });
+    const probe = await cached.newPage();
+    await probe.goto(`${web}/vi/business`, { waitUntil: "load" });
+    await probe.waitForTimeout(3000);
+    const ok = !probe.url().includes("sign-in");
+    await probe.close();
+    if (ok) return cached;
+    await cached.close();
+  }
+  const ctx = await browser.newContext(opts);
   const p = await ctx.newPage();
   const since = Date.now();
   await p.goto(`${web}/vi/sign-in`, { waitUntil: "load" });
@@ -101,6 +123,7 @@ async function signIn(browser) {
   await p.goto(link.replace(/^https?:\/\/[^/]+/, web), { waitUntil: "load" });
   await p.waitForTimeout(5000);
   await p.close();
+  await ctx.storageState({ path: statePath });
   return ctx;
 }
 
@@ -133,7 +156,13 @@ const cardOf = (page, text, minH = 140) =>
     { text, minH },
   );
 
-if (seed) run("node", ["apps/api/scripts/seed-payroll-demo.mjs", "--api", api, "--email", email]);
+// The seed reads ../../.env relative to its cwd (apps/api): DATABASE_URL must be YOUR database.
+if (seed)
+  run(
+    "node",
+    ["scripts/seed-payroll-demo.mjs", "--api", api, "--email", email],
+    join(root, "apps/api"),
+  );
 const manifestPath = join(root, "apps/app/assets/studio/manifest.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 const browser = await pw.chromium.launch({ channel: "chrome" }).catch(() => pw.chromium.launch());
@@ -144,24 +173,47 @@ for (const loc of ["vi", "en"]) {
   const dir = join(root, "apps/app/assets/studio", loc);
   mkdirSync(dir, { recursive: true });
   const page = await ctx.newPage();
-  for (const s of SHOTS(t)) {
-    await page.goto(`${web}/${loc}/${s.route}`, { waitUntil: "load" });
-    await page.waitForTimeout(3500);
-    await page.addStyleTag({ content: "#error-overlay,#error-toast{display:none!important}" });
+  const crops = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: CROP_DPR,
+    colorScheme: "light",
+    storageState: await ctx.storageState(),
+  });
+  const cropPage = await crops.newPage();
+  for (const s0 of SHOTS(t)) {
+    if (only.length && !only.includes(s0.name)) continue;
+    const s = s0;
+    const pg = s.region ? cropPage : page;
+    await pg.goto(`${web}/${loc}/${s.route}`, { waitUntil: "load" });
+    await pg.waitForTimeout(3500);
+    await pg.addStyleTag({ content: "#error-overlay,#error-toast{display:none!important}" });
     if (s.tab) {
-      await page.getByText(s.tab, { exact: true }).first().click();
-      await page.waitForTimeout(2000);
+      await pg.getByText(s.tab, { exact: true }).first().click();
+      await pg.waitForTimeout(2000);
     }
-    // The landing must show a salon that is already set up.
-    if (await page.getByText(t.setup.title, { exact: true }).count())
-      throw new Error(`${loc} ${s.name}: the setup checklist is still on screen`);
+    // The landing must show a salon that is already set up: the checklist title may not be on a used
+    // full screen, nor inside a crop rectangle.
+    const setupBox = await pg
+      .getByText(t.setup.title, { exact: true })
+      .first()
+      .boundingBox()
+      .catch(() => null);
+    const inRegion =
+      setupBox &&
+      s.region &&
+      setupBox.x < s.region[0] + s.region[2] &&
+      setupBox.x + setupBox.width > s.region[0] &&
+      setupBox.y < s.region[1] + s.region[3] &&
+      setupBox.y + setupBox.height > s.region[1];
+    if (setupBox && !s.unused && (!s.region || inRegion))
+      throw new Error(`${loc} ${s.name}: the setup checklist is on screen`);
     let clip;
     if (s.card) {
-      const a = await cardOf(page, s.card);
+      const a = await cardOf(pg, s.card);
       if (!a) throw new Error(`label not found: ${loc} ${s.name} "${s.card}"`);
       clip = a;
       if (s.row) {
-        const b = await cardOf(page, s.row);
+        const b = await cardOf(pg, s.row);
         if (b)
           clip = {
             x: a.x,
@@ -173,13 +225,17 @@ for (const loc of ["vi", "en"]) {
       clip = { x: clip.x - 8, y: clip.y - 8, width: clip.width + 16, height: clip.height + 16 };
     } else if (s.region) {
       const [x, y, w, h] = s.region;
-      clip = { x: x * 1440, y: y * 900, width: w * 1440, height: h * 900 };
+      clip = { x, y, width: w, height: h };
     }
     const png = join(dir, `${s.name}.png`);
-    const buf = await page.screenshot({ path: png, ...(clip ? { clip } : {}) });
+    const buf = await pg.screenshot({ path: png, ...(clip ? { clip } : {}) });
     const w = buf.readUInt32BE(16);
     const h = buf.readUInt32BE(20);
     const scale = clip ? 1 : 2400 / w;
+    if (s.region) {
+      // srcset companion at 2× (2/3 of the 3× pixels) for retina desktops and smaller downloads.
+      execFileSync("cwebp", ["-quiet", "-q", "84", "-resize", String(Math.round((w * 2) / 3)), "0", png, "-o", png.replace(/\.png$/, "-2x.webp")]);
+    }
     (manifest[loc] ??= {})[s.name] = { w: Math.round(w * scale), h: Math.round(h * scale) };
     execFileSync("cwebp", [
       "-quiet",
@@ -196,6 +252,7 @@ for (const loc of ["vi", "en"]) {
     console.log("captured", loc, s.name);
   }
   await page.close();
+  await crops.close();
 }
 await browser.close();
 writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");

@@ -88,6 +88,9 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
                     <Text role="uiSemiBold" size={14.5} color={color.ink2}>
                       {t("pricing.basicThen", { price })}
                     </Text>
+                    <Text size={13.5} color={color.ink2}>
+                      {t("pricing.noCard")}
+                    </Text>
                   </>
                 ) : (
                   <>

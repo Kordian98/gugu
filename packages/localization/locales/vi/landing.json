@@ -17,7 +17,7 @@
     "subtitle": "Bớt việc giấy tờ, thêm thời gian làm đẹp. Lịch làm việc cho cả đội, khách hàng, nhắc lịch và thiết lập bằng AI — trong một không gian làm việc nhẹ nhàng cho salon của bạn.",
     "trialCta": "Dùng thử miễn phí",
     "howCta": "Xem cách hoạt động",
-    "note": "Miễn phí năm đầu với gói Basic · dùng thử Pro 14 ngày · dành cho các cơ sở làm đẹp tại Việt Nam"
+    "note": "Miễn phí năm đầu với gói Basic · dùng thử Pro 14 ngày · không cần thẻ hay thanh toán khi đăng ký"
   },
   "story": {
     "dive": {
@@ -178,13 +178,15 @@
     },
     "basicFree": "Miễn phí năm đầu",
     "basicThen": "sau đó {{price}}/tháng",
-    "basicCta": "Bắt đầu miễn phí"
+    "basicCta": "Bắt đầu miễn phí",
+    "noCard": "Không cần thẻ hay thanh toán khi đăng ký."
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
     "body": "Bắt đầu với 14 ngày dùng thử Pro, sau đó tự chuyển sang Basic miễn phí trọn năm đầu. Thiết lập trong vài phút nhờ AI; khách vẫn thanh toán tại salon như bình thường.",
     "trial": "Dùng thử miễn phí",
-    "signIn": "Đăng nhập"
+    "signIn": "Đăng nhập",
+    "noCard": "Không cần thẻ hay thanh toán khi đăng ký."
   },
   "footer": {
     "tagline": "Phần mềm salon dành cho Việt Nam. Lịch cả đội, khách hàng và nhắc lịch trong một không gian làm việc nhẹ nhàng.",
@@ -484,7 +486,9 @@
       "post": " năm đầu cho mọi salon.",
       "sub": "Sau đó {{price}}/tháng. Basic có thiết lập dịch vụ bằng AI từ ảnh bảng giá; trợ lý AI có từ gói Pro.",
       "cta": "Bắt đầu miễn phí",
-      "plans": "Xem các gói"
+      "plans": "Xem các gói",
+      "noCard": "Không cần thẻ hay thanh toán khi đăng ký.",
+      "how": "Đăng ký bằng email và bắt đầu với 14 ngày dùng thử Pro, sau đó dùng gói Basic miễn phí trong 12 tháng. Hết năm đầu, Basic là {{price}}/tháng: chúng tôi sẽ liên hệ với anh/chị trước khi đến hạn, không có khoản nào bị tự động trừ."
     },
     "payroll": {
       "eyebrow": "Văn phòng · Lương & hoa hồng",

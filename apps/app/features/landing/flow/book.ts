@@ -73,6 +73,8 @@ type Opts = {
 /** Wheel distance (fraction of the viewport, at least 40 px) that commits to the intro; nudges add up. */
 const INTRO_WHEEL = 0.06;
 const INTRO_TOUCH = 36;
+/** ms after the intro during which a still-running wheel stream (momentum) is swallowed. */
+const POST_INTRO_GUARD = 450;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -85,6 +87,8 @@ export function book(o: Opts): BookApi {
   let queued: 1 | -1 | 0 = 0;
   let token = 0;
   let intro: "todo" | "playing" | "done" = "todo";
+  /** When the intro settled; the trailing momentum of the triggering gesture is swallowed briefly. */
+  let introEndAt = 0;
   let vh = scroller.clientHeight || window.innerHeight;
   let dockY = 0;
 
@@ -154,6 +158,7 @@ export function book(o: Opts): BookApi {
     turn = null;
     if (intro === "playing") {
       intro = "done";
+      introEndAt = performance.now();
       o.onIntroDone();
     }
     o.onPage(page, true);
@@ -279,6 +284,7 @@ export function book(o: Opts): BookApi {
   };
   const onWheel = (e: WheelEvent) => {
     const now = performance.now();
+    const continuing = now - lastWheel < 220; // same wheel stream (momentum) as the previous event
     // Small nudges add up; the tally resets after 1.5 s without wheel input.
     if (now - lastWheel > 1500) newGesture();
     lastWheel = now;
@@ -294,7 +300,13 @@ export function book(o: Opts): BookApi {
       }
       return;
     }
-    // After the intro the wheel is never captured (owner, 2026-11-04): plain page scrolling.
+    // Right after the intro settles: swallow only the trailing momentum of the stream that triggered it
+    // (≤ 450 ms), so inertia cannot throw the visitor past page 1. A new gesture scrolls at once.
+    if (continuing && now - introEndAt < POST_INTRO_GUARD) {
+      e.preventDefault();
+      return;
+    }
+    // Otherwise the wheel is never captured (owner, 2026-11-04): plain page scrolling.
     stopScroll();
   };
   let settleTimer = 0;
