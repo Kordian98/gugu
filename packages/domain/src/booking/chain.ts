@@ -1,5 +1,5 @@
-import { covers, type Interval, overlaps } from "./intervals";
-import { pickUnits, type ResourceRequirement, type ResourceUnitAvailability } from "./resources";
+import type { Interval } from "./intervals";
+import type { ResourceRequirement } from "./resources";
 
 /**
  * Multi-service chains (M6.8, spec 06 G12): one appointment with several services in sequence,
@@ -93,89 +93,6 @@ export function lineTiming(
 export interface Candidate {
   s: { staffId: string };
   free: Interval[];
-}
-
-/** Claims already made by earlier lines of the chain being planned. */
-export interface ChainClaims {
-  staff: { staffId: string; occupancy: Interval }[];
-  units: { unitId: string; occupancy: Interval }[];
-}
-
-/** Units for one line; units taken by earlier lines of the chain count as busy. */
-function unitsForLine(
-  pool: readonly ResourceUnitAvailability[],
-  line: ServiceLine,
-  claims: ChainClaims,
-  occupancy: Interval,
-): string[] | null {
-  const units =
-    claims.units.length === 0
-      ? pool
-      : pool.map((u) => {
-          const mine = claims.units.filter((x) => x.unitId === u.unitId);
-          return mine.length === 0
-            ? u
-            : { ...u, busy: [...u.busy, ...mine.map((x) => x.occupancy)] };
-        });
-  return pickUnits({ requirements: line.requirements ?? [], units }, occupancy);
-}
-
-export function planLines(
-  /** Every unit any line may claim, with its busy time. */
-  pool: readonly ResourceUnitAvailability[],
-  lines: readonly ServiceLine[],
-  /** Staff with free time that day, best "any staff" candidate first. */
-  ranked: readonly Candidate[],
-  index: number,
-  chainStart: number,
-  prev: { staffId: string; end: number; bufferAfterMinutes: number } | null,
-  claims: ChainClaims,
-  onlyStaffId: string | null,
-): LinePlan[] | null {
-  const line = lines[index];
-  if (!line) return [];
-  // Continuity first: the previous line's staff member, if they can do this one too.
-  const order = prev
-    ? [
-        ...ranked.filter((c) => c.s.staffId === prev.staffId),
-        ...ranked.filter((c) => c.s.staffId !== prev.staffId),
-      ]
-    : ranked;
-  for (const c of order) {
-    const staffId = c.s.staffId;
-    if (onlyStaffId !== null && staffId !== onlyStaffId) continue;
-    const terms = line.staffTerms.get(staffId);
-    if (!terms) continue;
-    const timing = lineTiming(prev, staffId, terms, chainStart);
-    if (!covers(c.free, timing.occupancy)) continue;
-    if (
-      claims.staff.some((x) => x.staffId === staffId && overlaps(x.occupancy, timing.occupancy))
-    ) {
-      continue;
-    }
-    const unitIds = unitsForLine(pool, line, claims, timing.occupancy);
-    if (!unitIds) continue;
-    const plan: LinePlan = { staffId, ...timing, unitIds };
-    if (index === lines.length - 1) return [plan];
-    const rest = planLines(
-      pool,
-      lines,
-      ranked,
-      index + 1,
-      chainStart,
-      { staffId, end: timing.end, bufferAfterMinutes: terms.bufferAfterMinutes },
-      {
-        staff: [...claims.staff, { staffId, occupancy: timing.occupancy }],
-        units: [
-          ...claims.units,
-          ...unitIds.map((unitId) => ({ unitId, occupancy: timing.occupancy })),
-        ],
-      },
-      null,
-    );
-    if (rest) return [plan, ...rest];
-  }
-  return null;
 }
 
 export function toOption(lines: LinePlan[]): SlotOption {

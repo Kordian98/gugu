@@ -101,6 +101,24 @@ describe("parseEnv", () => {
     ).toBe("http");
   });
 
+  it("multi-service: on by default in every environment (q91), false switches it off", () => {
+    const prod = {
+      ...base,
+      NODE_ENV: "production",
+      AUTH_SECRET: "x".repeat(40),
+      BOOKING_TOKEN_SECRET: "y".repeat(40),
+      SUPPORT_EMAIL: "support@example.com",
+      MFA_ENCRYPTION_KEY: "m".repeat(40),
+    };
+    expect(parseEnv(base).BOOKING_MULTI_SERVICE).toBe(true);
+    expect(parseEnv(prod).BOOKING_MULTI_SERVICE).toBe(true);
+    expect(parseEnv({ ...prod, BOOKING_MULTI_SERVICE: "false" }).BOOKING_MULTI_SERVICE).toBe(false);
+    expect(parseEnv({ ...base, BOOKING_MULTI_SERVICE: "true" }).BOOKING_MULTI_SERVICE).toBe(true);
+    expect(() => parseEnv({ ...base, BOOKING_MULTI_SERVICE: "yes" })).toThrow(
+      /BOOKING_MULTI_SERVICE/,
+    );
+  });
+
   it("parses TRUST_PROXY: off by default, hop counts and address lists, never true", () => {
     expect(parseEnv(base).TRUST_PROXY).toBe(false);
     expect(parseEnv({ ...base, TRUST_PROXY: "1" }).TRUST_PROXY).toBe(1);

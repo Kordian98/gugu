@@ -99,9 +99,9 @@ export const chainDuration = (selections: readonly ResolvedSelection[]): number 
   selections.reduce((sum, s) => sum + s.terms.durationMinutes, 0);
 
 /**
- * Feature flag `booking.multiService` (spec 06 G12, q17: single service at launch). Read from
- * `BOOKING_MULTI_SERVICE`; on by default outside production. Topic 12's flag service replaces
- * this when it exists.
+ * Feature flag `booking.multiService` (spec 06 G12). On for every salon (q91, supersedes q17);
+ * `BOOKING_MULTI_SERVICE=false` switches it off. Topic 12's flag service replaces this when it
+ * exists.
  */
 @Injectable()
 export class BookingFeatures {

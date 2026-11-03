@@ -180,4 +180,28 @@ describe("Zalo bot: second service (M6.8)", () => {
     expect(r.state.step).toMatchObject({ name: "day", rescheduleId: BOOKING.id });
     expect(seen.days.at(-1)?.second).toEqual({ serviceId: "svc-pedi", variantId: null });
   });
+
+  it("a chain of three or more services (CRM-booked) goes to the salon, not the bot", async () => {
+    const { p, seen } = ports(true);
+    const rescheduled: string[] = [];
+    const withChain: BotPorts = {
+      ...p,
+      upcoming: () => Promise.resolve([{ ...BOOKING, serviceCount: 3 }]),
+      reschedule: (id, startsAt) => {
+        rescheduled.push(id);
+        return p.reschedule(id, startsAt);
+      },
+    };
+    const r = await step(
+      null,
+      { kind: "payload", payload: bookingPayload("resched", BOOKING.id) },
+      withChain,
+    );
+    const texts = r.replies.flatMap((x) => (x.kind === "text" ? [x.text] : []));
+    expect(texts).toContain(t("zalo:bot.rescheduleContactSalon"));
+    expect(r.effects).toContainEqual({ type: "handoff" });
+    expect(r.state.step.name).toBe("idle");
+    expect(seen.days).toHaveLength(0);
+    expect(rescheduled).toHaveLength(0);
+  });
 });

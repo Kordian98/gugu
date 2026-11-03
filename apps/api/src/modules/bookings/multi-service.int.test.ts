@@ -11,6 +11,7 @@ import {
   availabilitySchema,
   bookingCheckSchema,
   bookingFeaturesSchema,
+  earliestSlotsSchema,
   problemSchema,
   salonBookingListSchema,
   salonBookingSchema,
@@ -399,15 +400,69 @@ describe("multi-service bookings (integration, M6.8)", () => {
         (await request(http(app)).get(api("/booking-features")).set("authorization", owner)).body,
       );
     expect(await features()).toEqual({ multiService: true, maxServices: 4 });
+    // Warm the availability cache with a chain first: it must not be served once the flag is off.
+    await availability({ staffId: linh, nextServices: pediNext() });
     env.BOOKING_MULTI_SERVICE = false;
     try {
       expect((await features()).multiService).toBe(false);
       const res = await create(chainBody()).expect(422);
       expect(problemSchema.parse(res.body).code).toBe("booking.multi_service_disabled");
+      // Reads too (security review L1): availability, earliest and booking-check.
+      const chainQ = { serviceId: s.serviceId, staffId: linh, nextServices: pediNext() };
+      for (const [path, q] of [
+        ["/availability", { ...chainQ, from: DAY, to: DAY }],
+        ["/availability/earliest", chainQ],
+        ["/booking-check", { ...chainQ, startsAt: vnAt(DAY, "10:00") }],
+      ] as const) {
+        const read = await request(http(app))
+          .get(api(path))
+          .query(q)
+          .set("authorization", owner)
+          .expect(422);
+        expect(problemSchema.parse(read.body).code, path).toBe("booking.multi_service_disabled");
+      }
+      const plain = await availability({ staffId: linh });
+      expect(plain.truncated).toBe(false);
+      expect(starts(plain)).toContain(vnAt(DAY, "10:00"));
       await single(linh, "10:00").expect(201);
     } finally {
       env.BOOKING_MULTI_SERVICE = true;
     }
+  });
+
+  it("earliest for a chain scans at most 62 days and says so (security review M1)", async () => {
+    // 120-day window; the second line's only staff member is away for the whole window.
+    await prisma.salonSettings.update({
+      where: { salonId: s.salonId },
+      data: { bookingWindowDays: 120, availabilityVersion: { increment: 1 } },
+    });
+    await prisma.staffTimeOff.create({
+      data: {
+        salonId: s.salonId,
+        staffId: mai,
+        startsAt: new Date("2026-11-01T00:00:00Z"),
+        endsAt: new Date("2027-06-01T00:00:00Z"),
+      },
+    });
+    const earliest = async (q: Record<string, string>) =>
+      earliestSlotsSchema.parse(
+        (
+          await request(http(app))
+            .get(api("/availability/earliest"))
+            .query({ serviceId: s.serviceId, staffId: linh, ...q })
+            .set("authorization", owner)
+            .expect(200)
+        ).body,
+      );
+    const chain = await earliest({ nextServices: pediNext(mai) });
+    expect(chain).toMatchObject({ slots: [], truncated: true, unavailableReason: null });
+    // A single service is not bounded and complete.
+    const plain = await earliest({});
+    expect(plain.truncated).toBe(false);
+    expect(plain.slots.length).toBeGreaterThan(0);
+    // Availability for the same chain: nothing, but complete (the search budget was not hit).
+    const day = await availability({ staffId: linh, nextServices: pediNext(mai) });
+    expect(day).toMatchObject({ days: [], truncated: false });
   });
 
   it("availability cache: chain results are keyed by the chain and fresh after writes", async () => {

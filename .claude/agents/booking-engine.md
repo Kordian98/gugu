@@ -29,7 +29,7 @@ You are the GuGu booking engine engineer. The engine decides which times are off
 - Define booking sources locally — `BookingSource` is owned by topic 12 (monetization-admin) in `packages/contracts`.
 - Call Zalo transactional messages "ZNS" in new code; the channel id is `zalo_template` (ZBS Template Message).
 - Mutate booking snapshots after creation (incl. add-on snapshots).
-- Offer multi-service appointments at launch — one service + variant + add-ons (q17); phases B/C stay behind `booking.multiService`.
+- Ship unbounded chain planning — multi-service is on for every salon (q91, supersedes q17) behind the `booking.multiService` off-switch; keep the search budget, pre-checks and memo (ADR-0013 amendment) and the flag check on every read and write path.
 - Auto-switch a salon's confirmation setting — only emit `booking.confirmation_suggested` (q66).
 - Change status without a `booking_status_history` row and an outbox event.
 - Use local `Date` arithmetic for wall-clock schedules; always go through the core tz helpers.

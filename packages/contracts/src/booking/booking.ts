@@ -114,12 +114,18 @@ export const availabilitySchema = z.object({
   days: z.array(z.object({ date: localDateSchema, slots: z.array(availabilitySlotSchema) })),
   /** Set only when the whole range has no slot: why (staff not assigned, no hours, window…). */
   unavailableReason: unavailableReasonSchema.nullable(),
+  /**
+   * The engine stopped early (multi-service search budget, M6.8): `days` may miss bookable
+   * starts. Show what is there and suggest a shorter range or fewer services. Always false for a
+   * single service.
+   */
+  truncated: z.boolean(),
 });
 export type Availability = z.infer<typeof availabilitySchema>;
 
 /**
  * "Find the earliest slot" (CRM New appointment): searches forward from today across the booking
- * window, server-side in ≤ 31-day chunks, and returns the first `limit` start times, at most
+ * window (multi-service: at most 62 days), server-side in ≤ 31-day chunks, and returns the first `limit` start times, at most
  * `perDay` per day so the options span several days.
  */
 export const earliestSlotsQuerySchema = z.object({
@@ -143,6 +149,11 @@ export const earliestSlotsSchema = z.object({
   slots: z.array(availabilitySlotSchema.extend({ date: localDateSchema })),
   /** Set when nothing is free in the whole window. */
   unavailableReason: unavailableReasonSchema.nullable(),
+  /**
+   * The scan stopped before `limit` options or the end of the booking window: the multi-service
+   * search budget ran out, or a chain's scan reached its 62-day bound. Later starts may exist.
+   */
+  truncated: z.boolean(),
 });
 export type EarliestSlots = z.infer<typeof earliestSlotsSchema>;
 
