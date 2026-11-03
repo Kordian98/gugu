@@ -9,6 +9,7 @@ import type {
 import type { SalonContext } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
 import { COMMON_ERRORS } from "../../../common/problem/error-codes";
+import { AppConfig } from "../../../infrastructure/config/app-config";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 
 const localized = (name: unknown): { vi: string; en: string } => {
@@ -19,7 +20,10 @@ const localized = (name: unknown): { vi: string; en: string } => {
 /** Read models for salons and the registration form's reference data. */
 @Injectable()
 export class SalonQueries {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: AppConfig,
+  ) {}
 
   async categories(): Promise<CategoryItem[]> {
     const rows = await this.prisma.serviceCategory.findMany({
@@ -63,6 +67,17 @@ export class SalonQueries {
       timezone: salon.timezone,
       myRole: ctx.role,
       myPermissions: [...ctx.permissions].sort(),
+      // Suspension banner (q89): what is paused and how to reach GuGu support (config, not code).
+      suspension:
+        salon.status === "suspended"
+          ? {
+              since: salon.suspendedAt?.toISOString() ?? null,
+              support: {
+                email: this.config.env.SUPPORT_EMAIL,
+                phone: this.config.env.SUPPORT_PHONE ?? null,
+              },
+            }
+          : null,
     };
   }
 

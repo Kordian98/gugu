@@ -9,6 +9,7 @@ import { useViewport } from "@/services/viewport/useViewport";
 import { useWorkspace } from "../data/useWorkspace";
 import { BottomTabs, MobileHeader, MoreSheet, useMoreSheet } from "./MobileChrome";
 import { Sidebar } from "./Sidebar";
+import { SuspensionBanner } from "./SuspensionBanner";
 import { useBreakpoint } from "./useBreakpoint";
 import { AssistantDock } from "../../assistant/AssistantDock";
 
@@ -30,12 +31,20 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   if (Platform.OS === "web" && !mounted)
     return <View style={{ flex: 1, backgroundColor: c.canvas }} />;
 
-  if (focused) return <View style={{ flex: 1, backgroundColor: c.canvas }}>{children}</View>;
+  if (focused) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.canvas }}>
+        <SuspensionBanner />
+        {children}
+      </View>
+    );
+  }
 
   if (bp === "mobile") {
     return (
       <View style={{ flex: 1, backgroundColor: c.canvas }}>
         <MobileHeader onMenu={more.show} />
+        <SuspensionBanner />
         <View style={{ flex: 1 }}>{children}</View>
         <BottomTabs onMore={more.show} />
         <MoreSheet open={more.open} onClose={more.hide} />
@@ -46,7 +55,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   return (
     <View style={{ flex: 1, flexDirection: "row", backgroundColor: c.canvas }}>
       <Sidebar workspace={workspace} collapsed={bp === "tablet"} />
-      <View style={{ flex: 1 }}>{children}</View>
+      <View style={{ flex: 1 }}>
+        {/* q89: shown on every page while GuGu has suspended the salon. */}
+        <SuspensionBanner />
+        <View style={{ flex: 1 }}>{children}</View>
+      </View>
       <AssistantSlot bottom={24} mobile={false} />
     </View>
   );

@@ -17,6 +17,16 @@ export const salonSummarySchema = z.object({
   myRole: salonRoleSchema,
   /** The caller's effective permissions (for UI gating only; the API enforces). */
   myPermissions: z.array(z.string()),
+  /**
+   * Set while GuGu has suspended the salon (q89, ADR-0010): the workspace is read-only, the Zalo
+   * bot and customer reminders are paused. Carries the GuGu support contact (server config).
+   */
+  suspension: z
+    .object({
+      since: z.iso.datetime().nullable(),
+      support: z.object({ email: z.email(), phone: z.string().nullable() }),
+    })
+    .nullable(),
 });
 export type SalonSummary = z.infer<typeof salonSummarySchema>;
 

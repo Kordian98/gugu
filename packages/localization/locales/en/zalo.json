@@ -78,7 +78,9 @@
     "dayFull": "The salon has no free time on {{date}}. Please pick another day.",
     "notBookable": "This service can't be booked by message yet. Please call the salon, or message a staff member.",
     "windowLimit": "The salon takes bookings at most {{days}} days ahead. Please come back later or message a staff member.",
-    "earliestOffer": "The next {{days}} days are fully booked. Earliest free times:"
+    "earliestOffer": "The next {{days}} days are fully booked. Earliest free times:",
+    "suspendedNotice": "We can't take bookings through this chat right now. Please contact the salon directly. Thank you!",
+    "suspendedNoticePhone": "We can't take bookings through this chat right now. Please contact the salon directly at {{phone}}. Thank you!"
   },
   "panel": {
     "title": "Zalo",
@@ -182,7 +184,8 @@
       "paidNote": "The customer's last message was over 48 hours ago: this reply is charged (about {{price}}).",
       "closedNote": "It's been over 7 days since the customer's last message, so Zalo doesn't allow a reply. The customer needs to message the salon first.",
       "sendExplain": "Messages go out from the salon's Zalo OA and the customer reads them in Zalo. You don't need the Zalo app.",
-      "selectBody": "Messages customers send to the salon's Zalo OA appear here. You reply right here in GuGu Studio."
+      "selectBody": "Messages customers send to the salon's Zalo OA appear here. You reply right here in GuGu Studio.",
+      "suspendedNote": "This salon is suspended by GuGu: you can read messages but can't reply from here. The booking assistant and reminders are paused."
     },
     "notifications": {
       "title": "Needs attention",

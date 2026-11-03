@@ -100,6 +100,18 @@ export const envSchema = z
      * becomes active before this moment becomes a founding partner (X20). ISO 8601 UTC.
      */
     MARKETPLACE_LAUNCH_AT: z.iso.datetime().optional(),
+    /**
+     * GuGu support contact shown to salon members, e.g. in the suspension banner (q89). Set the
+     * real address per environment; the default only exists for local dev and tests.
+     */
+    SUPPORT_EMAIL: z.email().default("support@gugu.local"),
+    /** Optional support phone / Zalo number, shown as written (e.g. `0901 234 567`). */
+    SUPPORT_PHONE: z.string().trim().max(40).optional(),
+    /**
+     * Suspended salon (q89): the Zalo bot answers a conversation with the neutral "please contact
+     * the salon" notice at most once per this many hours.
+     */
+    ZALO_SUSPENDED_NOTICE_COOLDOWN_HOURS: z.coerce.number().min(1).max(720).default(24),
   })
   .transform((env) => ({
     ...env,

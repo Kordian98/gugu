@@ -6,6 +6,11 @@ import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { QueueService } from "../../../infrastructure/queue/queue.service";
 import { QUEUES } from "../../../infrastructure/queue/queues";
 import { type CsMessage, ZALO_CLIENT, ZaloApiError, type ZaloClient } from "../client/zalo-client";
+import {
+  allowedWhileSuspended,
+  parkedDedupKey,
+  SALON_SUSPENDED_REASON,
+} from "../domain/suspension";
 import { decideCs } from "../domain/window";
 import { ConnectionService } from "./connection.service";
 import { recordFunnel } from "./funnel.recorder";
@@ -242,16 +247,61 @@ export class OutboundService {
     });
   }
 
+  /**
+   * Logs a send that was skipped before it was ever queued (no chat row, nothing sent), e.g. a
+   * reminder of a suspended salon. Idempotent on `dedupKey`.
+   */
+  async logSkipped(
+    salonId: string,
+    item: {
+      channel: "cs" | "template";
+      purpose: string;
+      conversationId: string | null;
+      bookingId: string | null;
+      dedupKey: string;
+    },
+    errorCode: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.zaloSendLog.create({
+        data: { salonId, ...item, status: "rejected", errorCode, createdAt: this.clock.now() },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return;
+      throw error;
+    }
+  }
+
   private async sendOne(log: {
     id: string;
     salonId: string;
     purpose: string;
     conversationId: string | null;
+    dedupKey: string;
     request: Prisma.JsonValue;
   }): Promise<void> {
     const request = log.request as unknown as StoredRequest;
     const conn = await this.prisma.zaloOaConnection.findUnique({ where: { salonId: log.salonId } });
     if (conn?.status !== "connected") return this.reject(log.id, "not_connected");
+    // Suspended by GuGu (q89), checked at send time: only the neutral notice goes out. Bot and
+    // staff replies, reminders, booking updates and ZBS templates queued earlier are skipped.
+    const salon = await this.prisma.salon.findUnique({
+      where: { id: log.salonId },
+      select: { status: true },
+    });
+    if (salon?.status === "suspended" && !allowedWhileSuspended(log.purpose)) {
+      await this.prisma.zaloSendLog.update({
+        where: { id: log.id },
+        data: {
+          status: "rejected",
+          errorCode: SALON_SUSPENDED_REASON,
+          request: {},
+          // A reminder gives its key back, so the scan can send it after unsuspend if still due.
+          dedupKey: parkedDedupKey(log.purpose, log.dedupKey, log.id),
+        },
+      });
+      return;
+    }
 
     let tier: "free" | "paid" | "template";
     let cost = 0;
