@@ -277,13 +277,13 @@
     },
     "switch": {
       "eyebrow": "Switching",
-      "title": "Already using another app or a notebook?\nSwitch in minutes.",
-      "sub": "Snap your price list or your current system's service list. AI sets up your services. Effortless, in every plan.",
+      "title": "On a notebook or another app?\nMove to GuGu Studio in minutes.",
+      "sub": "Notebook, spreadsheet, Zalo chats or another booking app: AI builds your service menu from a photo, the rest is a few short steps.",
       "from": "Your price list",
       "to": "Your services in GuGu Studio",
-      "st1": "Snap your price list, or a screenshot from your old app",
-      "st2": "AI builds services, durations and prices",
-      "st3": "You check, then go live; clients get added as they book",
+      "st1": "Snap your price list or your old app's screen: AI creates your services",
+      "st2": "Add your team and their hours",
+      "st3": "Clients get added with their first booking",
       "ai": "AI setup",
       "walk": "Getting started",
       "win": "Services",
@@ -319,7 +319,11 @@
       "p9": "300,000₫",
       "n10": "Brow shaping",
       "d10": "30 min",
-      "p10": "120,000₫"
+      "p10": "120,000₫",
+      "st4": "Start taking bookings",
+      "oNb": "Notebook",
+      "oXl": "Spreadsheet",
+      "oApp": "Old app"
     },
     "walk": {
       "eyebrow": "Saturday · 9:12 · District 1",
@@ -356,7 +360,7 @@
       "f7b": "Messages to your salon's Zalo OA become bookings automatically.",
       "f8t": "Insights",
       "f8b": "Revenue, occupancy and no-shows as appointments complete.",
-      "chip": "Chair 2 + UV lamp reserved · 14:00",
+      "chip": "Chair 2 + UV lamp reserved · 10:00",
       "today": "Today",
       "with": "With GuGu Studio",
       "r1k": "Double bookings",
@@ -371,15 +375,13 @@
       "r3n": "≈10 min",
       "r3p": "Prices and durations live in one person's head",
       "r3g": "Services, options, add-ons and price ranges, set up from a photo of your price list.",
-      "r4k": "Team hours",
-      "r4n": "1 link",
-      "r4p": "“Who works on Sunday?” lost in the group chat",
-      "r4g": "Hours, breaks and who does which service, per person; invite staff with one link.",
       "facts": "Demo salon, this week: 40 bookings · 7 services · 4 team members, in one calendar",
       "eg": "Pains are illustrative examples.",
       "shotCal": "Calendar · chairs & devices reserved",
       "shotSvc": "Services · options & price ranges",
-      "shotAppt": "Appointments · one queue"
+      "shotAppt": "Appointments · one queue",
+      "callAppt": "Walk-ins, Zalo and phone: one list",
+      "callSvc": "Price ranges, options and add-ons"
     },
     "office": {
       "eyebrow": "Back office",
@@ -431,11 +433,11 @@
       "c3": "Back office",
       "next": "Next",
       "start": "Start the tour",
-      "cont": "Continue",
       "skip": "Skip the story",
       "label": "Story chapters",
       "after": "See the after",
-      "c4": "Switch"
+      "c4": "Switch from your old app",
+      "finish": "Finish journey"
     },
     "calc": {
       "t": "What fewer no-shows are worth",

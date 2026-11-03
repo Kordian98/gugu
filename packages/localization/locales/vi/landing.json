@@ -277,13 +277,13 @@
     },
     "switch": {
       "eyebrow": "Chuyển đổi",
-      "title": "Đang dùng ứng dụng khác hoặc sổ tay?\nChuyển sang trong vài phút.",
-      "sub": "Chụp bảng giá hoặc danh sách dịch vụ ở hệ thống cũ. AI thiết lập dịch vụ cho bạn. Nhẹ nhàng, có trong mọi gói.",
+      "title": "Đang dùng sổ tay hay app khác?\nChuyển sang GuGu Studio trong vài phút.",
+      "sub": "Sổ tay, Excel, tin nhắn Zalo hay một app đặt lịch khác: AI tạo bảng dịch vụ từ ảnh, phần còn lại chỉ vài bước ngắn.",
       "from": "Bảng giá của bạn",
       "to": "Dịch vụ của bạn trong GuGu Studio",
-      "st1": "Chụp bảng giá, hoặc ảnh màn hình ứng dụng cũ",
-      "st2": "AI tạo dịch vụ, thời lượng và giá",
-      "st3": "Bạn kiểm tra rồi bắt đầu; khách được thêm khi đặt lịch",
+      "st1": "Chụp bảng giá hoặc màn hình app cũ: AI tạo dịch vụ",
+      "st2": "Thêm nhân viên và giờ làm",
+      "st3": "Khách hàng được thêm cùng lịch hẹn đầu tiên",
       "ai": "Thiết lập bằng AI",
       "walk": "Bắt đầu",
       "win": "Dịch vụ",
@@ -319,7 +319,11 @@
       "p9": "300.000₫",
       "n10": "Tạo dáng chân mày",
       "d10": "30 phút",
-      "p10": "120.000₫"
+      "p10": "120.000₫",
+      "st4": "Bắt đầu nhận lịch hẹn",
+      "oNb": "Sổ tay",
+      "oXl": "Bảng tính",
+      "oApp": "App cũ"
     },
     "walk": {
       "eyebrow": "Thứ Bảy · 9:12 · Quận 1",
@@ -356,7 +360,7 @@
       "f7b": "Tin nhắn tới Zalo OA của salon tự động thành lịch hẹn.",
       "f8t": "Phân tích",
       "f8b": "Doanh thu, tỷ lệ lấp đầy và khách không đến khi lịch hoàn thành.",
-      "chip": "Ghế 2 + đèn UV đã giữ · 14:00",
+      "chip": "Ghế 2 + đèn UV đã giữ · 10:00",
       "today": "Hiện tại",
       "with": "Với GuGu Studio",
       "r1k": "Trùng lịch",
@@ -371,15 +375,13 @@
       "r3n": "≈10 phút",
       "r3p": "Giá và thời lượng chỉ nằm trong đầu một người",
       "r3g": "Dịch vụ, tuỳ chọn, dịch vụ thêm và khoảng giá, thiết lập từ ảnh chụp bảng giá.",
-      "r4k": "Giờ làm của đội",
-      "r4n": "1 link",
-      "r4p": "“Chủ nhật ai làm?” trôi mất trong nhóm chat",
-      "r4g": "Giờ làm, giờ nghỉ và ai làm dịch vụ nào, cho từng người; mời nhân viên bằng một link.",
       "facts": "Salon demo, tuần này: 40 lịch hẹn · 7 dịch vụ · 4 nhân viên, trong một lịch",
       "eg": "Các vấn đề là ví dụ minh hoạ.",
       "shotCal": "Lịch · giữ ghế & thiết bị",
       "shotSvc": "Dịch vụ · tuỳ chọn & khoảng giá",
-      "shotAppt": "Lịch hẹn · một hàng chờ"
+      "shotAppt": "Lịch hẹn · một hàng chờ",
+      "callAppt": "Khách vãng lai, Zalo và điện thoại: một danh sách",
+      "callSvc": "Khoảng giá, tuỳ chọn và dịch vụ thêm"
     },
     "office": {
       "eyebrow": "Phòng làm việc",
@@ -427,15 +429,15 @@
     "hud": {
       "c0": "Đến nơi",
       "c1": "Quầy lễ tân",
-      "c2": "Phòng làm",
+      "c2": "Phòng dịch vụ",
       "c3": "Văn phòng",
       "next": "Tiếp theo",
       "start": "Bắt đầu tham quan",
-      "cont": "Tiếp tục",
       "skip": "Bỏ qua câu chuyện",
       "label": "Các phần của câu chuyện",
       "after": "Xem sau khi dùng",
-      "c4": "Chuyển sang"
+      "c4": "Chuyển từ sổ/app cũ",
+      "finish": "Kết thúc hành trình"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",

@@ -7,8 +7,9 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { screen, type ScreenName } from "../screens";
 import { PHOTO } from "./media";
 
-const ROWS = ["r1", "r2", "r3", "r4"] as const;
-const SW_STEPS = ["st1", "st2", "st3"] as const;
+const SW_STEPS = ["st1", "st2", "st3", "st4"] as const;
+const SW_CELLS = Array.from({ length: 15 }, (_, i) => `c${String(i)}`);
+const ARROW = "\u2192";
 const SW_ROWS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] as const;
 const SPARK = "\u2726";
 const CROSS = "\u2715";
@@ -35,9 +36,17 @@ function Laptop({ src, className }: { src: string; className?: string }) {
   );
 }
 
+/** Treatment-area facts, each with the one CRM screen (and detail) it is about. */
+const FACTS = [
+  { k: "r1", shot: "calendarCrop", label: "shotCal", call: "chip", cls: "cal" },
+  { k: "r2", shot: "appointmentsCrop", label: "shotAppt", call: "callAppt", cls: "appt" },
+  { k: "r3", shot: "servicesCrop", label: "shotSvc", call: "callSvc", cls: "svc" },
+] as const;
+
 /**
- * Treatment area panel (inside the Journey stage): pain → gain in facts and numbers, next to the real CRM
- * screens of the seeded demo salon (calendar with a reserved resource, services, appointments).
+ * Treatment area panel (inside the Journey stage): one headline, then three facts revealed one at a time on
+ * scroll: a big number, the gain in one line, the old pain small, next to ONE real CRM screen of the
+ * seeded demo salon, shown large and cropped to the detail that matters, with a callout.
  */
 export function FeaturesPanel() {
   const { t } = useTranslation("landing");
@@ -47,51 +56,49 @@ export function FeaturesPanel() {
       <div className="t">
         <div className="fl-eye">{t("flow.features.eyebrow")}</div>
         <h2 className="fl-h">{t("flow.features.title")}</h2>
+        <div className="tr-dots" aria-hidden>
+          {FACTS.map((f) => (
+            <span key={f.k}>
+              <i className="tr-dot" />
+            </span>
+          ))}
+        </div>
       </div>
-      <div className="fx-rows">
-        {ROWS.map((k) => (
-          <div key={k} className="card fx">
-            <div className="fx-n">{t(`flow.features.${k}n`)}</div>
-            <div className="fx-b">
-              <h3>{t(`flow.features.${k}k`)}</h3>
-              <p className="fx-p">
-                <i>{CROSS}</i>
-                <span>
-                  <em>{t("flow.features.today")}</em>
-                  {t(`flow.features.${k}p`)}
-                </span>
-              </p>
-              <p className="fx-g">
-                <i>{CHECK}</i>
-                <span>{t(`flow.features.${k}g`)}</span>
-              </p>
-            </div>
+      <div className="tr-facts">
+        {FACTS.map((f) => (
+          <div key={f.k} className="tr-fact">
+            <div className="tr-n">{t(`flow.features.${f.k}n`)}</div>
+            <h3>{t(`flow.features.${f.k}k`)}</h3>
+            <p className="tr-g">{t(`flow.features.${f.k}g`)}</p>
+            <p className="tr-p">
+              <i>{CROSS}</i>
+              <span>
+                <em>{t("flow.features.today")}</em>
+                {t(`flow.features.${f.k}p`)}
+              </span>
+            </p>
           </div>
         ))}
-        <div className="fx-facts">
-          {t("flow.features.facts")}
-          {SEP}
-          {t("flow.features.eg")}
-        </div>
       </div>
-      <div className="fx-screens">
-        <div className="card fx-scr fx-cal">
-          <span className="fx-lbl">{t("flow.features.shotCal")}</span>
-          <img src={shot("calendarCrop")} alt="" decoding="async" loading="lazy" />
-          <div className="ft-chip">
-            <i>{PIN}</i>
-            {t("flow.features.chip")}
-          </div>
-        </div>
-        <div className="card fx-scr">
-          <span className="fx-lbl">{t("flow.features.shotSvc")}</span>
-          <img src={shot("servicesCrop")} alt="" decoding="async" loading="lazy" />
-        </div>
-        <div className="card fx-scr">
-          <span className="fx-lbl">{t("flow.features.shotAppt")}</span>
-          <img src={shot("appointmentsCrop")} alt="" decoding="async" loading="lazy" />
-        </div>
+      <div className="tr-shots">
+        {FACTS.map((f) => (
+          <figure key={f.k} className={`card tr-shot ${f.cls}`}>
+            <figcaption>{t(`flow.features.${f.label}`)}</figcaption>
+            <div className="tr-img">
+              <img src={shot(f.shot)} alt="" decoding="async" loading="lazy" />
+            </div>
+            <div className="tr-call">
+              <i>{PIN}</i>
+              {t(`flow.features.${f.call}`)}
+            </div>
+          </figure>
+        ))}
       </div>
+      <p className="tr-note">
+        {t("flow.features.facts")}
+        {SEP}
+        {t("flow.features.eg")}
+      </p>
     </div>
   );
 }
@@ -220,8 +227,10 @@ export function OfficePanel() {
 }
 
 /**
- * Switching (inside the Journey stage, still in the back office): from a notebook or another app in
- * minutes. A photographed price list turns into the GuGu Studio service menu via AI setup (every plan).
+ * Switching (inside the Journey stage, still in the back office): moving from the old system (a notebook,
+ * a spreadsheet, another app; generic, no real brands) into GuGu Studio. The photographed price list
+ * becomes the service menu via AI setup (every plan); the other steps are what really happens next
+ * (team + hours, clients added with their first booking, start taking bookings). No client import.
  */
 export function SwitchPanel() {
   const { t } = useTranslation("landing");
@@ -235,18 +244,42 @@ export function SwitchPanel() {
           {SW_STEPS.map((k, i) => (
             <li key={k}>
               <b>{String(i + 1)}</b>
-              {t(`flow.switch.${k}`)}
+              <span>{t(`flow.switch.${k}`)}</span>
+              <i className="ok">{CHECK}</i>
             </li>
           ))}
         </ol>
       </div>
       <div className="sw-demo">
-        <div className="plist sw-list">
-          <div className="lbl">{t("flow.switch.from")}</div>
-          <p>{t("flow.switch.list")}</p>
-          <span className="sw-scan" />
+        <div className="sw-old">
+          <div className="sw-o app" aria-hidden>
+            <div className="lbl">{t("flow.switch.oApp")}</div>
+            <div className="sw-app-ui">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+          <div className="sw-o xl" aria-hidden>
+            <div className="lbl">{t("flow.switch.oXl")}</div>
+            <div className="sw-grid">
+              {SW_CELLS.map((c) => (
+                <span key={c} />
+              ))}
+            </div>
+          </div>
+          <div className="sw-o nb plist sw-list">
+            <div className="lbl">{t("flow.switch.oNb")}</div>
+            <p>{t("flow.switch.list")}</p>
+            <span className="sw-scan" />
+          </div>
+        </div>
+        <div className="sw-arrow" aria-hidden>
+          {ARROW}
         </div>
         <div className="card sw-win">
+          {" "}
           <div className="sw-bar">
             <span />
             <span />

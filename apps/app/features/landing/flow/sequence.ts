@@ -5,7 +5,8 @@
  * frames 720×1280 portrait crops that pan with the subject (~2 MB per walk).
  *
  * Smoothness: the position is a float, and the two neighbouring frames are cross-blended, so slow scrolling
- * glides instead of stepping. Loading is progressive (every 8th frame first, then 4th, 2nd, all) per walk,
+ * glides instead of stepping. Loading is progressive (every 8th frame first, then 4th, 2nd, all) per walk
+ * (the next walk preloads as soon as one completes),
  * nearest-loaded fallback, draws only in rAF when the position changes.
  */
 export type Segment = "w1" | "w2" | "w3";
@@ -43,6 +44,16 @@ export class WalkPlayer {
     for (const step of [8, 4, 2, 1])
       for (let i = 0; i < FRAMES; i += step) if (!order.includes(i)) order.push(i);
     let k = 0;
+    let done = 0;
+    const settle = () => {
+      done += 1;
+      // When a walk is complete, preload the next one in the background, so a fast flick or a chapter
+      // jump never lands on an empty walk.
+      if (done === FRAMES) {
+        const nextSeg = SEGMENTS[SEGMENTS.indexOf(seg) + 1];
+        if (nextSeg) this.load(nextSeg);
+      }
+    };
     const next = () => {
       const i = order[k++];
       if (i === undefined) return;
@@ -51,9 +62,13 @@ export class WalkPlayer {
       img.onload = () => {
         tr.imgs[i] = img;
         if (seg === this.seg) this.schedule(true);
+        settle();
         next();
       };
-      img.onerror = next;
+      img.onerror = () => {
+        settle();
+        next();
+      };
       img.src = frameUrl(seg, this.mobile, i);
     };
     for (let lane = 0; lane < 4; lane++) next();

@@ -8,11 +8,11 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { HeroCopy } from "../StudioHero";
 import { screen } from "../screens";
 import type { LandingNavActions } from "../useLandingNav";
-import { chapterScroller, type Chapters } from "./chapters";
 import { PHOTO } from "./media";
 import { FeaturesPanel, OfficePanel, SwitchPanel } from "./Rooms";
 import { WalkPlayer } from "./sequence";
-import { DURATIONS, STOPS, buildJourney, scrollParent } from "./timelines";
+import { scrollStory, type StoryApi } from "./story";
+import { BEATS, WIPE, buildJourney, scrollParent } from "./timelines";
 
 const NOTES = ["n1", "n2", "n3"] as const;
 const ENTRIES = ["e1", "e2", "e3", "e4"] as const;
@@ -28,13 +28,16 @@ const CHECK = "✓";
 const SEP = " · ";
 const ZERO = "0";
 const DOWN = "↓";
-/** Navigation chapters; "front desk" spans two scroll stops (before | after), shown as a split bar. */
+/**
+ * Navigation chapters → resting beats (BEATS): "front desk" spans before | after, the treatment room its
+ * three facts; each beat is one segment of the chapter's bar.
+ */
 const HUD = [
   { k: "c0", stops: [0] },
   { k: "c1", stops: [1, 2] },
-  { k: "c2", stops: [3] },
-  { k: "c3", stops: [4] },
-  { k: "c4", stops: [5] },
+  { k: "c2", stops: [3, 4, 5] },
+  { k: "c3", stops: [6] },
+  { k: "c4", stops: [7] },
 ] as const;
 const ARROWS = "\u25C0\u25B6";
 
@@ -43,7 +46,8 @@ const ARROWS = "\u25C0\u25B6";
  * full screen and we walk in; at the front desk the frame freezes into a before/after split (the same
  * receptionist drowning in Zalo + notebook vs calm with GuGu Studio, both whitened, UI on each half);
  * then we walk on into the treatment area (features of that room) and the back office (overview,
- * earnings calculator, assistant). A HUD steps between chapters; one gesture plays one transition.
+ * earnings calculator, assistant) and switching. The scroll position drives it continuously (story.ts);
+ * the HUD shows progress and jumps between chapters on the same smooth path.
  */
 export function Journey({
   nav,
@@ -59,7 +63,7 @@ export function Journey({
   const track = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const hud = useRef<HTMLElement>(null);
-  const ch = useRef<Chapters | null>(null);
+  const ch = useRef<StoryApi | null>(null);
   const zero = (d: number) =>
     new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(0);
 
@@ -83,18 +87,35 @@ export function Journey({
     };
     onResize();
     window.addEventListener("resize", onResize);
+    let render: ReturnType<typeof buildJourney>["render"] = () => undefined;
     const ctx = gsap.context(() => {
-      buildJourney(el, gsap.utils.selector(el), player, hud.current, locale);
+      render = buildJourney(el, gsap.utils.selector(el), player, hud.current, locale).render;
     }, el);
-    // Before/after handle: drag to compare (writes --x on the split; the scroll sweep sets it too).
+    const sc = scrollParent(el);
+    ch.current =
+      sc instanceof HTMLElement
+        ? scrollStory({
+            scroller: sc,
+            track: el,
+            beats: BEATS,
+            wipe: WIPE,
+            render: (time, px, lay) => {
+              render(time, px, lay);
+            },
+            exitTo: () => document.getElementById("fl-biz"),
+          })
+        : null;
+    if (__DEV__) (window as unknown as { __story?: StoryApi | null }).__story = ch.current;
+    // Before/after handle: dragging it scrubs the scroll through the sweep, so the divider, the story and
+    // the scrollbar always agree (scrolling moves the divider too).
     const sp = el.querySelector<HTMLElement>(".sp");
     const knob = el.querySelector<HTMLElement>(".sp-knob");
     let dragging = false;
     const move = (e: PointerEvent) => {
       if (!dragging || !sp) return;
       const r = sp.getBoundingClientRect();
-      const x = Math.max(4, Math.min(96, ((e.clientX - r.left) / r.width) * 100));
-      sp.style.setProperty("--x", `${x.toFixed(1)}%`);
+      const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+      ch.current?.scrubWipe(1 - x);
     };
     const down = (e: PointerEvent) => {
       dragging = true;
@@ -107,8 +128,6 @@ export function Journey({
     knob?.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
-    const sc = scrollParent(el);
-    ch.current = sc instanceof HTMLElement ? chapterScroller(sc, el, STOPS, DURATIONS) : null;
     return () => {
       knob?.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
@@ -340,7 +359,7 @@ export function Journey({
             <span className="l-start">{t("flow.hud.start")}</span>
             <span className="l-next">{t("flow.hud.next")}</span>
             <span className="l-after">{t("flow.hud.after")}</span>
-            <span className="l-cont">{t("flow.hud.cont")}</span>
+            <span className="l-cont">{t("flow.hud.finish")}</span>
             <i>{DOWN}</i>
           </button>
         </nav>
@@ -348,7 +367,7 @@ export function Journey({
           type="button"
           className="jr-skip"
           onClick={() => {
-            ch.current?.skipTo(document.getElementById("fl-biz"));
+            ch.current?.exit();
           }}
         >
           {t("flow.hud.skip")}
