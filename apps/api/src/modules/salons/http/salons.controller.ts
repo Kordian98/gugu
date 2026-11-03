@@ -10,6 +10,10 @@ import {
   salonMemberListSchema,
   type SalonMemberList,
   salonParamsSchema,
+  type SalonQuickStartInput,
+  salonQuickStartInputSchema,
+  type SalonQuickStartResult,
+  salonQuickStartResultSchema,
   type SalonRegistrationInput,
   salonRegistrationInputSchema,
   type SalonRegistrationResult,
@@ -19,14 +23,17 @@ import {
   type UpdateSalonProfileInput,
   updateSalonProfileInputSchema,
 } from "@gugu/contracts";
-import { Public, RequirePermission } from "../../../common/guards/auth-policy";
+import { Authenticated, Public, RequirePermission } from "../../../common/guards/auth-policy";
 import {
   CurrentPrincipal,
   CurrentSalon,
+  CurrentUser,
   type Principal,
   type SalonContext,
+  type UserPrincipal,
 } from "../../../common/guards/principal";
 import { requestMeta } from "../../auth/auth.facade";
+import { QuickStartSalonCommand } from "../application/quick-start-salon.command";
 import { RegisterSalonCommand } from "../application/register-salon.command";
 import { SalonQueries } from "../application/salon.queries";
 import { UpdateSalonProfileCommand } from "../application/update-salon-profile.command";
@@ -38,6 +45,7 @@ export class SalonsController {
     private readonly register: RegisterSalonCommand,
     private readonly queries: SalonQueries,
     private readonly updateProfile: UpdateSalonProfileCommand,
+    private readonly quickStart: QuickStartSalonCommand,
   ) {}
 
   @Get("public/categories")
@@ -83,6 +91,33 @@ export class SalonsController {
     @Req() req: Request,
   ): Promise<SalonRegistrationResult> {
     return this.register.execute(body, principal, requestMeta(req));
+  }
+
+  @Post("salons/quick-start")
+  @Authenticated()
+  @HttpCode(200)
+  @ApiOperation({
+    operationId: "salons.quickStart",
+    summary:
+      "Email-only signup: create the caller's first salon as a draft with smart defaults (idempotent per user).",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "The caller's salon (created now or earlier).",
+    standardSchema: salonQuickStartResultSchema,
+  })
+  @ApiResponse({
+    status: 409,
+    description: "A salon registered with this email waits for confirmation.",
+    standardSchema: problemSchema,
+  })
+  @ApiResponse({ status: 429, description: "Rate limited.", standardSchema: problemSchema })
+  async quickStartSalon(
+    @Body({ schema: salonQuickStartInputSchema }) body: SalonQuickStartInput,
+    @CurrentUser() user: UserPrincipal,
+    @Req() req: Request,
+  ): Promise<SalonQuickStartResult> {
+    return this.quickStart.execute(user, body.locale ?? "vi", requestMeta(req));
   }
 
   @Get("salons/:salonId")

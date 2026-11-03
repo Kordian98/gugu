@@ -14,6 +14,7 @@ export const SALON_ERRORS = {
   unknownCategory: "salon.unknown_category",
   unknownLocation: "salon.unknown_location",
   emailRequired: "salon.email_required",
+  pendingConfirmation: "salon.pending_confirmation",
 } as const;
 
 export const salonRegistrationInputSchema = z.object({
@@ -67,3 +68,24 @@ export const categoryItemSchema = z.object({
 export type CategoryItem = z.infer<typeof categoryItemSchema>;
 
 export const categoryListSchema = z.object({ items: z.array(categoryItemSchema) });
+
+/**
+ * Email-only signup (owner 2026-11-04): `POST /api/v1/salons/quick-start`, signed in. Creates the
+ * caller's first salon as a draft with smart defaults (placeholder name, Asia/Ho_Chi_Minh, vi,
+ * default booking window, trial + free Basic year) so nothing blocks entry. Idempotent per user:
+ * a double click or a retry returns the same salon with `created: false`.
+ */
+export const salonQuickStartInputSchema = z.object({
+  /** Language the owner signed up in; picks the placeholder name. The salon itself defaults to vi. */
+  locale: localeSchema.default("vi"),
+});
+export type SalonQuickStartInput = z.input<typeof salonQuickStartInputSchema>;
+
+export const salonQuickStartResultSchema = z.object({
+  salonId: uuidV7Schema,
+  created: z.boolean(),
+});
+export type SalonQuickStartResult = z.infer<typeof salonQuickStartResultSchema>;
+
+/** Placeholder salon names until the owner names the salon in the first wizard step. */
+export const PLACEHOLDER_SALON_NAME = { vi: "Salon của tôi", en: "My salon" } as const;

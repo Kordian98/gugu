@@ -78,6 +78,8 @@ export type ZaloConnection = z.infer<typeof zaloConnectionSchema>;
 export const zaloStartConnectionSchema = z.object({
   /** Where the panel should return after Zalo (locale prefix only). */
   locale: z.enum(["vi", "en"]).default("vi"),
+  /** Return to the Zalo settings panel (default) or to the setup wizard's Zalo step. */
+  returnTo: z.enum(["settings", "setup"]).default("settings"),
 });
 export const zaloStartConnectionResultSchema = z.object({ authorizeUrl: z.url() });
 export type ZaloStartConnectionResult = z.infer<typeof zaloStartConnectionResultSchema>;

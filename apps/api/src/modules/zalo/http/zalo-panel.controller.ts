@@ -91,10 +91,11 @@ export class ZaloPanelController {
   @ApiResponse({ status: 503, description: "Zalo disabled.", standardSchema: problemSchema })
   start(
     @Param({ schema: salonParamsSchema }) p: SalonParams,
-    @Body({ schema: zaloStartConnectionSchema }) body: { locale: "vi" | "en" },
+    @Body({ schema: zaloStartConnectionSchema })
+    body: { locale: "vi" | "en"; returnTo: "settings" | "setup" },
     @CurrentUser() user: UserPrincipal,
   ): Promise<ZaloStartConnectionResult> {
-    return this.connections.start(p.salonId, user.userId, body.locale);
+    return this.connections.start(p.salonId, user.userId, body.locale, body.returnTo);
   }
 
   @Post("connection/disconnect")

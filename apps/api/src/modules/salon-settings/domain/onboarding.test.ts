@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { onboardingProgress, type OnboardingFacts } from "./onboarding";
 
 const base: OnboardingFacts = {
-  hasAddressAndPhone: false,
+  hasBusinessBasics: false,
   activeServices: 0,
   openingDays: 0,
   readyStaff: 0,
@@ -16,7 +16,7 @@ describe("onboarding progress", () => {
   it("allows go-live once business, services, hours and team are done", () => {
     const r = onboardingProgress({
       ...base,
-      hasAddressAndPhone: true,
+      hasBusinessBasics: true,
       activeServices: 2,
       openingDays: 6,
       readyStaff: 1,
@@ -24,7 +24,7 @@ describe("onboarding progress", () => {
     expect(r).toEqual({ done: ["business", "services", "hours", "team"], canGoLive: true });
   });
   it("marks live for active salons and never offers go-live again", () => {
-    const r = onboardingProgress({ ...base, hasAddressAndPhone: true, status: "active" });
+    const r = onboardingProgress({ ...base, hasBusinessBasics: true, status: "active" });
     expect(r.done).toEqual(["business", "live"]);
     expect(r.canGoLive).toBe(false);
   });

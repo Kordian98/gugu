@@ -1,7 +1,8 @@
 import type { OnboardingStep } from "@gugu/contracts";
 
 export interface OnboardingFacts {
-  hasAddressAndPhone: boolean;
+  /** Named in the setup wizard, or phone + address from the old registration form. */
+  hasBusinessBasics: boolean;
   activeServices: number;
   openingDays: number;
   /** Bookable staff with at least one schedule row and one service assignment. */
@@ -15,7 +16,7 @@ export function onboardingProgress(f: OnboardingFacts): {
   canGoLive: boolean;
 } {
   const done: OnboardingStep[] = [];
-  if (f.hasAddressAndPhone) done.push("business");
+  if (f.hasBusinessBasics) done.push("business");
   if (f.activeServices > 0) done.push("services");
   if (f.openingDays > 0) done.push("hours");
   if (f.readyStaff > 0) done.push("team");

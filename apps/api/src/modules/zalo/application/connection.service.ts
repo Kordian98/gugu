@@ -27,6 +27,8 @@ interface OAuthState {
   userId: string;
   verifier: string;
   locale: "vi" | "en";
+  /** Where the browser returns: the Zalo settings panel (default) or the setup wizard. */
+  returnTo?: "settings" | "setup";
 }
 
 /**
@@ -86,11 +88,12 @@ export class ConnectionService {
     salonId: string,
     userId: string,
     locale: "vi" | "en",
+    returnTo: "settings" | "setup" = "settings",
   ): Promise<{ authorizeUrl: string }> {
     this.assertEnabled();
     const state = randomBytes(24).toString("base64url");
     const verifier = randomBytes(48).toString("base64url");
-    const payload: OAuthState = { salonId, userId, verifier, locale };
+    const payload: OAuthState = { salonId, userId, verifier, locale, returnTo };
     await this.redis.client.set(`zalo:oauth:${state}`, JSON.stringify(payload), "EX", STATE_TTL_S);
     return {
       authorizeUrl: this.client.authorizeUrl({
@@ -105,7 +108,15 @@ export class ConnectionService {
     return `${this.config.env.API_PUBLIC_URL}${ZALO_CALLBACK_PATH}`;
   }
 
-  private returnUrl(locale: "vi" | "en", result: string): string {
+  private returnUrl(
+    locale: "vi" | "en",
+    result: string,
+    returnTo: OAuthState["returnTo"] = "settings",
+  ): string {
+    // Fixed paths only (an enum, never a client URL): no open redirect.
+    if (returnTo === "setup") {
+      return `${this.config.env.WEB_APP_URL}/${locale}/business/setup?step=zalo&zalo=${result}`;
+    }
     return `${this.config.env.WEB_APP_URL}/${locale}/business/settings?section=zalo&zalo=${result}`;
   }
 
@@ -117,7 +128,7 @@ export class ConnectionService {
     const raw = input.state ? await this.redis.client.getdel(`zalo:oauth:${input.state}`) : null;
     if (!raw) return this.returnUrl("vi", "expired");
     const state = JSON.parse(raw) as OAuthState;
-    if (!input.code) return this.returnUrl(state.locale, "denied");
+    if (!input.code) return this.returnUrl(state.locale, "denied", state.returnTo);
     try {
       const tokens = await this.client.exchangeCode({
         code: input.code,
@@ -125,7 +136,7 @@ export class ConnectionService {
       });
       const oa = await this.client.getOa(tokens.accessToken);
       if (!(await this.entitlements.isEnabled(state.salonId, "zalo.oa_connect"))) {
-        return this.returnUrl(state.locale, "plan");
+        return this.returnUrl(state.locale, "plan", state.returnTo);
       }
       const data = {
         oaId: oa.oaId,
@@ -159,16 +170,16 @@ export class ConnectionService {
           tx,
         );
       });
-      return this.returnUrl(state.locale, "connected");
+      return this.returnUrl(state.locale, "connected", state.returnTo);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        return this.returnUrl(state.locale, "oa_in_use");
+        return this.returnUrl(state.locale, "oa_in_use", state.returnTo);
       }
       this.logger.warn(
         { salonId: state.salonId, err: (error as Error).message },
         "zalo oauth failed",
       );
-      return this.returnUrl(state.locale, "failed");
+      return this.returnUrl(state.locale, "failed", state.returnTo);
     }
   }
 
