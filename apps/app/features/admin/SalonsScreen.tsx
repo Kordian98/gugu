@@ -60,6 +60,9 @@ export function SalonsScreen() {
   const [draft, setDraft] = useState("");
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState<Filters>({ sort: "created_desc" });
+  // Phones: filters fold away behind one button so the list stays in view.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilters = (Object.keys(OPTIONS) as FilterId[]).filter((id) => filters[id]).length;
   const list = useAdminSalons(toApi(filters, q));
   const items = list.data?.pages.flatMap((p) => p.items) ?? [];
   const total = list.data?.pages[0]?.total ?? 0;
@@ -123,43 +126,59 @@ export function SalonsScreen() {
             style={{ flex: 1, color: c.ink, fontSize: 14, outlineWidth: 0 }}
           />
         </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {(Object.keys(OPTIONS) as FilterId[]).map((id) => (
-            <View key={id} style={{ width: mobile ? "48%" : 180, gap: 4 }}>
-              <Text size={12} color={c.muted}>
-                {filterLabels[id]}
-              </Text>
-              <Select
-                testID={`admin-filter-${id}`}
-                label={filterLabels[id]}
-                placeholder={any}
-                value={filters[id] ?? "any"}
-                options={[
-                  { id: "any", label: any },
-                  ...OPTIONS[id].map((v) => ({ id: v, label: label(id, v) })),
-                ]}
-                onChange={(v) => {
-                  setFilters((f) => ({ ...f, [id]: v === "any" ? undefined : v }));
-                }}
-              />
-            </View>
-          ))}
-          <View style={{ width: mobile ? "48%" : 200, gap: 4 }}>
-            <Text size={12} color={c.muted}>
-              {t("salons.filter.sort")}
-            </Text>
-            <Select
-              testID="admin-sort"
-              label={t("salons.filter.sort")}
-              placeholder={t("salons.sort.created_desc")}
-              value={filters.sort}
-              options={ADMIN_SALON_SORTS.map((s) => ({ id: s, label: t(`salons.sort.${s}`) }))}
-              onChange={(v) => {
-                setFilters((f) => ({ ...f, sort: v }));
+        {mobile ? (
+          <View style={{ flexDirection: "row" }}>
+            <CalmButton
+              testID="admin-toggle-filters"
+              variant="secondary"
+              size="sm"
+              icon="settings"
+              label={t("salons.filtersCount", { count: activeFilters })}
+              onPress={() => {
+                setFiltersOpen((o) => !o);
               }}
             />
           </View>
-        </View>
+        ) : null}
+        {mobile && !filtersOpen ? null : (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {(Object.keys(OPTIONS) as FilterId[]).map((id) => (
+              <View key={id} style={{ width: mobile ? "48%" : 180, gap: 4 }}>
+                <Text size={12} color={c.muted}>
+                  {filterLabels[id]}
+                </Text>
+                <Select
+                  testID={`admin-filter-${id}`}
+                  label={filterLabels[id]}
+                  placeholder={any}
+                  value={filters[id] ?? "any"}
+                  options={[
+                    { id: "any", label: any },
+                    ...OPTIONS[id].map((v) => ({ id: v, label: label(id, v) })),
+                  ]}
+                  onChange={(v) => {
+                    setFilters((f) => ({ ...f, [id]: v === "any" ? undefined : v }));
+                  }}
+                />
+              </View>
+            ))}
+            <View style={{ width: mobile ? "48%" : 200, gap: 4 }}>
+              <Text size={12} color={c.muted}>
+                {t("salons.filter.sort")}
+              </Text>
+              <Select
+                testID="admin-sort"
+                label={t("salons.filter.sort")}
+                placeholder={t("salons.sort.created_desc")}
+                value={filters.sort}
+                options={ADMIN_SALON_SORTS.map((s) => ({ id: s, label: t(`salons.sort.${s}`) }))}
+                onChange={(v) => {
+                  setFilters((f) => ({ ...f, sort: v }));
+                }}
+              />
+            </View>
+          </View>
+        )}
         <View style={{ flexDirection: "row" }}>
           <CalmButton
             variant="ghost"

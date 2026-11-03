@@ -154,7 +154,8 @@
     "zaloOn": "Đã kết nối",
     "zaloOff": "—",
     "empty": "Không có salon nào khớp với bộ lọc.",
-    "loadMore": "Xem thêm"
+    "loadMore": "Xem thêm",
+    "filtersCount": "Bộ lọc ({{count}})"
   },
   "detail": {
     "back": "Tất cả salon",

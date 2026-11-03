@@ -154,7 +154,8 @@
     "zaloOn": "Connected",
     "zaloOff": "—",
     "empty": "No salons match these filters.",
-    "loadMore": "Show more"
+    "loadMore": "Show more",
+    "filtersCount": "Filters ({{count}})"
   },
   "detail": {
     "back": "All salons",
