@@ -2,7 +2,7 @@
 
 Every fal.ai call for the hero and homepage prototype, generated from `scripts/runs.jsonl` by `scripts/prompts_md.py`. FLUX 3 edit and Kling v4 expose no seed parameter, so the fal request ID plus the exact prompt and reference files are the reproducibility record. Costs are estimates from the fal model pages (2K FLUX tier and BiRefNet price not verified; check the fal dashboard for the actual bill).
 
-**Calls:** 110 · **Estimated spend:** $5.93
+**Calls:** 116 · **Estimated spend:** $5.93
 
 | # | Name | Endpoint | Request ID | Refs | Output | Est. $ |
 |---|---|---|---|---|---|---|
@@ -116,6 +116,12 @@ Every fal.ai call for the hero and homepage prototype, generated from `scripts/r
 | 108 | walk1-brand-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a00c-c493-73d0-acd8-267ac6e5ea1d` |  |  | 0.000 |
 | 109 | walk2-brand-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a00e-f665-72d2-a584-55e67f8810f7` |  |  | 0.000 |
 | 110 | walk3-brand-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a00e-f666-73e0-a25f-9c5a99758ec4` |  |  | 0.000 |
+| 111 | treatment-brand2 | `fal-ai/nano-banana-pro/edit` | `01a1a023-833a-7b32-9732-54b7fdde0d7b` |  |  | 0.000 |
+| 112 | walk3-brand2 | `alibaba/wan-3.0-prime/image-to-video` | `01a1a024-7c62-76a1-96a4-5eb8fdd56e23` |  |  | 0.000 |
+| 113 | walk3-brand2-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a026-15d4-7fc1-bf54-ed1322ff0872` |  |  | 0.000 |
+| 114 | exterior-brand2 | `fal-ai/nano-banana-pro/edit` | `01a1a025-9fe1-70c0-af84-4b37bb83bac7` |  |  | 0.000 |
+| 115 | walk1-brand2 | `alibaba/wan-3.0-prime/image-to-video` | `01a1a026-62b5-7580-970f-8feae1f4477b` |  |  | 0.000 |
+| 116 | walk1-brand2-4k | `fal-ai/bytedance-upscaler/upscale/video` | `01a1a027-cb74-74b0-8aac-00f02752c47e` |  |  | 0.000 |
 
 ## Prompts and settings
 
@@ -837,6 +843,54 @@ Treatment -> back office; owner visible through the door from the start. 6 s.
 
 ### 110. walk3-brand-4k
 - Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T13:40:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 111. treatment-brand2
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T14:00:00+00:00
+- Settings: `{}`
+
+```
+Treatment area: office visible through the door matches the real back office (owner, desk, monitor, gugu print).
+```
+
+### 112. walk3-brand2
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T14:00:00+00:00
+- Settings: `{}`
+
+```
+Treatment -> office, same room throughout.
+```
+
+### 113. walk3-brand2-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T14:00:00+00:00
+- Settings: `{}`
+
+```
+4K upscale.
+```
+
+### 114. exterior-brand2
+- Endpoint: `fal-ai/nano-banana-pro/edit` · at 2026-11-03T14:00:00+00:00
+- Settings: `{}`
+
+```
+Exterior with the receptionist and waiting customers visible through the glass.
+```
+
+### 115. walk1-brand2
+- Endpoint: `alibaba/wan-3.0-prime/image-to-video` · at 2026-11-03T14:00:00+00:00
+- Settings: `{}`
+
+```
+Exterior -> reception; nobody appears or disappears.
+```
+
+### 116. walk1-brand2-4k
+- Endpoint: `fal-ai/bytedance-upscaler/upscale/video` · at 2026-11-03T14:00:00+00:00
 - Settings: `{}`
 
 ```

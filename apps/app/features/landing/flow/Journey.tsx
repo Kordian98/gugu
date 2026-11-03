@@ -1,10 +1,12 @@
 import { useLayoutEffect, useRef } from "react";
+import { Asset } from "expo-asset";
 import { gsap } from "gsap";
 import { useTranslation } from "react-i18next";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { HeroCopy } from "../StudioHero";
+import { screen } from "../screens";
 import type { LandingNavActions } from "../useLandingNav";
 import { chapterScroller, type Chapters } from "./chapters";
 import { PHOTO } from "./media";
@@ -14,15 +16,25 @@ import { DURATIONS, STOPS, buildJourney, scrollParent } from "./timelines";
 
 const NOTES = ["n1", "n2", "n3"] as const;
 const ENTRIES = ["e1", "e2", "e3", "e4"] as const;
-const GUGU = ["g1", "g2", "g3"] as const;
-const GAINS = ["g1", "g2", "g3"] as const;
+const BEFORE = ["b1", "b2", "b3", "b4"] as const;
+const AFTER = ["a1", "a2", "a3", "a4", "a5"] as const;
+const GAINS = ["g2", "g3"] as const;
+const SAVED = ["r1", "r2", "r3"] as const;
+const RING = 40;
+const CIRC = 2 * Math.PI * RING;
 const Z = "Z";
 const PHONE = "☎";
 const CHECK = "✓";
 const SEP = " · ";
 const ZERO = "0";
 const DOWN = "↓";
-const HUD = ["c0", "c1", "c2", "c3"] as const;
+/** Navigation chapters; "front desk" spans two scroll stops (before | after), shown as a split bar. */
+const HUD = [
+  { k: "c0", stops: [0] },
+  { k: "c1", stops: [1, 2] },
+  { k: "c2", stops: [3] },
+  { k: "c3", stops: [4] },
+] as const;
 const ARROWS = "\u25C0\u25B6";
 
 /**
@@ -47,6 +59,8 @@ export function Journey({
   const canvas = useRef<HTMLCanvasElement>(null);
   const hud = useRef<HTMLElement>(null);
   const ch = useRef<Chapters | null>(null);
+  const zero = (d: number) =>
+    new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d }).format(0);
 
   useLayoutEffect(() => {
     const el = track.current;
@@ -69,7 +83,7 @@ export function Journey({
     onResize();
     window.addEventListener("resize", onResize);
     const ctx = gsap.context(() => {
-      buildJourney(el, gsap.utils.selector(el), player, hud.current);
+      buildJourney(el, gsap.utils.selector(el), player, hud.current, locale);
     }, el);
     // Before/after handle: drag to compare (writes --x on the split; the scroll sweep sets it too).
     const sp = el.querySelector<HTMLElement>(".sp");
@@ -135,93 +149,153 @@ export function Journey({
 
           {/* front desk: before | after */}
           <div className="sp">
+            {/* everything left of the divider is "before" (photo + content) */}
             <div className="sp-h sp-l">
               <img src={PHOTO.stress169} alt="" decoding="async" />
               <div className="sp-veil" />
+              <div className="sp-ui sp-ui-l">
+                <span className="sp-tag b">{t("flow.pain.before")}</span>
+                <div className="sp-head">
+                  <div className="fl-eye">{t("flow.pain.eyebrow")}</div>
+                  <h2 className="fl-h">{t("flow.pain.title")}</h2>
+                </div>
+                <div className="pn-stat">
+                  <span className="pre">{t("flow.pain.pre")}</span>
+                  <span className="big">
+                    <b className="pn-num">{t("flow.pain.statNum")}</b>
+                    <small>{t("flow.pain.statUnit")}</small>
+                  </span>
+                  <p>{t("flow.pain.statLabel")}</p>
+                </div>
+                <ol className="sp-steps b">
+                  {BEFORE.map((k, i) => (
+                    <li key={k}>
+                      <b>{String(i + 1)}</b>
+                      {t(`flow.ba.${k}`)}
+                    </li>
+                  ))}
+                </ol>
+                <div className="sp-row">
+                  <div className="pn-notes">
+                    <div className="pn-badge">
+                      <b className="pn-count">{ZERO}</b>
+                      {t("flow.pain.unread")}
+                    </div>
+                    {NOTES.map((k) => (
+                      <div key={k} className="pn-n">
+                        <i>{Z}</i>
+                        <div>
+                          <small>
+                            {t("flow.pain.zalo")}
+                            {SEP}
+                            {t("flow.pain.now")}
+                          </small>
+                          {t(`flow.pain.${k}`)}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="pn-n call">
+                      <i>{PHONE}</i>
+                      <div>{t("flow.pain.n5")}</div>
+                    </div>
+                  </div>
+                  <div className="pn-book">
+                    <div className="lbl">{t("flow.pain.book")}</div>
+                    {ENTRIES.map((k, i) => (
+                      <div key={k} className={`pn-e x${String(i + 1)}${i === 3 ? " hot" : ""}`}>
+                        {t(`flow.pain.${k}`)}
+                        <s />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
+            {/* everything right of the divider is "after" (photo + content) */}
             <div className="sp-h sp-r">
               <img src={PHOTO.calm169} alt="" decoding="async" />
               <div className="sp-veil" />
+              <div className="sp-ui sp-ui-r">
+                <span className="sp-tag a">{t("flow.pain.after")}</span>
+                <div className="sp-head">
+                  <div className="fl-eye">{t("flow.pain.calmEyebrow")}</div>
+                  <h2 className="fl-h">{t("flow.pain.calmTitle")}</h2>
+                </div>
+                <p className="pn-calm">{t("flow.pain.calmSub")}</p>
+                <div className="pn-g">
+                  {AFTER.map((k) => (
+                    <div key={k} className="pn-gi">
+                      <i>{CHECK}</i>
+                      {t(`flow.ba.${k}`)}
+                    </div>
+                  ))}
+                </div>
+                <div className="sp-gains">
+                  {GAINS.map((k) => (
+                    <div key={k} className="sp-gain">
+                      <b>{t(`flow.pain.${k}n`)}</b>
+                      <span>{t(`flow.pain.${k}l`)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="sp-app">
+                  <div className="card sp-cal">
+                    <img
+                      src={Asset.fromModule(screen(locale, "timeline")).uri}
+                      alt=""
+                      decoding="async"
+                    />
+                    <div className="sp-booked">
+                      <i>{CHECK}</i>
+                      {t("flow.ba.booked")}
+                    </div>
+                  </div>
+                  <div className="sp-rem">
+                    <small>{t("flow.pain.zalo")}</small>
+                    {t("flow.ba.remind")}
+                    <span className="sp-come">{t("flow.ba.come")}</span>
+                  </div>
+                  <div className="card sv">
+                    <div className="sv-ring">
+                      <svg viewBox="0 0 100 100" aria-hidden>
+                        <circle className="bg" cx="50" cy="50" r={RING} />
+                        <circle
+                          className="fg"
+                          cx="50"
+                          cy="50"
+                          r={RING}
+                          strokeDasharray={CIRC}
+                          strokeDashoffset={CIRC}
+                        />
+                      </svg>
+                      <div>
+                        <span className="sv-num">{zero(1)}</span>
+                        <span className="sv-unit">{t("flow.saved.unit")}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="sv-t">
+                        {t("flow.saved.title")}
+                        <em>{t("flow.saved.eg")}</em>
+                      </div>
+                      <div className="sv-rows">
+                        {SAVED.map((k) => (
+                          <div key={k}>
+                            <b className={`sv-${k}`}>{zero(0)}</b>
+                            <span>{t(`flow.saved.${k}`)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="sp-line" />
             <button type="button" className="sp-knob" aria-label={t("flow.pain.drag")}>
               {ARROWS}
             </button>
 
-            <div className="sp-ui sp-ui-l">
-              <span className="sp-tag b">{t("flow.pain.before")}</span>
-              <div className="sp-head">
-                <div className="fl-eye">{t("flow.pain.eyebrow")}</div>
-                <h2 className="fl-h">{t("flow.pain.title")}</h2>
-              </div>
-              <div className="pn-stat">
-                <span className="pre">{t("flow.pain.pre")}</span>
-                <span className="big">
-                  <b className="pn-num">{t("flow.pain.statNum")}</b>
-                  <small>{t("flow.pain.statUnit")}</small>
-                </span>
-                <p>{t("flow.pain.statLabel")}</p>
-              </div>
-              <div className="sp-row">
-                <div className="pn-notes">
-                  <div className="pn-badge">
-                    <b className="pn-count">{ZERO}</b>
-                    {t("flow.pain.unread")}
-                  </div>
-                  {NOTES.map((k) => (
-                    <div key={k} className="pn-n">
-                      <i>{Z}</i>
-                      <div>
-                        <small>
-                          {t("flow.pain.zalo")}
-                          {SEP}
-                          {t("flow.pain.now")}
-                        </small>
-                        {t(`flow.pain.${k}`)}
-                      </div>
-                    </div>
-                  ))}
-                  <div className="pn-n call">
-                    <i>{PHONE}</i>
-                    <div>{t("flow.pain.n5")}</div>
-                  </div>
-                </div>
-                <div className="pn-book">
-                  <div className="lbl">{t("flow.pain.book")}</div>
-                  {ENTRIES.map((k, i) => (
-                    <div key={k} className={`pn-e x${String(i + 1)}${i === 3 ? " hot" : ""}`}>
-                      {t(`flow.pain.${k}`)}
-                      <s />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="sp-ui sp-ui-r">
-              <span className="sp-tag a">{t("flow.pain.after")}</span>
-              <div className="sp-head">
-                <div className="fl-eye">{t("flow.pain.calmEyebrow")}</div>
-                <h2 className="fl-h">{t("flow.pain.calmTitle")}</h2>
-              </div>
-              <p className="pn-calm">{t("flow.pain.calmSub")}</p>
-              <div className="pn-g">
-                {GUGU.map((k) => (
-                  <div key={k} className="pn-gi">
-                    <i>{CHECK}</i>
-                    {t(`flow.pain.${k}`)}
-                  </div>
-                ))}
-              </div>
-              <div className="sp-gains">
-                {GAINS.map((k) => (
-                  <div key={k} className="sp-gain">
-                    <b>{t(`flow.pain.${k}n`)}</b>
-                    <span>{t(`flow.pain.${k}l`)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
             <div className="jr-foot">{t("flow.pain.src")}</div>
           </div>
 
@@ -233,19 +307,24 @@ export function Journey({
 
         <nav className="jr-hud" ref={hud} aria-label={t("flow.hud.label")}>
           <div className="hud-steps">
-            {HUD.map((k, i) => (
+            {HUD.map((c) => (
               <button
-                key={k}
+                key={c.k}
                 type="button"
                 className="hud-s"
+                data-stops={c.stops.join(",")}
                 onClick={() => {
-                  ch.current?.goTo(i);
+                  ch.current?.goTo(c.stops[0]);
                 }}
               >
-                <span className="hud-bar">
-                  <span className="hud-fill" />
+                <span className="hud-bars">
+                  {c.stops.map((si) => (
+                    <span key={si} className="hud-bar">
+                      <span className="hud-fill" data-stop={si} />
+                    </span>
+                  ))}
                 </span>
-                <em>{t(`flow.hud.${k}`)}</em>
+                <em>{t(`flow.hud.${c.k}`)}</em>
               </button>
             ))}
           </div>
@@ -258,6 +337,7 @@ export function Journey({
           >
             <span className="l-start">{t("flow.hud.start")}</span>
             <span className="l-next">{t("flow.hud.next")}</span>
+            <span className="l-after">{t("flow.hud.after")}</span>
             <span className="l-cont">{t("flow.hud.cont")}</span>
             <i>{DOWN}</i>
           </button>

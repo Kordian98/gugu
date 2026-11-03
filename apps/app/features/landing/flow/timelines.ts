@@ -81,25 +81,26 @@ const PH = {
   portal: [0, 0.05],
   w1: [0.05, 0.17],
   desk: 0.17,
-  deskOut: 0.4,
-  w2: [0.42, 0.56],
-  feat: 0.56,
-  featOut: 0.705,
-  w3: [0.73, 0.86],
-  office: 0.86,
+  wipe: 0.34,
+  deskOut: 0.48,
+  w2: [0.5, 0.62],
+  feat: 0.62,
+  featOut: 0.745,
+  w3: [0.765, 0.875],
+  office: 0.875,
 } as const;
 
-/** Scenes one gesture steps between: hero · front desk (before | after) · treatment area · office. */
-export const STOPS = [0, 0.375, 0.69, 1] as const;
-/** Seconds per transition: door + walk + split desk build, walk + features, walk + office. */
-export const DURATIONS = [7.0, 6.2, 6.0] as const;
+/** Scenes one gesture steps between: hero · before · after · treatment area · office. */
+export const STOPS = [0, 0.33, 0.455, 0.735, 1] as const;
+/** Seconds per transition: door + walk + "before" build, the before→after wipe, walk + features, walk + office. */
+export const DURATIONS = [7.0, 3.4, 6.2, 6.0] as const;
 
 /** Which walk frame to show at journey time t. */
 function frameAt(t: number): [Segment, number] {
   const lin = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
   if (t < PH.w1[1]) return ["w1", lin(PH.w1[0], PH.w1[1])];
   // Under the split the canvas switches to the calm frame, so leaving the desk reveals walk 2's start.
-  if (t < PH.desk + 0.04) return ["w1", 1];
+  if (t < PH.wipe + 0.07) return ["w1", 1];
   if (t < PH.w2[1]) return ["w2", lin(PH.w2[0], PH.w2[1])];
   if (t < PH.w3[0]) return ["w2", 1];
   return ["w3", lin(PH.w3[0], PH.w3[1])];
@@ -111,7 +112,13 @@ function frameAt(t: number): [Segment, number] {
  * office (overview, stat, assistant). Canvas frame, loop playback and the portal clip are driven from the
  * smoothed timeline time; everything else is transform/opacity.
  */
-export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: HTMLElement | null) {
+export function buildJourney(
+  root: HTMLElement,
+  q: Q,
+  player: WalkPlayer,
+  hud: HTMLElement | null,
+  locale: string,
+) {
   const tl = trackTimeline(root, 0.25);
   const frame = q(".jr-frame")[0] as HTMLElement | undefined;
   const media = q(".jr-media")[0] as HTMLElement | undefined;
@@ -156,13 +163,19 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: H
     let active = 0;
     STOPS.forEach((s0, i) => {
       if (t >= s0 - 0.003) active = i;
+    });
+    fills.forEach((el) => {
+      const i = Number(el.dataset["stop"] ?? 0);
+      const s0 = STOPS[i] ?? 0;
       const prev = STOPS[i - 1] ?? 0;
       const f = i === 0 ? 1 : Math.max(0, Math.min(1, (t - prev) / (s0 - prev)));
-      const el = fills[i];
-      if (el) el.style.transform = `scaleX(${f.toFixed(3)})`;
+      el.style.transform = `scaleX(${f.toFixed(3)})`;
     });
-    steps.forEach((el, i) => el.classList.toggle("on", i === active));
-    hud.dataset["at"] = t < 0.003 ? "start" : t > 0.997 ? "end" : "mid";
+    steps.forEach((el) => {
+      const stops = (el.dataset["stops"] ?? "").split(",").map(Number);
+      el.classList.toggle("on", stops.includes(active));
+    });
+    hud.dataset["at"] = t < 0.003 ? "start" : t > 0.997 ? "end" : active === 1 ? "before" : "mid";
   };
   // Counters (write text only when the shown value changes).
   const counter = (sel: string, to: number, at: number, dur: number, digits = 0) => {
@@ -192,7 +205,7 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: H
   tl.eventCallback("onUpdate", () => {
     const t = tl.duration() > 0 ? tl.time() / tl.duration() : 0;
     const [seg, p] = frameAt(t);
-    if (t > 0.18 && !loaded.has("w2")) {
+    if (t > 0.2 && !loaded.has("w2")) {
       loaded.add("w2");
       player.load("w2");
     }
@@ -214,56 +227,100 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: H
   tl.to(q(".jr-intro"), { opacity: 0, y: -40, duration: 0.02 }, 0.075);
   tl.to(q(".jr-shade"), { opacity: 0, duration: 0.02 }, 0.08);
 
-  // front desk: one step, split before | after. Both halves freeze + whiten; UI builds on each.
+  // front desk "before": the frozen, whitened frame with the drowning content
   const D0 = PH.desk;
-  tl.fromTo(q(".sp"), { opacity: 0 }, { opacity: 1, duration: 0.02, ease: "sine.inOut" }, D0);
-  // comparison slider: starts fully "before"; sweeps to the middle as "after" builds
   const spEl = q(".sp")[0];
-  // desktop: sweep to the middle (both halves side by side); phones: wipe fully to "after".
-  if (spEl)
-    tl.fromTo(
-      spEl,
-      { "--x": "100%" },
-      { "--x": mobile ? "8%" : "50%", duration: mobile ? 0.06 : 0.045, ease: "power2.inOut" },
-      D0 + 0.085,
-    );
-  if (mobile) hide(tl, q, ".sp-ui-l", D0 + 0.09, { y: -20 });
-  tl.to(q(".sp-line, .sp-knob"), { opacity: 1, duration: 0.015 }, D0 + 0.085);
-  tl.to(q(".sp-veil"), { opacity: 1, duration: 0.03, ease: "sine.inOut" }, D0 + 0.03);
-  // before (left / top)
-  show(tl, q, ".sp-tag.b", D0 + 0.04, { y: -10, scale: 0.8 });
-  show(tl, q, ".sp-ui-l .sp-head", D0 + 0.045, { y: 50 });
-  show(tl, q, ".sp-ui-l .pn-stat", D0 + 0.06, { y: 30, scale: 0.9 });
-  counter(".pn-num", 3, D0 + 0.06, 0.05, 1);
+  if (spEl) tl.set(spEl, { "--x": "100%" }, 0);
+  tl.fromTo(q(".sp"), { opacity: 0 }, { opacity: 1, duration: 0.02, ease: "sine.inOut" }, D0);
+  tl.to(q(".sp-veil"), { opacity: 1, duration: 0.03, ease: "sine.inOut" }, D0 + 0.012);
+  show(tl, q, ".sp-tag.b", D0 + 0.035, { y: -10, scale: 0.8 });
+  show(tl, q, ".sp-ui-l .sp-head", D0 + 0.04, { y: 50 });
+  show(tl, q, ".sp-ui-l .pn-stat", D0 + 0.055, { y: 30, scale: 0.9 });
+  counter(".pn-num", 3, D0 + 0.055, 0.05, 1);
   show(tl, q, ".pn-badge", D0 + 0.07, { y: -10, scale: 0.6 });
-  counter(".pn-count", 12, D0 + 0.072, 0.09);
+  counter(".pn-count", 12, D0 + 0.072, 0.08);
+  stagger(tl, q, ".sp-steps.b li", D0 + 0.065, 0.014, { x: -20 }, 0.02);
   stagger(tl, q, ".pn-n", D0 + 0.075, 0.016, { y: -20, scale: 0.94 });
   show(tl, q, ".pn-book", D0 + 0.1, { y: 30, rotate: -7 });
-  tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.015 }, D0 + 0.125);
-  tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.015 }, D0 + 0.14);
-  // after (right / bottom)
-  show(tl, q, ".sp-tag.a", D0 + 0.09, { y: -10, scale: 0.8 });
-  show(tl, q, ".sp-ui-r .sp-head", D0 + 0.095, { y: 50 });
-  show(tl, q, ".pn-calm", D0 + 0.11);
+  tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.012 }, D0 + 0.125);
+  tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.012 }, D0 + 0.138);
+  show(tl, q, ".jr-foot", D0 + 0.05, { y: 0 });
+
+  // before → after: the divider sweeps across the WHOLE screen; left of it is still "before"
+  // (photo + content), right of it is already "after". The handle can also be dragged.
+  const W = PH.wipe;
+  tl.to(q(".sp-line, .sp-knob"), { opacity: 1, duration: 0.008 }, W - 0.004);
+  if (spEl)
+    tl.fromTo(spEl, { "--x": "100%" }, { "--x": "0%", duration: 0.055, ease: "power2.inOut" }, W);
+  tl.to(q(".sp-line, .sp-knob"), { opacity: 0, duration: 0.01 }, W + 0.055);
+  show(tl, q, ".sp-tag.a", W + 0.004, { y: -10, scale: 0.8 }, 0.02);
+  show(tl, q, ".sp-ui-r .sp-head", W + 0.01, { y: 40 }, 0.03);
+  show(tl, q, ".pn-calm", W + 0.02, { y: 20 }, 0.03);
   q(".pn-gi").forEach((el, i) => {
     tl.fromTo(
       el,
       { opacity: 0, x: -24, scale: 0.8 },
-      { opacity: 1, x: 0, scale: 1, duration: 0.025, ease: "back.out(2.2)" },
-      D0 + 0.12 + i * 0.014,
+      { opacity: 1, x: 0, scale: 1, duration: 0.022, ease: "back.out(2.2)" },
+      W + 0.03 + i * 0.012,
     );
   });
   q(".sp-gain").forEach((el, i) => {
     tl.fromTo(
       el,
       { opacity: 0, y: 26, scale: 0.85 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.03, ease: "back.out(1.8)" },
-      D0 + 0.16 + i * 0.014,
+      { opacity: 1, y: 0, scale: 1, duration: 0.025, ease: "back.out(1.8)" },
+      W + 0.045 + i * 0.012,
     );
   });
-  show(tl, q, ".jr-foot", D0 + 0.16, { y: 0 });
-  // leave the desk: the split fades to the calm frame (walk 2 starts there)
-  tl.to(q(".sp"), { opacity: 0, duration: 0.025, ease: "sine.inOut" }, PH.deskOut - 0.012);
+  show(tl, q, ".sp-cal", W + 0.03, { y: 30, scale: 0.94 }, 0.03);
+  show(tl, q, ".sp-booked", W + 0.05, { y: -10, scale: 0.6 }, 0.02);
+  show(tl, q, ".sp-rem", W + 0.06, { y: 20 }, 0.025);
+  show(tl, q, ".sp-come", W + 0.075, { scale: 0.6 }, 0.02);
+  show(tl, q, ".sp-app .sv", W + 0.045, { y: 30 }, 0.03);
+  const nf = (d: number) =>
+    new Intl.NumberFormat(locale, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const saved: [string, number, number][] = [
+    [".sv-num", 6.5, 1],
+    [".sv-r1", 38, 0],
+    [".sv-r2", 21, 0],
+    [".sv-r3", 24, 0],
+  ];
+  saved.forEach(([sel, to, d]) => {
+    const el = q(sel)[0] as HTMLElement | undefined;
+    if (!el) return;
+    const v = { n: 0 };
+    let last = "";
+    const f = nf(d);
+    tl.fromTo(
+      v,
+      { n: 0 },
+      {
+        n: to,
+        duration: 0.06,
+        ease: "power1.out",
+        onUpdate: () => {
+          const str = f.format(v.n);
+          if (str !== last) {
+            last = str;
+            el.textContent = str;
+          }
+        },
+      },
+      W + 0.05,
+    );
+  });
+  const ring = q(".sv-ring .fg")[0];
+  if (ring) {
+    const c = 2 * Math.PI * 40;
+    tl.fromTo(
+      ring,
+      { strokeDashoffset: c },
+      { strokeDashoffset: c * 0.22, duration: 0.06, ease: "power1.out" },
+      W + 0.05,
+    );
+  }
+  // leave the desk: the scene fades to the calm frame (walk 2 starts there)
+  tl.to(q(".sp"), { opacity: 0, duration: 0.02, ease: "sine.inOut" }, PH.deskOut - 0.012);
 
   // walk to the treatment area → features
   show(tl, q, ".cap-deeper", PH.w2[0], { y: 0 });
@@ -285,92 +342,4 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: H
   stagger(tl, q, ".of-side .card", PH.office + 0.05, 0.022, { y: 26 }, 0.035);
   tl.to({}, { duration: 0.001 }, 0.999);
   return tl;
-}
-
-/**
- * Before/after split + time-saved card. Steps highlight, cards appear; counters write text only when the
- * formatted value changes; the ring animates stroke-dashoffset on one circle.
- */
-/** Before/after steps one beat per scroll gesture. */
-export const BA_STOPS = [0, 0.5, 1] as const;
-export const BA_DURATIONS = [2.4, 2.4] as const;
-
-export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) => string) {
-  const step = (sel: string, at: number) => {
-    tl.to(q(sel), { opacity: 1, scale: 1.02, color: "#221024", duration: 0.05 }, at).to(
-      q(sel),
-      { scale: 1, duration: 0.03 },
-      at + 0.05,
-    );
-  };
-  const card = (sel: string, at: number, from: gsap.TweenVars = { y: 24 }) => {
-    tl.fromTo(
-      q(sel),
-      { opacity: 0, ...from },
-      { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.11, ease: "power2.out" },
-      at,
-    );
-  };
-  // beat 1 (→ stop 0.3): the message arrives; booked automatically on the right
-  step(".bs1", 0.04);
-  card(".bc-zalo", 0.05);
-  step(".as1", 0.04);
-  card(".ac-zalo", 0.05);
-  step(".as2", 0.14);
-  card(".ac-ok", 0.15, { scale: 0.85 });
-  // beat 2 (→ 0.52): notebook vs calendar
-  step(".bs2", 0.32);
-  card(".bc-book", 0.33, { y: 30, rotate: -3 });
-  step(".as3", 0.36);
-  card(".ac-cal", 0.38, { y: 40, scale: 0.94 });
-  // beat 3 (→ 0.74): call back vs Zalo reminder
-  step(".bs3", 0.54);
-  card(".bc-call", 0.55);
-  step(".as4", 0.58);
-  card(".ac-rem", 0.6);
-  // beat 4 (→ 1): forgotten vs "I'll come"
-  step(".bs4", 0.76);
-  card(".bc-forgot", 0.77, { scale: 1.3 });
-  step(".as5", 0.8);
-  card(".ac-come", 0.82, { scale: 0.85 });
-
-  const targets: [string, number, number][] = [
-    [".sv-num", 6.5, 1],
-    [".sv-r1", 38, 0],
-    [".sv-r2", 21, 0],
-    [".sv-r3", 24, 0],
-  ];
-  const v = { p: 0 };
-  const last: string[] = [];
-  const els = targets.map(([sel]) => q(sel)[0] as HTMLElement | undefined);
-  tl.to(
-    v,
-    {
-      p: 1,
-      duration: 0.9,
-      ease: "none",
-      onUpdate: () => {
-        targets.forEach(([, to, d], i) => {
-          const s = fmt(to * v.p, d);
-          const el = els[i];
-          if (el && last[i] !== s) {
-            last[i] = s;
-            el.textContent = s;
-          }
-        });
-      },
-    },
-    0.04,
-  );
-  const ring = q(".sv-ring .fg")[0];
-  if (ring) {
-    const c = 2 * Math.PI * 40;
-    tl.fromTo(
-      ring,
-      { strokeDashoffset: c },
-      { strokeDashoffset: c * 0.22, duration: 0.9, ease: "none" },
-      0.04,
-    );
-  }
-  tl.to({}, { duration: 0.001 }, 0.999);
 }

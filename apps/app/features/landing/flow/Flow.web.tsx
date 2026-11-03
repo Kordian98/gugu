@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import type { LandingNavActions } from "../useLandingNav";
-import { BeforeAfter } from "./Desk";
 import { FLOW_CSS } from "./flow.css";
 import { Journey } from "./Journey";
 import { Businesses } from "./Rooms";
@@ -74,7 +73,6 @@ export function Flow({
       <style>{FLOW_CSS}</style>
 
       <Journey nav={nav} desktop={desktop} width={width} />
-      <BeforeAfter />
 
       <Businesses />
 

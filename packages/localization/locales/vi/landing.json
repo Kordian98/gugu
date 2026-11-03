@@ -371,7 +371,8 @@
       "start": "Bắt đầu tham quan",
       "cont": "Tiếp tục",
       "skip": "Bỏ qua câu chuyện",
-      "label": "Các phần của câu chuyện"
+      "label": "Các phần của câu chuyện",
+      "after": "Xem sau khi dùng"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",
