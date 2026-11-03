@@ -40,7 +40,8 @@ export type IconName =
   | "link"
   | "chat"
   | "mail"
-  | "wallet";
+  | "wallet"
+  | "info";
 
 type Props = {
   name: IconName;
@@ -164,10 +165,19 @@ export function Icon({ name, size, color = tokens.ink, strokeWidth = 2, filled =
         </>
       )}
       {name === "chart" && <Path d="M4 20h16M7 16.5V11M12 16.5V6.5M17 16.5v-4" {...common} />}
+      {name === "info" && (
+        <>
+          <Circle cx={12} cy={12} r={9} {...common} />
+          <Path d="M12 11v5M12 8h.01" {...common} />
+        </>
+      )}
       {name === "wallet" && (
         <>
           <Path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" {...common} />
-          <Path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5Z" {...common} />
+          <Path
+            d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5Z"
+            {...common}
+          />
           <Circle cx={16} cy={13.5} r={1.2} {...common} />
         </>
       )}

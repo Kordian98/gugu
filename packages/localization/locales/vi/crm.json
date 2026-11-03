@@ -933,7 +933,8 @@
       "projected": "Sắp tới",
       "rateFixed": "{{amount}}/lần",
       "ratePercent": "{{percent}}% của {{base}}",
-      "noRate": "Chưa cài hoa hồng"
+      "noRate": "Chưa cài hoa hồng",
+      "times": "{{count}} lần"
     },
     "emptyTitle": "Chưa có nhân viên",
     "emptyBody": "Thêm nhân viên trong mục Nhân viên rồi cài lương cho từng người.",
@@ -1027,7 +1028,7 @@
       "serviceCosts": "Chi phí dịch vụ",
       "commission": "Hoa hồng",
       "basePay": "Lương cứng (cả tháng)",
-      "adjustments": "Thưởng − trừ",
+      "adjustments": "Thưởng và trừ lương",
       "otherCosts": "Chi phí khác",
       "gross": "Lãi gộp",
       "net": "Lãi ròng ước tính"
@@ -1035,7 +1036,7 @@
     "recordedPart": "Trong đó {{amount}} đã ghi nhận tại salon",
     "assumption": "Giả định: {{rate}} lịch hẹn sắp tới có thể vắng (tỷ lệ của salon 90 ngày qua).",
     "noAssumption": "Chưa đủ lịch sử để ước tính khách vắng, nên chưa trừ.",
-    "missingCost": "{{count}} dịch vụ chưa nhập chi phí, đang tính là 0đ.",
+    "missingCost": "Dịch vụ chưa nhập chi phí: {{count}} (đang tính là 0đ).",
     "closedPayroll": "Lương lấy từ bảng lương đã chốt.",
     "note": "Số ước tính trước thuế, không phải sổ sách kế toán.",
     "definition": "Định nghĩa",

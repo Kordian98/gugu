@@ -3,7 +3,12 @@ import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { CalmButton, Pill, Text, useCalm } from "@gugu/design-system";
-import { ADJUSTMENT_KIND_VALUES, type PayrollMonth, type PayrollRow } from "@gugu/contracts";
+import {
+  ADJUSTMENT_KIND_VALUES,
+  type CommissionLines,
+  type PayrollMonth,
+  type PayrollRow,
+} from "@gugu/contracts";
 import { formatLocalDate, formatMonth, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -18,9 +23,53 @@ import {
 import { useSalon } from "../../data/SalonContext";
 import { useErrorText } from "../../ui/errors";
 import { ErrorBanner, Field, Input, MoneyInput, Segmented, Sheet } from "../../ui/form";
-import { DateField, SectionTitle, signedVnd, SkeletonRows } from "./parts";
+import { DateField, DOT, SectionTitle, signedVnd, SkeletonRows } from "./parts";
 
 type Kind = (typeof ADJUSTMENT_KIND_VALUES)[number];
+type Line = CommissionLines["items"][number];
+
+/**
+ * One row per service and state ("Sơn gel · 12 lần · 10% của 150.000đ"), done first: easier to
+ * read than every appointment. The rate is shown only when it is the same for every line.
+ */
+function groupLines(items: Line[], locale: "vi" | "en") {
+  const groups = new Map<
+    string,
+    {
+      key: string;
+      name: string;
+      state: Line["state"];
+      count: number;
+      amount: number;
+      base: number;
+      rate: Line["rate"] | undefined;
+    }
+  >();
+  for (const l of items) {
+    const name = (locale === "en" && l.service.en) || l.service.vi;
+    const key = `${l.state}:${name}`;
+    const g = groups.get(key);
+    if (!g) {
+      groups.set(key, {
+        key,
+        name,
+        state: l.state,
+        count: 1,
+        amount: l.amount,
+        base: l.base,
+        rate: l.rate,
+      });
+      continue;
+    }
+    g.count++;
+    g.amount += l.amount;
+    const same = JSON.stringify(g.rate) === JSON.stringify(l.rate) && g.base === l.base;
+    if (!same) g.rate = undefined;
+  }
+  return [...groups.values()].sort((a, b) =>
+    a.state === b.state ? b.amount - a.amount : a.state === "earned" ? -1 : 1,
+  );
+}
 
 /**
  * One person's month: the sum (base + commission ± adjustments = to pay), commission per service,
@@ -160,51 +209,57 @@ export function StaffPayrollSheet({
             {t("payroll.lines.empty")}
           </Text>
         ) : (
-          lines.data.data.items.map((l) => (
-            <View
-              key={l.lineId}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingVertical: 8,
-                borderTopWidth: 1,
-                borderColor: c.line,
-              }}
-            >
-              <Text size={13} color={c.muted} style={{ width: 86 }}>
-                {formatLocalDate(l.date, locale)}
-              </Text>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text size={14} color={c.ink} numberOfLines={1}>
-                  {(locale === "en" && l.service.en) || l.service.vi}
-                </Text>
-                <Text size={12} color={c.muted}>
-                  {l.rate === null
-                    ? t("payroll.lines.noRate")
-                    : l.rate.kind === "fixed"
-                      ? t("payroll.lines.rateFixed", { amount: vnd(l.rate.amount ?? 0) })
-                      : t("payroll.lines.ratePercent", {
-                          percent: l.rate.percent ?? 0,
-                          base: vnd(l.base),
-                        })}
+          <>
+            {groupLines(lines.data.data.items, locale).map((g) => (
+              <View
+                key={g.key}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingVertical: 8,
+                  borderTopWidth: 1,
+                  borderColor: c.line,
+                }}
+              >
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text size={14} color={c.ink} numberOfLines={1}>
+                    {g.name}
+                  </Text>
+                  <Text size={12} color={c.muted}>
+                    {[
+                      t("payroll.lines.times", { count: g.count }),
+                      g.rate === undefined
+                        ? null
+                        : g.rate === null
+                          ? t("payroll.lines.noRate")
+                          : g.rate.kind === "fixed"
+                            ? t("payroll.lines.rateFixed", { amount: vnd(g.rate.amount ?? 0) })
+                            : t("payroll.lines.ratePercent", {
+                                percent: g.rate.percent ?? 0,
+                                base: vnd(g.base),
+                              }),
+                    ]
+                      .filter(Boolean)
+                      .join(DOT)}
+                  </Text>
+                </View>
+                <Pill
+                  size={10}
+                  tone={g.state === "earned" ? "up" : "neutral"}
+                  label={t(`payroll.lines.${g.state}`)}
+                />
+                <Text
+                  role="uiSemiBold"
+                  size={14}
+                  color={c.ink}
+                  style={{ minWidth: 84, textAlign: "right" }}
+                >
+                  {vnd(g.amount)}
                 </Text>
               </View>
-              <Pill
-                size={10}
-                tone={l.state === "earned" ? "up" : "neutral"}
-                label={t(`payroll.lines.${l.state}`)}
-              />
-              <Text
-                role="uiSemiBold"
-                size={14}
-                color={c.ink}
-                style={{ minWidth: 84, textAlign: "right" }}
-              >
-                {vnd(l.amount)}
-              </Text>
-            </View>
-          ))
+            ))}
+          </>
         )}
       </View>
 

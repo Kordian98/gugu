@@ -933,7 +933,8 @@
       "projected": "Upcoming",
       "rateFixed": "{{amount}} each",
       "ratePercent": "{{percent}}% of {{base}}",
-      "noRate": "Commission not set"
+      "noRate": "Commission not set",
+      "times": "{{count}} times"
     },
     "emptyTitle": "No team members yet",
     "emptyBody": "Add people under Team, then set pay for each of them.",
@@ -1027,7 +1028,7 @@
       "serviceCosts": "Service costs",
       "commission": "Commission",
       "basePay": "Base pay (full month)",
-      "adjustments": "Bonuses − deductions",
+      "adjustments": "Bonuses and deductions",
       "otherCosts": "Other costs",
       "gross": "Gross profit",
       "net": "Estimated net profit"
@@ -1035,7 +1036,7 @@
     "recordedPart": "Of which {{amount}} recorded at the salon",
     "assumption": "Assumption: {{rate}} of upcoming appointments may not show up (the salon's rate over the last 90 days).",
     "noAssumption": "Not enough history to estimate no-shows, so none are subtracted.",
-    "missingCost": "{{count}} services have no cost entered and count as 0đ.",
+    "missingCost": "Services without a cost: {{count}} (counted as 0đ).",
     "closedPayroll": "Pay comes from the closed payroll.",
     "note": "An estimate before tax, not accounting.",
     "definition": "Definition",

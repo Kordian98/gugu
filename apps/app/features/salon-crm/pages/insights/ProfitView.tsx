@@ -87,7 +87,7 @@ export function ProfitView() {
         />
       ) : (
         <>
-          <Text role="display" size={22} color={c.ink}>
+          <Text role="uiSemiBold" size={20} color={c.ink}>
             {t("profit.title", { month: formatMonth(month, locale) })}
           </Text>
           <View
@@ -134,7 +134,7 @@ function ProfitTile({ id, p }: { id: (typeof PROFIT_HEADLINE)[number]; p: Profit
           }}
           style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center" }}
         >
-          <Icon name="alert" size={14} color={c.muted} />
+          <Icon name="info" size={16} color={c.muted} />
         </Pressable>
       </View>
       <Text
