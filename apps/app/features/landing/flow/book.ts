@@ -10,12 +10,12 @@ import { gsap } from "gsap";
  *   of swipe, Start, a key, or arriving at the stage any other way) jumps invisibly from the static hero to
  *   the identical stage and plays the doors + walk-in to Front desk page 1 at its normal pace. Scroll and
  *   swipe input is ignored while it plays (no skip, no double trigger). Below the threshold nothing happens.
- * - After that, scrolling is plain page scrolling: up shows the static hero (no animation, nothing
- *   reverses), down returns to the book on the page the visitor left, then past it to the sections below.
- *   The dock (stage fully in view) catches a gesture that started on the other side of it, so a flick
- *   never skips the book.
+ * - After that, scrolling is plain page scrolling, never captured (owner revoked the dock capture,
+ *   2026-11-04): up shows the static hero (no animation, nothing reverses), down passes the book (on the
+ *   page the visitor left) and the sections below. While the journey is partly out of the viewport a
+ *   "Center view" button smoothly re-docks it.
  * - Pages turn only by Next/Prev, HUD chapters, keys (→ ↓ PgDn Space / ← ↑ PgUp Shift+Space while the
- *   story is in view) and one touch swipe per page. A turn plays the timeline from one composed page to
+ *   story is in view) and one HORIZONTAL touch swipe per page (vertical swipes scroll). A turn plays the timeline from one composed page to
  *   the next at the original pacing and cannot stop half-way; Next during a turn fast-forwards it
  *   (≤ 0.45 s) and queues at most one page; Prev reverses it. Page 1 has no Prev (nothing replays).
  * - Reduced motion: the intro and every turn are short crossfades.
@@ -38,6 +38,8 @@ export type BookApi = {
   exit: () => void;
   /** Static hero "Start": plays the intro the first time, afterwards scrolls back to the book. */
   start: () => void;
+  /** Smoothly scrolls the story back to exactly fill the viewport. */
+  center: () => void;
   page: () => number;
   /** A turn or a programmatic scroll is running. */
   busy: () => boolean;
@@ -62,6 +64,8 @@ type Opts = {
   exitTo: () => Element | null;
   /** Called when an exit scroll (Finish / Skip) has arrived, with its target (to move focus there). */
   onExited?: (target: Element | null) => void;
+  /** Called when the "Center view" offer should show / hide (journey partly out of the viewport). */
+  onCenter?: (show: boolean) => void;
 };
 
 /** Small-scroll threshold that commits to the intro (one wheel notch / a short swipe is enough). */
@@ -274,14 +278,8 @@ export function book(o: Opts): BookApi {
 
   // ---- wheel: small scroll at the hero commits to the intro; afterwards native, with a dock catch ----
   let lastWheel = 0;
-  let lastTouch = 0;
   let acc = 0;
-  let side: -1 | 0 | 1 = 0;
-  let caught = false;
-  const sideNow = (): -1 | 0 | 1 => (y() < dockY - 2 ? -1 : y() > dockY + 2 ? 1 : 0);
   const newGesture = () => {
-    side = sideNow();
-    caught = false;
     acc = 0;
   };
   const onWheel = (e: WheelEvent) => {
@@ -296,27 +294,16 @@ export function book(o: Opts): BookApi {
       e.preventDefault(); // the hero does not move until the intro commits
       if (e.deltaY > 0 || atDock()) {
         acc += Math.abs(e.deltaY);
-        if (acc >= INTRO_WHEEL) {
-          caught = true;
-          playIntro();
-        }
+        if (acc >= INTRO_WHEEL) playIntro();
       }
       return;
     }
+    // After the intro the wheel is never captured (owner, 2026-11-04): plain page scrolling.
     stopScroll();
-    if (caught) {
-      e.preventDefault();
-      return;
-    }
-    const to = y() + e.deltaY;
-    if ((side < 0 && to > dockY) || (side > 0 && to < dockY)) {
-      e.preventDefault();
-      caught = true;
-      scroller.scrollTop = dockY;
-    }
   };
   let settleTimer = 0;
   const onScroll = () => {
+    syncCenter();
     if (scrollTw) return;
     if (intro === "todo") {
       // Arrived at the stage another way (scrollbar, from below after a nav link): once the scroll rests
@@ -331,16 +318,20 @@ export function book(o: Opts): BookApi {
       scroller.scrollTop = dockY;
       return;
     }
-    // Touch momentum / a wheel stream crossing the dock — only while that gesture is live, so links and
-    // programmatic scrolls (logo → top, nav anchors) are never pulled back.
-    const now = performance.now();
-    const live = now - lastWheel < 300 || now - lastTouch < 2000;
-    if (intro === "done" && live && ((side < 0 && y() > dockY) || (side > 0 && y() < dockY)))
-      scroller.scrollTop = dockY;
   };
-  const onPointerDown = (e: PointerEvent) => {
-    // The scrollbar (pointer on the scroller itself) may go anywhere.
-    if (e.target === scroller) side = 0;
+  // "Center view": offered while the journey is partly out of the viewport (but still on screen).
+  let centerShown = false;
+  const syncCenter = () => {
+    const r = stage.getBoundingClientRect();
+    const sc = scroller.getBoundingClientRect();
+    const overlap = Math.min(r.bottom, sc.bottom) - Math.max(r.top, sc.top);
+    const show = intro === "done" && overlap > vh * 0.2 && Math.abs(y() - dockY) > 8;
+    if (show !== centerShown) {
+      centerShown = show;
+      o.onCenter?.(show);
+    }
+  };
+  const onPointerDown = () => {
     if (intro !== "playing") stopScroll();
   };
 
@@ -417,11 +408,10 @@ export function book(o: Opts): BookApi {
   let skip = false;
   const onTouchStart = (e: TouchEvent) => {
     newGesture();
-    lastTouch = performance.now();
     if (intro !== "playing") stopScroll();
     const p = e.touches[0];
     const tgt = e.target as HTMLElement | null;
-    const inStory = stage.contains(tgt) && atDock();
+    const inStory = stage.contains(tgt);
     const heroTodo = intro === "todo" && (inHero() || atDock());
     skip =
       e.touches.length > 1 ||
@@ -433,7 +423,6 @@ export function book(o: Opts): BookApi {
     fired = false;
   };
   const onTouchMove = (e: TouchEvent) => {
-    lastTouch = performance.now();
     if (skip) return;
     const p = e.touches[0];
     const dx = (p?.clientX ?? sx) - sx;
@@ -451,22 +440,17 @@ export function book(o: Opts): BookApi {
       return;
     }
     if (!claim && Math.hypot(dx, dy) > 8) {
-      const horiz = Math.abs(dx) > Math.abs(dy);
-      // Native scroll for: swiping down on the first page (up to the hero, nothing replays) and swiping up
-      // on the last page (on past the story), when no turn is running.
-      const nativeDown = !horiz && dy > 0 && page <= 1 && !turn;
-      const nativeUp = !horiz && dy < 0 && page >= last && !turn;
-      if (nativeDown || nativeUp) {
+      // After the intro only a HORIZONTAL swipe turns a page; a vertical one scrolls the page natively.
+      if (Math.abs(dx) <= Math.abs(dy)) {
         skip = true;
         return;
       }
       claim = true;
     }
     if (claim) e.preventDefault();
-    if (claim && !fired && (Math.abs(dx) > 42 || Math.abs(dy) > 42)) {
+    if (claim && !fired && Math.abs(dx) > 42) {
       fired = true;
-      const fwd = Math.abs(dx) > Math.abs(dy) ? dx < 0 : dy < 0;
-      if (fwd) next();
+      if (dx < 0) next();
       else prev();
     }
   };
@@ -507,6 +491,9 @@ export function book(o: Opts): BookApi {
     goTo,
     exit,
     start,
+    center: () => {
+      dock();
+    },
     page: () => page,
     busy: () => turn !== null || scrollTw !== null,
   };

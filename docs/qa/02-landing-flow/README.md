@@ -22,7 +22,7 @@ The HUD chapter jump felt good because it was a single long eased tween, with no
 - **Scrolling:** after the intro it is plain page scrolling. Up shows the static hero, down returns to the book on the same page, then past it. Nothing reverses or replays. The dock catches flicks from either side.
 - **Pages:** 9 (Front desk before → switching; the back office has overview, Insights and pay & commissions), counted "n / 9". They turn by Next/Prev, the HUD chapters (Arrive removed), keys or one swipe per page. Turns play the original animations at their original pacing.
 - **Divider:** removed. Before → after is the original sweep, played by Next ("Xem sau khi dùng").
-- **Finish and Skip:** both go to the X25 band. The static hero's Start becomes "Tiếp tục hành trình".
+- **Finish and Skip:** both go to the X25 band.
 - **Reduced motion:** crossfades.
 
 ### Once-per-visit run (Chromium desktop)
@@ -82,6 +82,13 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **X25 band:** `after-free-year-*.webp`.
 - **Pay & commissions:** `after-payroll-vi-{1440,1280,390}.webp`.
 - **Static hero:** `after-static-hero-vi-1440.webp`. **Review fixes:** `after-review-*.webp`.
+
+## Owner corrections at `acfda28` (2026-11-04)
+
+- **Prev fixed.** React re-renders were resetting the static `disabled` / `aria-label` props on Prev and Next. They are now set only at runtime. Prev goes back one page with the reverse animation on every page, with ← and PgUp as well (Chromium + WebKit, desktop + mobile).
+- **No scroll capture after the intro.** Wheel and vertical swipes scroll the page; horizontal swipes turn pages. The "Căn giữa câu chuyện" button appears while the story is offset and re-docks it.
+- **Skip removed.**
+- **Hero CTA is a plaque at the foot of the arch,** with Start. It is gone after the first walk-in.
 
 ## Design review fixes (after `f7c8e5b`)
 

@@ -32,9 +32,8 @@ directional settle. The owner then asked for a different model: "mega robust, li
    reaches the stage another way (scrollbar, or coming from below after a nav link) gets the intro once the
    scroll rests there.
 3. **Nothing reverses.** After the intro, scrolling is plain page scrolling. Up shows the static hero.
-   Down returns to the book on the page the visitor left, already rendered, then continues past it. The
-   dock catches a gesture that started on the other side, so a flick never skips the book. Page 1 has no
-   Prev.
+   Down returns to the book on the page the visitor left, already rendered, then continues past it.
+   Page 1 has no Prev.
 4. **Book pages** (`flow/book.ts`, `PAGES` in `timelines.ts`): Front desk before · after · treatment room
    ×3 · office · Insights · pay & commissions · switching, counted "n / 9". They turn only by Next/Prev, HUD chapters (Front
    desk, Treatment room, Back office, Switch; Arrive is gone), keys while the hero or story is in view, or
@@ -45,13 +44,13 @@ directional settle. The owner then asked for a different model: "mega robust, li
    (photo split + gradient line + scene content), played by Next ("Xem sau khi dùng"), a key or a swipe.
 6. **Signposting:** counter, per-page HUD bars filling with journey time (Front desk's first bar fills
    during the intro), first-view hints (hero: "scroll or Start"; Front desk: "Next or →"), Prev, and a
-   Next label that crossfades the moment a turn starts. "Finish journey" and "Skip" scroll to the first
-   section after the story. The static hero's Start becomes "Continue the journey".
+   Next label that crossfades the moment a turn starts. "Finish journey" scrolls to the first section
+   after the story.
 7. **Reduced motion:** the intro and every turn are 0.5 s crossfades.
 8. **Sizing:** the stage and static hero are one scroller viewport high (`--sv` = `clientHeight`), because
    the page scrolls inside the RN Web ScrollView.
 
-## Scroll capture is the owner's decision
+## Scroll capture: requested, then revoked (owner, 2026-11-04)
 
 The design-system skill says "never scroll-jack". This ADR deliberately captures scroll in three narrow
 places, because the product owner asked for exactly that on 2026-11-04 (relayed by the coordinator):
@@ -64,9 +63,20 @@ places, because the product owner asked for exactly that on 2026-11-04 (relayed 
 
 The captures are: (1) at the static hero before the intro, wheel and swipe are held until the threshold
 commits the intro; (2) wheel and swipe are ignored while the intro plays (≈ 7 s); (3) at the dock, the
-remainder of a gesture that started on the other side is absorbed, once. Everything else is native
-scrolling, and the keyboard, scrollbar and links always work. Revisit this if usability testing shows
-visitors trying to scroll the story.
+remainder of a gesture that started on the other side is absorbed, once.
+
+**Revoked the same day** after the owner tried it at `acfda28`: "Don't block scrolling inside the story …
+Normal page scrolling must always work, including while the story is in view." Since then:
+
+- after the intro, wheel, trackpad and touch are never captured; a vertical swipe scrolls the page and
+  only a HORIZONTAL swipe turns a page (the stage is `touch-action: pan-y`);
+- a "Center view" button ("Căn giữa câu chuyện", fixed at the top) appears while the journey is partly
+  out of the viewport and smoothly re-docks it;
+- "Skip the story" is removed (scrolling is free); "Finish journey" stays on the last page;
+- only the intro keeps its narrow capture (the small-scroll threshold at the hero and the ≈ 7 s intro
+  itself), which the owner asked for separately;
+- the hero's one call to action is a plaque at the foot of the arch ("Cuộn xuống hoặc bấm Bắt đầu để
+  bước vào" + Start); it disappears after the first walk-in and never returns.
 
 ## Consequences
 

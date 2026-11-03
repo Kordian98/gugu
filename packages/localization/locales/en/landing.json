@@ -434,7 +434,6 @@
       "c3": "Back office",
       "next": "Next",
       "start": "Start the tour",
-      "skip": "Skip the story",
       "label": "Story chapters",
       "after": "See the after",
       "c4": "Switch from your old app",
@@ -443,10 +442,11 @@
       "page": "{{n}} / {{total}}",
       "hintKeys": "Press Next or use the → key",
       "hintTouch": "Swipe or tap Next to go on",
-      "hintStartKeys": "Scroll or press Start to walk in",
-      "hintStartTouch": "Swipe up or tap Start to walk in",
-      "resume": "Continue the journey",
-      "pageSr": "Page {{n}}/{{total}}: {{chapter}}"
+      "pageSr": "Page {{n}}/{{total}}: {{chapter}}",
+      "walkIn": "Scroll down or press Start to walk in",
+      "walkInTouch": "Swipe up or tap Start to walk in",
+      "startShort": "Start",
+      "center": "Center the story"
     },
     "calc": {
       "t": "What fewer no-shows are worth",

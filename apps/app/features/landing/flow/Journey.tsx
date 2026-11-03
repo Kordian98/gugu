@@ -76,6 +76,7 @@ const WALKS: [Segment, number, number][] = [
   ["w3", 0.781, 0.881],
 ];
 const PREV = "\u2190";
+const CENTER = "\u2195";
 
 /**
  * The whole visit as ONE full-screen scene (web): a single sticky stage. The hero's arched door grows to
@@ -148,7 +149,21 @@ export function Journey({
     ];
     const chapterOf = (page: number) =>
       HUD.find((c) => (c.stops as readonly number[]).includes(page));
-    const skipBtn = el.querySelector<HTMLElement>(".jr-skip");
+    // "Center view": shown (book.ts onCenter) while the journey is partly out of the viewport. Appended to
+    // <body> so `position: fixed` is relative to the viewport (the RN Web scroll content is a containing
+    // block for fixed descendants).
+    const centerBtn = document.createElement("button");
+    centerBtn.type = "button";
+    centerBtn.className = "jr-center";
+    centerBtn.hidden = true;
+    const centerIcon = document.createElement("i");
+    centerIcon.setAttribute("aria-hidden", "true");
+    centerIcon.textContent = CENTER;
+    centerBtn.append(centerIcon, document.createTextNode(t("flow.hud.center")));
+    centerBtn.addEventListener("click", () => {
+      ch.current?.center();
+    });
+    document.body.append(centerBtn);
     // Book pages are 1..8 (the hero is not a page).
     const total = PAGES.length - 1;
     const hb = heroBlock.current;
@@ -184,7 +199,6 @@ export function Journey({
         });
         lbls.style.width = `${String(w)}px`;
       }
-      skipBtn?.classList.toggle("gone", page === PAGES.length - 1);
       if (settled) {
         h.dataset["settled"] = String(page);
         // Screen readers hear the page once it has settled (the visible counter is aria-hidden).
@@ -246,14 +260,18 @@ export function Journey({
             },
             ready,
             exitTo: () => document.getElementById("fl-free"),
+            onCenter: (show) => {
+              centerBtn.hidden = !show;
+            },
             onExited: (target) => {
-              // After Finish / Skip, move focus to the section the visitor landed on.
+              // After Finish, move focus to the section the visitor landed on.
               target?.querySelector<HTMLElement>("h2")?.focus({ preventScroll: true });
             },
           })
         : null;
     if (__DEV__) (window as unknown as { __book?: BookApi | null }).__book = ch.current;
     return () => {
+      centerBtn.remove();
       window.removeEventListener("resize", syncHero);
       ch.current?.destroy();
       ch.current = null;
@@ -490,7 +508,6 @@ export function Journey({
             <button
               type="button"
               className="hud-prev"
-              disabled
               aria-label={t("flow.hud.prev")}
               onClick={() => {
                 ch.current?.prev();
@@ -501,7 +518,6 @@ export function Journey({
             <button
               type="button"
               className="hud-next"
-              aria-label={t("flow.hud.start")}
               onClick={() => {
                 ch.current?.next();
               }}
@@ -516,25 +532,12 @@ export function Journey({
               <i aria-hidden>{NEXT_ARROW}</i>
             </button>
             <span className="hud-hint">
-              <span className="h0">
-                <span className="k">{t("flow.hud.hintStartKeys")}</span>
-                <span className="tc">{t("flow.hud.hintStartTouch")}</span>
-              </span>
               <span className="h1">
                 <span className="k">{t("flow.hud.hintKeys")}</span>
                 <span className="tc">{t("flow.hud.hintTouch")}</span>
               </span>
             </span>
           </nav>
-          <button
-            type="button"
-            className="jr-skip"
-            onClick={() => {
-              ch.current?.exit();
-            }}
-          >
-            {t("flow.hud.skip")}
-          </button>
         </div>
       </div>
     </>

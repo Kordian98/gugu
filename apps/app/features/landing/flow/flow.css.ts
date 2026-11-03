@@ -29,10 +29,20 @@ export const FLOW_CSS = `
 .jr-static{position:relative;height:100vh;height:var(--sv,100svh);width:100%;overflow:hidden;background:${color.canvas}}
 .jr-static .jr-hero{will-change:auto}
 .jr-static .jr-media{will-change:auto}
-.jr-static:not(.done) .l-resume,.jr-static.done .l-start{display:none}
-.jr-static.done .hud-hint{opacity:0}
-.jr-hud-static{padding:8px}
-.jr-stage{position:sticky;top:0;height:100vh;height:100svh;height:var(--sv,100svh);width:100%;overflow:hidden;contain:layout paint;background:${color.canvas};--fade:0}
+/* hero plaque: brass-framed sign at the foot of the arch (the hero's only call to action) */
+.jr-plaque{position:absolute;left:74%;bottom:calc(6% - 34px);transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:14px;padding:10px 10px 10px 18px;background:${color.paper};border:1px solid ${color.gold400};border-radius:14px;box-shadow:0 0 0 4px ${color.paper},0 0 0 5px ${color.paperLine},0 18px 40px rgba(42,20,38,.18)}
+.jr-plaque p{margin:0;font-family:${font.serif};font-size:15px;line-height:1.3;color:${color.ink};max-width:24ch;text-wrap:balance}
+.jr-plaque .tc{display:none}
+@media (pointer:coarse){.jr-plaque .k{display:none}.jr-plaque .tc{display:inline}}
+.jr-plaque button{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:10px;background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:14px;cursor:pointer}
+.jr-plaque button i{font-style:normal}
+.jr-static.done .jr-plaque{display:none}
+/* "Center view": fixed at the top while the journey is partly out of the viewport */
+.jr-center{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:30;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:99px;border:1px solid ${color.line};background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 12px 30px rgba(42,20,38,.16);color:${color.ink};font-family:${font.uiSemiBold};font-size:13.5px;cursor:pointer}
+.jr-center[hidden]{display:none}
+.jr-center i{font-style:normal}
+@media (max-width:899px){.jr-plaque{left:50%;bottom:calc(10% - 34px);width:calc(90% - 24px);box-sizing:border-box;padding:8px 8px 8px 14px}.jr-plaque p{font-size:13.5px}}
+.jr-stage{position:sticky;top:0;touch-action:pan-y;height:100vh;height:100svh;height:var(--sv,100svh);width:100%;overflow:hidden;contain:layout paint;background:${color.canvas};--fade:0}
 /* reduced motion: page turns fade through the canvas colour */
 .jr-stage::after{content:"";position:absolute;inset:0;background:${color.canvas};opacity:var(--fade);pointer-events:none;z-index:5}
 .jr-hero{position:absolute;left:0;top:0;bottom:0;width:52vw;display:flex;align-items:center;padding:96px var(--g) 40px;box-sizing:border-box;z-index:3;will-change:transform,opacity}
@@ -418,8 +428,8 @@ export const FLOW_CSS = `
 @media (max-width:899px) and (max-height:860px){.in-zalo{display:none}.in-rev .in-bh.sm,.in-rev .in-bar:last-child{display:none}}
 /* story HUD: chapters + next + skip */
 .jr-hud{position:absolute;left:50%;bottom:clamp(14px,3vh,28px);transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px;border-radius:99px;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(42,20,38,.16);border:1px solid rgba(255,255,255,.7)}
-.jr-hud,.jr-skip{transition:opacity ${String(motion.duration.slow)}ms ${motion.ease.out},visibility ${String(motion.duration.slow)}ms ${motion.ease.out}}
-.jr-hud.gone,.jr-skip.gone{opacity:0;visibility:hidden;pointer-events:none}
+.jr-hud{transition:opacity ${String(motion.duration.slow)}ms ${motion.ease.out},visibility ${String(motion.duration.slow)}ms ${motion.ease.out}}
+.jr-hud.gone{opacity:0;visibility:hidden;pointer-events:none}
 .hud-steps{display:flex;gap:12px}
 .vh,.hud-sr{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .hud-s{display:flex;flex-direction:column;justify-content:center;gap:6px;background:none;border:0;padding:4px 0;cursor:pointer;min-width:78px;min-height:44px;text-align:left}
@@ -431,8 +441,7 @@ export const FLOW_CSS = `
 .hud-next{display:flex;align-items:center;gap:8px;border:0;cursor:pointer;background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:14px;padding:12px 18px;border-radius:99px;position:relative}
 .hud-next i{font-style:normal;display:inline-block;animation:hudNudge 1.6s ease-in-out infinite}
 .hud-next::after{content:"";position:absolute;inset:-4px;border-radius:99px;border:2px solid rgba(169,139,235,.55);animation:hudPulse 2.2s ease-out infinite;pointer-events:none}
-.jr-skip{position:absolute;display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;right:var(--g);bottom:clamp(20px,3.6vh,34px);z-index:6;border:1px solid ${color.line};background:rgba(255,255,255,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:${color.ink};font-family:${font.uiMedium};font-size:13px;padding:9px 14px;border-radius:99px;cursor:pointer}
-.jr-skip:hover,.hud-s:hover em{color:${color.lilac700}}
+.hud-s:hover em{color:${color.lilac700}}
 /* Next label: crossfade + width morph the moment a turn starts */
 .hud-lbls{position:relative;display:inline-block;height:1.25em;line-height:1.25em;transition:width ${String(motion.duration.slow)}ms ${motion.ease.out};white-space:nowrap;vertical-align:middle}
 .hud-lbls>span{position:absolute;left:0;top:0;opacity:0;transform:translateY(6px);transition:opacity ${String(motion.duration.base)}ms ease,transform ${String(motion.duration.slow)}ms ${motion.ease.out}}
@@ -444,7 +453,7 @@ export const FLOW_CSS = `
 .jr-stage .jr-hud[data-page="0"] .hud-hint{opacity:0}
 .hud-prev:hover{border-color:${color.lilac500}}
 .hud-prev:disabled{cursor:default}
-.hud-s:focus-visible,.hud-next:focus-visible,.hud-prev:focus-visible,.jr-skip:focus-visible{outline:2px solid ${color.lilac500};outline-offset:3px}
+.hud-s:focus-visible,.hud-next:focus-visible,.hud-prev:focus-visible,.jr-center:focus-visible,.jr-plaque button:focus-visible{outline:2px solid ${color.lilac500};outline-offset:3px}
 .hud-hint{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);white-space:nowrap;font-family:${font.uiMedium};font-size:12.5px;color:${color.ink};background:rgba(255,255,255,.9);padding:7px 12px;border-radius:99px;box-shadow:0 10px 30px rgba(42,20,38,.14);opacity:0;transition:opacity ${String(motion.duration.slow)}ms ${motion.ease.out};pointer-events:none}
 .jr-hud.hinted .hud-hint{opacity:1}
 /* while the first-view hint shows on Front desk, the citation footnote sits above it */
@@ -461,13 +470,11 @@ export const FLOW_CSS = `
   .hud-s{min-width:44px;flex:1;min-height:44px}
   .jr-stage .hud-prev{grid-row:2}
   .jr-stage .hud-next{grid-row:2;justify-self:end}
-  .jr-hud-static{left:12px;right:12px;transform:none;bottom:12px;justify-content:center}
   .hud-s .hud-name{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .hud-next{padding:10px 14px;font-size:13px}
 
   .hud-count{display:none}
-  .jr-skip{top:16px;bottom:auto;right:12px;font-size:12px;padding:7px 12px}
-  .jr-pain{bottom:104px}
+    .jr-pain{bottom:104px}
   .jr-foot{bottom:70px}
 }
 @media (prefers-reduced-motion:reduce){.sw-sk span,.hud-next i,.hud-next::after,.ft-chip i{animation:none}.hud-lbls,.hud-lbls>span{transition:opacity .2s}.hud-lbls>span{transform:none}}

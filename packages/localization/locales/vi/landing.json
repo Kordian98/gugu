@@ -434,7 +434,6 @@
       "c3": "Văn phòng",
       "next": "Tiếp theo",
       "start": "Bắt đầu tham quan",
-      "skip": "Bỏ qua câu chuyện",
       "label": "Các phần của câu chuyện",
       "after": "Xem sau khi dùng",
       "c4": "Chuyển từ sổ/app cũ",
@@ -443,10 +442,11 @@
       "page": "{{n}} / {{total}}",
       "hintKeys": "Nhấn Tiếp theo hoặc dùng phím →",
       "hintTouch": "Vuốt hoặc nhấn Tiếp theo để đi tiếp",
-      "hintStartKeys": "Cuộn hoặc nhấn Bắt đầu để bước vào",
-      "hintStartTouch": "Vuốt lên hoặc nhấn Bắt đầu để bước vào",
-      "resume": "Tiếp tục hành trình",
-      "pageSr": "Trang {{n}}/{{total}}: {{chapter}}"
+      "pageSr": "Trang {{n}}/{{total}}: {{chapter}}",
+      "walkIn": "Cuộn xuống hoặc bấm Bắt đầu để bước vào",
+      "walkInTouch": "Vuốt lên hoặc bấm Bắt đầu để bước vào",
+      "startShort": "Bắt đầu",
+      "center": "Căn giữa câu chuyện"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",
