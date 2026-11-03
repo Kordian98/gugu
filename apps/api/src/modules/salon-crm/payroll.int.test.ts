@@ -417,7 +417,9 @@ describe("payroll, commissions and profit (integration)", () => {
       .set("authorization", owner)
       .send({ month: "2026-12", staffId: mai, kind: "bonus", amount: 1, reason: "late" })
       .expect(409)
-      .expect((r) => { expect(problemSchema.parse(r.body).code).toBe("payroll.month_closed"); });
+      .expect((r) => {
+        expect(problemSchema.parse(r.body).code).toBe("payroll.month_closed");
+      });
     await api()
       .put(url(`payroll/staff/${linh}/pay`))
       .set("authorization", owner)
@@ -692,5 +694,68 @@ describe("payroll, commissions and profit (integration)", () => {
     expect(checkToolResult(tool.output, { ...(out as object), note: "Linh earns a lot" }).ok).toBe(
       false,
     );
+  });
+
+  it("constraints: checks, one override per target, no cross-tenant references", async () => {
+    const sqlstate = async (p: Promise<unknown>) => {
+      try {
+        await p;
+        return "ok";
+      } catch (e) {
+        // Prisma wraps raw errors (P2010); the SQLSTATE is in the message.
+        return e instanceof Error ? e.message : String(e);
+      }
+    };
+    const user = s.ownerUserId;
+    // payroll_adjustments_valid: amount > 0, reason not blank, month = first day.
+    expect(
+      await sqlstate(
+        prisma.$executeRaw`INSERT INTO payroll_adjustments (id, salon_id, staff_id, month, kind, amount_minor, reason, created_by_user_id)
+          VALUES (uuidv7(), ${s.salonId}::uuid, ${mai}::uuid, '2026-12-15', 'bonus', 1, 'x', ${user}::uuid)`,
+      ),
+    ).toContain("23514");
+    expect(
+      await sqlstate(
+        prisma.$executeRaw`INSERT INTO payroll_adjustments (id, salon_id, staff_id, month, kind, amount_minor, reason, created_by_user_id)
+          VALUES (uuidv7(), ${s.salonId}::uuid, ${mai}::uuid, '2026-12-01', 'bonus', 0, 'x', ${user}::uuid)`,
+      ),
+    ).toContain("23514");
+    // staff_pay_settings_valid: commission ≤ 100 %.
+    expect(
+      await sqlstate(
+        prisma.$executeRaw`INSERT INTO staff_pay_settings (id, salon_id, staff_id, effective_from, base_type, base_amount_minor, commission_bps, created_by_user_id, updated_at)
+          VALUES (uuidv7(), ${s.salonId}::uuid, ${mai}::uuid, '2030-01-01', 'none', 0, 10001, ${user}::uuid, now())`,
+      ),
+    ).toContain("23514");
+    // salon_costs_valid: a one-off cost has no end month.
+    expect(
+      await sqlstate(
+        prisma.$executeRaw`INSERT INTO salon_costs (id, salon_id, name, category, amount_minor, recurring, start_month, end_month, created_by_user_id, updated_at)
+          VALUES (uuidv7(), ${s.salonId}::uuid, 'x', 'other', 1, false, '2026-12-01', '2027-01-01', ${user}::uuid, now())`,
+      ),
+    ).toContain("23514");
+    // One override per (version, service, variant) — NULL variant included.
+    const version = await prisma.staffPaySetting.findFirstOrThrow({
+      where: { salonId: s.salonId, staffId: mai },
+    });
+    const override = (variantId: string | null) =>
+      prisma.$executeRaw`INSERT INTO staff_commission_overrides (id, salon_id, pay_setting_id, service_id, variant_id, kind, bps)
+        VALUES (uuidv7(), ${s.salonId}::uuid, ${version.id}::uuid, ${pediId}::uuid, ${variantId}::uuid, 'percent', 500)`;
+    expect(await sqlstate(override(null))).toBe("ok");
+    expect(await sqlstate(override(null))).toContain("23505");
+    // staff_commission_overrides_valid: a percentage carries no amount.
+    expect(
+      await sqlstate(
+        prisma.$executeRaw`INSERT INTO staff_commission_overrides (id, salon_id, pay_setting_id, service_id, variant_id, kind, bps, amount_minor)
+          VALUES (uuidv7(), ${s.salonId}::uuid, ${version.id}::uuid, ${s.serviceId}::uuid, NULL, 'percent', 500, 1)`,
+      ),
+    ).toContain("23514");
+    // Composite FK: another salon's staff cannot be referenced.
+    expect(
+      await sqlstate(
+        prisma.$executeRaw`INSERT INTO payroll_adjustments (id, salon_id, staff_id, month, kind, amount_minor, reason, created_by_user_id)
+          VALUES (uuidv7(), ${s.salonId}::uuid, ${other.staffIds[0]}::uuid, '2027-01-01', 'bonus', 1, 'x', ${user}::uuid)`,
+      ),
+    ).toContain("23503");
   });
 });

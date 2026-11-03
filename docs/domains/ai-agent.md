@@ -94,9 +94,10 @@ Review summaries, paste-from-Zalo parsing, Zalo chat agent / Zalo surface, readi
 | `revenue_summary` | read | `analytics.read` | one row per `RevenueKind`; `reported_by_salon` = `not_tracked` |
 | `utilization` | read | `analytics.read` | booked ÷ scheduled minutes (after breaks/time off), salon + per `staff_N` |
 | `bookings_list` | read | `bookings.read` | ≤ 50 rows: `booking_N`, local ISO times, status, source, `staff_N`, `service_N`[], price |
+| `month_profit` | read | `payroll.read` | one month, salon totals only: earned so far (+ recorded part), still to come, no-show allowance (assumption), service costs, team payroll total, other costs, net profit, gross/net margin, progress (07 `profit.*`, ADR-0014) |
 | `request_deeper_analysis` | control | — | Haiku route only: re-runs the turn on Sonnet |
 
-Customer data is not reachable through any tool.
+Customer data is not reachable through any tool. **Per-person pay is not reachable either**: salaries, commissions and adjustments of individual staff are personal data (X10), so `month_profit` has no staff dimension and the eval fixture carries a salary canary (`CANARIES.salary`, cases s13–s15) that must never appear in a model request.
 
 ## Data model
 _TBD._ `AssistantConversation`, `AssistantMessage`, `AssistantEntityToken`, `AssistantToolCall`, `AssistantActionProposal`, `AssistantUsage`.

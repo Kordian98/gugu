@@ -42,7 +42,8 @@ description: Rules and procedures for GuGu's salon workspace (Today, calendar UI
 - Plans (q75): Basic = CRM, calendar, AI import, listing; Pro = + assistant, monthly review, Zalo inbox; Ultra = + chains with combined reporting and admin analytics. Gate with 12 entitlements; show calm upsells for locked features.
 - Chains (Ultra only, entitlement `multi_location`): every metric supports `scope: salon | organization`.
 - Deleted customers (q71): render "Khách đã xoá / Deleted customer" and never assume a client name or phone exists on a booking. Operational screens stay per location.
-- One service per appointment; combos are services or add-on options. No prepaid packages and no staff commission.
+- One service per appointment; combos are services or add-on options. No prepaid packages.
+- Staff pay and commission (owner 2026-11-04, ADR-0014): commission per **completed booking line** for `booking_services.staff_id`, never the booking's first staff member; effective-dated pay settings never rewrite past months; closed payroll months are read-only; every adjustment has a reason. MUST say "estimate before tax and insurance" wherever pay is shown; MUST NOT compute PIT/BHXH or move money. Payroll is owner-only by default (`payroll.read/manage`, grantable to managers), staff see only their own figures (`payroll.self.read`). Per-person pay MUST NOT reach the assistant (team totals only).
 - Staff see their own ratings and, by default, client phones (`client.view_contact`, revocable).
 - Shared-tablet and personal-device setups both work with no configuration.
 - No SMS (X12): invites and messages use links, email or Zalo.
