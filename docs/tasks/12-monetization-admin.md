@@ -110,7 +110,7 @@ Rules:
 - R-C6: If a booking moves `completed → (reverted)`, which topic 06 must define as an admin-only correction, a `pending` entry becomes `not_applicable` and a `confirmed` entry becomes `disputed`.
 - R-C7: Salons see their own ledger (read-only) and can dispute an entry with a reason within the window.
 
-### 3.2a Founding partners (X19/X20; spec only, no code yet)
+### 3.2a Founding partners (X19/X20; flag + admin grant/revoke implemented in M12.6, waiver not yet)
 Promise on the landing page (copy owned by 02/10, wording legally reviewed): partner salons are listed in the marketplace free of charge, and every salon that buys a subscription **before the marketplace launches** is fully exempt from booking fees for its **first 2 years after launch**.
 - R-FP1: Config `MARKETPLACE_LAUNCH_AT` (platform setting, admin-editable by `super_admin`, audit-logged; `null` until the date is set). `FOUNDING_WAIVER_MONTHS = 24`.
 - R-FP2: `founding_partner` is stored on the **organisation**, and on each salon for salons outside an organisation, as `foundingPartner { qualifiedAt, qualifyingSubscriptionId, source: "paid_before_launch" | "admin_grant" }`. The flag is never removed automatically, and only a `super_admin` can revoke it, with a reason and an audit entry.
@@ -347,6 +347,8 @@ Tools exposed to the salon AI agent (topic 08). All are tenant-scoped to the cal
 | `commission.listLedgerEntries` | R | owner | **later** (dormant): status + amount, only once commission exists |
 | `commission.openDispute` | W, **confirm** | owner | **later** (dormant): requires explicit user confirmation in UI |
 | `metrics.get` | R | role-scoped | shared metric dictionary (repeat rate, no-show rate, cancellation rate, utilization) with `RevenueKind` labels (enum owned by 07) |
+
+Platform admin API (`/api/v1/admin/*`, M12.6) is **not** agent-callable: no tool wraps it, for the product agent or the Admin Copilot.
 
 Admin Copilot tools (platform roles only): see §3.8. They are aggregate/tokenised only and never exposed to salon agents.
 

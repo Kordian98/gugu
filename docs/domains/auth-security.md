@@ -83,9 +83,11 @@ Errors: `AUTH_ERRORS` (`packages/contracts/src/auth/auth.ts`) and `SALON_ERRORS`
 
 The source of truth is `packages/domain/src/auth/permissions.ts`, tested in `permissions.test.ts`. Permission strings use the form `resource.action[.own]`. Staff see customer phone numbers by default (q24). Owner-only permissions (`salon.delete`, `members.roles.write`, `customers.export`, `integrations.zalo.manage`, `billing.manage`) can't be granted through overrides.
 
+Platform roles (`users.platform_role`: `support_admin`, `super_admin`) are not salon memberships and grant only `platform.*` permissions; no salon role carries one (matrix test). Topic 12 M12.6 added `platform.usage.read` (both), `platform.subscriptions.write`, `platform.entitlements.write`, `platform.founding_partner.write` (super_admin) and gave `support_admin` `platform.audit.read` (spec 12 R-AD4). Matrix per admin action: `docs/domains/monetization-admin.md#admin-permissions`. A suspended salon (`salons.status = suspended`) keeps read access; the guard refuses every non-GET salon route with 403 `salon.suspended` (ADR-0010). There is no API to grant platform roles yet (`platform.roles.write` is unused); local dev uses `apps/api/scripts/seed-platform-admin.mjs`.
+
 ## Audit events
 
-`AUDIT_ACTIONS` in `apps/api/src/modules/audit/audit.service.ts`: `auth.sign_in`, `auth.sign_out`, `auth.sign_out_all`, `auth.session_reuse_detected`, `auth.identity_linked`, `salon.registered`, `salon.owner_verified`, `salon.owner_declined`, `salon.profile_updated`. Metadata never holds secrets or personal data.
+`AUDIT_ACTIONS` in `apps/api/src/modules/audit/audit.service.ts`: `auth.sign_in`, `auth.sign_out`, `auth.sign_out_all`, `auth.session_reuse_detected`, `auth.identity_linked`, `salon.registered`, `salon.owner_verified`, `salon.owner_declined`, `salon.profile_updated`, plus topic 12 `admin.*` actions (metadata `{ reason, platformRole, before, after }`, actor type `platform_admin`). Metadata never holds secrets or personal data.
 
 ## Data inventory
 
