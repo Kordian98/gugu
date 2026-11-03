@@ -7,23 +7,22 @@ import { FeatureIcon, type FeatureIconName } from "./FeatureIcon";
 import { Container, SectionHead } from "./Section";
 
 const FEATURES: {
-  key: "bookingPage" | "calendar" | "crm" | "aiSetup" | "insights" | "reminders" | "assistant";
+  key: "calendar" | "clients" | "reminders" | "aiSetup" | "insights" | "assistant";
   icon: FeatureIconName;
   highlight?: boolean;
 }[] = [
-  { key: "bookingPage", icon: "link" },
   { key: "calendar", icon: "calendar" },
-  { key: "crm", icon: "users" },
+  { key: "clients", icon: "users" },
+  { key: "reminders", icon: "bell" },
   { key: "aiSetup", icon: "sparkles", highlight: true },
   { key: "insights", icon: "chart" },
-  { key: "reminders", icon: "bell" },
   { key: "assistant", icon: "chat" },
 ];
 
-/** Feature grid — only features in the SaaS scope (X19). */
+/** Feature grid — only GuGu Studio scope (X22/X23): no payments, no SMS marketing, no booking page. */
 export function Features({ columns }: { columns: 1 | 2 | 3 }) {
   const { t } = useTranslation("landing");
-  const basis = columns === 3 ? "31.5%" : columns === 2 ? "48.5%" : "100%";
+  const basis = columns === 3 ? "31.8%" : columns === 2 ? "48.6%" : "100%";
   return (
     <Container className="gap-10 py-20">
       <SectionHead eyebrow={t("features.eyebrow")} title={t("features.title")} />
@@ -34,7 +33,6 @@ export function Features({ columns }: { columns: 1 | 2 | 3 }) {
             className="gap-4 rounded-[28px] p-7"
             style={{
               flexBasis: basis,
-              flexGrow: f.key === "assistant" && columns === 3 ? 1 : 0,
               backgroundColor: f.highlight === true ? color.tileActiveTo : color.white,
               borderWidth: 1,
               borderColor: f.highlight === true ? "transparent" : color.lineSoft,
