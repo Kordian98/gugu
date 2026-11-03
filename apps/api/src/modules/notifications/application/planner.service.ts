@@ -147,6 +147,8 @@ export class PlannerService {
       salonId,
       bookingId,
       event,
+      // Module clock: the Zalo wait and reconciliation windows use the same time source.
+      createdAt: now,
       audience: "customer" as const,
       channel: "email",
       locale: b.salon.defaultLocale,
@@ -208,6 +210,7 @@ export class PlannerService {
     for (const r of people) {
       const base = {
         salonId,
+        createdAt: now,
         bookingId: target.bookingId,
         conversationId: target.conversationId,
         event,
@@ -277,6 +280,7 @@ export class PlannerService {
             bookingId: r.bookingId,
             conversationId: r.conversationId,
             deliveryId: r.id,
+            createdAt: this.clock.now(),
           })),
           skipDuplicates: true,
         });

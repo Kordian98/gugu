@@ -82,6 +82,7 @@ export class RemindersService {
         salonId,
         bookingId,
         event: "booking.reminder",
+        createdAt: now,
         variant: w.variant,
         audience: "customer" as const,
         channel: "email",

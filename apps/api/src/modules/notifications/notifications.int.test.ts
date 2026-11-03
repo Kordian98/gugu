@@ -31,6 +31,7 @@ import { QUEUES } from "../../infrastructure/queue/queues";
 import { BookingClock } from "../bookings/bookings.facade";
 import { NotificationEventsHandler } from "./application/notification-events.handler";
 import { NotifyClock } from "./application/notify-clock";
+import { RemindersService } from "./application/reminders.service";
 import { SenderService } from "./application/sender.service";
 import { NotificationsWorkerModule } from "./notifications.module";
 
@@ -196,7 +197,8 @@ describe("notifications by email (integration)", () => {
   const deliveries = (bookingId: string) =>
     prisma.notificationDelivery.findMany({
       where: { salonId: s.salonId, bookingId },
-      orderBy: { createdAt: "asc" },
+      // Rows of one event share the fake clock's time: order by planned send time, then id.
+      orderBy: [{ createdAt: "asc" }, { scheduledFor: "asc" }, { id: "asc" }],
     });
 
   it("confirms a staff-entered booking by email from the salon, with an .ics, and notifies the team", async () => {
@@ -219,7 +221,9 @@ describe("notifications by email (integration)", () => {
     ]);
 
     const rows = await deliveries(bookingId);
-    const customerRow = rows.find((r) => r.audience === "customer");
+    const customerRow = rows.find(
+      (r) => r.audience === "customer" && r.event === "booking.confirmed",
+    );
     expect(customerRow).toMatchObject({
       event: "booking.confirmed",
       status: "sent",
@@ -586,6 +590,92 @@ describe("notifications by email (integration)", () => {
       where: { salonId: s.salonId, recipientUserId: receptionistId, channel: "email" },
     });
     expect(row).toMatchObject({ status: "skipped", reason: "not_member" });
+  });
+
+  it("rebuilds lost reminder jobs on reconciliation (Redis loss)", async () => {
+    const bookingId = await book(testEmail("reconcile"), vnAt("2026-12-02", "10:00"));
+    await pump();
+    const queue = app.get(QueueService).queue(QUEUES.notify);
+    const reminder = (await deliveries(bookingId)).find((r) => r.variant === "1440m");
+    expect(await queue.getJob(reminder?.idempotencyKey ?? "")).toBeDefined();
+    await queue.obliterate({ force: true });
+    expect(await queue.getJob(reminder?.idempotencyKey ?? "")).toBeUndefined();
+    const result = await app.get(RemindersService).reconcile();
+    expect(result.requeued).toBeGreaterThan(0);
+    const job = await queue.getJob(reminder?.idempotencyKey ?? "");
+    expect(job?.data).toEqual({ deliveryId: reminder?.id });
+    // Reconciling again changes nothing (same rows, same job ids).
+    await app.get(RemindersService).reconcile();
+    expect(
+      (await deliveries(bookingId)).filter((r) => r.event === "booking.reminder"),
+    ).toHaveLength(2);
+  });
+
+  it("lets Zalo send the reminder and falls back to email only when Zalo did not", async () => {
+    await prisma.zaloOaConnection.create({
+      data: {
+        salonId: s.salonId,
+        oaId: `oa_${Math.random().toString(36).slice(2, 10)}`,
+        oaName: "Lotus OA",
+        connectedByUserId: s.ownerUserId,
+        accessTokenEnc: "enc",
+        refreshTokenEnc: "enc",
+        accessExpiresAt: new Date("2027-01-01T00:00:00Z"),
+      },
+    });
+    await prisma.zaloConversation.create({
+      data: {
+        salonId: s.salonId,
+        oaId: "oa_r",
+        zaloUserId: `u_${Math.random().toString(36).slice(2, 10)}`,
+        phoneE164: "+84912345678",
+      },
+    });
+    const customer = testEmail("zalo-reminder");
+    const bookingId = await book(customer, vnAt("2026-12-04", "10:00"));
+    await pump();
+    const rows = (await deliveries(bookingId)).filter((r) => r.event === "booking.reminder");
+    const r24 = rows.find((r) => r.variant === "1440m");
+    const r2 = rows.find((r) => r.variant === "120m");
+    // 24 h: Zalo has not logged anything yet → wait; then Zalo sent → email skipped.
+    now = new Date(vnAt("2026-12-03", "10:00"));
+    expect((await sender.send(r24?.id ?? "", false)).kind).toBe("deferred");
+    await prisma.zaloSendLog.create({
+      data: {
+        salonId: s.salonId,
+        bookingId,
+        channel: "template",
+        purpose: "reminder_24h",
+        dedupKey: `reminder_24h:${bookingId}`,
+        status: "sent",
+      },
+    });
+    now = new Date(vnAt("2026-12-03", "10:01"));
+    expect(await sender.send(r24?.id ?? "", false)).toEqual({
+      kind: "skipped",
+      reason: "sent_via_zalo",
+    });
+    // 2 h: Zalo refused (window closed, no template) → the email reminder goes out as fallback.
+    await prisma.zaloSendLog.create({
+      data: {
+        salonId: s.salonId,
+        bookingId,
+        channel: "cs",
+        purpose: "reminder_2h",
+        dedupKey: `reminder_2h:${bookingId}`,
+        status: "rejected",
+        errorCode: "window_closed",
+      },
+    });
+    now = new Date(vnAt("2026-12-04", "08:00"));
+    expect((await sender.send(r2?.id ?? "", false)).kind).toBe("sent");
+    expect(
+      await prisma.notificationDelivery.findUnique({ where: { id: r2?.id ?? "" } }),
+    ).toMatchObject({
+      status: "sent",
+      fallbackOf: "zalo_template",
+    });
+    expect((await mailTo(customer)).subject).toContain("Nhắc lịch hẹn");
   });
 
   it("keeps the delivery log per salon (cost tracked) and never leaks across salons", async () => {
