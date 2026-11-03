@@ -14,7 +14,7 @@ import {
   type BookableSalonFixture,
   vnAt,
 } from "../../../test/factories/booking";
-import { bearerFor, testEmail } from "../../../test/factories/identity";
+import { addSalonMember, bearerFor, testEmail } from "../../../test/factories/identity";
 import { countMailsTo } from "../../../test/mailpit";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
@@ -200,5 +200,34 @@ describe("customer notifications of a suspended salon (integration)", () => {
       (await customerRows(otherBooking)).find((r) => r.event === "booking.confirmed"),
     ).toMatchObject({ status: "sent" });
     expect(await countMailsTo(otherCustomer)).toBe(1);
+  });
+  it("keeps team notifications going while the salon is suspended (only customers are paused)", async () => {
+    // The booked staff member has an account: they get the team email about the new booking.
+    const staffUserId = await addSalonMember(prisma, s.salonId, "staff");
+    const member = await prisma.salonMember.findFirstOrThrow({
+      where: { salonId: s.salonId, userId: staffUserId },
+    });
+    await prisma.staffProfile.update({
+      where: { id: s.staffIds[0] },
+      data: { salonMemberId: member.id },
+    });
+    const customer = testEmail("susp-team-customer");
+    const bookingId = await book(customer);
+    await pump();
+    await adminAction("suspend");
+    const team = await prisma.notificationDelivery.findMany({
+      where: { salonId: s.salonId, bookingId, audience: "team", channel: "email" },
+    });
+    expect(team.length, `team deliveries for booking ${bookingId}`).toBeGreaterThan(0);
+    for (const d of team) await sender.send(d.id, true);
+    const after = await prisma.notificationDelivery.findMany({
+      where: { id: { in: team.map((d) => d.id) } },
+    });
+    expect(after.map((d) => [d.event, d.status, d.reason])).toEqual(
+      team.map((d) => [d.event, "sent", null]),
+    );
+    // The customer side of the same booking stays paused.
+    await sendDue();
+    expect(await countMailsTo(customer)).toBe(0);
   });
 });

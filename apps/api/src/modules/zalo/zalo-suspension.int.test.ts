@@ -17,7 +17,7 @@ import {
   zaloMessageListSchema,
 } from "@gugu/contracts";
 import { createBookableSalon, type BookableSalonFixture } from "../../../test/factories/booking";
-import { bearerFor, testEmail } from "../../../test/factories/identity";
+import { addSalonMember, bearerFor, testEmail } from "../../../test/factories/identity";
 import { clearRateLimits } from "../../../test/rate-limits";
 import { AppModule } from "../../app.module";
 import { configureHttpApp } from "../../bootstrap";
@@ -452,5 +452,199 @@ describe("Zalo on a suspended salon (q89, emulator, end to end)", () => {
       await prisma.zaloSendLog.count({ where: { salonId: b.s.salonId, status: "rejected" } }),
     ).toBe(0);
     expect(await prisma.booking.count({ where: { salonId: a.s.salonId } })).toBe(0);
+  });
+  // ---- Review additions (test-engineer): guard fallthrough, cooldown edges, reminder doubles,
+  // isolation inside one reminder scan.
+
+  /** A valid uuidv7 that names no conversation: the guards run before the handler looks it up. */
+  const NO_CONV = "01900000-0000-7000-8000-000000000000";
+  const inboxReads = (t: Tenant) => [
+    `${base(t)}/conversations`,
+    `${base(t)}/conversations/${NO_CONV}`,
+    `${base(t)}/conversations/${NO_CONV}/messages`,
+  ];
+
+  it("inbox reads still require zalo.inbox while the salon is not suspended", async () => {
+    // No trial = no plan: zalo.inbox is not granted.
+    const s = await createBookableSalon(prisma);
+    const bare: Tenant = { ...a, s, owner: await bearerFor(app, s.ownerUserId) };
+    for (const path of inboxReads(bare)) {
+      const res = await http().get(path).set("authorization", bare.owner);
+      expect(res.status, `GET ${path} (active, no plan)`).toBe(403);
+      expect(problemSchema.parse(res.body).code, `GET ${path}`).toBe("entitlement.required");
+    }
+    // Suspended: reads open (q89, own data only)…
+    await suspend(bare);
+    await http()
+      .get(`${base(bare)}/conversations`)
+      .set("authorization", bare.owner)
+      .expect(200);
+    // …and the bypass ends with the suspension.
+    await unsuspend(bare);
+    for (const path of inboxReads(bare)) {
+      const res = await http().get(path).set("authorization", bare.owner);
+      expect(res.status, `GET ${path} (unsuspended, no plan)`).toBe(403);
+      expect(problemSchema.parse(res.body).code, `GET ${path}`).toBe("entitlement.required");
+    }
+    // Positive control: the same salon with a plan reads its inbox.
+    await app.get(SubscriptionsFacade).startTrial({ salonId: s.salonId });
+    await http()
+      .get(`${base(bare)}/conversations`)
+      .set("authorization", bare.owner)
+      .expect(200);
+  });
+
+  it("suspended inbox reads keep permission and tenant checks (staff role, other salon)", async () => {
+    await connect(a);
+    await say(a, { event: "follow", name: "Mai" });
+    await suspend(a);
+    const conv = await prisma.zaloConversation.findFirstOrThrow({
+      where: { salonId: a.s.salonId },
+    });
+    const paths = [
+      `${base(a)}/conversations`,
+      `${base(a)}/conversations/${conv.id}`,
+      `${base(a)}/conversations/${conv.id}/messages`,
+    ];
+    // Staff have no zalo.inbox.use: suspension does not widen permissions.
+    const staff = await bearerFor(app, await addSalonMember(prisma, a.s.salonId, "staff"));
+    for (const path of paths) {
+      const res = await http().get(path).set("authorization", staff);
+      expect(res.status, `staff GET ${path}`).toBe(403);
+      expect(problemSchema.parse(res.body).code, `staff GET ${path}`).toBe("common.forbidden");
+    }
+    // Another salon's owner gets 404, as on every salon route.
+    const b = await tenant();
+    for (const path of paths) {
+      const res = await http().get(path).set("authorization", b.owner);
+      expect(res.status, `salon ${b.s.salonId} owner GET ${path}`).toBe(404);
+    }
+    // B's own inbox does not show A's conversation.
+    const listB = zaloConversationListSchema.parse(
+      (
+        await http()
+          .get(`${base(b)}/conversations`)
+          .set("authorization", b.owner)
+          .expect(200)
+      ).body,
+    );
+    expect(listB.items.map((c) => c.id)).not.toContain(conv.id);
+  });
+
+  it("notice cooldown: none just before 24 h, per conversation, none when the bot is off", async () => {
+    await connect(a);
+    await say(a, { event: "follow", name: "Mai" });
+    await suspend(a);
+    const t0 = now.getTime();
+    expect(texts(await say(a, { event: "user_send_text", text: "alo" }))).toHaveLength(1);
+
+    // One minute short of the cooldown: still quiet.
+    now = new Date(t0 + 24 * HOUR - 60_000);
+    expect(await say(a, { event: "user_send_text", text: "alo?" })).toHaveLength(0);
+
+    // A second customer of the same salon gets their own notice (cooldown is per conversation).
+    const other: Tenant = { ...a, userId: `u_${Math.random().toString(36).slice(2, 10)}` };
+    const outOther = await say(other, { event: "user_send_text", text: "xin chào" });
+    expect(outOther).toHaveLength(1);
+    expectNeutral(lastText(outOther).text);
+
+    // The salon switched its bot off: no automated notice even after the cooldown.
+    await prisma.zaloOaConnection.update({
+      where: { salonId: a.s.salonId },
+      data: { botEnabled: false },
+    });
+    now = new Date(t0 + 48 * HOUR);
+    expect(await say(a, { event: "user_send_text", text: "alo!!" })).toHaveLength(0);
+    expect(
+      await prisma.zaloSendLog.count({
+        where: { salonId: a.s.salonId, purpose: "suspended_notice" },
+      }),
+    ).toBe(2);
+  });
+
+  it("parallel messages in one conversation get exactly one notice", async () => {
+    await connect(a);
+    await say(a, { event: "follow", name: "Mai" });
+    await suspend(a);
+    const before = (await store.outbox(a.oaId, a.userId)).length;
+    for (const text of ["một", "hai", "ba"]) {
+      expect(
+        (await emulator.deliver({ oaId: a.oaId, userId: a.userId, event: "user_send_text", text }))
+          .status,
+      ).toBe(200);
+    }
+    const events = await prisma.zaloWebhookEvent.findMany({
+      where: { salonId: a.s.salonId, status: "received" },
+    });
+    expect(events, "all three events still to process").toHaveLength(3);
+    await Promise.all(events.map((e) => app.get(InboundService).process(e.id)));
+    await drain();
+    const notices = await prisma.zaloSendLog.findMany({
+      where: { salonId: a.s.salonId, purpose: "suspended_notice" },
+    });
+    expect(notices.map((n) => n.status)).toEqual(["sent"]);
+    expect((await store.outbox(a.oaId, a.userId)).slice(before)).toHaveLength(1);
+  });
+
+  it("no double reminder after unsuspend: parallel scans and a second suspend cycle send it once", async () => {
+    await connect(a);
+    const bookingId = await bookViaBot(a); // Wed 02/12 09:00 local = 02:00Z
+    await suspend(a);
+    now = new Date("2026-12-01T02:30:00Z");
+    await app.get(ZaloJobs).minute();
+    await drain();
+    await unsuspend(a);
+    const before = (await store.outbox(a.oaId, a.userId)).length;
+
+    now = new Date("2026-12-01T02:35:00Z");
+    await Promise.all([
+      app.get(ZaloJobs).minute(),
+      app.get(ZaloJobs).minute(),
+      app.get(ZaloJobs).minute(),
+    ]);
+    await drain();
+    // Suspend and unsuspend again inside the same 24 h window: nothing new goes out.
+    await suspend(a);
+    await app.get(ZaloJobs).minute();
+    await drain();
+    await unsuspend(a);
+    now = new Date("2026-12-01T02:40:00Z");
+    await app.get(ZaloJobs).minute();
+    await drain();
+
+    const logs = await prisma.zaloSendLog.findMany({
+      where: { bookingId, purpose: "reminder_24h" },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(logs.map((l) => [l.status, l.errorCode])).toEqual([
+      ["rejected", "salon_suspended"],
+      ["sent", null],
+    ]);
+    const out = (await store.outbox(a.oaId, a.userId)).slice(before);
+    expect(texts(out), `booking ${bookingId}`).toHaveLength(1);
+  });
+
+  it("one reminder scan: the suspended salon is skipped, the other salon's reminder goes out", async () => {
+    const b = await tenant();
+    await connect(a);
+    await connect(b);
+    const bookingA = await bookViaBot(a);
+    const bookingB = await bookViaBot(b);
+    await suspend(a);
+    const beforeA = (await store.outbox(a.oaId, a.userId)).length;
+    const beforeB = (await store.outbox(b.oaId, b.userId)).length;
+
+    now = new Date("2026-12-01T02:30:00Z");
+    await app.get(ZaloJobs).minute();
+    await drain();
+
+    const status = async (bookingId: string) =>
+      (await prisma.zaloSendLog.findMany({ where: { bookingId, purpose: "reminder_24h" } })).map(
+        (l) => [l.salonId, l.status, l.errorCode],
+      );
+    expect(await status(bookingA)).toEqual([[a.s.salonId, "rejected", "salon_suspended"]]);
+    expect(await status(bookingB)).toEqual([[b.s.salonId, "sent", null]]);
+    expect(await store.outbox(a.oaId, a.userId)).toHaveLength(beforeA);
+    expect((await store.outbox(b.oaId, b.userId)).slice(beforeB)).toHaveLength(1);
   });
 });
