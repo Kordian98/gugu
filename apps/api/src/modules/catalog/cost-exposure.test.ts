@@ -10,7 +10,7 @@ const ROOT = join(__dirname, "..", "..", "..");
 const ALLOWED = [
   "src/modules/catalog/",
   "src/modules/insights/",
-  "src/modules/salon-crm/payroll/",
+  "src/modules/salon-crm/payroll", // payroll/ and payroll.int.test.ts
   "src/infrastructure/prisma/generated/",
 ];
 const SCAN = ["src", join("..", "..", "packages", "contracts", "src", "assistant")];
