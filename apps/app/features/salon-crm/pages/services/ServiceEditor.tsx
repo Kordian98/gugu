@@ -9,9 +9,12 @@ import { formatVND } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { crmApi, useCrmMutation, useResources } from "../../data/catalog";
+import { salonDate } from "../../data/dates";
+import { useBulkCommission } from "../../data/payroll";
 import { useSalon } from "../../data/SalonContext";
 import { AssignList } from "../../ui/AssignList";
 import { marginText } from "./margin";
+import { type CommissionDrafts, commissionRequests, ServiceCommission } from "./ServiceCommission";
 import { useErrorText } from "../../ui/errors";
 import {
   ConfirmDialog,
@@ -163,13 +166,15 @@ export function ServiceEditor({
   const create = useCrmMutation(crmApi.createService, ["services", "team"]);
   const update = useCrmMutation(crmApi.updateService, ["services", "team"]);
   const remove = useCrmMutation(crmApi.removeService, ["services", "team"]);
-  const { can } = useSalon();
+  const { can, summary } = useSalon();
   const canCost = can("services.cost.read");
+  const bulk = useBulkCommission();
+  const [commission, setCommission] = useState<CommissionDrafts>(new Map());
   const bookable = staff.filter((s) => s.isBookable);
   // New service: every bookable member is preselected (and with exactly one, silently assigned).
   const chosen = d.staffDefault ? bookable.map((s) => s.id) : d.staffIds;
   const unassigned = d.isActive && !bookable.some((s) => chosen.includes(s.id));
-  const busy = create.isPending || update.isPending || remove.isPending;
+  const busy = create.isPending || update.isPending || remove.isPending || bulk.isPending;
   const invalid = !d.nameVi.trim() || d.price === null || d.duration === null || d.duration < 5;
 
   const save = () => {
@@ -177,8 +182,29 @@ export function ServiceEditor({
     if (invalid) return;
     const body = toInput(d, service?.description ?? null, canCost);
     const done = { onSuccess: onClose };
-    if (service) update.mutate({ id: service.id, body }, done);
-    else create.mutate(body, done);
+    if (service) {
+      // Commission changes (payroll) are saved after the service, from today (salon time).
+      const requests = commissionRequests(
+        service.id,
+        commission,
+        salonDate(new Date(), summary?.timezone),
+      );
+      update.mutate(
+        { id: service.id, body },
+        {
+          onSuccess: () => {
+            void (async () => {
+              try {
+                for (const r of requests) await bulk.mutateAsync(r);
+                onClose();
+              } catch {
+                // bulk.error is shown in the banner; the sheet stays open to retry.
+              }
+            })();
+          },
+        },
+      );
+    } else create.mutate(body, done);
   };
 
   return (
@@ -225,7 +251,7 @@ export function ServiceEditor({
           if (service) remove.mutate(service.id, { onSuccess: onClose });
         }}
       />
-      <ErrorBanner text={errorText(create.error ?? update.error ?? remove.error)} />
+      <ErrorBanner text={errorText(create.error ?? update.error ?? remove.error ?? bulk.error)} />
       <Field
         label={t("services.nameVi")}
         error={touched && !d.nameVi.trim() ? t("common.required") : null}
@@ -349,6 +375,14 @@ export function ServiceEditor({
           empty={t("services.noStaffYet")}
         />
       )}
+      {service ? (
+        <ServiceCommission
+          service={service}
+          staffIds={chosen}
+          drafts={commission}
+          onChange={setCommission}
+        />
+      ) : null}
       <ResourcePicker
         value={d.resources}
         onChange={(resources) => {

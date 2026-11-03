@@ -339,7 +339,24 @@
     "margin": "Margin {{amount}} · {{pct}}%",
     "resources": "Needs room / equipment",
     "resourcesHint": "Pick if the service needs its own bed, chair or room. It's only bookable while one is free.",
-    "resourceNone": "None active yet"
+    "resourceNone": "None active yet",
+    "commission": {
+      "title": "Commission for this service",
+      "hint": "Everyone earns their default rate unless you set an own rate here. Saved with the service, from today.",
+      "nobody": "Nobody does this service yet.",
+      "source": {
+        "default": "Default rate",
+        "service": "Own rate for this service",
+        "variant": "Own rate per option"
+      },
+      "unsaved": "not saved",
+      "change": "Change the commission of {{name}} for this service",
+      "backToDefault": "Back to the default ({{percent}})",
+      "variant": "Option {{name}}: {{rate}}",
+      "sameForAll": "One rate for everyone who does this service",
+      "applyAll_one": "Apply to {{count}} person",
+      "applyAll_other": "Apply to {{count}} people"
+    }
   },
   "team": {
     "subtitle": "Team members, roles, working hours and invitations",
@@ -407,7 +424,11 @@
     "unassignedServices": "{{count}} services have no team member assigned, so they can't be booked.",
     "noServicesWarning": "No services",
     "noHoursWarning": "No working hours",
-    "noServicesBookable": "Not bookable: this person has no services."
+    "noServicesBookable": "Not bookable: this person has no services.",
+    "pay": {
+      "open": "Pay & commission of {{name}}",
+      "setNow": "No pay set · Set it now"
+    }
   },
   "settings": {
     "profile": "Salon details",
@@ -770,7 +791,8 @@
       "profit_net": "Est. net profit",
       "profit_gross_margin": "Gross margin",
       "profit_net_margin": "Net margin",
-      "profit_month_progress": "Month progress"
+      "profit_month_progress": "Month progress",
+      "profit_employer_costs": "Employer taxes/insurance"
     },
     "vsPrevious": "vs previous period",
     "noPrevious": "No data for the previous period",
@@ -800,7 +822,8 @@
       "profit_net": "Month revenue − service costs − pay − other costs. An estimate before tax.",
       "profit_gross_margin": "(Month revenue − service costs) ÷ month revenue.",
       "profit_net_margin": "Estimated net profit ÷ month revenue.",
-      "profit_month_progress": "Days elapsed (including today) ÷ days in the month."
+      "profit_month_progress": "Days elapsed (including today) ÷ days in the month.",
+      "profit_employer_costs": "What the salon pays on top of gross pay (taxes, social insurance, other contributions) as you entered it per person. 0 when not set. Included in pay & commission."
     }
   },
   "today": {
@@ -1044,7 +1067,183 @@
       "totals": "Total",
       "note": "Estimates before personal income tax and social insurance, for bookkeeping only."
     },
-    "services": "Services: {{count}}"
+    "services": "Services: {{count}}",
+    "tabs": {
+      "month": "Monthly payroll",
+      "rates": "Pay & commission rates"
+    },
+    "monthStatus": {
+      "future": "Not started",
+      "open": "Open",
+      "closed": "Closed",
+      "paid": "Paid"
+    },
+    "month": {
+      "export": "Download",
+      "earned": "To pay",
+      "projected": "Still expected",
+      "projectedNote": "From upcoming appointments · full month ≈ {{amount}}",
+      "realCost": "Real cost",
+      "realCostNote": "Gross pay + taxes/insurance as you entered them",
+      "realCostNotSet": "No taxes/insurance entered, so equal to gross pay",
+      "explain": {
+        "future": "This month has not started: the figures below are only expected.",
+        "open": "Open month: figures update with appointments. Close it when the month ends to freeze them; you can reopen it.",
+        "closed": "Closed on {{date}}: figures no longer change. Reopen to make changes (a reason is required).",
+        "paid_other": "Closed and paid for all {{count}} people. Reopen to make changes (a reason is required).",
+        "paid_one": "Closed and paid for {{count}} person. Reopen to make changes (a reason is required)."
+      },
+      "earnedNote_other": "Full-month base pay + commission earned ({{count}} people)",
+      "earnedNote_one": "Full-month base pay + commission earned ({{count}} person)"
+    },
+    "table": {
+      "commission": "Commission earned",
+      "adjustments": "Bonus / deduction",
+      "gross": "Pay (gross)",
+      "realCost": "Real cost",
+      "projected": "+{{amount}} expected",
+      "employerPart": "incl. {{amount}} tax/insurance",
+      "notSet": "no tax/insurance entered",
+      "advance": "{{amount}} advanced",
+      "openPerson": "Open the pay details of {{name}}"
+    },
+    "person": {
+      "toPay": "To pay",
+      "projected_one": "{{amount}} more expected from {{count}} upcoming appointment",
+      "projected_other": "{{amount}} more expected from {{count}} upcoming appointments",
+      "closed": "Payroll closed: figures no longer change.",
+      "commissionEarned": "Commission earned",
+      "realCostSet": "{{amount}} (incl. {{extra}} tax/insurance)",
+      "realCostNotSet": "{{amount}} (no tax/insurance entered)",
+      "editPay": "Edit pay",
+      "linesTitle": "Services that earned commission",
+      "earnedTitle_one": "Done · {{count}} service · {{amount}}",
+      "earnedTitle_other": "Done · {{count}} services · {{amount}}",
+      "projectedTitle_one": "Upcoming (expected) · {{count}} service · {{amount}}",
+      "projectedTitle_other": "Upcoming (expected) · {{count}} services · {{amount}}",
+      "ratePercent": "{{percent}} of {{base}}",
+      "openBooking": "Open the {{service}} appointment on {{date}}",
+      "addAdjustment": "Add bonus / deduction / advance",
+      "reasonPlaceholder": "For example: weekly sales bonus",
+      "paidTitle": "Paid",
+      "showLess": "Show less",
+      "showMore_other": "Show {{count}} more services",
+      "showMore_one": "Show {{count}} more service"
+    },
+    "summary": {
+      "monthly": "{{amount}}/month",
+      "daily": "{{amount}}/working day",
+      "hourly": "{{amount}}/hour",
+      "none": "No base pay",
+      "withCommission": "{{base}} + {{percent}} commission",
+      "commissionOnly": "Commission only {{percent}}"
+    },
+    "sheet": {
+      "title": "{{name}} · Pay & commission",
+      "save": "Save changes",
+      "now": "In force now",
+      "scheduled": "Scheduled from {{date}}: {{summary}}",
+      "base": "Base pay",
+      "noneHint": "This person earns commission only, no base pay.",
+      "commission": "Default commission",
+      "example": "Example: a {{price}} service → {{amount}} commission. Used for every service without its own rate.",
+      "overrides": "Own rates per service",
+      "overridesHint": "Only add one when a service differs from the default.",
+      "noOverrides": "No own rates: every service earns {{percent}}.",
+      "addOverride": "Add a service with its own rate",
+      "removeOverride": "Remove the own rate of {{name}}",
+      "kind": {
+        "percent": "%",
+        "fixed": "đ"
+      },
+      "fixedHint": "A fixed amount each time this service is done.",
+      "unknownService": "Deleted service",
+      "searchService": "Search services",
+      "noServiceMatch": "No service matches.",
+      "variantOnly": "Only option: {{name}}",
+      "alreadyAdded": "Added",
+      "donePicking": "Done",
+      "from": "Applies from",
+      "history_one": "Change history ({{count}})",
+      "history_other": "Change history ({{count}})",
+      "upcoming": "Scheduled"
+    },
+    "effective": {
+      "today": "From today ({{date}})",
+      "monthStart": "From the 1st ({{date}})",
+      "custom": "Another date",
+      "preview": {
+        "today": "Applies from {{date}}; earlier months stay the same.",
+        "future": "Applies from {{date}}; until then the old rates apply.",
+        "backdated": "Applies from {{date}}: services done since then this month are recalculated; earlier months stay the same.",
+        "earlierMonth": "Applies from {{date}}: open months from then on are recalculated; closed months stay the same."
+      }
+    },
+    "employer": {
+      "title": "Real cost (optional)",
+      "hint": "What this person really costs the salon, including taxes, social insurance and other contributions. Only the owner sees it.",
+      "kind": {
+        "none": "Not set",
+        "percent": "% on top of pay",
+        "fixed": "Amount per month"
+      },
+      "noneHint": "Not set: the real cost equals gross pay.",
+      "accountant": "Take the figure from the salon's accountant. GuGu does not calculate tax or insurance and does not claim this figure is legally correct.",
+      "example": "Example: pay {{gross}} → real cost {{real}}/month. Take the figure from your accountant; GuGu does not calculate tax or insurance."
+    },
+    "rates": {
+      "fromTitle": "Changes on this page apply from",
+      "defaultsTitle": "Base pay & default commission",
+      "defaultsHint": "Select several people to give them the same commission.",
+      "selectAll": "Select all",
+      "pick": "Select {{name}}",
+      "scheduled": "From {{date}}: commission {{percent}}",
+      "defaultLabel": "default",
+      "editDefault": "Change the default commission of {{name}}",
+      "ownCount_one": "{{count}} service with its own rate",
+      "ownCount_other": "{{count}} services with their own rate",
+      "editPay": "Edit pay",
+      "bulkTitle_one": "{{count}} person selected · set the same default commission",
+      "bulkTitle_other": "{{count}} people selected · set the same default commission",
+      "bulkApply_one": "Set {{percent}} for {{count}} person",
+      "bulkApply_other": "Set {{percent}} for {{count}} people",
+      "overridesTitle": "Own rates per service",
+      "overridesHint": "Service → rate → who it applies to. Anyone not listed earns their default.",
+      "add": "Add an own rate",
+      "colService": "Service",
+      "colRate": "Rate",
+      "colStaff": "Staff",
+      "noOverrides": "No service has its own rate yet.",
+      "editRate": "Edit the rate of {{name}}",
+      "removeRate": "Remove the own rate of {{name}}",
+      "addStep1": "1. Pick services (several allowed)",
+      "addStep2": "2. Commission rate",
+      "addStep3": "3. Who it applies to",
+      "changeServices": "Change services",
+      "addSave": "Save for {{services}} services × {{people}} people"
+    },
+    "undo": {
+      "action": "Undo",
+      "overrideRemoved": "Removed the own rate of {{name}}",
+      "rateRemoved": "Removed the own rate of {{name}}",
+      "adjustmentRemoved": "Bonus / deduction removed",
+      "unpaid": "Paid mark removed"
+    },
+    "validation": {
+      "fixBelow": "Please check the highlighted fields below.",
+      "amountRequired": "Enter an amount, for example 8,000,000.",
+      "percentRequired": "Enter the commission percentage, for example 10.",
+      "percentRange": "Commission is between 0 and 100%.",
+      "overrideRequired": "Enter a commission rate for this service.",
+      "employerPercentRequired": "Enter a percentage, for example 21.5.",
+      "employerAmountRequired": "Enter the amount per month.",
+      "amount_low": "This looks small. Please check the zeros.",
+      "amount_high": "This looks large. Please check the zeros.",
+      "reasonRequired": "Add a reason so you remember it later.",
+      "serviceRequired": "Pick at least one service.",
+      "staffRequired": "Pick at least one person."
+    },
+    "currencySuffix": "đ"
   },
   "profit": {
     "tabs": {
@@ -1102,10 +1301,40 @@
       "earned": "So far",
       "upcoming": "Upcoming",
       "net": "Est. profit",
-      "open": "Details"
+      "open": "Details",
+      "payroll": "Payroll"
     },
     "forbiddenTitle": "Only the salon owner can see the profit estimate",
-    "forbiddenBody": "The profit estimate includes the team's total pay."
+    "forbiddenBody": "The profit estimate includes the team's total pay.",
+    "headline": "Estimated net profit · {{month}}",
+    "negative": "Running at a loss",
+    "basis": {
+      "actual": "So far",
+      "projected": "Expected",
+      "mixed": "Full month (so far + expected)",
+      "assumption": "Assumption"
+    },
+    "waterfall": {
+      "title": "From revenue to profit",
+      "steps": {
+        "revenue": "Revenue",
+        "noShow": "Possible no-shows",
+        "serviceCosts": "Service costs",
+        "payroll": "Pay & commission",
+        "otherCosts": "Other costs",
+        "net": "Estimated net profit"
+      },
+      "split": "So far {{actual}} · expected {{projected}}",
+      "onlyActual": "So far {{actual}}",
+      "onlyProjected": "Expected {{projected}}",
+      "payrollParts": "Base pay {{base}} · commission {{commission}}.",
+      "employerIncluded": "Includes {{amount}} taxes/insurance as you entered them."
+    },
+    "tileNote": {
+      "profit_revenue_earned": "From completed appointments",
+      "profit_revenue_upcoming": "From upcoming appointments (expected)",
+      "profit_net_margin": "Net profit over revenue, full month"
+    }
   },
   "myEarnings": {
     "title": "My earnings this month (estimate)",
@@ -1113,11 +1342,21 @@
     "commissionEarned": "Commission earned",
     "commissionProjected": "Upcoming commission",
     "adjustments": "Bonus / deduction / advance",
-    "total": "Estimate at month end",
+    "total": "Expected this month",
     "note": "Before tax and insurance. Only you see this.",
     "noPay": "The owner has not set your pay yet.",
     "paid": "Paid on {{date}}",
     "closed": "Payroll closed",
-    "services": "Services: {{count}}"
+    "services": "Services: {{count}}",
+    "earnedSoFar": "Base pay + commission done",
+    "stillExpected_one": "Still expected ({{count}} appointment)",
+    "stillExpected_other": "Still expected ({{count}} appointments)",
+    "commissionFrom_one": "Commission from {{count}} service: {{amount}}",
+    "commissionFrom_other": "Commission from {{count}} services: {{amount}}",
+    "serviceLine_one": "{{name}} × {{count}}",
+    "serviceLine_other": "{{name}} × {{count}}",
+    "noServicesYet": "No services completed this month yet.",
+    "baseLine": "Base pay: {{base}}",
+    "baseAndAdjustments": "Base pay: {{base}} · Bonus / deduction / advance: {{adjustments}}"
   }
 }

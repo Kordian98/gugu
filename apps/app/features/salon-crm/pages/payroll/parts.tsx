@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+
+import type { PayrollRow } from "@gugu/contracts";
 
 import { CalmButton, DatePicker, Icon, Text, useCalm } from "@gugu/design-system";
 import { formatLocalDate, formatMonth, formatVND } from "@gugu/localization";
@@ -226,4 +229,21 @@ export function RetryError({ text, onRetry }: { text: string; onRetry: () => voi
       <CalmButton size="sm" variant="secondary" label={t("payroll.retry")} onPress={onRetry} />
     </View>
   );
+}
+
+const daysIn = (month: string) =>
+  new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
+
+/** "Theo tháng · 30/30 ngày" — how the base pay of the row was counted. */
+export function baseDetail(r: PayrollRow, month: string, t: TFunction<"crm">): string {
+  if (r.baseType === null) return t("payroll.noPay");
+  const detail =
+    r.baseType === "monthly"
+      ? t("payroll.baseDetail.monthly", { days: r.employedDays, dim: daysIn(month) })
+      : r.baseType === "daily"
+        ? t("payroll.baseDetail.daily", { count: r.workingDays })
+        : r.baseType === "hourly"
+          ? t("payroll.baseDetail.hourly", { hours: Math.round(r.workMinutes / 6) / 10 })
+          : t("payroll.baseDetail.none");
+  return r.baseType === "none" ? detail : `${t(`payroll.baseType.${r.baseType}`)} · ${detail}`;
 }

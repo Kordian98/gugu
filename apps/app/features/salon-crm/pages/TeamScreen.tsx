@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Avatar, CalmButton, CalmCard, Pill, Text, useCalm } from "@gugu/design-system";
+import { Avatar, CalmButton, CalmCard, Icon, Pill, Text, useCalm } from "@gugu/design-system";
 import type { StaffMember } from "@gugu/contracts";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -10,6 +10,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { useAuth } from "@/services/auth/AuthProvider";
 
 import { crmApi, useCrmMutation, useServices, useTeam } from "../data/catalog";
+import { usePayrollSettings } from "../data/payroll";
 import { useSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
 import { PageHeader } from "../shell/PageHeader";
@@ -17,7 +18,7 @@ import { useBreakpoint } from "../shell/useBreakpoint";
 import { useCrmNav } from "../shell/useCrmNav";
 import { BookabilityWarning } from "../ui/BookabilityWarning";
 import { EmptyState } from "../ui/EmptyState";
-import { PaySheet } from "./payroll/PaySheet";
+import { PaySheet, paySummary } from "./payroll/PaySheet";
 import { InviteSheet } from "./team/InviteSheet";
 import { ScheduleEditor, weekdayLabel } from "./team/ScheduleEditor";
 import { StaffEditor } from "./team/StaffEditor";
@@ -54,6 +55,9 @@ export function TeamScreen() {
   const canSchedule = can("schedules.write");
   // Settings → Team → Pay & commission (owner; managers only with the owner's grant).
   const canPay = can("payroll.manage");
+  const canSeePay = can("payroll.read");
+  const pay = usePayrollSettings(canSeePay).data?.data ?? null;
+  const payOf = (id: string) => pay?.staff.find((p) => p.staffId === id) ?? null;
   const items = team.data?.items ?? [];
   const mobile = bp === "mobile";
   const { user } = useAuth();
@@ -206,12 +210,26 @@ export function TeamScreen() {
                   </View>
                 </View>
               </View>
-              <Text size={13} color={c.body} style={{ flex: 1 }}>
-                {t("team.servicesCount", { count: s.serviceIds.length })}
-              </Text>
-              <Text size={13} color={c.body} style={{ flex: 1.2 }}>
-                {scheduleSummary(s, locale, t("team.noSchedule"))}
-              </Text>
+              <View style={{ flex: 1.2, gap: 2 }}>
+                <Text size={13} color={c.body}>
+                  {t("team.servicesCount", { count: s.serviceIds.length })}
+                </Text>
+                <Text size={13} color={c.body}>
+                  {scheduleSummary(s, locale, t("team.noSchedule"))}
+                </Text>
+              </View>
+              {canSeePay && pay ? (
+                <PayEntry
+                  testID={`crm-staff-pay-${s.id}`}
+                  text={paySummary(payOf(s.id)?.current ?? null, t, locale)}
+                  missing={!payOf(s.id)?.current}
+                  editable={canPay}
+                  label={t("team.pay.open", { name: s.displayName })}
+                  onPress={() => {
+                    setOpen({ kind: "pay", staff: s });
+                  }}
+                />
+              ) : null}
               <View
                 style={{
                   flexDirection: "row",
@@ -228,18 +246,6 @@ export function TeamScreen() {
                     label={t("team.hours")}
                     onPress={() => {
                       setOpen({ kind: "schedule", staff: s });
-                    }}
-                  />
-                ) : null}
-                {canPay ? (
-                  <CalmButton
-                    testID={`crm-staff-pay-${s.id}`}
-                    size="sm"
-                    variant="secondary"
-                    icon="wallet"
-                    label={t("payroll.pay.button")}
-                    onPress={() => {
-                      setOpen({ kind: "pay", staff: s });
                     }}
                   />
                 ) : null}
@@ -311,5 +317,52 @@ export function TeamScreen() {
         />
       ) : null}
     </ScrollView>
+  );
+}
+
+/** "8.000.000đ/tháng + 10% hoa hồng ›" — the pay setup at a glance, and the way into it. */
+function PayEntry({
+  text,
+  missing,
+  editable,
+  label,
+  onPress,
+  testID,
+}: {
+  text: string;
+  missing: boolean;
+  editable: boolean;
+  label: string;
+  onPress: () => void;
+  testID: string;
+}) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      disabled={!editable}
+      onPress={onPress}
+      style={{
+        flex: 1.6,
+        minHeight: 44,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: missing ? c.attention : c.line,
+        backgroundColor: missing ? c.down.bg : c.surfaceMuted,
+      }}
+    >
+      <Icon name="wallet" size={16} color={c.ink} />
+      <Text role="uiMedium" size={14} color={c.ink} style={{ flex: 1 }} numberOfLines={2}>
+        {missing && editable ? t("team.pay.setNow") : text}
+      </Text>
+      {editable ? <Icon name="chevronRight" size={16} color={c.body} /> : null}
+    </Pressable>
   );
 }

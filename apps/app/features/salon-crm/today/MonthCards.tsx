@@ -7,8 +7,9 @@ import { formatLocalDate, formatVND } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { salonDate } from "../data/dates";
-import { useMyEarnings, useProfit } from "../data/payroll";
+import { useMyEarnings, useMyLines, useProfit } from "../data/payroll";
 import { useSalon } from "../data/SalonContext";
+import { topServices } from "../pages/payroll/model";
 import { signedVnd } from "../pages/payroll/parts";
 import { useCrmNav } from "../shell/useCrmNav";
 
@@ -100,7 +101,15 @@ export function ProfitCard() {
         <Pill size={10} tone="accent" label={t("revenueKind.estimated")} />
         <View style={{ flex: 1 }} />
         <CalmButton
-          size="sm"
+          testID="crm-today-payroll"
+          variant="ghost"
+          icon="wallet"
+          label={t("profit.card.payroll")}
+          onPress={() => {
+            go("/business/payroll");
+          }}
+        />
+        <CalmButton
           variant="ghost"
           label={t("profit.card.open")}
           onPress={() => {
@@ -113,8 +122,10 @@ export function ProfitCard() {
 }
 
 /**
- * A staff member's own month (payroll.self.read): commission done, upcoming, base and the
- * estimate at month end. Only the member's own numbers ever come back from the API.
+ * A staff member's own month (payroll.self.read), redesigned after the owner's review 2026-11-03:
+ * ONE big number (the month estimate), how much is already earned vs still expected, and a short
+ * list of the services that earned commission. Only the member's own numbers come back from the
+ * API; the employer cost ("chi phí thực tế") is never part of it.
  */
 export function MyEarningsCard() {
   const { c } = useCalm();
@@ -126,11 +137,13 @@ export function MyEarningsCard() {
   const month = salonDate(new Date(), summary?.timezone).slice(0, 7);
   const q = useMyEarnings(month, allowed);
   const m = q.data?.data ?? null;
+  const lines = useMyLines(month, allowed && m?.hasProfile === true);
   if (!allowed || !m?.hasProfile) return null;
   const vnd = (n: number) => formatVND(n, locale);
-  const adj = m.bonus - m.deduction - m.advance;
+  const earned = m.totalEstimate - m.commissionProjected;
+  const top = topServices(lines.data?.data?.items ?? [], locale, 4);
   return (
-    <CalmCard testID="crm-my-earnings" style={{ gap: 10 }}>
+    <CalmCard testID="crm-my-earnings" style={{ gap: 12 }}>
       <Text
         role="uiSemiBold"
         size={12}
@@ -140,58 +153,94 @@ export function MyEarningsCard() {
         {t("myEarnings.title")}
       </Text>
       {m.baseType === null && m.commissionEarned === 0 ? (
-        <Text size={14} color={c.body}>
+        <Text size={15} color={c.body}>
           {t("myEarnings.noPay")}
         </Text>
       ) : (
         <>
-          <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
+          <View style={{ gap: 2 }}>
+            <Text size={14} color={c.body}>
+              {t("myEarnings.total")}
+            </Text>
+            <Text
+              testID="crm-my-earnings-total"
+              role="uiSemiBold"
+              size={34}
+              lineHeight={42}
+              color={c.ink}
+            >
+              {vnd(m.totalEstimate)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", gap: 16, flexWrap: "wrap" }}>
             <Figure
-              testID="crm-my-earnings-commission"
-              label={`${t("myEarnings.commissionEarned")} · ${t("myEarnings.services", { count: m.earnedLines })}`}
-              value={vnd(m.commissionEarned)}
+              testID="crm-my-earnings-earned"
+              label={t("myEarnings.earnedSoFar")}
+              value={vnd(earned)}
             />
             {m.commissionProjected > 0 ? (
               <Figure
-                label={t("myEarnings.commissionProjected")}
-                value={vnd(m.commissionProjected)}
+                label={t("myEarnings.stillExpected", { count: m.projectedLines })}
+                value={`+${vnd(m.commissionProjected)}`}
               />
             ) : null}
-            <Figure label={t("myEarnings.base")} value={vnd(m.base)} />
-            {adj !== 0 ? (
-              <Figure label={t("myEarnings.adjustments")} value={signedVnd(adj, locale)} />
-            ) : null}
           </View>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              borderTopWidth: 1,
-              borderColor: c.line,
-              paddingTop: 8,
-            }}
-          >
+          <View style={{ gap: 4 }}>
             <Text role="uiMedium" size={14} color={c.ink}>
-              {t("myEarnings.total")}
+              {t("myEarnings.commissionFrom", {
+                count: m.earnedLines,
+                amount: vnd(m.commissionEarned),
+              })}
             </Text>
-            <Text testID="crm-my-earnings-total" role="uiSemiBold" size={20} color={c.ink}>
-              {vnd(m.totalEstimate)}
+            {top.length === 0 ? (
+              <Text size={14} color={c.muted}>
+                {t("myEarnings.noServicesYet")}
+              </Text>
+            ) : (
+              top.map((s) => (
+                <View
+                  key={s.name}
+                  testID="crm-my-earnings-service"
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    paddingVertical: 6,
+                    borderTopWidth: 1,
+                    borderColor: c.line,
+                  }}
+                >
+                  <Text size={15} color={c.body} style={{ flex: 1 }} numberOfLines={1}>
+                    {t("myEarnings.serviceLine", { name: s.name, count: s.count })}
+                  </Text>
+                  <Text role="uiSemiBold" size={15} color={c.ink}>
+                    {vnd(s.amount)}
+                  </Text>
+                </View>
+              ))
+            )}
+            <Text size={13} color={c.muted}>
+              {m.bonus - m.deduction - m.advance !== 0
+                ? t("myEarnings.baseAndAdjustments", {
+                    base: vnd(m.base),
+                    adjustments: signedVnd(m.bonus - m.deduction - m.advance, locale),
+                  })
+                : t("myEarnings.baseLine", { base: vnd(m.base) })}
             </Text>
           </View>
         </>
       )}
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
-        {m.closed ? <Pill size={10} tone="up" label={t("myEarnings.closed")} /> : null}
+        {m.closed ? <Pill size={11} tone="up" label={t("myEarnings.closed")} /> : null}
         {m.paidOn ? (
           <Pill
-            size={10}
+            size={11}
             tone="up"
             label={t("myEarnings.paid", { date: formatLocalDate(m.paidOn, locale) })}
           />
         ) : null}
       </View>
-      <Text size={12} color={c.muted}>
+      <Text size={13} color={c.muted}>
         {t("myEarnings.note")}
       </Text>
     </CalmCard>
