@@ -8,7 +8,7 @@ import { t } from "../support/i18n";
 import { expect, need, test } from "../support/fixtures";
 import { SEED } from "../support/seed";
 import { addDays, vnDate } from "../support/time";
-import { hydrated, fillField, tap } from "../support/ui";
+import { fillField, tap } from "../support/ui";
 
 const L = "vi" as const;
 const tomorrow = addDays(vnDate(), 1);
@@ -100,9 +100,7 @@ test.describe("zalo @vi", () => {
         name: new RegExp(`^12:00 ${SEED.services.gel.vi}, Mai Zalo,`),
       });
       await tap(block);
-      await expect(
-        owner.getByText(`${t(L, "crm:booking.title", { code: bookingRef })}`),
-      ).toBeVisible();
+      await expect(owner.getByText(t(L, "crm:booking.title", { code: bookingRef }))).toBeVisible();
       await expect(
         owner.getByText(t(L, "crm:booking.source.zalo_oa"), { exact: true }),
       ).toBeVisible();
