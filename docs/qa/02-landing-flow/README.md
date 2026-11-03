@@ -90,6 +90,13 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **Skip removed.**
 - **Hero CTA is a plaque at the foot of the arch,** with Start. It is gone after the first walk-in.
 
+## CRM screenshots
+
+- **Checklist cut from `overview` and `kpis` (vi + en), owner 2026-11-04.** The onboarding checklist ("Thiết lập bằng AI trong vài phút") was removed by cutting its band and stitching the real screen back together; the sidebar stays intact. The manifest sizes are updated. This is interim, until the full retake.
+- **One-command retake: `scripts/landing-screens.mjs`.** It seeds the payroll demo plus the demo salon on your own DB, signs in, presses "go live" so the checklist disappears, fails if the checklist is still on any screen, and captures overview / timeline / upcoming / kpis / calendar (+crop) / appointments (+crop) / services (+crop) / Insights (+ "Tháng này") / payroll / Zalo in vi and en.
+- **Retake timing:** waiting for `crm/07-payroll-ux` to merge and the Insights screens to be final. The CRM-styled Insights and payroll mocks will then be replaced by the real screens.
+- **Not run yet:** the script has not run end to end. It needs an API on its own DB plus this branch's web server; it passes `node --check`.
+
 ## Design review fixes (after `f7c8e5b`)
 
 - Next has an `aria-label` for the current label. Its label spans and arrow are `aria-hidden`, and Prev is disabled on page 1.

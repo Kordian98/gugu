@@ -30,7 +30,14 @@ export function StaticHero({
   return (
     <div className="jr-static" ref={heroRef}>
       <div className="jr-hero">
-        <HeroCopy nav={nav} desktop={desktop} width={width} stacked={desktop} compact={!desktop} />
+        <HeroCopy
+          nav={nav}
+          desktop={desktop}
+          width={width}
+          stacked={desktop}
+          compact={!desktop}
+          journey
+        />
       </div>
       <div className="jr-frame">
         <div className="jr-media">

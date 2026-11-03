@@ -304,6 +304,7 @@ export function Journey({
               width={width}
               stacked={desktop}
               compact={!desktop}
+              journey
             />
           </div>
           <div className="jr-frame">

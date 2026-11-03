@@ -102,6 +102,7 @@ export function HeroCopy({
   width,
   stacked = false,
   compact = false,
+  journey = false,
 }: {
   nav: LandingNavActions;
   desktop: boolean;
@@ -110,6 +111,8 @@ export function HeroCopy({
   stacked?: boolean;
   /** Phone door hero: smaller type, one CTA, no note (the arch needs the lower half). */
   compact?: boolean;
+  /** Web story hero: the walk-in plaque at the arch is the journey CTA, so no "how it works" button. */
+  journey?: boolean;
 }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
@@ -149,7 +152,7 @@ export function HeroCopy({
           paddingX={32}
           trailingArrow
         />
-        {compact ? null : (
+        {compact || journey ? null : (
           <Button
             variant="outline"
             label={t("hero.howCta")}
