@@ -29,7 +29,7 @@ import {
 } from "../../src/modules/assistant/llm/assistant-llm";
 import { ReadTools } from "../../src/modules/assistant/tools/read-tools";
 import { SubscriptionsFacade } from "../../src/modules/subscriptions/subscriptions.facade";
-import { EVAL_NOW, NAMES, oracle, seedEvalSalon, TZ } from "./fixture";
+import { CANARIES, EVAL_NOW, NAMES, oracle, seedEvalSalon, TZ } from "./fixture";
 import { type CaseGrade, type CaseRun, type EvalCase, grade, summarise } from "./grade";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -57,6 +57,7 @@ class EchoAdversary extends AssistantLlm {
       revenue_summary: { from: "2026-10-01", to: "2026-11-08" },
       utilization: { from: "2026-11-04", to: "2026-11-04" },
       bookings_list: { from: "2026-11-03", to: "2026-11-05", statuses: [], limit: 50 },
+      month_profit: { date: "2026-11-04" },
     };
     let content: Anthropic.Beta.Messages.BetaContentBlock[];
     if (!sawResults) {
@@ -255,6 +256,11 @@ describe(`assistant evals (${REAL ? "real model" : "echo adversary"})`, () => {
     };
     expect(util.utilizationPercent).toBe(facts["utilization_today"]);
     expect(util.staff[0]?.utilizationPercent).toBe(facts["utilization_today_staff_A"]);
+    // Salon-level profit only: earned so far matches the oracle; no per-person pay in the output.
+    const profit = (await run("month_profit", { date: "2026-11-04" }));
+    expect(profit["revenueEarnedVnd"]).toBe(facts["profit_earned_this_month"]);
+    expect(JSON.stringify(profit)).not.toContain(CANARIES.salary);
+    expect(JSON.stringify(profit)).not.toMatch(/staff_\d/);
   });
 
   it(

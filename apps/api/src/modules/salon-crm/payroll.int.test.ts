@@ -10,6 +10,8 @@ import {
   commissionLinesSchema,
   insightsSchema,
   myEarningsSchema,
+  type PayrollMonth,
+  type PayrollRow,
   payrollExportSchema,
   payrollMonthSchema,
   payrollSettingsSchema,
@@ -38,7 +40,6 @@ import { BookingClock } from "../bookings/bookings.facade";
 import { PayrollClock } from "./salon-crm.facade";
 
 const D1 = "2026-12-02";
-const D2 = "2026-12-03";
 let now = new Date("2026-12-01T08:00:00+07:00");
 const clock = { now: () => new Date(now) };
 /** A salary nobody else has: it must never appear in assistant tool output. */
@@ -140,8 +141,11 @@ describe("payroll, commissions and profit (integration)", () => {
       (await api().get(url("payroll")).query({ month }).set("authorization", auth).expect(200))
         .body,
     );
-  const row = (p: { rows: { staffId: string }[] }, id: string) =>
-    p.rows.find((r) => r.staffId === id) as (typeof p.rows)[number] & Record<string, unknown>;
+  const row = (p: PayrollMonth, id: string): PayrollRow => {
+    const r = p.rows.find((x) => x.staffId === id);
+    if (!r) throw new Error(`no payroll row for ${id}`);
+    return r;
+  };
 
   it("pay settings: effective-dated versions with overrides; history kept", async () => {
     const save = (staffId: string, body: Record<string, unknown>) =>
@@ -413,7 +417,7 @@ describe("payroll, commissions and profit (integration)", () => {
       .set("authorization", owner)
       .send({ month: "2026-12", staffId: mai, kind: "bonus", amount: 1, reason: "late" })
       .expect(409)
-      .expect((r) => expect(problemSchema.parse(r.body).code).toBe("payroll.month_closed"));
+      .expect((r) => { expect(problemSchema.parse(r.body).code).toBe("payroll.month_closed"); });
     await api()
       .put(url(`payroll/staff/${linh}/pay`))
       .set("authorization", owner)
@@ -509,7 +513,12 @@ describe("payroll, commissions and profit (integration)", () => {
           .expect(200)
       ).body,
     );
-    expect(mine).toMatchObject({ hasProfile: true, closed: true, baseType: "daily", paidOn: "2026-12-31" });
+    expect(mine).toMatchObject({
+      hasProfile: true,
+      closed: true,
+      baseType: "daily",
+      paidOn: "2026-12-31",
+    });
     // 120k × 20 % (chain line after the recorded discount) + 150k × 20 % (completed 20 Dec).
     expect(mine.commissionEarned).toBe(54_000);
     expect(JSON.stringify(mine)).not.toContain(String(SALARY_CANARY));
