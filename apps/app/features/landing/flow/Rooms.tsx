@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Asset } from "expo-asset";
 import { useTranslation } from "react-i18next";
 
@@ -7,7 +7,8 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { screen, type ScreenName } from "../screens";
 import { PHOTO } from "./media";
 
-const FEATURES = ["f1", "f2", "f3", "f4"] as const;
+const FEATURES = ["f1", "f5", "f2", "f3", "f4", "f6", "f7", "f8"] as const;
+const PIN = "\u25CF";
 const BIZ = ["nails", "hair", "barber", "spa", "lash", "brow"] as const;
 const CHEV_L = "‹";
 const CHEV_R = "›";
@@ -38,7 +39,16 @@ export function FeaturesPanel() {
         <div className="fl-eye">{t("flow.features.eyebrow")}</div>
         <h2 className="fl-h">{t("flow.features.title")}</h2>
       </div>
-      <Laptop className="ft-lap" src={shot("calendar")} />
+      <div className="ft-lap">
+        <div className="lap">
+          <img src={shot("calendar")} alt="" decoding="async" loading="lazy" />
+        </div>
+        <div className="lap-base" />
+        <div className="ft-chip">
+          <i>{PIN}</i>
+          {t("flow.features.chip")}
+        </div>
+      </div>
       <div className="ft-list">
         {FEATURES.map((k) => (
           <div key={k} className="card ft-i">
@@ -51,17 +61,94 @@ export function FeaturesPanel() {
   );
 }
 
-function StatCard() {
+const vnd = (locale: string, n: number) =>
+  new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(Math.round(n / 1000) * 1000);
+
+/**
+ * Interactive, clearly illustrative estimate of revenue recovered from fewer no-shows:
+ * bookings/week × 10% no-show × 25% fewer with reminders (BMJ Open 2016) × price × 4.33 weeks.
+ * The result counts up smoothly on change (rAF tween on text only).
+ */
+function EarningsCard() {
   const { t } = useTranslation("landing");
+  const locale = useLocale();
+  const [price, setPrice] = useState(350000);
+  const [weekly, setWeekly] = useState(80);
+  const out = useRef<HTMLElement>(null);
+  const year = useRef<HTMLElement>(null);
+  const shown = useRef(0);
+  const monthly = weekly * 0.1 * 0.25 * price * 4.33;
+  useEffect(() => {
+    const from = shown.current;
+    const to = monthly;
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - t0) / 700);
+      const v = from + (to - from) * (1 - Math.pow(1 - k, 3));
+      shown.current = v;
+      if (out.current) out.current.textContent = vnd(locale, v);
+      if (year.current) year.current.textContent = vnd(locale, v * 12);
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+    };
+  }, [monthly, locale]);
   return (
-    <div className="card">
-      <div className="stat">{t("flow.compose.stat")}</div>
-      <p className="stat-l">{t("flow.compose.statLabel")}</p>
-      <div className="src">
-        <a href={t("flow.compose.sourceUrl")} target="_blank" rel="noreferrer">
-          {t("flow.compose.source")}
-        </a>
+    <div className="card calc">
+      <div className="calc-t">{t("flow.calc.t")}</div>
+      <label className="calc-r">
+        <span>
+          {t("flow.calc.price")}
+          <b>{vnd(locale, price)}</b>
+        </span>
+        <input
+          type="range"
+          min={100000}
+          max={1500000}
+          step={50000}
+          value={price}
+          onChange={(e) => {
+            setPrice(Number(e.target.value));
+          }}
+        />
+      </label>
+      <label className="calc-r">
+        <span>
+          {t("flow.calc.weekly")}
+          <b>
+            {String(weekly)} {t("flow.calc.perWeek")}
+          </b>
+        </span>
+        <input
+          type="range"
+          min={20}
+          max={300}
+          step={10}
+          value={weekly}
+          onChange={(e) => {
+            setWeekly(Number(e.target.value));
+          }}
+        />
+      </label>
+      <div className="calc-out">
+        <b ref={out}>{vnd(locale, 0)}</b>
+        <span>{t("flow.calc.out")}</span>
       </div>
+      <div className="calc-year">
+        <b ref={year}>{vnd(locale, 0)}</b> {t("flow.calc.year")}
+      </div>
+      <p className="calc-note">
+        <a href={t("flow.compose.sourceUrl")} target="_blank" rel="noreferrer">
+          {t("flow.calc.note")}
+        </a>
+      </p>
     </div>
   );
 }
@@ -77,7 +164,7 @@ function AssistantCard() {
   );
 }
 
-/** Back office panel: the owner's overview, the cited no-show stat and the AI assistant (Pro). */
+/** Back office panel: the owner's overview, the earnings estimate (interactive) and the AI assistant (Pro). */
 export function OfficePanel() {
   const { t } = useTranslation("landing");
   const shot = useShot();
@@ -90,7 +177,7 @@ export function OfficePanel() {
         <p className="fl-sub of-sub">{t("flow.office.sub")}</p>
       </div>
       <div className="of-side">
-        <StatCard />
+        <EarningsCard />
         <AssistantCard />
       </div>
     </div>

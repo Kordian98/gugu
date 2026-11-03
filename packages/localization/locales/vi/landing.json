@@ -220,7 +220,17 @@
       "note": "Ví dụ minh hoạ với tên hư cấu, không phải số liệu đo lường hay câu chuyện khách hàng.",
       "statNum": "3",
       "statUnit": "giờ",
-      "unread": "tin nhắn mới"
+      "unread": "tin nhắn mới",
+      "before": "Trước đây",
+      "after": "Với GuGu Studio",
+      "g1n": "+6,5 giờ",
+      "g1l": "tiết kiệm mỗi tuần (ví dụ)",
+      "g2n": "0",
+      "g2l": "lịch bị trùng",
+      "g3n": "−25%",
+      "g3l": "khách không đến*",
+      "src": "* Nhắc lịch và tỷ lệ không đến: Robotham và cộng sự, BMJ Open 2016 (phòng khám). Tên là hư cấu; số liệu chỉ là ví dụ minh hoạ.",
+      "drag": "Kéo để so sánh trước và sau"
     },
     "ba": {
       "eyebrow": "Trước và sau",
@@ -298,7 +308,16 @@
       "f3t": "Dịch vụ, tuỳ chọn và thêm dịch vụ",
       "f3b": "Thời lượng, khoảng giá và nhân viên thực hiện từng dịch vụ.",
       "f4t": "Nhân viên, giờ làm và lời mời",
-      "f4b": "Mời nhân viên qua link và đặt giờ làm cho từng người."
+      "f4b": "Mời nhân viên qua link và đặt giờ làm cho từng người.",
+      "f5t": "Phòng & thiết bị",
+      "f5b": "Gán ghế, giường hoặc máy cho từng dịch vụ để không bao giờ bị trùng.",
+      "f6t": "Hồ sơ khách hàng",
+      "f6b": "Lịch sử, ghi chú và sở thích của từng khách.",
+      "f7t": "Đặt lịch qua Zalo",
+      "f7b": "Tin nhắn tới Zalo OA của salon tự động thành lịch hẹn.",
+      "f8t": "Phân tích",
+      "f8b": "Doanh thu, tỷ lệ lấp đầy và khách không đến khi lịch hoàn thành.",
+      "chip": "Ghế 2 + đèn UV đã giữ · 14:00"
     },
     "office": {
       "eyebrow": "Phòng làm việc",
@@ -346,14 +365,22 @@
     "hud": {
       "c0": "Đến nơi",
       "c1": "Quầy lễ tân",
-      "c2": "Nhẹ nhàng",
-      "c3": "Phòng làm",
-      "c4": "Văn phòng",
+      "c2": "Phòng làm",
+      "c3": "Văn phòng",
       "next": "Tiếp theo",
       "start": "Bắt đầu tham quan",
       "cont": "Tiếp tục",
       "skip": "Bỏ qua câu chuyện",
       "label": "Các phần của câu chuyện"
+    },
+    "calc": {
+      "t": "Bớt khách không đến đáng giá bao nhiêu",
+      "price": "Giá dịch vụ trung bình",
+      "weekly": "Lịch hẹn mỗi tuần",
+      "out": "thu lại mỗi tháng",
+      "year": "mỗi năm",
+      "note": "Ước tính minh hoạ: giả định 10% khách không đến và giảm ~25% nhờ nhắc lịch (BMJ Open 2016). Số liệu của bạn sẽ khác.",
+      "perWeek": "/ tuần"
     }
   }
 }

@@ -1,6 +1,4 @@
 import { useLayoutEffect, useRef } from "react";
-
-import type { Chapters } from "./chapters";
 import { gsap } from "gsap";
 import { useTranslation } from "react-i18next";
 
@@ -8,29 +6,31 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import { HeroCopy } from "../StudioHero";
 import type { LandingNavActions } from "../useLandingNav";
+import { chapterScroller, type Chapters } from "./chapters";
 import { PHOTO } from "./media";
 import { FeaturesPanel, OfficePanel } from "./Rooms";
 import { WalkPlayer } from "./sequence";
-import { chapterScroller } from "./chapters";
 import { DURATIONS, STOPS, buildJourney, scrollParent } from "./timelines";
 
-const NOTES = ["n1", "n2", "n3", "n4"] as const;
+const NOTES = ["n1", "n2", "n3"] as const;
 const ENTRIES = ["e1", "e2", "e3", "e4"] as const;
 const GUGU = ["g1", "g2", "g3"] as const;
+const GAINS = ["g1", "g2", "g3"] as const;
 const Z = "Z";
 const PHONE = "☎";
 const CHECK = "✓";
 const SEP = " · ";
 const ZERO = "0";
-const DOWN = "\u2193";
-const HUD = ["c0", "c1", "c2", "c3", "c4"] as const;
+const DOWN = "↓";
+const HUD = ["c0", "c1", "c2", "c3"] as const;
+const ARROWS = "\u25C0\u25B6";
 
 /**
- * The whole visit as ONE full-screen scene (web): a single sticky stage whose canvas walks in from the
- * street, through the doors to the front desk, where the drowning → calm story plays on the same frame
- * (Zalo pings, notebook, then the same receptionist calm), then walks on into the treatment area
- * (features of that room) and the back office (overview, cited stat, assistant). No section breaks: the
- * camera never leaves the stage. Desktop full-bleed frames, mobile portrait frames.
+ * The whole visit as ONE full-screen scene (web): a single sticky stage. The hero's arched door grows to
+ * full screen and we walk in; at the front desk the frame freezes into a before/after split (the same
+ * receptionist drowning in Zalo + notebook vs calm with GuGu Studio, both whitened, UI on each half);
+ * then we walk on into the treatment area (features of that room) and the back office (overview,
+ * earnings calculator, assistant). A HUD steps between chapters; one gesture plays one transition.
  */
 export function Journey({
   nav,
@@ -71,9 +71,33 @@ export function Journey({
     const ctx = gsap.context(() => {
       buildJourney(el, gsap.utils.selector(el), player, hud.current);
     }, el);
+    // Before/after handle: drag to compare (writes --x on the split; the scroll sweep sets it too).
+    const sp = el.querySelector<HTMLElement>(".sp");
+    const knob = el.querySelector<HTMLElement>(".sp-knob");
+    let dragging = false;
+    const move = (e: PointerEvent) => {
+      if (!dragging || !sp) return;
+      const r = sp.getBoundingClientRect();
+      const x = Math.max(4, Math.min(96, ((e.clientX - r.left) / r.width) * 100));
+      sp.style.setProperty("--x", `${x.toFixed(1)}%`);
+    };
+    const down = (e: PointerEvent) => {
+      dragging = true;
+      knob?.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    };
+    const up = () => {
+      dragging = false;
+    };
+    knob?.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
     const sc = scrollParent(el);
     ch.current = sc instanceof HTMLElement ? chapterScroller(sc, el, STOPS, DURATIONS) : null;
     return () => {
+      knob?.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
       ch.current?.destroy();
       ch.current = null;
       ctx.revert();
@@ -87,16 +111,20 @@ export function Journey({
     <div className="jr" ref={track}>
       <div className="jr-stage">
         <div className="jr-hero">
-          <HeroCopy nav={nav} desktop={desktop} width={width} stacked={desktop} compact={!desktop} />
+          <HeroCopy
+            nav={nav}
+            desktop={desktop}
+            width={width}
+            stacked={desktop}
+            compact={!desktop}
+          />
         </div>
         <div className="jr-frame">
           <div className="jr-media">
             <img className="jr-poster" src={PHOTO.exterior} alt="" decoding="async" />
             <canvas ref={canvas} aria-hidden />
-            <img className="jr-calm" src={PHOTO.calm169} alt="" decoding="async" />
           </div>
           <div className="jr-shade" />
-          <div className="jr-light" />
           <div className="jr-veil" />
 
           <div className="jr-intro">
@@ -105,19 +133,28 @@ export function Journey({
             <div className="wk-hint">{t("flow.walk.hint")}</div>
           </div>
 
-          <div className="jr-pain">
-            <div className="jr-stack">
-              <div className="pn-a">
+          {/* front desk: before | after */}
+          <div className="sp">
+            <div className="sp-h sp-l">
+              <img src={PHOTO.stress169} alt="" decoding="async" />
+              <div className="sp-veil" />
+            </div>
+            <div className="sp-h sp-r">
+              <img src={PHOTO.calm169} alt="" decoding="async" />
+              <div className="sp-veil" />
+            </div>
+            <div className="sp-line" />
+            <button type="button" className="sp-knob" aria-label={t("flow.pain.drag")}>
+              {ARROWS}
+            </button>
+
+            <div className="sp-ui sp-ui-l">
+              <span className="sp-tag b">{t("flow.pain.before")}</span>
+              <div className="sp-head">
                 <div className="fl-eye">{t("flow.pain.eyebrow")}</div>
                 <h2 className="fl-h">{t("flow.pain.title")}</h2>
               </div>
-              <div className="pn-b">
-                <div className="fl-eye">{t("flow.pain.calmEyebrow")}</div>
-                <h2 className="fl-h">{t("flow.pain.calmTitle")}</h2>
-              </div>
-            </div>
-            <div className="jr-stack">
-              <div className="pn-sa pn-stat">
+              <div className="pn-stat">
                 <span className="pre">{t("flow.pain.pre")}</span>
                 <span className="big">
                   <b className="pn-num">{t("flow.pain.statNum")}</b>
@@ -125,53 +162,68 @@ export function Journey({
                 </span>
                 <p>{t("flow.pain.statLabel")}</p>
               </div>
-              <div className="pn-sb">
-                <p className="pn-calm">{t("flow.pain.calmSub")}</p>
-                <div className="pn-g">
-                  {GUGU.map((k) => (
-                    <div key={k} className="pn-gi">
-                      <i>{CHECK}</i>
+              <div className="sp-row">
+                <div className="pn-notes">
+                  <div className="pn-badge">
+                    <b className="pn-count">{ZERO}</b>
+                    {t("flow.pain.unread")}
+                  </div>
+                  {NOTES.map((k) => (
+                    <div key={k} className="pn-n">
+                      <i>{Z}</i>
+                      <div>
+                        <small>
+                          {t("flow.pain.zalo")}
+                          {SEP}
+                          {t("flow.pain.now")}
+                        </small>
+                        {t(`flow.pain.${k}`)}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pn-n call">
+                    <i>{PHONE}</i>
+                    <div>{t("flow.pain.n5")}</div>
+                  </div>
+                </div>
+                <div className="pn-book">
+                  <div className="lbl">{t("flow.pain.book")}</div>
+                  {ENTRIES.map((k, i) => (
+                    <div key={k} className={`pn-e x${String(i + 1)}${i === 3 ? " hot" : ""}`}>
                       {t(`flow.pain.${k}`)}
+                      <s />
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="lyr pn-notes">
-            <div className="pn-badge">
-              <b className="pn-count">{ZERO}</b>
-              {t("flow.pain.unread")}
-            </div>
-            {NOTES.map((k) => (
-              <div key={k} className="pn-n">
-                <i>{Z}</i>
-                <div>
-                  <small>
-                    {t("flow.pain.zalo")}
-                    {SEP}
-                    {t("flow.pain.now")}
-                  </small>
-                  {t(`flow.pain.${k}`)}
-                </div>
+            <div className="sp-ui sp-ui-r">
+              <span className="sp-tag a">{t("flow.pain.after")}</span>
+              <div className="sp-head">
+                <div className="fl-eye">{t("flow.pain.calmEyebrow")}</div>
+                <h2 className="fl-h">{t("flow.pain.calmTitle")}</h2>
               </div>
-            ))}
-            <div className="pn-n call">
-              <i>{PHONE}</i>
-              <div>{t("flow.pain.n5")}</div>
-            </div>
-          </div>
-          <div className="lyr pn-book">
-            <div className="lbl">{t("flow.pain.book")}</div>
-            {ENTRIES.map((k, i) => (
-              <div key={k} className={`pn-e x${String(i + 1)}${i === 3 ? " hot" : ""}`}>
-                {t(`flow.pain.${k}`)}
-                <s />
+              <p className="pn-calm">{t("flow.pain.calmSub")}</p>
+              <div className="pn-g">
+                {GUGU.map((k) => (
+                  <div key={k} className="pn-gi">
+                    <i>{CHECK}</i>
+                    {t(`flow.pain.${k}`)}
+                  </div>
+                ))}
               </div>
-            ))}
+              <div className="sp-gains">
+                {GAINS.map((k) => (
+                  <div key={k} className="sp-gain">
+                    <b>{t(`flow.pain.${k}n`)}</b>
+                    <span>{t(`flow.pain.${k}l`)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="jr-foot">{t("flow.pain.src")}</div>
           </div>
-          <div className="jr-foot">{t("flow.pain.note")}</div>
 
           <div className="wk-cap cap-deeper">{t("flow.walk.deeper")}</div>
           <div className="wk-cap cap-office">{t("flow.walk.office")}</div>

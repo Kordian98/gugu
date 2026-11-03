@@ -80,26 +80,26 @@ const stagger = (
 const PH = {
   portal: [0, 0.05],
   w1: [0.05, 0.17],
-  pain: 0.17,
-  swap: 0.36,
-  calmOut: 0.48,
-  w2: [0.5, 0.61],
-  feat: 0.61,
-  featOut: 0.735,
-  w3: [0.76, 0.88],
-  office: 0.88,
+  desk: 0.17,
+  deskOut: 0.4,
+  w2: [0.42, 0.56],
+  feat: 0.56,
+  featOut: 0.705,
+  w3: [0.73, 0.86],
+  office: 0.86,
 } as const;
 
-/** Scenes one scroll gesture steps between: hero · front desk (built) · calm · treatment area · office. */
-export const STOPS = [0, 0.345, 0.462, 0.725, 1] as const;
-/** Seconds per transition (stop i → i+1): door + walk + desk build, calm, walk + features, walk + office. */
-export const DURATIONS = [6.0, 3.8, 5.6, 5.2] as const;
+/** Scenes one gesture steps between: hero · front desk (before | after) · treatment area · office. */
+export const STOPS = [0, 0.375, 0.69, 1] as const;
+/** Seconds per transition: door + walk + split desk build, walk + features, walk + office. */
+export const DURATIONS = [7.0, 6.2, 6.0] as const;
 
 /** Which walk frame to show at journey time t. */
 function frameAt(t: number): [Segment, number] {
   const lin = (a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
   if (t < PH.w1[1]) return ["w1", lin(PH.w1[0], PH.w1[1])];
-  if (t < PH.swap + 0.02) return ["w1", 1];
+  // Under the split the canvas switches to the calm frame, so leaving the desk reveals walk 2's start.
+  if (t < PH.desk + 0.04) return ["w1", 1];
   if (t < PH.w2[1]) return ["w2", lin(PH.w2[0], PH.w2[1])];
   if (t < PH.w3[0]) return ["w2", 1];
   return ["w3", lin(PH.w3[0], PH.w3[1])];
@@ -192,11 +192,11 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: H
   tl.eventCallback("onUpdate", () => {
     const t = tl.duration() > 0 ? tl.time() / tl.duration() : 0;
     const [seg, p] = frameAt(t);
-    if (t > 0.2 && !loaded.has("w2")) {
+    if (t > 0.18 && !loaded.has("w2")) {
       loaded.add("w2");
       player.load("w2");
     }
-    if (t > 0.5 && !loaded.has("w3")) {
+    if (t > 0.45 && !loaded.has("w3")) {
       loaded.add("w3");
       player.load("w3");
     }
@@ -214,40 +214,56 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: H
   tl.to(q(".jr-intro"), { opacity: 0, y: -40, duration: 0.02 }, 0.075);
   tl.to(q(".jr-shade"), { opacity: 0, duration: 0.02 }, 0.08);
 
-  // front desk: drowning — the frame freezes and whitens (like the rooms), UI builds on top
-  tl.to(q(".jr-light"), { opacity: 1, duration: 0.03, ease: "sine.inOut" }, PH.pain);
-  show(tl, q, ".pn-a", PH.pain + 0.005, { y: 60 });
-  show(tl, q, ".pn-sa", PH.pain + 0.03, { y: 40, scale: 0.9 });
-  counter(".pn-num", 3, PH.pain + 0.03, 0.06, 1);
-  show(tl, q, ".pn-badge", PH.pain + 0.04, { y: -10, scale: 0.6 });
-  counter(".pn-count", 12, PH.pain + 0.045, 0.12);
-  show(tl, q, ".jr-foot", PH.pain + 0.03, { y: 0 });
-  stagger(tl, q, ".pn-n", PH.pain + 0.045, 0.022, { y: -26, scale: 0.94 });
-  show(tl, q, ".pn-book", PH.pain + 0.09, { y: 40, rotate: -7 });
-  tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.02 }, PH.pain + 0.13);
-  tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.02 }, PH.pain + 0.15);
-
-  // same desk: calm (the calm photo dissolves in on the same frozen, whitened frame)
-  tl.to(q(".jr-calm"), { opacity: 1, duration: 0.035, ease: "sine.inOut" }, PH.swap);
-  hide(tl, q, ".pn-n, .pn-badge", PH.swap, { y: -14, scale: 0.96 });
-  hide(tl, q, ".pn-book", PH.swap, { y: 30 });
-  hide(tl, q, ".pn-a", PH.swap + 0.004);
-  hide(tl, q, ".pn-sa", PH.swap + 0.004);
-  show(tl, q, ".pn-b", PH.swap + 0.02, { y: 60 });
-  show(tl, q, ".pn-sb", PH.swap + 0.03);
+  // front desk: one step, split before | after. Both halves freeze + whiten; UI builds on each.
+  const D0 = PH.desk;
+  tl.fromTo(q(".sp"), { opacity: 0 }, { opacity: 1, duration: 0.02, ease: "sine.inOut" }, D0);
+  // comparison slider: starts fully "before"; sweeps to the middle as "after" builds
+  const spEl = q(".sp")[0];
+  // desktop: sweep to the middle (both halves side by side); phones: wipe fully to "after".
+  if (spEl)
+    tl.fromTo(
+      spEl,
+      { "--x": "100%" },
+      { "--x": mobile ? "8%" : "50%", duration: mobile ? 0.06 : 0.045, ease: "power2.inOut" },
+      D0 + 0.085,
+    );
+  if (mobile) hide(tl, q, ".sp-ui-l", D0 + 0.09, { y: -20 });
+  tl.to(q(".sp-line, .sp-knob"), { opacity: 1, duration: 0.015 }, D0 + 0.085);
+  tl.to(q(".sp-veil"), { opacity: 1, duration: 0.03, ease: "sine.inOut" }, D0 + 0.03);
+  // before (left / top)
+  show(tl, q, ".sp-tag.b", D0 + 0.04, { y: -10, scale: 0.8 });
+  show(tl, q, ".sp-ui-l .sp-head", D0 + 0.045, { y: 50 });
+  show(tl, q, ".sp-ui-l .pn-stat", D0 + 0.06, { y: 30, scale: 0.9 });
+  counter(".pn-num", 3, D0 + 0.06, 0.05, 1);
+  show(tl, q, ".pn-badge", D0 + 0.07, { y: -10, scale: 0.6 });
+  counter(".pn-count", 12, D0 + 0.072, 0.09);
+  stagger(tl, q, ".pn-n", D0 + 0.075, 0.016, { y: -20, scale: 0.94 });
+  show(tl, q, ".pn-book", D0 + 0.1, { y: 30, rotate: -7 });
+  tl.to(q(".pn-e.x2 s"), { scaleX: 1, duration: 0.015 }, D0 + 0.125);
+  tl.to(q(".pn-e.x3 s"), { scaleX: 1, duration: 0.015 }, D0 + 0.14);
+  // after (right / bottom)
+  show(tl, q, ".sp-tag.a", D0 + 0.09, { y: -10, scale: 0.8 });
+  show(tl, q, ".sp-ui-r .sp-head", D0 + 0.095, { y: 50 });
+  show(tl, q, ".pn-calm", D0 + 0.11);
   q(".pn-gi").forEach((el, i) => {
     tl.fromTo(
       el,
       { opacity: 0, x: -24, scale: 0.8 },
-      { opacity: 1, x: 0, scale: 1, duration: 0.03, ease: "back.out(2.2)" },
-      PH.swap + 0.045 + i * 0.016,
+      { opacity: 1, x: 0, scale: 1, duration: 0.025, ease: "back.out(2.2)" },
+      D0 + 0.12 + i * 0.014,
     );
   });
-  hide(tl, q, ".pn-b", PH.calmOut - 0.014);
-  hide(tl, q, ".pn-sb", PH.calmOut - 0.014);
-  hide(tl, q, ".jr-foot", PH.calmOut - 0.014, { y: 0 });
-  tl.to(q(".jr-light"), { opacity: 0, duration: 0.025 }, PH.calmOut - 0.01);
-  tl.to(q(".jr-calm"), { opacity: 0, duration: 0.02, ease: "none" }, PH.calmOut + 0.006);
+  q(".sp-gain").forEach((el, i) => {
+    tl.fromTo(
+      el,
+      { opacity: 0, y: 26, scale: 0.85 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.03, ease: "back.out(1.8)" },
+      D0 + 0.16 + i * 0.014,
+    );
+  });
+  show(tl, q, ".jr-foot", D0 + 0.16, { y: 0 });
+  // leave the desk: the split fades to the calm frame (walk 2 starts there)
+  tl.to(q(".sp"), { opacity: 0, duration: 0.025, ease: "sine.inOut" }, PH.deskOut - 0.012);
 
   // walk to the treatment area → features
   show(tl, q, ".cap-deeper", PH.w2[0], { y: 0 });
@@ -255,8 +271,9 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: H
   tl.to(q(".jr-veil"), { opacity: 1, duration: 0.03 }, PH.feat);
   show(tl, q, ".ov-f .t", PH.feat + 0.012, { y: 60 });
   show(tl, q, ".ft-lap", PH.feat + 0.022, { x: 80, scale: 0.96 });
-  stagger(tl, q, ".ft-i", PH.feat + 0.045, 0.014, { y: 26 });
-  hide(tl, q, ".ov-f .t, .ft-lap, .ft-i", PH.featOut);
+  stagger(tl, q, ".ft-i", PH.feat + 0.04, 0.009, { y: 26, scale: 0.92 }, 0.025);
+  show(tl, q, ".ft-chip", PH.feat + 0.1, { y: 14, scale: 0.7 });
+  hide(tl, q, ".ov-f .t, .ft-lap, .ft-i, .ft-chip", PH.featOut);
   tl.to(q(".jr-veil"), { opacity: 0, duration: 0.025 }, PH.featOut + 0.005);
 
   // walk to the back office → overview
@@ -275,8 +292,8 @@ export function buildJourney(root: HTMLElement, q: Q, player: WalkPlayer, hud: H
  * formatted value changes; the ring animates stroke-dashoffset on one circle.
  */
 /** Before/after steps one beat per scroll gesture. */
-export const BA_STOPS = [0, 0.3, 0.52, 0.74, 1] as const;
-export const BA_DURATIONS = [3.2, 2.8, 2.8, 3.0] as const;
+export const BA_STOPS = [0, 0.5, 1] as const;
+export const BA_DURATIONS = [2.4, 2.4] as const;
 
 export function buildBeforeAfter(tl: TL, q: Q, fmt: (n: number, digits: number) => string) {
   const step = (sel: string, at: number) => {

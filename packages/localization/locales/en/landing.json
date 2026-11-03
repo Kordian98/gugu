@@ -220,7 +220,17 @@
       "note": "Illustrative example with fictional names, not a measurement or a customer story.",
       "statNum": "3",
       "statUnit": "h",
-      "unread": "new messages"
+      "unread": "new messages",
+      "before": "Before",
+      "after": "With GuGu Studio",
+      "g1n": "+6.5 h",
+      "g1l": "saved per week (e.g.)",
+      "g2n": "0",
+      "g2l": "double bookings",
+      "g3n": "−25%",
+      "g3l": "no-shows*",
+      "src": "* Reminders and no-shows: Robotham et al., BMJ Open 2016 (clinics). Names are fictional; figures are illustrative.",
+      "drag": "Drag to compare before and after"
     },
     "ba": {
       "eyebrow": "Before and after",
@@ -298,7 +308,16 @@
       "f3t": "Services, options and add-ons",
       "f3b": "Durations, price ranges and who performs each service.",
       "f4t": "Team, hours and invitations",
-      "f4b": "Invite staff by link and set their working hours."
+      "f4b": "Invite staff by link and set their working hours.",
+      "f5t": "Rooms & equipment",
+      "f5b": "Assign a chair, bed or device to each service, so it is never double-booked.",
+      "f6t": "Client cards",
+      "f6b": "History, notes and preferences for every client.",
+      "f7t": "Zalo bookings",
+      "f7b": "Messages to your salon's Zalo OA become bookings automatically.",
+      "f8t": "Insights",
+      "f8b": "Revenue, occupancy and no-shows as appointments complete.",
+      "chip": "Chair 2 + UV lamp reserved · 14:00"
     },
     "office": {
       "eyebrow": "Back office",
@@ -346,14 +365,22 @@
     "hud": {
       "c0": "Arrive",
       "c1": "Front desk",
-      "c2": "Calm",
-      "c3": "Treatment room",
-      "c4": "Back office",
+      "c2": "Treatment room",
+      "c3": "Back office",
       "next": "Next",
       "start": "Start the tour",
       "cont": "Continue",
       "skip": "Skip the story",
       "label": "Story chapters"
+    },
+    "calc": {
+      "t": "What fewer no-shows are worth",
+      "price": "Average service price",
+      "weekly": "Bookings per week",
+      "out": "back per month",
+      "year": "per year",
+      "note": "Illustrative estimate: assumes 10% no-shows and ~25% fewer with reminders (BMJ Open 2016). Your numbers will differ.",
+      "perWeek": "/ week"
     }
   }
 }
