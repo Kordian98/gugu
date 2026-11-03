@@ -21,6 +21,7 @@ import { HealthModule } from "./modules/health/health.module";
 import { CatalogModule } from "./modules/catalog/catalog.facade";
 import { CustomersCrmModule } from "./modules/customers-crm/customers-crm.facade";
 import { InsightsModule } from "./modules/insights/insights.facade";
+import { NotificationsModule } from "./modules/notifications/notifications.facade";
 import { SalonCrmModule } from "./modules/salon-crm/salon-crm.facade";
 import { SalonSettingsModule } from "./modules/salon-settings/salon-settings.facade";
 import { SalonsModule } from "./modules/salons/salons.module";
@@ -59,6 +60,7 @@ export const INFRASTRUCTURE_MODULES = [
     AiImportModule,
     AssistantModule,
     ZaloModule,
+    NotificationsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemFilter },

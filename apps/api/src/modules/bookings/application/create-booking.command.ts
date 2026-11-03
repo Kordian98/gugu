@@ -278,7 +278,7 @@ export class CreateBookingCommand {
         staffId: option.staffId,
         startsAt: new Date(option.start).toISOString(),
         // Booking version and actor: notification idempotency keys and "changed by someone else".
-        version: booking.version,
+        version: 1,
         actorType: actor.kind,
         actorId: actor.kind === "salon_member" ? actor.userId : null,
       },

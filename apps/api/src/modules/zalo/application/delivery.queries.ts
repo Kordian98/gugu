@@ -54,7 +54,18 @@ export class ZaloDeliveryQueries {
       });
       linked = matches === 1;
     }
-    return linked ? { usable: true, reminder24h: conn.reminder24h, reminder2h: conn.reminder2h } : none;
+    return linked
+      ? { usable: true, reminder24h: conn.reminder24h, reminder2h: conn.reminder2h }
+      : none;
+  }
+
+  /** The salon has a connected OA (Zalo goes first, email is the fallback). */
+  async connected(salonId: string): Promise<boolean> {
+    const conn = await this.prisma.zaloOaConnection.findUnique({
+      where: { salonId },
+      select: { status: true },
+    });
+    return conn?.status === "connected";
   }
 
   /** Outcome of one Zalo send by its dedup key, or null when Zalo never logged it. */
