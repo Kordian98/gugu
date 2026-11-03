@@ -14,6 +14,7 @@ import { BookingSheet } from "../pages/calendar/BookingSheet";
 import { PageHeader } from "../shell/PageHeader";
 import { useCrmNav } from "../shell/useCrmNav";
 import { EmptyState } from "../ui/EmptyState";
+import { MyEarningsCard } from "./MonthCards";
 
 const ACTIVE = new Set(["pending", "confirmed", "checked_in"]);
 const DONE = new Set(["completed", "no_show"]);
@@ -141,6 +142,7 @@ export function MyDay({ ws, title, subtitle }: { ws: Workspace; title: string; s
           ))
         )}
       </CalmCard>
+      <MyEarningsCard />
       <CalmButton
         variant="secondary"
         icon="calendar"

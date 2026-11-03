@@ -24,6 +24,7 @@ import { greetingKey } from "./greeting";
 import { KpiRow } from "./KpiRow";
 import { ActivityCard, UpcomingCard } from "./RailCards";
 import { BookabilityIssues } from "./BookabilityIssues";
+import { MyEarningsCard, ProfitCard } from "./MonthCards";
 import { MyDay } from "./MyDay";
 import { SetupCard } from "./SetupCard";
 import { ZaloWaitingCard } from "./ZaloWaitingCard";
@@ -139,6 +140,8 @@ export function TodayScreen() {
         <ZaloWaitingCard />
         <WeekStrip now={now} />
         <KpiRow today={ws.today} only="revenue" />
+        {ws.demo ? null : <ProfitCard />}
+        {ws.demo ? null : <MyEarningsCard />}
         <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
         {sheet}
       </ScrollView>
@@ -164,6 +167,8 @@ export function TodayScreen() {
       {ws.demo ? null : <BookabilityIssues />}
       <ZaloWaitingCard />
       <KpiRow today={ws.today} />
+      {ws.demo ? null : <ProfitCard />}
+      {ws.demo ? null : <MyEarningsCard />}
       {bp === "wide" ? (
         <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>
           {timeline}

@@ -20,7 +20,10 @@ export type SalonPermission =
   | "customers.erase"
   | "zalo.inbox.use"
   | "integrations.zalo.manage"
-  | "analytics.read";
+  | "analytics.read"
+  | "payroll.read"
+  | "payroll.manage"
+  | "payroll.self.read";
 
 import { apiFetch } from "@/services/auth/api";
 import { useAuth } from "@/services/auth/AuthProvider";

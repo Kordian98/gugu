@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -16,6 +17,7 @@ import { PageHeader } from "../../shell/PageHeader";
 import { useBreakpoint } from "../../shell/useBreakpoint";
 import { EmptyState } from "../../ui/EmptyState";
 import { Segmented } from "../../ui/form";
+import { ProfitView } from "./ProfitView";
 import { ZaloInsightsCard } from "./ZaloInsightsCard";
 
 /** Typographic placeholder for a metric without a value (not copy). */
@@ -51,8 +53,14 @@ export function InsightsScreen() {
   const locale = useLocale();
   const bp = useBreakpoint();
   const ws = useWorkspace();
-  const { summary } = useSalon();
+  const { summary, can } = useSalon();
   const mobile = bp === "mobile";
+  const params = useLocalSearchParams<{ tab?: string }>();
+  // "This month" profit view: owner by default (payroll.read), ADR-0014.
+  const canProfit = can("payroll.read");
+  const [tab, setTab] = useState<"overview" | "month">(
+    params.tab === "month" && canProfit ? "month" : "overview",
+  );
   const [period, setPeriod] = useState<Period>("d30");
   const to = salonDate(new Date(), summary?.timezone);
   const from = addDays(to, -(DAYS[period] - 1));
@@ -66,80 +74,103 @@ export function InsightsScreen() {
         subtitle={t("insights.subtitle")}
         workspace={ws}
       />
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <Segmented<Period>
-          value={period}
-          onChange={setPeriod}
-          options={(["d7", "d30", "d90"] as const).map((id) => ({
+      {canProfit ? (
+        <Segmented<"overview" | "month">
+          value={tab}
+          onChange={setTab}
+          options={(["overview", "month"] as const).map((id) => ({
             id,
-            label: t(`insights.periods.${id}`),
+            label: t(`profit.tabs.${id}`),
           }))}
         />
-        <Text testID="crm-insights-range" size={13} color={c.body}>
-          {t("insights.range", {
-            from: formatDateLong(new Date(`${from}T12:00:00Z`), locale, "UTC"),
-            to: formatDateLong(new Date(`${to}T12:00:00Z`), locale, "UTC"),
-          })}
-        </Text>
-      </View>
-      {q.isPending ? (
-        <ActivityIndicator color={c.accent} />
-      ) : q.data?.forbidden ? (
-        <EmptyState
-          testID="crm-insights-forbidden"
-          icon="chart"
-          title={t("insights.forbiddenTitle")}
-          body={t("insights.forbiddenBody")}
-        />
-      ) : !d ? null : (
+      ) : null}
+      {tab === "month" && canProfit ? <ProfitView /> : null}
+      {tab === "month" && canProfit ? null : (
         <>
-          {d.scope === "own" ? (
-            <Text testID="crm-insights-own" size={13} color={c.body}>
-              {t("insights.ownScope")}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <Segmented<Period>
+              value={period}
+              onChange={setPeriod}
+              options={(["d7", "d30", "d90"] as const).map((id) => ({
+                id,
+                label: t(`insights.periods.${id}`),
+              }))}
+            />
+            <Text testID="crm-insights-range" size={13} color={c.body}>
+              {t("insights.range", {
+                from: formatDateLong(new Date(`${from}T12:00:00Z`), locale, "UTC"),
+                to: formatDateLong(new Date(`${to}T12:00:00Z`), locale, "UTC"),
+              })}
             </Text>
-          ) : null}
-          <View
-            testID="crm-insights-cards"
-            style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}
-          >
-            {HEADLINE.flatMap((k) => {
-              const m = d.metrics[k];
-              return m ? [<MetricCard key={k} id={k} m={m} locale={locale} mobile={mobile} />] : [];
-            })}
           </View>
-          <Daily data={d.daily} />
-          <ZaloInsightsCard from={from} to={to} />
-          <View
-            style={{ flexDirection: mobile ? "column" : "row", gap: 16, alignItems: "flex-start" }}
-          >
-            <CalmCard style={{ flex: 1, gap: 10, alignSelf: "stretch" }}>
-              <Title text={t("insights.services")} />
-              {d.services.length === 0 ? <Muted text={t("pages.insights.emptyBody")} /> : null}
-              {d.services.slice(0, 8).map((s) => (
-                <Bar
-                  key={s.serviceId}
-                  label={(locale === "en" && s.name.en) || s.name.vi}
-                  value={s.count}
-                  max={d.services[0]?.count ?? 1}
-                  right={`${String(s.count)} · ${formatVND(s.estimatedRevenue, locale)}`}
-                />
-              ))}
-            </CalmCard>
-            <CalmCard style={{ flex: 1, gap: 10, alignSelf: "stretch" }}>
-              <Title text={t("insights.sources")} />
-              {d.sources.length === 0 ? <Muted text={t("pages.insights.emptyBody")} /> : null}
-              {d.sources.map((s) => (
-                <Bar
-                  key={s.source}
-                  label={t(`booking.source.${s.source}`, { defaultValue: s.source })}
-                  value={s.count}
-                  max={Math.max(...d.sources.map((x) => x.count), 1)}
-                  right={String(s.count)}
-                />
-              ))}
-            </CalmCard>
-          </View>
-          {d.staff.length ? <StaffTable rows={d.staff} locale={locale} mobile={mobile} /> : null}
+          {q.isPending ? (
+            <ActivityIndicator color={c.accent} />
+          ) : q.data?.forbidden ? (
+            <EmptyState
+              testID="crm-insights-forbidden"
+              icon="chart"
+              title={t("insights.forbiddenTitle")}
+              body={t("insights.forbiddenBody")}
+            />
+          ) : !d ? null : (
+            <>
+              {d.scope === "own" ? (
+                <Text testID="crm-insights-own" size={13} color={c.body}>
+                  {t("insights.ownScope")}
+                </Text>
+              ) : null}
+              <View
+                testID="crm-insights-cards"
+                style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}
+              >
+                {HEADLINE.flatMap((k) => {
+                  const m = d.metrics[k];
+                  return m
+                    ? [<MetricCard key={k} id={k} m={m} locale={locale} mobile={mobile} />]
+                    : [];
+                })}
+              </View>
+              <Daily data={d.daily} />
+              <ZaloInsightsCard from={from} to={to} />
+              <View
+                style={{
+                  flexDirection: mobile ? "column" : "row",
+                  gap: 16,
+                  alignItems: "flex-start",
+                }}
+              >
+                <CalmCard style={{ flex: 1, gap: 10, alignSelf: "stretch" }}>
+                  <Title text={t("insights.services")} />
+                  {d.services.length === 0 ? <Muted text={t("pages.insights.emptyBody")} /> : null}
+                  {d.services.slice(0, 8).map((s) => (
+                    <Bar
+                      key={s.serviceId}
+                      label={(locale === "en" && s.name.en) || s.name.vi}
+                      value={s.count}
+                      max={d.services[0]?.count ?? 1}
+                      right={`${String(s.count)} · ${formatVND(s.estimatedRevenue, locale)}`}
+                    />
+                  ))}
+                </CalmCard>
+                <CalmCard style={{ flex: 1, gap: 10, alignSelf: "stretch" }}>
+                  <Title text={t("insights.sources")} />
+                  {d.sources.length === 0 ? <Muted text={t("pages.insights.emptyBody")} /> : null}
+                  {d.sources.map((s) => (
+                    <Bar
+                      key={s.source}
+                      label={t(`booking.source.${s.source}`, { defaultValue: s.source })}
+                      value={s.count}
+                      max={Math.max(...d.sources.map((x) => x.count), 1)}
+                      right={String(s.count)}
+                    />
+                  ))}
+                </CalmCard>
+              </View>
+              {d.staff.length ? (
+                <StaffTable rows={d.staff} locale={locale} mobile={mobile} />
+              ) : null}
+            </>
+          )}
         </>
       )}
     </ScrollView>
