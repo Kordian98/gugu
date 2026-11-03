@@ -299,7 +299,8 @@ export const FLOW_CSS = `
   .ov-s{justify-content:flex-start}
   .ov-s .t .fl-h{font-size:clamp(22px,6.2vw,27px);margin-bottom:0}
   .ov-s .fl-eye{font-size:11px}
-  .sw-demo{display:flex;flex-direction:column;gap:8px}
+  .sw-demo{display:flex;flex-direction:column;gap:8px;align-self:stretch}
+  .sw-demo .sw-win{align-self:stretch;width:100%;box-sizing:border-box}
   .sw-old{flex-direction:row;gap:6px;justify-content:center;flex-wrap:nowrap}
   .ov-s .sw-old .sw-o{transform:none!important;display:block;width:auto;margin:0;translate:none;rotate:none;padding:6px 11px;border-radius:99px;background:${color.white};border:1px solid ${color.lineSoft};box-shadow:0 8px 20px rgba(42,20,38,.1);white-space:nowrap}
   .ov-s .sw-old .sw-o .lbl{font-size:10.5px}
