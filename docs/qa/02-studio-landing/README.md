@@ -1,20 +1,15 @@
-# GuGu Studio landing — QA (v3)
+# GuGu Studio landing — QA (v4)
 
-`page-<engine>-<locale>-<width>.webp`: the whole page captured top to bottom (one frame per ~820 px of
-scroll, Playwright). The before/after split is the only pinned block (CSS sticky); every other section owns
-its space and reveals in place.
+One continuous, photoreal, scroll-scrubbed scene (web): the hero's arched door grows to full screen, then
+Arrive → Front desk (before | after comparison slider) → Treatment room (pain → gain in numbers + real CRM
+screens) → Back office (overview, earnings estimate, assistant) → Switch (AI fills the services screen).
+One wheel notch / swipe / "Next" plays one transition; a HUD shows chapters; "Skip the story" jumps on.
 
-## Frame times
-
-Scripted scroll through the whole page in 12 s, rAF timing, headless Playwright, 2× DPR. "Pin offset" is
-the before/after stage's distance from the viewport top while pinned.
-
-| Engine | Viewport | CPU | fps | p95 | p99 | frames >25 ms | pin offset |
-|---|---|---|---|---|---|---|---|
-| Chrome | 1440×900 | 1× | 60.0 | 16.8 ms | 16.8 ms | 0 | 0 px |
-| Chrome | 1440×900 | 4× throttled | 59.1 | 16.7 ms | 16.8 ms | 1 | 0 px |
-| Chrome | 390×844 | 4× throttled | 60.0 | 16.8 ms | 16.8 ms | 0 | 0 px |
-| WebKit | 1440×900 | 1× | 60.0 | 18.0 ms | 18.0 ms | 1 | 0 px |
-| WebKit | 390×844 | 1× | 60.0 | 18.0 ms | 18.0 ms | 0 | 0 px |
-
-Real Safari not measured (Safari "Allow remote automation" is off).
+- Walk-through: fal Nano Banana Pro stills (brand palette, real gugu logo) → Wan 3.0 first/last-frame walks →
+  ByteDance 4K upscale → 90 frames per walk (2048 px desktop, 720×1280 portrait mobile), cross-blended.
+  Request ids: design/hero/scripts/runs.jsonl. Frames: design/hero/scripts/walk_frames.py.
+- Every still is checked at face-level zoom before it goes to video; every walk frame-by-frame.
+- Weight: walks ≈ 19 MB desktop / 9 MB mobile in total, loaded per walk as it approaches (first walk ≈ 5 / 2 MB).
+- Frame timing (headless Chromium, transitions driven by single wheel notches): 0 frames > 25 ms;
+  canvas redraws every frame while a walk is playing.
+- Not verified: real Safari / iOS Safari on device.
