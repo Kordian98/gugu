@@ -24,17 +24,26 @@ import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import type { Prisma } from "../../../infrastructure/prisma/generated/client";
 import {
   type LocalizedName,
-  loadAvailabilityInput,
-  resolveSelection,
+  loadChainInput,
+  type ResolvedSelection,
   type SalonBookingContext,
 } from "../infra/booking-inputs";
+import {
+  chainDuration,
+  chainInput,
+  lineRequests,
+  readCandidates,
+  resolveChain,
+  slotLines,
+  staffOnBooking,
+} from "./booking-chain";
 import { AvailabilityCache } from "../infra/availability-cache";
 import { BookingSecrets } from "../infra/booking-secrets";
 import { BookingClock } from "./booking-clock";
 import { bookingNotFound } from "./booking-errors";
 
 const BOOKING_INCLUDE = {
-  services: { include: { addOns: true } },
+  services: { include: { addOns: true }, orderBy: { sequence: "asc" } },
   // Resource units held by the booking (M6.6).
   occupancy: {
     where: { resourceUnitId: { not: null } },
@@ -53,6 +62,27 @@ const name = (v: Prisma.JsonValue | null): LocalizedName => {
   return { vi: o.vi ?? "", en: o.en ?? "" };
 };
 
+function bookedService(line: BookingRow["services"][number]) {
+  return {
+    serviceId: line.serviceId,
+    variantId: line.variantId,
+    name: name(line.name),
+    variantName: line.variantName === null ? null : name(line.variantName),
+    durationMinutes: line.durationMinutes,
+    bufferBeforeMinutes: line.bufferBeforeMinutes,
+    bufferAfterMinutes: line.bufferAfterMinutes,
+    priceMinor: Number(line.priceMinor),
+    priceMaxMinor: num(line.priceMaxMinor),
+    addOns: line.addOns.map((a) => ({
+      addOnId: a.addOnId,
+      name: name(a.name),
+      extraDurationMinutes: a.extraDurationMinutes,
+      extraPriceMinor: Number(a.extraPriceMinor),
+      extraPriceMaxMinor: num(a.extraPriceMaxMinor),
+    })),
+  };
+}
+
 function core(b: BookingRow) {
   const line = b.services[0];
   if (!line) throw new Error(`booking ${b.id} has no service line`);
@@ -63,29 +93,27 @@ function core(b: BookingRow) {
     startsAt: b.startsAt.toISOString(),
     endsAt: b.endsAt.toISOString(),
     staffId: b.staffId,
-    service: {
-      serviceId: line.serviceId,
-      variantId: line.variantId,
-      name: name(line.name),
-      variantName: line.variantName === null ? null : name(line.variantName),
-      durationMinutes: line.durationMinutes,
-      bufferBeforeMinutes: line.bufferBeforeMinutes,
-      bufferAfterMinutes: line.bufferAfterMinutes,
-      priceMinor: Number(line.priceMinor),
-      priceMaxMinor: num(line.priceMaxMinor),
-      addOns: line.addOns.map((a) => ({
-        addOnId: a.addOnId,
-        name: name(a.name),
-        extraDurationMinutes: a.extraDurationMinutes,
-        extraPriceMinor: Number(a.extraPriceMinor),
-        extraPriceMaxMinor: num(a.extraPriceMaxMinor),
-      })),
-    },
+    service: bookedService(line),
+    services: b.services.map((l) => ({
+      ...bookedService(l),
+      staffId: l.staffId,
+      startsAt: l.startsAt.toISOString(),
+      endsAt: l.endsAt.toISOString(),
+    })),
     totalPriceMinor: Number(b.totalPriceMinor),
     totalPriceMaxMinor: num(b.totalPriceMaxMinor),
     currency: b.currency,
     paymentMethod: "pay_at_salon" as const,
   };
+}
+
+/** Query shapes with `nextServices` optional (programmatic callers such as the Zalo bot). */
+type Chained<T extends { nextServices: unknown }> = Omit<T, "nextServices"> &
+  Partial<Pick<T, "nextServices">>;
+
+interface ResolvedChain {
+  selections: ResolvedSelection[];
+  candidates: string[][];
 }
 
 /** Read side: availability (CRM and public page) and booking read models. */
@@ -110,7 +138,7 @@ export class BookingQueries {
   /** Cached (M6.7): see AvailabilityCache for the key and why staleness is safe. */
   async availability(
     ctx: SalonBookingContext,
-    query: AvailabilityQuery,
+    query: Chained<AvailabilityQuery>,
     opts: { hideStaff: boolean; onlyStaffId?: string | null },
   ): Promise<Availability> {
     return this.cache.getOrCompute(this.scope(ctx, "availability"), { query, opts }, () =>
@@ -118,26 +146,31 @@ export class BookingQueries {
     );
   }
 
+  /** Resolves the chain and each line's candidates (`only` = own-calendar scope, every line). */
+  private async chain(
+    ctx: SalonBookingContext,
+    query: Chained<
+      Pick<AvailabilityQuery, "serviceId" | "variantId" | "addOnIds" | "staffId" | "nextServices">
+    >,
+    only: string | null,
+  ): Promise<ResolvedChain> {
+    const lines = lineRequests(query, query.nextServices);
+    const selections = await resolveChain(this.prisma, ctx.salonId, lines);
+    const candidates = selections.map((sel, i) =>
+      readCandidates(sel, only ?? lines[i]?.staffId ?? null),
+    );
+    return { selections, candidates };
+  }
+
   private async computeAvailability(
     ctx: SalonBookingContext,
-    query: AvailabilityQuery,
+    query: Chained<AvailabilityQuery>,
     opts: { hideStaff: boolean; onlyStaffId?: string | null },
   ): Promise<Availability> {
-    const selection = await resolveSelection(this.prisma, ctx.salonId, {
-      serviceId: query.serviceId,
-      variantId: query.variantId ?? null,
-      addOnIds: query.addOnIds,
-    });
-    const requested = opts.onlyStaffId ?? query.staffId ?? null;
-    const staffIds = requested
-      ? selection.staffTerms.has(requested)
-        ? [requested]
-        : []
-      : [...selection.staffTerms.keys()];
-    const input = await loadAvailabilityInput(this.prisma, ctx, selection, {
+    const { selections, candidates } = await this.chain(ctx, query, opts.onlyStaffId ?? null);
+    const input = await loadChainInput(this.prisma, ctx, chainInput(selections, candidates), {
       from: query.from,
       to: query.to,
-      staffIds,
       now: this.clock.now(),
     });
     const days = new Map<string, Availability["days"][number]["slots"]>();
@@ -151,12 +184,13 @@ export class BookingQueries {
         startsAt: new Date(slot.start).toISOString(),
         endsAt: new Date(first.end).toISOString(),
         staffIds: opts.hideStaff ? [] : slot.options.map((o) => o.staffId),
+        lines: slotLines(first, selections, opts.hideStaff),
       });
       days.set(date, list);
     }
     return {
       timeZone: ctx.timeZone,
-      durationMinutes: selection.terms.durationMinutes,
+      durationMinutes: chainDuration(selections),
       days: [...days].map(([date, slots]) => ({ date, slots })),
       unavailableReason: days.size === 0 ? unavailableReason(input) : null,
     };
@@ -168,7 +202,7 @@ export class BookingQueries {
    */
   async earliest(
     ctx: SalonBookingContext,
-    query: EarliestSlotsQuery,
+    query: Chained<EarliestSlotsQuery>,
     opts: { onlyStaffId?: string | null },
   ): Promise<EarliestSlots> {
     return this.cache.getOrCompute(this.scope(ctx, "earliest"), { query, opts }, () =>
@@ -178,20 +212,11 @@ export class BookingQueries {
 
   private async computeEarliest(
     ctx: SalonBookingContext,
-    query: EarliestSlotsQuery,
+    query: Chained<EarliestSlotsQuery>,
     opts: { onlyStaffId?: string | null },
   ): Promise<EarliestSlots> {
-    const selection = await resolveSelection(this.prisma, ctx.salonId, {
-      serviceId: query.serviceId,
-      variantId: query.variantId ?? null,
-      addOnIds: query.addOnIds,
-    });
-    const requested = opts.onlyStaffId ?? query.staffId ?? null;
-    const staffIds = requested
-      ? selection.staffTerms.has(requested)
-        ? [requested]
-        : []
-      : [...selection.staffTerms.keys()];
+    const { selections, candidates } = await this.chain(ctx, query, opts.onlyStaffId ?? null);
+    const chain = chainInput(selections, candidates);
     const now = this.clock.now();
     const today = toLocal(now.getTime(), ctx.timeZone).date;
     const last = addDays(today, ctx.settings.bookingWindowDays);
@@ -201,12 +226,7 @@ export class BookingQueries {
     let firstInput: Parameters<typeof unavailableReason>[0] | null = null;
     while (from <= last && found.length < query.limit) {
       const to = [addDays(from, MAX_AVAILABILITY_DAYS - 1), last].sort()[0] ?? last;
-      const input = await loadAvailabilityInput(this.prisma, ctx, selection, {
-        from,
-        to,
-        staffIds,
-        now,
-      });
+      const input = await loadChainInput(this.prisma, ctx, chain, { from, to, now });
       firstInput ??= input;
       for (const slot of computeSlots(input)) {
         const option = slot.options[0];
@@ -220,15 +240,16 @@ export class BookingQueries {
           startsAt: new Date(slot.start).toISOString(),
           endsAt: new Date(option.end).toISOString(),
           staffIds: slot.options.map((o) => o.staffId),
+          lines: slotLines(option, selections, false),
         });
         if (found.length >= query.limit) break;
       }
-      if (staffIds.length === 0) break;
+      if (candidates.some((c) => c.length === 0)) break;
       from = addDays(to, 1);
     }
     return {
       timeZone: ctx.timeZone,
-      durationMinutes: selection.terms.durationMinutes,
+      durationMinutes: chainDuration(selections),
       slots: found,
       unavailableReason: found.length === 0 && firstInput ? unavailableReason(firstInput) : null,
     };
@@ -241,29 +262,21 @@ export class BookingQueries {
   async check(
     ctx: SalonBookingContext,
     actor: { ownStaffId: string | null; canOverride: boolean },
-    query: BookingCheckQuery,
+    query: Chained<BookingCheckQuery>,
   ): Promise<BookingCheck> {
-    const selection = await resolveSelection(this.prisma, ctx.salonId, {
-      serviceId: query.serviceId,
-      variantId: query.variantId ?? null,
-      addOnIds: query.addOnIds,
-    });
+    const { selections, candidates } = await this.chain(ctx, query, actor.ownStaffId);
     const wanted = actor.ownStaffId ?? query.staffId ?? null;
-    const staffIds = wanted
-      ? selection.staffTerms.has(wanted)
-        ? [wanted]
-        : []
-      : [...selection.staffTerms.keys()];
     const start = new Date(query.startsAt).getTime();
     const date = toLocal(start, ctx.timeZone).date;
-    const input = await loadAvailabilityInput(this.prisma, ctx, selection, {
+    const input = await loadChainInput(this.prisma, ctx, chainInput(selections, candidates), {
       from: date,
       to: date,
-      staffIds,
       now: this.clock.now(),
       exclude: { bookingId: query.bookingId ?? null },
     });
-    const needs = staffIds.length === 0 ? null : requiredOverrides(input, start, wanted);
+    const needs = candidates.some((c) => c.length === 0)
+      ? null
+      : requiredOverrides(input, start, wanted);
     return {
       bookable: needs !== null && needs.length === 0,
       requiredOverrides: needs ?? [],
@@ -284,11 +297,10 @@ export class BookingQueries {
           gte: new Date(dayBounds(query.from, ctx.timeZone).start),
           lt: new Date(dayBounds(query.to, ctx.timeZone).end),
         },
-        ...(onlyStaffId
-          ? { staffId: onlyStaffId }
-          : query.staffId
-            ? { staffId: query.staffId }
-            : {}),
+        // Own calendar / staff filter: bookings where they do any service (M6.8).
+        ...((onlyStaffId ?? query.staffId)
+          ? staffOnBooking(onlyStaffId ?? query.staffId ?? "")
+          : {}),
         ...(query.status ? { status: query.status } : {}),
       },
       include: BOOKING_INCLUDE,
@@ -307,7 +319,7 @@ export class BookingQueries {
       where: {
         id: bookingId,
         salonId: ctx.salonId,
-        ...(onlyStaffId ? { staffId: onlyStaffId } : {}),
+        ...(onlyStaffId ? staffOnBooking(onlyStaffId) : {}),
       },
       include: BOOKING_INCLUDE,
     });

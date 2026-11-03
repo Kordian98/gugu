@@ -6,6 +6,9 @@ import {
   availabilityQuerySchema,
   availabilitySchema,
   type BookingCheck,
+  type BookingFeatureSet,
+  bookingFeaturesSchema,
+  MAX_NEXT_SERVICES,
   type BookingCheckQuery,
   bookingCheckQuerySchema,
   bookingCheckSchema,
@@ -36,6 +39,7 @@ import {
   type UserPrincipal,
 } from "../../../common/guards/principal";
 import { actorScope, BookingActors } from "../application/booking-actor";
+import { BookingFeatures, lineRequests } from "../application/booking-chain";
 import { BookingLifecycleCommands } from "../application/booking-lifecycle.commands";
 import { BookingQueries } from "../application/booking.queries";
 import { CreateBookingCommand } from "../application/create-booking.command";
@@ -64,7 +68,23 @@ export class SalonBookingsController {
     private readonly queries: BookingQueries,
     private readonly create: CreateBookingCommand,
     private readonly lifecycle: BookingLifecycleCommands,
+    private readonly features: BookingFeatures,
   ) {}
+
+  @Get("booking-features")
+  @RequirePermission("schedules.read")
+  @ApiOperation({
+    operationId: "bookings.features",
+    summary: "Booking engine features enabled for this salon (e.g. several services per visit).",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Feature switches.",
+    standardSchema: bookingFeaturesSchema,
+  })
+  bookingFeatures(): BookingFeatureSet {
+    return { multiService: this.features.multiService, maxServices: MAX_NEXT_SERVICES + 1 };
+  }
 
   @Get("availability")
   @RequirePermission("schedules.read")
@@ -196,6 +216,7 @@ export class SalonBookingsController {
           staffId: body.staffId ?? null,
           startsAt: new Date(body.startsAt),
         },
+        nextServices: lineRequests(body, body.nextServices).slice(1),
         customer: body.customer
           ? {
               name: body.customer.name,

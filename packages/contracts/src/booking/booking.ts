@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { uuidV7Schema } from "../common/ids";
 import { localizedNameSchema } from "../salon/registration";
+import { nextServicesList, nextServicesParam } from "./chain";
 import { bookingSourceSchema } from "./source";
 
 /**
@@ -67,17 +68,34 @@ export const availabilityQuerySchema = dateRangeChecks(
     addOnIds: uuidListParam,
     /** Omit for "any staff". */
     staffId: uuidV7Schema.optional(),
+    /** Further services in sequence (JSON array, M6.8); omit for a single service. */
+    nextServices: nextServicesParam,
     from: localDateSchema,
     to: localDateSchema,
   }),
 );
 export type AvailabilityQuery = z.infer<typeof availabilityQuerySchema>;
 
-export const availabilitySlotSchema = z.object({
+/** Where one service of the appointment lands in the engine's best plan for a slot. */
+export const slotLineSchema = z.object({
+  serviceId: uuidV7Schema,
   startsAt: instantSchema,
   endsAt: instantSchema,
-  /** Staff who can take it, best "any staff" candidate first. Empty when the salon hides staff choice. */
+  /** Null when the salon hides staff choice. */
+  staffId: uuidV7Schema.nullable(),
+});
+
+export const availabilitySlotSchema = z.object({
+  startsAt: instantSchema,
+  /** End of the last service. */
+  endsAt: instantSchema,
+  /**
+   * Staff who can take the (first) service, best "any staff" candidate first. Empty when the salon
+   * hides staff choice.
+   */
   staffIds: z.array(uuidV7Schema),
+  /** The best plan, one entry per service in order (single service: one). Advisory only. */
+  lines: z.array(slotLineSchema),
 });
 /** Mirrors UNAVAILABLE_REASONS in @gugu/domain (parity tested in the API). */
 export const unavailableReasonSchema = z.enum([
@@ -91,6 +109,7 @@ export type UnavailableReasonCode = z.infer<typeof unavailableReasonSchema>;
 
 export const availabilitySchema = z.object({
   timeZone: z.string(),
+  /** Σ service lengths (add-ons included) without the gaps between services. */
   durationMinutes: z.number().int(),
   days: z.array(z.object({ date: localDateSchema, slots: z.array(availabilitySlotSchema) })),
   /** Set only when the whole range has no slot: why (staff not assigned, no hours, window…). */
@@ -109,6 +128,8 @@ export const earliestSlotsQuerySchema = z.object({
   addOnIds: uuidListParam,
   /** Omit for "any staff". */
   staffId: uuidV7Schema.optional(),
+  /** Further services in sequence (JSON array, M6.8). */
+  nextServices: nextServicesParam,
   /** Start searching on this day (default: today in the salon timezone). */
   from: localDateSchema.optional(),
   limit: z.coerce.number().int().min(1).max(10).default(5),
@@ -177,6 +198,8 @@ export type RuleOverride = z.infer<typeof ruleOverrideSchema>;
 export const createSalonBookingInputSchema = z
   .object({
     ...serviceSelection,
+    /** Further services in sequence (M6.8, needs `booking.multiService`). */
+    nextServices: nextServicesList,
     source: z.enum(STAFF_ENTRY_SOURCE_VALUES).default("staff_created"),
     /** Null only for anonymous walk-ins. */
     customer: staffCustomerContactSchema.nullable(),
@@ -231,14 +254,27 @@ export const bookedServiceSchema = z.object({
   addOns: z.array(bookedAddOnSchema),
 });
 
+/** One line of the appointment with its own staff member and times (snapshots per line). */
+export const bookedLineSchema = bookedServiceSchema.extend({
+  staffId: uuidV7Schema,
+  startsAt: instantSchema,
+  endsAt: instantSchema,
+});
+export type BookedLine = z.infer<typeof bookedLineSchema>;
+
 const bookingCore = {
   id: uuidV7Schema,
   referenceCode: z.string(),
   status: bookingStatusSchema,
+  /** First service start … last service end. */
   startsAt: instantSchema,
   endsAt: instantSchema,
+  /** Staff member of the first service. */
   staffId: uuidV7Schema,
+  /** The first service (kept for single-service clients); every line is in `services`. */
   service: bookedServiceSchema,
+  /** All services in order (M6.8); one entry for a single-service booking. */
+  services: z.array(bookedLineSchema).min(1),
   totalPriceMinor: z.number().int(),
   totalPriceMaxMinor: z.number().int().nullable(),
   currency: z.string(),
@@ -311,6 +347,10 @@ export const transitionInputSchema = z.object({
 });
 export type TransitionInput = z.infer<typeof transitionInputSchema>;
 
+/**
+ * Moves the whole appointment (every service, M6.8). `staffId` replaces the staff member of every
+ * service the first service's staff member was doing; other lines keep theirs.
+ */
 export const rescheduleInputSchema = z.object({
   startsAt: instantSchema,
   /** Salon only; omit to keep the staff member, null for any staff. */
@@ -333,6 +373,8 @@ export const bookingCheckQuerySchema = z.object({
   addOnIds: uuidListParam,
   /** Omit for any staff. */
   staffId: uuidV7Schema.optional(),
+  /** Further services in sequence (JSON array, M6.8). */
+  nextServices: nextServicesParam,
   startsAt: instantSchema,
   /** Check a reschedule of this booking (its own time doesn't count as busy). */
   bookingId: uuidV7Schema.optional(),

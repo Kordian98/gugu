@@ -20,5 +20,7 @@ export const BOOKING_ERRORS = {
   /** Outside hours / lead time / window: retry with `overrides` (listed in `errors`) + a reason. */
   overrideRequired: "booking.override_required",
   notFound: "booking.not_found",
+  /** More than one service per appointment while `booking.multiService` is off (M6.8, q17). */
+  multiServiceDisabled: "booking.multi_service_disabled",
 } as const;
 export type BookingErrorCode = (typeof BOOKING_ERRORS)[keyof typeof BOOKING_ERRORS];

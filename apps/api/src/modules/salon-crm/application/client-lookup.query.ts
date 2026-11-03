@@ -49,7 +49,9 @@ export class ClientLookupQuery {
           count(*) OVER (PARTITION BY b.customer_phone_e164) AS visits,
           count(*) FILTER (WHERE b.status = 'no_show') OVER (PARTITION BY b.customer_phone_e164) AS no_shows
         FROM bookings b
-        JOIN booking_services bs ON bs.booking_id = b.id AND bs.salon_id = b.salon_id
+        -- First line only: a multi-service booking (M6.8) is one visit.
+        JOIN booking_services bs
+          ON bs.booking_id = b.id AND bs.salon_id = b.salon_id AND bs.sequence = 1
         WHERE b.salon_id = ${ctx.salonId}::uuid
           AND (${ownStaff}::uuid IS NULL OR b.staff_id = ${ownStaff}::uuid)
           AND b.customer_phone_e164 IS NOT NULL

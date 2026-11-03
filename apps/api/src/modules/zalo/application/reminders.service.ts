@@ -64,7 +64,7 @@ export class RemindersService {
       },
       include: {
         zaloLink: { include: { conversation: true } },
-        services: true,
+        services: { orderBy: { sequence: "asc" } },
         salon: { select: { name: true, timezone: true, zaloConnection: true } },
       },
       orderBy: { startsAt: "asc" },
@@ -88,7 +88,10 @@ export class RemindersService {
         hourCycle: "h23",
         timeZone: b.salon.timezone,
       }).format(b.startsAt);
-      const serviceName = ((b.services[0]?.name ?? {}) as { vi?: string }).vi ?? "";
+      // Every service of a multi-service booking (M6.8): "Sơn gel + Pedicure".
+      const serviceName = b.services
+        .map((l) => ((l.name ?? {}) as { vi?: string }).vi ?? "")
+        .join(" + ");
       const text = t(`zalo:bot.${kind === "reminder_24h" ? "reminder24h" : "reminder2h"}`, {
         when: time,
         service: serviceName,

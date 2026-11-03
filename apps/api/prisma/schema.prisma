@@ -1057,7 +1057,8 @@ model Booking {
   customerPhoneHash    String?          @map("customer_phone_hash")
   identityVerified     Boolean          @default(false) @map("identity_verified")
   customerNote         String?          @map("customer_note")
-  /// Staff member of the (single, q17) booked service; denormalised for calendar queries.
+  /// Staff member of the first service line; denormalised for calendar queries (other lines'
+  /// staff are on booking_services, M6.8).
   staffId              String           @map("staff_id") @db.Uuid
   startsAt             DateTime         @map("starts_at") @db.Timestamptz(6)
   endsAt               DateTime         @map("ends_at") @db.Timestamptz(6)
@@ -1106,6 +1107,7 @@ model Booking {
 }
 
 /// Booked service with price/duration snapshots (MVP: exactly one per booking, q17).
+/// One service of a booking (1..4 lines in order, M6.8); snapshots never change after creation.
 model BookingService {
   id                  String   @id @default(uuid(7)) @db.Uuid
   salonId             String   @map("salon_id") @db.Uuid
@@ -1135,6 +1137,8 @@ model BookingService {
 
   @@unique([salonId, id])
   @@unique([bookingId, sequence])
+  /// Calendar / own-calendar lookups by the staff member of any line (M6.8).
+  @@index([salonId, staffId, startsAt])
   @@map("booking_services")
 }
 

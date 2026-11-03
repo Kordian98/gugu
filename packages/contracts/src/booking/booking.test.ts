@@ -52,4 +52,24 @@ describe("booking contracts", () => {
         .success,
     ).toBe(false);
   });
+
+  it("multi-service (M6.8): nextServices as a JSON query param; at most 3; default single", () => {
+    const q = { serviceId: SERVICE, from: "2026-11-01", to: "2026-11-01" };
+    expect(availabilityQuerySchema.parse(q).nextServices).toEqual([]);
+    const next = [{ serviceId: STAFF, staffId: null }, { serviceId: SERVICE }];
+    const parsed = availabilityQuerySchema.parse({ ...q, nextServices: JSON.stringify(next) });
+    expect(parsed.nextServices.map((n) => n.serviceId)).toEqual([STAFF, SERVICE]);
+    expect(parsed.nextServices[1]?.addOnIds).toEqual([]);
+    expect(availabilityQuerySchema.safeParse({ ...q, nextServices: "[{" }).success).toBe(false);
+    const four = JSON.stringify(Array.from({ length: 4 }, () => ({ serviceId: SERVICE })));
+    expect(availabilityQuerySchema.safeParse({ ...q, nextServices: four }).success).toBe(false);
+    const body = { serviceId: SERVICE, startsAt: "2026-11-03T03:00:00Z", source: "walk_in" };
+    expect(createSalonBookingInputSchema.parse({ ...body, customer: null }).nextServices).toEqual(
+      [],
+    );
+    expect(
+      createSalonBookingInputSchema.parse({ ...body, customer: null, nextServices: next })
+        .nextServices,
+    ).toHaveLength(2);
+  });
 });

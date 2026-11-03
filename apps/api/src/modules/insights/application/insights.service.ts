@@ -102,7 +102,8 @@ export class InsightsService {
         { service_id: string; name: unknown; count: bigint; revenue: bigint }[]
       >`
         SELECT bs.service_id, (array_agg(bs.name ORDER BY b.starts_at DESC))[1] AS name,
-          count(*) AS count, coalesce(sum(b.total_price_minor), 0) AS revenue
+          count(*) AS count, coalesce(sum(bs.price_minor), 0) AS revenue
+        -- Per line (multi-service bookings, M6.8): each service gets its own line price.
         FROM bookings b JOIN booking_services bs ON bs.booking_id = b.id AND bs.salon_id = b.salon_id
         WHERE b.salon_id = ${ctx.salonId}::uuid AND b.starts_at >= ${start} AND b.starts_at < ${end}
           AND b.status = 'completed' AND (${own}::uuid IS NULL OR b.staff_id = ${own}::uuid)
