@@ -38,8 +38,18 @@ describe("salons & tenancy (integration)", () => {
   let ownerA: string;
   let ref: { categoryId: string; provinceId: string; wardId: string };
 
+  // IP-keyed rate limits (salons.register.ip: 10/h, and this file makes 10 registrations; the
+  // magic-link IP caps) count per /24, and every local run comes from 127.0.0.1: concurrent runs in
+  // other worktrees used to push this file over the limit. Each run, and each retry below, sends
+  // its own client /24 instead (X-Forwarded-For, trusted from loopback for this app only).
+  const clientIp = () =>
+    `10.${String(Math.floor(Math.random() * 256))}.${String(Math.floor(Math.random() * 256))}.7`;
+  const runIp = clientIp();
+  const trustProxy = process.env["TRUST_PROXY"];
+
   beforeAll(async () => {
     process.env["LOG_LEVEL"] = "silent";
+    process.env["TRUST_PROXY"] = "loopback";
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = configureHttpApp(moduleRef.createNestApplication());
     await app.init();
@@ -54,6 +64,8 @@ describe("salons & tenancy (integration)", () => {
   });
   afterAll(async () => {
     await app.close();
+    if (trustProxy === undefined) delete process.env["TRUST_PROXY"];
+    else process.env["TRUST_PROXY"] = trustProxy;
   });
 
   const registration = (patch: Partial<SalonRegistrationInput> = {}): SalonRegistrationInput => ({
@@ -78,6 +90,7 @@ describe("salons & tenancy (integration)", () => {
   it("signed-in registration: owner at once, trial started, audited", async () => {
     const res = await request(http(app))
       .post("/api/v1/salons/registrations")
+      .set("x-forwarded-for", runIp)
       .set("authorization", ownerA)
       .send(registration())
       .expect(201);
@@ -110,10 +123,12 @@ describe("salons & tenancy (integration)", () => {
     const email = testEmail("newowner");
     await request(http(app))
       .post("/api/v1/salons/registrations")
+      .set("x-forwarded-for", runIp)
       .send(registration({ email: undefined }))
       .expect(400);
     const res = await request(http(app))
       .post("/api/v1/salons/registrations")
+      .set("x-forwarded-for", runIp)
       .send(registration({ email, businessName: "Tiệm Mi Đẹp", locale: "en" }))
       .expect(201);
     const result = salonRegistrationResultSchema.parse(res.body);
@@ -127,6 +142,7 @@ describe("salons & tenancy (integration)", () => {
     expect(mail.subject).toBe("Confirm Tiệm Mi Đẹp in GuGu Studio");
     const verified = await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
+      .set("x-forwarded-for", runIp)
       .send({ token: extractMagicLink(mail).token, client: "native" })
       .expect(200);
     const session = authSessionSchema.parse(verified.body);
@@ -137,28 +153,46 @@ describe("salons & tenancy (integration)", () => {
   });
 
   it("registration can't bypass per-email limits; each salon needs its own proof of intent", async () => {
-    const email = testEmail("flood");
-    const results = [];
-    for (let i = 0; i < 4; i++) {
-      const res = await request(http(app))
-        .post("/api/v1/salons/registrations")
-        .send(registration({ email, businessName: `Flood ${String(i)}` }))
-        .expect(201);
-      results.push(salonRegistrationResultSchema.parse(res.body));
+    // Another run's clearRateLimits (same Redis DB) can reset the per-email counter mid-test: then
+    // a 4th link goes out. Retry with a fresh address and client /24 only in that case; a missing
+    // limit fails every attempt.
+    let email = "";
+    let results: ReturnType<typeof salonRegistrationResultSchema.parse>[] = [];
+    let signIn = 0;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      email = testEmail("flood");
+      const ip = clientIp();
+      results = [];
+      for (let i = 0; i < 4; i++) {
+        const res = await request(http(app))
+          .post("/api/v1/salons/registrations")
+          .set("x-forwarded-for", ip)
+          .send(registration({ email, businessName: `Flood ${String(i)}` }))
+          .expect(201);
+        results.push(salonRegistrationResultSchema.parse(res.body));
+      }
+      // The same per-email counter blocks the public sign-in endpoint too.
+      signIn = (
+        await request(http(app))
+          .post("/api/v1/auth/magic-link")
+          .set("x-forwarded-for", ip)
+          .send({ email, locale: "vi" })
+      ).status;
+      if (results[3]?.magicLinkStatus === "rate_limited" && signIn === 429) break;
     }
-    expect(results.map((r) => r.magicLinkStatus)).toEqual(["sent", "sent", "sent", "rate_limited"]);
+    expect(
+      results.map((r) => r.magicLinkStatus),
+      `registrations for ${email}`,
+    ).toEqual(["sent", "sent", "sent", "rate_limited"]);
+    expect(signIn, `sign-in link for ${email} after 3 registration links`).toBe(429);
     expect(await countMailsTo(email)).toBe(3);
-    // The same per-email counter blocks the public sign-in endpoint too.
-    await request(http(app))
-      .post("/api/v1/auth/magic-link")
-      .send({ email, locale: "vi" })
-      .expect(429);
 
     // The newest registration email belongs to "Flood 2": it activates that salon only.
     const mail = await waitForMail(email);
     expect(mail.subject).toContain("Flood 2");
     const verified = await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
+      .set("x-forwarded-for", runIp)
       .send({ token: extractMagicLink(mail).token, client: "native" })
       .expect(200);
     const session = authSessionSchema.parse(verified.body);
@@ -217,18 +251,21 @@ describe("salons & tenancy (integration)", () => {
     const email = testEmail("victim");
     const res = await request(http(app))
       .post("/api/v1/salons/registrations")
+      .set("x-forwarded-for", runIp)
       .send(registration({ email, businessName: "Attacker Salon" }))
       .expect(201);
     const { salonId } = salonRegistrationResultSchema.parse(res.body);
     // Victim ignores that email and signs in normally.
     await request(http(app))
       .post("/api/v1/auth/magic-link")
+      .set("x-forwarded-for", runIp)
       .send({ email, locale: "vi", client: "native" })
       .expect(202);
     const signInMail = await waitForMail(email);
     expect(signInMail.subject).toBe("Link đăng nhập GuGu Studio của bạn");
     const verified = await request(http(app))
       .post("/api/v1/auth/magic-link/verify")
+      .set("x-forwarded-for", runIp)
       .send({ token: extractMagicLink(signInMail).token, client: "native" })
       .expect(200);
     const session = authSessionSchema.parse(verified.body);
@@ -243,6 +280,7 @@ describe("salons & tenancy (integration)", () => {
   it("rejects bad phone numbers and unknown locations", async () => {
     const phone = await request(http(app))
       .post("/api/v1/salons/registrations")
+      .set("x-forwarded-for", runIp)
       .set("authorization", ownerA)
       .send(registration({ phone: "12345678" }))
       .expect(400);
@@ -250,6 +288,7 @@ describe("salons & tenancy (integration)", () => {
     const ward = await prisma.location.findFirstOrThrow({ where: { code: "stub-01-ba-dinh" } });
     const loc = await request(http(app))
       .post("/api/v1/salons/registrations")
+      .set("x-forwarded-for", runIp)
       .set("authorization", ownerA)
       .send(registration({ wardId: ward.id }))
       .expect(400);

@@ -19,7 +19,9 @@ import type { PlatformRole } from "@gugu/domain";
 import {
   bearerFor,
   createSalonFixture,
+  enrolAdminMfa,
   type SalonFixture,
+  steppedUpBearerFor,
   testEmail,
 } from "../../../test/factories/identity";
 import { http } from "../../../test/http-app";
@@ -29,7 +31,7 @@ import { configureHttpApp } from "../../bootstrap";
 import { AppConfig } from "../../infrastructure/config/app-config";
 import { PrismaService } from "../../infrastructure/prisma/prisma.service";
 import { RedisService } from "../../infrastructure/redis/redis.service";
-import { SessionService } from "../auth/auth.facade";
+import { SessionService, totp } from "../auth/auth.facade";
 import { listRoutes, type RouteInfo } from "../authorization/authorization.facade";
 import {
   Clock,
@@ -113,8 +115,8 @@ describe("platform admin side effects (integration)", () => {
   beforeEach(async () => {
     clock.offsetMs = 0;
     clock.fixed = null;
-    // Each test signs the admin in afresh so step-up never depends on suite duration.
-    superAdmin = await bearerFor(app, await platformUser("super_admin"));
+    // Each test uses a fresh, stepped-up admin session so step-up never depends on suite duration.
+    superAdmin = await steppedUpBearerFor(app, await platformUser("super_admin"));
   });
 
   afterEach(() => {
@@ -242,7 +244,7 @@ describe("platform admin side effects (integration)", () => {
       await act("admin/salons/:salonId/unsuspend", `${base}/unsuspend`, {});
 
       const mutations = routes
-        .filter((r) => r.path.startsWith("admin/") && r.method !== "GET")
+        .filter((r) => r.path.startsWith("admin/salons") && r.method !== "GET")
         .map((r) => r.path);
       expect([...covered].sort(), "add new admin mutations to this test").toEqual(
         [...mutations].sort(),
@@ -250,15 +252,39 @@ describe("platform admin side effects (integration)", () => {
     });
   });
 
-  describe("step-up", () => {
-    it(`allows a sign-in younger than ${String(ADMIN_STEP_UP_MINUTES)} min, refuses an older one`, async () => {
+  describe("step-up (TOTP, ADR-0011)", () => {
+    it(`a verified code elevates only this session, for ${String(ADMIN_STEP_UP_MINUTES)} min`, async () => {
       const s = await newSalon("StepUp");
-      clock.offsetMs = (ADMIN_STEP_UP_MINUTES - 1) * MIN;
-      await post(`salons/${s.salonId}/suspend`, superAdmin, { reason: REASON }).expect(200);
+      const adminId = await platformUser("super_admin");
+      const secret = await enrolAdminMfa(app, adminId);
+      const sessions = app.get(SessionService);
+      const issued = await sessions.create(adminId, "native", { ipPrefix: null, userAgent: "t" });
+      if (issued.kind !== "native") throw new Error("expected native session");
+      const bearer = `Bearer ${issued.tokens.accessToken}`;
 
-      clock.offsetMs = (ADMIN_STEP_UP_MINUTES + 1) * MIN;
-      const stale = await post(`salons/${s.salonId}/unsuspend`, superAdmin, { reason: REASON });
-      expect(stale.status).toBe(403);
+      const before = await post(`salons/${s.salonId}/suspend`, bearer, { reason: REASON });
+      expect(problemSchema.parse(before.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
+
+      await post("mfa/step-up", bearer, { code: totp(secret, Date.now()) }).expect(200);
+      await post(`salons/${s.salonId}/suspend`, bearer, { reason: REASON }).expect(200);
+
+      // Another session of the same admin is not elevated.
+      const other = await bearerFor(app, adminId);
+      const fromOther = await post(`salons/${s.salonId}/unsuspend`, other, { reason: REASON });
+      expect(problemSchema.parse(fromOther.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
+
+      // Rotating native tokens keeps the session (and its elevation); expiry ends it.
+      const rotated = await sessions.refresh(issued.tokens.refreshToken, {
+        ipPrefix: null,
+        userAgent: "t",
+      });
+      await prisma.session.update({
+        where: { id: issued.sessionId },
+        data: { stepUpUntil: new Date(Date.now() - 1000) },
+      });
+      const stale = await post(`salons/${s.salonId}/unsuspend`, `Bearer ${rotated.accessToken}`, {
+        reason: REASON,
+      });
       expect(problemSchema.parse(stale.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
       expect(await prisma.salon.findUniqueOrThrow({ where: { id: s.salonId } })).toMatchObject({
         status: "suspended",
@@ -266,37 +292,39 @@ describe("platform admin side effects (integration)", () => {
       expect(await auditCount(s.salonId)).toBe(1);
     });
 
-    it("rotating native tokens does not renew step-up; a new sign-in does", async () => {
-      const s = await newSalon("StepUpRefresh");
-      const adminId = await platformUser("super_admin");
-      const sessions = app.get(SessionService);
-      const issued = await sessions.create(adminId, "native", { ipPrefix: null, userAgent: "t" });
-      if (issued.kind !== "native") throw new Error("expected native session");
-      const rotated = await sessions.refresh(issued.tokens.refreshToken, {
-        ipPrefix: null,
-        userAgent: "t",
-      });
-      clock.offsetMs = (ADMIN_STEP_UP_MINUTES + 1) * MIN;
-      const stale = await post(`salons/${s.salonId}/suspend`, `Bearer ${rotated.accessToken}`, {
+    it("every admin write needs an enrolled factor, before any change", async () => {
+      const s = await newSalon("NoFactor");
+      await facade.startTrial({ salonId: s.salonId });
+      const plain = await bearerFor(app, await platformUser("super_admin"));
+      const res = await post(`salons/${s.salonId}/subscription/trial`, plain, {
+        trialEndsAt: new Date(Date.now() + 20 * DAY).toISOString(),
         reason: REASON,
       });
-      expect(problemSchema.parse(stale.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
-      // A sign-in "now" (the session is created at real time; shift the clock back to it).
-      const fresh = await bearerFor(app, adminId);
-      clock.offsetMs = 0;
-      await post(`salons/${s.salonId}/suspend`, fresh, { reason: REASON }).expect(200);
+      expect(res.status).toBe(403);
+      expect(problemSchema.parse(res.body).code).toBe("admin.mfa_enrollment_required");
+      expect(await auditCount(s.salonId)).toBe(0);
+      // Reads stay open so the admin can reach the enrolment screen.
+      await request(http(app))
+        .get(`/api/v1/admin/salons/${s.salonId}`)
+        .set("authorization", plain)
+        .expect(200);
     });
 
-    it("exactly the high-risk mutations need step-up (ADR-0010); the check runs before any change", async () => {
-      // Update STEP_UP_ROUTES together with ADR-0010 when the high-risk set changes.
+    it("exactly the high-risk mutations need step-up (ADR-0011); the check runs before any change", async () => {
+      // Update STEP_UP_ROUTES together with ADR-0011 when the high-risk set changes.
       const STEP_UP_ROUTES = [
         "admin/salons/:salonId/founding-partner/revoke",
         "admin/salons/:salonId/overrides",
+        "admin/salons/:salonId/subscription/plan",
         "admin/salons/:salonId/suspend",
         "admin/salons/:salonId/unsuspend",
       ];
       const s = await newSalon("StepUpScope");
-      clock.offsetMs = (ADMIN_STEP_UP_MINUTES + 5) * MIN;
+      // Enrolled, but this session never stepped up.
+      const adminId = await platformUser("super_admin");
+      await enrolAdminMfa(app, adminId);
+      const notElevated = await bearerFor(app, adminId);
+      clock.offsetMs = 5 * MIN;
       const inDays = (d: number) => new Date(Date.now() + clock.offsetMs + d * DAY).toISOString();
       // Schema-valid bodies; state does not matter because step-up is checked first.
       const bodies: Record<string, object> = {
@@ -314,13 +342,15 @@ describe("platform admin side effects (integration)", () => {
         },
       };
       const needsStepUp: string[] = [];
-      const mutations = routes.filter((r) => r.path.startsWith("admin/") && r.method !== "GET");
+      const mutations = routes.filter(
+        (r) => r.path.startsWith("admin/salons") && r.method !== "GET",
+      );
       for (const r of mutations) {
         const path = r.path
           .replace("admin/", "")
           .replace(":salonId", s.salonId)
           .replace(":overrideId", PLACEHOLDER_ID);
-        const res = await post(path, superAdmin, { ...(bodies[r.path] ?? {}), reason: REASON });
+        const res = await post(path, notElevated, { ...(bodies[r.path] ?? {}), reason: REASON });
         expect({ route: r.path, schemaValid: res.status !== 400 }).toEqual({
           route: r.path,
           schemaValid: true,

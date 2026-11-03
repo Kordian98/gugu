@@ -400,11 +400,13 @@ function Chat({ conv, onBack }: { conv: ZaloConversation; onBack?: (() => void) 
   const takeOver = useZaloMutation(zaloApi.takeOver);
   const release = useZaloMutation(zaloApi.release);
   const markRead = useZaloMutation(zaloApi.markRead);
+  const suspended = useSuspended();
   const unread = conv.unreadCount;
   const { mutate: read } = markRead;
   useEffect(() => {
-    if (unread > 0) read(conv.id);
-  }, [conv.id, unread, read]);
+    // Suspended salons are read-only (q89): the API refuses the write, so don't try.
+    if (unread > 0 && !suspended) read(conv.id);
+  }, [conv.id, unread, read, suspended]);
   return (
     <CalmCard style={{ flex: 1, gap: 12, width: "100%" }} testID="zalo-thread">
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -437,16 +439,18 @@ function Chat({ conv, onBack }: { conv: ZaloConversation; onBack?: (() => void) 
         ))}
       </View>
       <ErrorBanner text={errorText(takeOver.error ?? release.error)} />
-      <ModeBar
-        conv={conv}
-        onTakeOver={() => {
-          takeOver.mutate(conv.id);
-        }}
-        onRelease={() => {
-          release.mutate(conv.id);
-        }}
-      />
-      <Composer conv={conv} />
+      {suspended ? null : (
+        <ModeBar
+          conv={conv}
+          onTakeOver={() => {
+            takeOver.mutate(conv.id);
+          }}
+          onRelease={() => {
+            release.mutate(conv.id);
+          }}
+        />
+      )}
+      <Composer conv={conv} suspended={suspended} />
     </CalmCard>
   );
 }
@@ -500,15 +504,20 @@ function ModeBar({
   );
 }
 
+/** Suspended by GuGu (q89): the inbox stays readable, replies and chat actions are off. */
+function useSuspended(): boolean {
+  return useOptionalSalon()?.summary?.status === "suspended";
+}
+
 /** Reply box, always at the bottom. Explains paid / blocked replies instead of failing silently. */
-function Composer({ conv }: { conv: ZaloConversation }) {
+function Composer({ conv, suspended }: { conv: ZaloConversation; suspended: boolean }) {
   const { c } = useCalm();
   const { t } = useTranslation("zalo");
   const locale = useLocale();
   const errorText = useErrorText();
   const reply = useZaloMutation(zaloApi.reply);
   const [text, setText] = useState("");
-  const blocked = conv.window === "closed";
+  const blocked = conv.window === "closed" || suspended;
   const send = () => {
     const body = text.trim();
     if (!body || blocked) return;
@@ -523,12 +532,17 @@ function Composer({ conv }: { conv: ZaloConversation }) {
   };
   return (
     <View style={{ gap: 8 }}>
-      {conv.window === "paid" ? (
+      {suspended ? (
+        <Text size={12} color={c.attention} testID="zalo-suspended-note">
+          {t("panel.inbox.suspendedNote")}
+        </Text>
+      ) : null}
+      {conv.window === "paid" && !suspended ? (
         <Text size={12} color={c.body}>
           {t("panel.inbox.paidNote", { price: formatVND(PAID_MESSAGE_VND, locale) })}
         </Text>
       ) : null}
-      {blocked ? (
+      {conv.window === "closed" && !suspended ? (
         <Text size={12} color={c.attention} testID="zalo-window-closed">
           {t("panel.inbox.closedNote")}
         </Text>
@@ -557,7 +571,9 @@ function Composer({ conv }: { conv: ZaloConversation }) {
             fontSize: 15,
           }}
         />
-        <CalmButton testID="zalo-reply-send" label={t("panel.inbox.send")} onPress={send} />
+        {suspended ? null : (
+          <CalmButton testID="zalo-reply-send" label={t("panel.inbox.send")} onPress={send} />
+        )}
       </View>
       <Text size={11} color={c.muted}>
         {t("panel.inbox.sendExplain")}

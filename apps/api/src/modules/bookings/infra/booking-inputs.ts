@@ -295,27 +295,55 @@ async function loadUnits(
   }));
 }
 
-/** Builds the engine input for dates `[from, to]` and the given staff members. */
+/** One line of a chain as the loader sees it: the resolved service and who may do it. */
+export interface ChainLineInput {
+  selection: ResolvedSelection;
+  /** Candidate staff for this line (already filtered by request, scope and assignment). */
+  staffIds: readonly string[];
+}
+
+export interface AvailabilityArgs {
+  from: LocalDate;
+  to: LocalDate;
+  now: Date;
+  overrides?: ReadonlySet<RuleOverride>;
+  exclude?: { holdId?: string | null; bookingId?: string | null };
+}
+
+/** Builds the engine input for dates `[from, to]` and the given staff members (one service). */
 export async function loadAvailabilityInput(
   db: Db,
   ctx: SalonBookingContext,
   selection: ResolvedSelection,
-  args: {
-    from: LocalDate;
-    to: LocalDate;
-    staffIds: readonly string[];
-    now: Date;
-    overrides?: ReadonlySet<RuleOverride>;
-    exclude?: { holdId?: string | null; bookingId?: string | null };
-  },
+  args: AvailabilityArgs & { staffIds: readonly string[] },
+): Promise<AvailabilityInput> {
+  return loadChainInput(db, ctx, [{ selection, staffIds: args.staffIds }], args);
+}
+
+/**
+ * Engine input for a chain of services (M6.8; a single service is a chain of one): the union of
+ * every line's staff and resource units is loaded once, in the same batched queries.
+ */
+export async function loadChainInput(
+  db: Db,
+  ctx: SalonBookingContext,
+  chain: readonly ChainLineInput[],
+  args: AvailabilityArgs,
 ): Promise<AvailabilityInput> {
   const { salonId, timeZone } = ctx;
   const window = {
     start: dayBounds(addDays(args.from, -1), timeZone).start,
     end: dayBounds(addDays(args.to, 1), timeZone).end,
   };
-  const staffIds = [...args.staffIds];
-  const unitIds = selection.units.map((u) => u.unitId);
+  const staffIds = [...new Set(chain.flatMap((l) => l.staffIds))];
+  const sortOrder = new Map<string, number>();
+  for (const l of chain) {
+    for (const [id, order] of l.selection.staffSortOrder) sortOrder.set(id, order);
+  }
+  const poolById = new Map<string, ResolvedSelection["units"][number]>();
+  for (const l of chain) for (const u of l.selection.units) poolById.set(u.unitId, u);
+  const pool = [...poolById.values()];
+  const unitIds = pool.map((u) => u.unitId);
   const [hours, holidays, schedules, breaks, timeOff, busy, unitBusy] = await Promise.all([
     db.salonOpeningHours.findMany({ where: { salonId } }),
     db.salonHoliday.findMany({
@@ -339,40 +367,31 @@ export async function loadAvailabilityInput(
     loadUnitBusy(db, salonId, unitIds, window, args.now, args.exclude),
   ]);
 
-  const staff: StaffAvailability[] = staffIds.flatMap((staffId) => {
-    const terms = selection.staffTerms.get(staffId);
-    if (!terms) return [];
-    return [
-      {
-        staffId,
-        sortOrder: selection.staffSortOrder.get(staffId) ?? 0,
-        terms,
-        schedules: schedules
-          .filter((s) => s.staffId === staffId)
-          .map((s) => ({
-            weekday: s.weekday,
-            startMinute: minuteOf(s.startsAt, "start"),
-            endMinute: minuteOf(s.endsAt, "end"),
-            effectiveFrom: dateOf(s.effectiveFrom),
-            effectiveTo: s.effectiveTo ? dateOf(s.effectiveTo) : null,
-          })),
-        breaks: breaks
-          .filter((b) => b.staffId === staffId)
-          .map((b) => ({
-            weekday: b.weekday,
-            date: b.date ? dateOf(b.date) : null,
-            startMinute: minuteOf(b.startsAt, "start"),
-            endMinute: minuteOf(b.endsAt, "end"),
-          })),
-        timeOff: timeOff
-          .filter((t) => t.staffId === staffId)
-          .map((t) => ({ start: t.startsAt.getTime(), end: t.endsAt.getTime() })),
-        busy: busy
-          .filter((b) => b.staffId === staffId)
-          .map((b) => ({ start: b.start, end: b.end })),
-      },
-    ];
-  });
+  const staff: StaffAvailability[] = staffIds.map((staffId) => ({
+    staffId,
+    sortOrder: sortOrder.get(staffId) ?? 0,
+    schedules: schedules
+      .filter((s) => s.staffId === staffId)
+      .map((s) => ({
+        weekday: s.weekday,
+        startMinute: minuteOf(s.startsAt, "start"),
+        endMinute: minuteOf(s.endsAt, "end"),
+        effectiveFrom: dateOf(s.effectiveFrom),
+        effectiveTo: s.effectiveTo ? dateOf(s.effectiveTo) : null,
+      })),
+    breaks: breaks
+      .filter((b) => b.staffId === staffId)
+      .map((b) => ({
+        weekday: b.weekday,
+        date: b.date ? dateOf(b.date) : null,
+        startMinute: minuteOf(b.startsAt, "start"),
+        endMinute: minuteOf(b.endsAt, "end"),
+      })),
+    timeOff: timeOff
+      .filter((t) => t.staffId === staffId)
+      .map((t) => ({ start: t.startsAt.getTime(), end: t.endsAt.getTime() })),
+    busy: busy.filter((b) => b.staffId === staffId).map((b) => ({ start: b.start, end: b.end })),
+  }));
 
   return {
     timeZone,
@@ -399,9 +418,18 @@ export async function loadAvailabilityInput(
           : null,
     })),
     staff,
+    lines: chain.map((l) => ({
+      staffTerms: new Map(
+        l.staffIds.flatMap((id) => {
+          const terms = l.selection.staffTerms.get(id);
+          return terms ? [[id, terms] as const] : [];
+        }),
+      ),
+      requirements: l.selection.requirements,
+    })),
     resources: {
-      requirements: selection.requirements,
-      units: selection.units.map((u) => ({
+      requirements: chain[0]?.selection.requirements ?? [],
+      units: pool.map((u) => ({
         ...u,
         busy: unitBusy
           .filter((b) => b.unitId === u.unitId)

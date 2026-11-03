@@ -13,14 +13,16 @@ import { useBreakpoint } from "../salon-crm/shell/useBreakpoint";
 import { type ThemePreference, useThemePreference } from "../salon-crm/theme/CrmThemeProvider";
 import { Segmented } from "../salon-crm/ui/form";
 
-type NavId = "overview" | "salons";
+type NavId = "overview" | "salons" | "security";
 const NAV: { id: NavId; icon: IconName; path: string }[] = [
   { id: "overview", icon: "chart", path: "/admin" },
   { id: "salons", icon: "store", path: "/admin/salons" },
+  { id: "security", icon: "check", path: "/admin/security" },
 ];
 
 function useActive(): NavId {
   const pathname = usePathname();
+  if (/\/admin\/security/.test(pathname)) return "security";
   return /\/admin\/salons/.test(pathname) ? "salons" : "overview";
 }
 

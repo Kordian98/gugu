@@ -3,6 +3,7 @@ import { createI18n } from "@gugu/localization";
 import { UPCOMING_BOOKING_STATUSES } from "@gugu/domain";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { bookingPayload } from "../domain/bot/payload";
+import { SALON_SUSPENDED_REASON, suspendedReminderKey } from "../domain/suspension";
 import { decideCs } from "../domain/window";
 import { type OutboundItem, OutboundService, type TemplateData } from "./outbound.service";
 import { ZaloClock } from "./zalo-clock";
@@ -64,8 +65,8 @@ export class RemindersService {
       },
       include: {
         zaloLink: { include: { conversation: true } },
-        services: true,
-        salon: { select: { name: true, timezone: true, zaloConnection: true } },
+        services: { orderBy: { sequence: "asc" } },
+        salon: { select: { name: true, timezone: true, status: true, zaloConnection: true } },
       },
       orderBy: { startsAt: "asc" },
       take: BATCH,
@@ -79,6 +80,26 @@ export class RemindersService {
       if (!kind) continue;
       const dedupKey = `${kind}:${b.id}`;
       if (await this.prisma.zaloSendLog.count({ where: { dedupKey } })) continue;
+      if (b.salon.status === "suspended") {
+        // q89: no reminders while GuGu has suspended the salon. Logged once as skipped; the real
+        // key stays free, so the reminder still goes out after unsuspend if it is still due.
+        const parked = suspendedReminderKey(dedupKey);
+        if (await this.prisma.zaloSendLog.count({ where: { dedupKey: { startsWith: parked } } })) {
+          continue;
+        }
+        await this.outbound.logSkipped(
+          b.salonId,
+          {
+            channel: "cs",
+            purpose: kind,
+            conversationId: conv.id,
+            bookingId: b.id,
+            dedupKey: parked,
+          },
+          SALON_SUSPENDED_REASON,
+        );
+        continue;
+      }
 
       const locale = "vi" as const;
       const { t } = createI18n(locale);
@@ -88,7 +109,10 @@ export class RemindersService {
         hourCycle: "h23",
         timeZone: b.salon.timezone,
       }).format(b.startsAt);
-      const serviceName = ((b.services[0]?.name ?? {}) as { vi?: string }).vi ?? "";
+      // Every service of a multi-service booking (M6.8): "Sơn gel + Pedicure".
+      const serviceName = b.services
+        .map((l) => ((l.name ?? {}) as { vi?: string }).vi ?? "")
+        .join(" + ");
       const text = t(`zalo:bot.${kind === "reminder_24h" ? "reminder24h" : "reminder2h"}`, {
         when: time,
         service: serviceName,

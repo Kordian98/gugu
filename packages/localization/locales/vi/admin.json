@@ -4,7 +4,8 @@
     "docTitle": "{{page}} · GuGu Admin",
     "nav": {
       "overview": "Tổng quan",
-      "salons": "Salon"
+      "salons": "Salon",
+      "security": "Bảo mật"
     },
     "theme": {
       "light": "Sáng",
@@ -264,10 +265,10 @@
     "submit": "Lưu",
     "saving": "Đang lưu…",
     "done": "Đã lưu",
-    "stepUpTitle": "Đăng nhập lại để xác nhận",
-    "stepUpBody": "Thao tác này cần một lần đăng nhập trong {{minutes}} phút gần nhất. Hãy đăng xuất, đăng nhập lại rồi thực hiện lại.",
-    "stepUpAction": "Đăng nhập lại",
-    "highRisk": "Thao tác rủi ro cao: cần đăng nhập gần đây.",
+    "stepUpTitle": "Xác nhận bằng mã xác thực",
+    "stepUpBody": "Thao tác rủi ro cao cần mã 6 số từ ứng dụng xác thực. Sau khi xác nhận, phiên này được phép thực hiện các thao tác như vậy trong {{minutes}} phút.",
+    "stepUpAction": "Xác nhận và tiếp tục",
+    "highRisk": "Thao tác rủi ro cao: cần mã xác thực.",
     "assign": {
       "title": "Gán gói",
       "plan": "Gói",
@@ -323,7 +324,10 @@
       "d14": "+14 ngày"
     },
     "prevMonth": "Tháng trước",
-    "nextMonth": "Tháng sau"
+    "nextMonth": "Tháng sau",
+    "enrolTitle": "Cần bật xác thực hai bước",
+    "enrolBody": "Mọi thay đổi trong trang quản trị cần xác thực hai bước (TOTP). Hãy thiết lập trước.",
+    "enrolAction": "Thiết lập ngay"
   },
   "entitlementKey": {
     "crm_core": "CRM",
@@ -352,7 +356,11 @@
     "admin_entitlement_override_created": "Đã thêm ngoại lệ",
     "admin_entitlement_override_revoked": "Đã thu hồi ngoại lệ",
     "admin_founding_partner_granted": "Đã cấp đối tác sáng lập",
-    "admin_founding_partner_revoked": "Đã thu hồi đối tác sáng lập"
+    "admin_founding_partner_revoked": "Đã thu hồi đối tác sáng lập",
+    "privacy_client_exported": "Xuất dữ liệu một khách",
+    "privacy_client_erased": "Xoá dữ liệu một khách",
+    "privacy_salon_export_requested": "Yêu cầu xuất dữ liệu salon",
+    "privacy_salon_export_downloaded": "Tải bản xuất dữ liệu salon"
   },
   "actor": {
     "platform_admin": "Quản trị viên GuGu",
@@ -367,7 +375,7 @@
     "common_validation_failed": "Kiểm tra lại các trường: cần lý do ít nhất 5 ký tự.",
     "common_forbidden": "Vai trò quản trị của bạn không được phép làm việc này.",
     "common_not_found": "Không tìm thấy.",
-    "admin_step_up_required": "Đăng nhập lại để xác nhận thao tác này.",
+    "admin_step_up_required": "Cần xác nhận bằng mã xác thực.",
     "admin_already_suspended": "Salon đã bị tạm khóa.",
     "admin_not_suspended": "Salon không bị tạm khóa.",
     "admin_no_current_subscription": "Salon không có thuê bao trả phí để cập nhật.",
@@ -378,6 +386,42 @@
     "admin_founding_partner_exists": "Đã là đối tác sáng lập.",
     "admin_founding_partner_missing": "Không phải đối tác sáng lập.",
     "admin_usage_month_unavailable": "Chỉ lưu mức sử dụng của tháng này và tháng trước.",
-    "subscription_invalid_transition": "Không thể thay đổi như vậy ở trạng thái thuê bao hiện tại."
+    "subscription_invalid_transition": "Không thể thay đổi như vậy ở trạng thái thuê bao hiện tại.",
+    "admin_mfa_enrollment_required": "Hãy bật xác thực hai bước trước khi thay đổi.",
+    "admin_mfa_fresh_sign_in_required": "Để bật xác thực hai bước, hãy đăng xuất, đăng nhập lại rồi thử trong 15 phút.",
+    "admin_mfa_enrollment_not_started": "Phiên thiết lập đã hết hạn. Hãy bắt đầu lại.",
+    "admin_mfa_code_invalid": "Mã không đúng hoặc đã được dùng. Hãy thử mã mới.",
+    "common_rate_limited": "Quá nhiều lần thử. Vui lòng đợi rồi thử lại."
+  },
+  "security": {
+    "title": "Bảo mật",
+    "subtitle": "Xác thực hai bước (TOTP) cho tài khoản quản trị của bạn",
+    "statusTitle": "Ứng dụng xác thực",
+    "enrolled": "Đã bật từ {{date}}",
+    "notEnrolled": "Chưa bật. Mọi thay đổi trong trang quản trị đều bị chặn cho đến khi bạn bật.",
+    "stepUpActive": "Phiên này đã xác nhận đến {{time}}",
+    "stepUpInactive": "Phiên này chưa xác nhận. Thao tác rủi ro cao sẽ hỏi mã.",
+    "recoveryLeft": "Còn {{count}} mã khôi phục",
+    "start": "Bật xác thực hai bước",
+    "replace": "Đổi sang thiết bị mới",
+    "replaceHint": "Cần xác nhận phiên này bằng mã hiện tại (hoặc mã khôi phục) trước.",
+    "step1": "1. Mở ứng dụng xác thực (Google Authenticator, Microsoft Authenticator, 1Password…) và thêm tài khoản bằng khoá bên dưới. Trên điện thoại, bạn có thể bấm vào đường link.",
+    "secretLabel": "Khoá thiết lập",
+    "openApp": "Mở trong ứng dụng xác thực",
+    "step2": "2. Nhập mã 6 số mà ứng dụng hiển thị.",
+    "codeLabel": "Mã 6 số",
+    "confirm": "Xác nhận",
+    "recoveryTitle": "Mã khôi phục",
+    "recoveryBody": "Lưu các mã này ở nơi an toàn. Mỗi mã chỉ dùng được một lần khi bạn mất điện thoại. Chúng chỉ hiển thị lần này.",
+    "recoveryDone": "Tôi đã lưu các mã",
+    "regenerate": "Tạo mã khôi phục mới",
+    "regenerateHint": "Nhập mã hiện tại; các mã khôi phục cũ sẽ hết hiệu lực.",
+    "useRecovery": "Dùng mã khôi phục",
+    "useTotp": "Dùng mã từ ứng dụng",
+    "recoveryLabel": "Mã khôi phục",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép",
+    "bannerTitle": "Bật xác thực hai bước",
+    "bannerBody": "Bạn chưa thể thay đổi gì trong trang quản trị cho đến khi bật xác thực hai bước."
   }
 }

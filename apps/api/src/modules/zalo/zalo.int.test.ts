@@ -77,16 +77,20 @@ describe("Zalo integration (emulator, end to end)", () => {
   const http = () => request(app.getHttpServer() as Server);
   const base = () => `/api/v1/salons/${s.salonId}/zalo`;
 
-  /** Runs the worker side inline: pending webhook events, then queued sends, until quiet. */
+  /**
+   * Runs the worker side inline: pending webhook events, then queued sends, until quiet. Only this
+   * test's own OA and salon: rows other runs or branches left in the shared test DB are not ours
+   * to process (they made this suite fail).
+   */
   async function drain(): Promise<void> {
     for (let round = 0; round < 5; round++) {
       const events = await prisma.zaloWebhookEvent.findMany({
-        where: { status: "received" },
+        where: { status: "received", oaId },
         orderBy: { receivedAt: "asc" },
       });
       for (const e of events) await app.get(InboundService).process(e.id);
       const logs = await prisma.zaloSendLog.findMany({
-        where: { status: "queued" },
+        where: { status: "queued", salonId: s.salonId },
         orderBy: { createdAt: "asc" },
       });
       for (const l of logs) await app.get(OutboundService).processBatch(l.salonId, [l.id], true);

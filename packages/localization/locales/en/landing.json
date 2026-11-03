@@ -1,53 +1,154 @@
 {
+  "brand": {
+    "studio": "Studio"
+  },
   "nav": {
+    "story": "How it works",
     "features": "Features",
     "pricing": "Pricing",
-    "marketplace": "Marketplace",
     "signIn": "Sign in",
     "trial": "Start free trial",
     "trialShort": "Free trial"
   },
   "hero": {
-    "eyebrow": "Salon software for Vietnam",
-    "titleStart": "Run your salon.",
-    "titleAccent": "Fill your chairs.",
-    "subtitle": "Online booking, a smart team calendar and a client CRM in one simple app — set up in minutes with AI. Your clients book from your own link, QR code or Zalo, and pay at your salon as usual.",
-    "trialCta": "Start 14-day free trial",
+    "line1": "Your salon.",
+    "line2": "Your rules.",
+    "line3": "Your glow.",
+    "subtitle": "Less admin, more beauty. Your team calendar, clients, reminders and AI setup — in one calm workspace for your salon.",
+    "trialCta": "Start free trial",
     "howCta": "See how it works",
-    "trialNote": "14-day trial with Pro features · no free plan after the trial"
+    "note": "14-day free trial · made for beauty businesses in Vietnam"
   },
-  "features": {
-    "eyebrow": "Everything your salon runs on",
-    "title": "One app for bookings, team and clients",
-    "bookingPage": {
-      "title": "Your own online booking page",
-      "body": "Share one link, a QR code at reception or your Zalo. Clients pick a service, a stylist and a time — 24/7."
+  "story": {
+    "dive": {
+      "eyebrow": "A day at the salon",
+      "title": "Step inside.",
+      "sub": "Stylists at work. Clients in the chair. The phone never stops."
+    },
+    "pain1": {
+      "eyebrow": "08:47 · Reception",
+      "title": "23 new messages.\nBefore the first coffee.",
+      "sub": "Answering Zalo and copying bookings into a notebook eats hours every week — e.g. 2–3 hours.",
+      "chat1": "Hi, can I come at 3pm tomorrow?",
+      "chat2": "Is Mai free on Saturday?",
+      "chat3": "Still a slot today?",
+      "chat4": "Can I move my 10:00?",
+      "chat5": "How much is gel + nail art?",
+      "t1": "08:41",
+      "t2": "08:43",
+      "t3": "08:44",
+      "t4": "08:46",
+      "t5": "08:47",
+      "unread": "23 unread"
+    },
+    "pain2": {
+      "eyebrow": "14:00 · Same chair",
+      "title": "Two clients. One slot.\nOne forgotten reminder.",
+      "sub": "Double bookings, no-shows and stress at reception — lost clients, lost revenue.",
+      "note1": "Thu Trang 15:00 gel",
+      "note2": "Ngọc Anh 15:00 ???",
+      "note3": "remind Bảo Vy!!",
+      "double": "Double booking",
+      "noShow": "No-show",
+      "forgot": "Reminder forgotten"
     },
     "calendar": {
-      "title": "Smart calendar for the whole team",
-      "body": "Every stylist, room and break in one view. No double bookings — availability is checked for you."
+      "eyebrow": "With GuGu Studio",
+      "title": "One calendar.\nThe whole team.",
+      "sub": "Every stylist, every break, every booking. No more double bookings."
     },
-    "crm": {
-      "title": "Client CRM",
-      "body": "Visit history, notes, favourite services and no-shows for every client, in one place."
+    "reminders": {
+      "eyebrow": "Automatic",
+      "title": "Reminders send themselves.",
+      "sub": "Confirmations and reminders go out by Zalo or email. Fewer empty chairs.",
+      "msg": "Hi Thu Trang! See you tomorrow at 15:00 for gel nails with Mai. Reply to change your time.",
+      "sent": "Sent automatically · 24 h before"
+    },
+    "assistant": {
+      "eyebrow": "AI assistant · Pro",
+      "title": "Too busy to check?\nJust ask.",
+      "sub": "Answers come from your salon's own calendar, with a ready-made Zalo reply.",
+      "q": "Any free slot for gel nails tomorrow afternoon with Mai?",
+      "a": "Mai is free tomorrow at 14:00 and 16:30 (gel nails, 60 min). Draft a reply?",
+      "draft": "Draft reply",
+      "privacy": "Uses your salon's own data. No customer personal data goes to the AI model."
+    },
+    "finale": {
+      "eyebrow": "Every booking",
+      "title": "From Zalo to booked.\nIn seconds.",
+      "sub": "Check real availability, send free slots, book it. The client gets a confirmation automatically.",
+      "ask": "Hi! Can I book gel nails tomorrow afternoon?",
+      "offer": "Tomorrow we have 14:00 or 16:30 with Mai (gel nails, 60 min). Which suits you?",
+      "reply": "16:30 please!",
+      "confirm": "Booked: gel nails with Mai, tomorrow 16:30. We'll remind you the day before.",
+      "booked": "Booked"
+    },
+    "calm": {
+      "eyebrow": "The difference",
+      "title": "Calmer reception.\nTime back.",
+      "sub": "Your whole day at a glance: bookings, clients and numbers in one place."
+    },
+    "switch": {
+      "eyebrow": "Switching",
+      "title": "Switch in minutes.",
+      "sub": "Already using another app or a notebook? Upload a photo of your price list — AI sets up your services. Every plan.",
+      "photo": "Your price list",
+      "list": "Gel nails ........ 200k\nNail art ........ 150k\nHair cut ........ 120k\nFacial ........... 300k",
+      "recognised": "Recognised",
+      "catalog": "Your services",
+      "s1": "Gel nails",
+      "s2": "Nail art",
+      "s3": "Hair cut",
+      "s4": "Facial",
+      "p1": "200.000đ",
+      "p2": "150.000đ",
+      "p3": "120.000đ",
+      "p4": "300.000đ",
+      "d1": "60 min",
+      "d2": "45 min",
+      "d3": "30 min",
+      "d4": "60 min",
+      "effortless": "Effortless. Better. In every plan."
+    },
+    "illustrative": "Illustrative examples.",
+    "pro": "Pro"
+  },
+  "features": {
+    "eyebrow": "Everything in one place",
+    "title": "Everything your salon needs. Nothing it doesn’t.",
+    "calendar": {
+      "title": "Team calendar",
+      "body": "Day view for every stylist, breaks and working hours, no double bookings."
+    },
+    "clients": {
+      "title": "Clients",
+      "body": "Visit history, notes, favourite services and no-shows for every client."
+    },
+    "reminders": {
+      "title": "Zalo & email reminders",
+      "body": "Automatic confirmations and reminders before every visit."
     },
     "aiSetup": {
-      "title": "Effortless AI setup",
-      "body": "Upload screenshots of your price list and AI creates your services, prices and durations. Included in every plan."
+      "title": "AI setup from price-list photos",
+      "body": "Your service menu, prices and durations in minutes. Every plan."
     },
     "insights": {
       "title": "Insights",
-      "body": "Bookings, returning clients, busy hours and estimated revenue at a glance."
-    },
-    "reminders": {
-      "title": "Reminders via Zalo and email",
-      "body": "Automatic booking confirmations and reminders cut no-shows without extra work."
+      "body": "Bookings, returning clients, busy hours and estimated revenue."
     },
     "assistant": {
-      "title": "AI business assistant",
-      "body": "Ask in plain language: “How many bookings this week?” “Who hasn’t come back in 3 months?”",
+      "title": "AI assistant",
+      "body": "Ask about your salon in plain language and get answers from your own data.",
       "badge": "Pro"
     }
+  },
+  "businesses": {
+    "title": "Built for every kind of beauty business",
+    "hair": "Hair salons",
+    "nails": "Nails & lashes",
+    "barber": "Barbershops",
+    "spa": "Spa & wellness",
+    "aesthetics": "Aesthetics & makeup"
   },
   "pricing": {
     "eyebrow": "Plans",
@@ -58,60 +159,292 @@
     "billedMonthly": "billed monthly",
     "billedYearly": "billed yearly",
     "cta": "Start free trial",
-    "trial": "Every plan starts with a 14-day trial with Pro features and Basic limits (AI usage and message quotas). There is no free plan.",
     "popular": "Most popular",
+    "trial": "Every plan starts with a 14-day trial with Pro features and Basic limits (AI usage and message quotas). There is no free plan.",
     "basic": {
       "name": "Basic",
       "tagline": "Everything to run one salon",
-      "items": "Online booking page (link, QR, Zalo)\nSmart team calendar\nClient CRM\nAI setup from your price list\nInsights\nReminders via Zalo and email\nFree listing in the GuGu marketplace when it launches"
+      "items": "Team calendar\nClients\nZalo & email reminders\nAI setup from your price list\nInsights"
     },
     "pro": {
       "name": "Pro",
-      "tagline": "AI that works for your business",
-      "items": "Everything in Basic\nAI business assistant\nMonthly AI business review\nZalo inbox\nHigher message quota"
+      "tagline": "AI that works for your salon",
+      "items": "Everything in Basic\nAI assistant\nMonthly AI business review\nZalo inbox\nHigher message quota"
     },
     "ultra": {
       "name": "Ultra",
       "tagline": "For chains and growing brands",
-      "items": "Everything in Pro\nMultiple locations with combined reporting\nHighest AI usage limit\nAdvanced analytics\nPromoted-listing credits when the marketplace launches"
+      "items": "Everything in Pro\nMultiple locations with combined reporting\nHighest AI usage limit\nAdvanced analytics"
     }
   },
-  "marketplace": {
-    "eyebrow": "Coming soon",
-    "title": "The GuGu marketplace",
-    "body": "Once GuGu establishes its Vietnamese company, partner salons will be listed in the GuGu marketplace free of charge, so new clients can discover and book you.",
-    "offer": "Every salon that subscribes before the marketplace launches pays no booking fees for its first 2 years after launch.",
-    "point1": "Free listing for partner salons",
-    "point2": "No booking fees for 2 years for early subscribers",
-    "point3": "Your own booking page works from day one",
-    "disclaimer": "The GuGu marketplace and the terms above will start only after GuGu’s Vietnamese company has been established, in accordance with Vietnamese law. Detailed terms may be published at that time."
-  },
-  "faq": {
-    "eyebrow": "FAQ",
-    "title": "Questions salon owners ask",
-    "q1": "Is there a free trial?",
-    "a1": "Yes. You get 14 days with Pro features and Basic limits. After the trial you choose Basic, Pro or Ultra — there is no free plan.",
-    "q2": "Do my clients need to install an app?",
-    "a2": "No. They book on your booking page from a link, QR code or your Zalo, in Vietnamese or English.",
-    "q3": "Does GuGu take payments?",
-    "a3": "No. Clients pay at your salon as usual. GuGu handles bookings, your calendar and your client list.",
-    "q4": "How long does setup take?",
-    "a4": "Minutes. Upload screenshots of your price list and AI creates your services; add your team and opening hours and share your link.",
-    "q5": "When does the marketplace launch?",
-    "a5": "After GuGu’s Vietnamese company is established, in line with Vietnamese law. Salons that subscribe before then get the early-subscriber terms described above."
+  "cta": {
+    "title": "Ready to glow? Start your 14-day free trial.",
+    "body": "Set up in minutes with AI. Your clients still pay at your salon as usual.",
+    "trial": "Start free trial",
+    "signIn": "Sign in"
   },
   "footer": {
-    "tagline": "Salon software made in Vietnam. Bookings, team and clients in one app.",
+    "tagline": "Salon software made for Vietnam. Team calendar, clients and reminders in one calm workspace.",
     "product": "Product",
-    "company": "Company",
+    "account": "Account",
     "legal": "Legal",
-    "about": "About GuGu",
-    "contact": "Contact",
     "terms": "Terms",
     "privacy": "Privacy",
-    "rights": "© 2026 GuGu. All rights reserved."
+    "rights": "© 2026 GuGu Studio. All rights reserved."
   },
-  "brand": {
-    "studio": "Studio"
+  "flow": {
+    "pain": {
+      "eyebrow": "At the front desk",
+      "title": "The front desk is drowning.",
+      "pre": "e.g.",
+      "stat": "3 h",
+      "statLabel": "a day lost to Zalo messages, call-backs and a paper notebook",
+      "n1": "Hoa: Any slot tomorrow at 10?",
+      "n2": "Minh: Can I move to 3 pm?",
+      "n3": "Vy: How much is gel + nail art?",
+      "n4": "Thảo: Running 15 min late!",
+      "n5": "Missed call",
+      "zalo": "Zalo",
+      "now": "now",
+      "book": "Notebook",
+      "e1": "10:00 Hoa · gel",
+      "e2": "10:00 Vy · acrylic",
+      "e3": "15:00 Minh → 16:00?",
+      "e4": "Remind Thảo!!",
+      "calmEyebrow": "Same desk, with GuGu Studio",
+      "calmTitle": "Same Saturday. Calm.",
+      "calmSub": "GuGu Studio replies on your salon's Zalo OA, books into one calendar and sends the reminders. Your receptionist just welcomes clients.",
+      "g1": "4 bookings created automatically",
+      "g2": "Reminders scheduled for tomorrow",
+      "g3": "No double bookings",
+      "note": "Illustrative example with fictional names, not a measurement or a customer story.",
+      "statNum": "3",
+      "statUnit": "h",
+      "unread": "new messages",
+      "before": "Before",
+      "after": "With GuGu Studio",
+      "g1n": "+6.5 h",
+      "g1l": "saved per week (e.g.)",
+      "g2n": "0",
+      "g2l": "double bookings",
+      "g3n": "−25%",
+      "g3l": "no-shows*",
+      "src": "* Reminders and no-shows: Robotham et al., BMJ Open 2016 (clinics). Names are fictional; figures are illustrative.",
+      "drag": "Drag to compare before and after"
+    },
+    "ba": {
+      "eyebrow": "Before and after",
+      "title": "Same booking. Two very different days.",
+      "before": "Before",
+      "after": "With GuGu Studio",
+      "b1": "Reads a Zalo message",
+      "b2": "Retypes it into the notebook",
+      "b3": "Calls the client back",
+      "b4": "Forgets the reminder",
+      "a1": "Client writes to your Zalo OA",
+      "a2": "Booked automatically",
+      "a3": "Calendar updates for the team",
+      "a4": "Zalo reminder 24 h before",
+      "a5": "Client taps “I'll come”",
+      "zaloIn": "Hi! Gel nails tomorrow 16:30 with Mai?",
+      "notebook": "Thu Trang 16:30 gel — Mai",
+      "call": "Calling Thu Trang…",
+      "forgot": "Reminder not sent",
+      "booked": "Booked · Gel nails · Mai · 16:30",
+      "remind": "Reminder: gel nails with Mai tomorrow 16:30 at GuGu Demo Salon.",
+      "come": "I'll come ✓",
+      "saved": "Time saved",
+      "min": "min",
+      "note": "Time saved is an illustrative example.",
+      "oa": "Zalo OA integration"
+    },
+    "compose": {
+      "eyebrow": "Everything connected",
+      "title": "Calendar, clients and reminders — together.",
+      "sub": "A booking from Zalo lands in the calendar, on the client's card and in the reminder queue at the same time.",
+      "stat": "25%",
+      "statLabel": "fewer no-shows when people get reminders, in a meta-analysis of 21 clinic studies.*",
+      "source": "* Robotham et al., BMJ Open 2016 (healthcare clinics; results in salons may differ).",
+      "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/27798006/"
+    },
+    "assistant": {
+      "eyebrow": "AI assistant · Pro",
+      "title": "Too busy to check? Just ask.",
+      "sub": "It answers from your salon's own calendar and drafts the Zalo reply. No customer personal data goes to the AI model.",
+      "q": "Any free slot for gel nails tomorrow afternoon with Mai?",
+      "a": "Mai is free tomorrow at 14:00 and 16:30 (gel nails, 60 min). Draft a reply?",
+      "draft": "Draft reply"
+    },
+    "switch": {
+      "eyebrow": "Switching",
+      "title": "Already using another app or a notebook?\nSwitch in minutes.",
+      "sub": "Snap your price list or your current system's service list. AI sets up your services. Effortless, in every plan.",
+      "from": "Your price list",
+      "to": "Your services in GuGu Studio",
+      "st1": "Snap your price list, or a screenshot from your old app",
+      "st2": "AI builds services, durations and prices",
+      "st3": "You check, then go live; clients get added as they book",
+      "ai": "AI setup",
+      "walk": "Getting started",
+      "win": "Services",
+      "reading": "Reading your price list…",
+      "done": "10 services created · check and go live",
+      "list": "Gel polish ....... 150k\nAcrylic set ...... 350k\nNail art ......... 200k\nPedicure ......... 180k\nMen's cut ........ 120k\nHair colour ...... 650k\nBlow-dry ......... 150k\nFacial ........... 450k\nLashes ........... 300k\nBrows ............ 120k",
+      "n1": "Gel polish",
+      "d1": "45 min",
+      "p1": "150,000₫",
+      "n2": "Acrylic set",
+      "d2": "90 min",
+      "p2": "350,000₫",
+      "n3": "Nail art",
+      "d3": "60 min",
+      "p3": "200,000₫",
+      "n4": "Pedicure",
+      "d4": "50 min",
+      "p4": "180,000₫",
+      "n5": "Men's haircut",
+      "d5": "30 min",
+      "p5": "120,000₫",
+      "n6": "Hair colour",
+      "d6": "120 min",
+      "p6": "650,000₫",
+      "n7": "Blow-dry",
+      "d7": "40 min",
+      "p7": "150,000₫",
+      "n8": "Facial",
+      "d8": "60 min",
+      "p8": "450,000₫",
+      "n9": "Lash extensions",
+      "d9": "75 min",
+      "p9": "300,000₫",
+      "n10": "Brow shaping",
+      "d10": "30 min",
+      "p10": "120,000₫"
+    },
+    "walk": {
+      "eyebrow": "Saturday · 9:12 · District 1",
+      "title": "Step inside a salon on its busiest morning.",
+      "hint": "Scroll to walk in",
+      "deeper": "Walk deeper into the salon",
+      "office": "Into the back office"
+    },
+    "saved": {
+      "title": "Time saved this week",
+      "unit": "hours",
+      "eg": "e.g.",
+      "r1": "Replies handled",
+      "r2": "Bookings created",
+      "r3": "Reminders sent",
+      "note": "Illustrative example"
+    },
+    "features": {
+      "eyebrow": "Where the work happens",
+      "title": "Every chair, every hour, in one calendar.",
+      "f1t": "Calendar by team member",
+      "f1b": "See every chair and every hour. Breaks and working hours are built in.",
+      "f2t": "Appointments and live queue",
+      "f2b": "Walk-ins, Zalo bookings and phone bookings in one list.",
+      "f3t": "Services, options and add-ons",
+      "f3b": "Durations, price ranges and who performs each service.",
+      "f4t": "Team, hours and invitations",
+      "f4b": "Invite staff by link and set their working hours.",
+      "f5t": "Rooms & equipment",
+      "f5b": "Assign a chair, bed or device to each service, so it is never double-booked.",
+      "f6t": "Client cards",
+      "f6b": "History, notes and preferences for every client.",
+      "f7t": "Zalo bookings",
+      "f7b": "Messages to your salon's Zalo OA become bookings automatically.",
+      "f8t": "Insights",
+      "f8b": "Revenue, occupancy and no-shows as appointments complete.",
+      "chip": "Chair 2 + UV lamp reserved · 14:00",
+      "today": "Today",
+      "with": "With GuGu Studio",
+      "r1k": "Double bookings",
+      "r1n": "0",
+      "r1p": "e.g. 2–3 a month when two people write in one notebook",
+      "r1g": "Each service reserves its chair, bed or device, so a taken slot can't be booked twice.",
+      "r2k": "Booking channels",
+      "r2n": "1 list",
+      "r2p": "Zalo, phone calls and walk-ins in 3 different places",
+      "r2g": "Every booking lands in one queue; the whole team sees it at once.",
+      "r3k": "Service menu",
+      "r3n": "≈10 min",
+      "r3p": "Prices and durations live in one person's head",
+      "r3g": "Services, options, add-ons and price ranges, set up from a photo of your price list.",
+      "r4k": "Team hours",
+      "r4n": "1 link",
+      "r4p": "“Who works on Sunday?” lost in the group chat",
+      "r4g": "Hours, breaks and who does which service, per person; invite staff with one link.",
+      "facts": "Demo salon, this week: 40 bookings · 7 services · 4 team members, in one calendar",
+      "eg": "Pains are illustrative examples.",
+      "shotCal": "Calendar · chairs & devices reserved",
+      "shotSvc": "Services · options & price ranges",
+      "shotAppt": "Appointments · one queue"
+    },
+    "office": {
+      "eyebrow": "Back office",
+      "title": "Your whole salon at a glance.",
+      "sub": "Today's bookings, the team's timeline and what's coming up, on one screen. Insights fill up as appointments are completed."
+    },
+    "biz": {
+      "eyebrow": "Every kind of beauty business",
+      "title": "Built for the way you work.",
+      "hint": "Swipe, drag or use the arrows",
+      "prev": "Previous",
+      "next": "Next",
+      "nails": {
+        "t": "Nail bars",
+        "b": "Gel, acrylic and art, with options and add-ons priced in.",
+        "c": "Gel polish · 45 min · 2 options"
+      },
+      "hair": {
+        "t": "Hair salons",
+        "b": "Long colour services and price ranges, booked per stylist.",
+        "c": "Hair colour · 120 min · from 650,000₫"
+      },
+      "barber": {
+        "t": "Barbershops",
+        "b": "Walk-ins and bookings in the same queue.",
+        "c": "Men's haircut · 30 min · walk-in"
+      },
+      "spa": {
+        "t": "Day spas",
+        "b": "Rooms and beds are booked as resources, so they never overlap.",
+        "c": "Facial · 60 min · Room 2"
+      },
+      "lash": {
+        "t": "Lash studios",
+        "b": "Long, precise appointments matched to the right technician.",
+        "c": "Lash extensions · 75 min"
+      },
+      "brow": {
+        "t": "Brow studios",
+        "b": "Short services that fit between longer ones.",
+        "c": "Brow shaping · 30 min"
+      },
+      "note": "Illustrative photos, not customers."
+    },
+    "hud": {
+      "c0": "Arrive",
+      "c1": "Front desk",
+      "c2": "Treatment room",
+      "c3": "Back office",
+      "next": "Next",
+      "start": "Start the tour",
+      "cont": "Continue",
+      "skip": "Skip the story",
+      "label": "Story chapters",
+      "after": "See the after",
+      "c4": "Switch"
+    },
+    "calc": {
+      "t": "What fewer no-shows are worth",
+      "price": "Average service price",
+      "weekly": "Bookings per week",
+      "out": "back per month",
+      "year": "per year",
+      "note": "Illustrative estimate: assumes 10% no-shows and ~25% fewer with reminders (BMJ Open 2016). Your numbers will differ.",
+      "perWeek": "/ week"
+    }
   }
 }

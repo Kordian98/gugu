@@ -43,7 +43,10 @@ export class TimelineQueries {
       where: {
         id: bookingId,
         salonId: salon.salonId,
-        ...(staffOnly ? { staffId: staffOnly } : {}),
+        // Own scope: any service of the appointment (M6.8).
+        ...(staffOnly
+          ? { OR: [{ staffId: staffOnly }, { services: { some: { staffId: staffOnly } } }] }
+          : {}),
       },
       select: { id: true, customerEmail: true },
     });

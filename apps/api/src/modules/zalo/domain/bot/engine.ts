@@ -350,16 +350,24 @@ class BotRun {
         break;
       case "staff":
         if (step.name === "staff") {
-          return this.showDays(
-            {
-              serviceId: step.serviceId,
-              variantId: step.variantId,
-              staffId: arg === "any" ? null : arg,
-            },
-            null,
-            0,
-          );
+          return this.afterStaff({
+            serviceId: step.serviceId,
+            variantId: step.variantId,
+            staffId: arg === "any" ? null : arg,
+          });
         }
+        break;
+      case "addyes":
+        if (step.name === "add_more") return this.showServices2(step.sel, 0);
+        break;
+      case "addno":
+        if (step.name === "add_more") return this.showDays(step.sel, null, 0);
+        break;
+      case "svc2":
+        if (step.name === "service2") return this.pickService2(step.sel, arg);
+        break;
+      case "var2":
+        if (step.name === "variant2") return this.withSecond(step.sel, step.serviceId, arg || null);
         break;
       case "more":
         return this.nextPage();
@@ -415,6 +423,7 @@ class BotRun {
   private async nextPage(): Promise<void> {
     const step = this.step;
     if (step.name === "service") return this.showServices(step.page + 1);
+    if (step.name === "service2") return this.showServices2(step.sel, step.page + 1);
     if (step.name === "day") return this.showDays(step.sel, step.rescheduleId, step.page + 1);
     if (step.name === "time") {
       return this.showTimes(
@@ -455,6 +464,14 @@ class BotRun {
         return this.pickService(step.serviceId);
       case "staff":
         return this.pickVariant(step.serviceId, step.variantId);
+      case "add_more": {
+        this.askMore(step.sel);
+        return;
+      }
+      case "service2":
+        return this.showServices2(step.sel, step.page);
+      case "variant2":
+        return this.pickService2(step.sel, step.serviceId);
       case "day":
         return this.showDays(step.sel, step.rescheduleId, step.page);
       case "time":
@@ -551,10 +568,10 @@ class BotRun {
       return this.pickService(serviceId);
     }
     if (this.ports.salon.hideStaffChoice) {
-      return this.showDays({ serviceId, variantId, staffId: null }, null, 0);
+      return this.afterStaff({ serviceId, variantId, staffId: null });
     }
     const staff = await this.ports.staffFor(serviceId, variantId);
-    if (staff.length <= 1) return this.showDays({ serviceId, variantId, staffId: null }, null, 0);
+    if (staff.length <= 1) return this.afterStaff({ serviceId, variantId, staffId: null });
     this.reach("staff");
     this.step = { name: "staff", serviceId, variantId };
     const shown = staff.slice(0, PAGE_SIZE);
@@ -570,6 +587,84 @@ class BotRun {
         { title: this.t("anyStaff"), value: "staff:any" },
       ],
     };
+  }
+
+  // --- second service (booking engine M6.8; the bot offers at most two) ---------------------
+
+  /** After the first service and staff: offer a second service when the salon allows it. */
+  private async afterStaff(sel: Selection): Promise<void> {
+    if (!this.ports.salon.multiService || sel.second) return this.showDays(sel, null, 0);
+    const others = (await this.ports.services()).filter((s) => s.id !== sel.serviceId);
+    if (others.length === 0) return this.showDays(sel, null, 0);
+    this.askMore(sel);
+  }
+
+  private askMore(sel: Selection): void {
+    this.step = { name: "add_more", sel };
+    this.menu = {
+      text: this.t("addService"),
+      items: 0,
+      options: [
+        { title: this.t("addServiceYes"), value: "addyes" },
+        { title: this.t("addServiceNo"), value: "addno" },
+      ],
+    };
+  }
+
+  private async showServices2(sel: Selection, page: number): Promise<void> {
+    const services = (await this.ports.services()).filter((s) => s.id !== sel.serviceId);
+    if (services.length === 0) return this.showDays(sel, null, 0);
+    const { slice, hasMore, page: p } = paginate(services, page);
+    this.step = { name: "service2", sel, page: p };
+    const lines = slice.map((s, i) =>
+      this.t("serviceLine", {
+        index: i + 1,
+        name: s.name,
+        price: this.price(s.priceMinor, s.priceMaxMinor),
+        minutes: s.durationMinutes,
+      }),
+    );
+    this.menu = {
+      text: [this.t("chooseSecondService"), ...lines].join("\n"),
+      items: slice.length,
+      options: [
+        ...slice.map((s) => ({ title: truncate(s.name), value: `svc2:${s.id}` })),
+        ...(hasMore ? [{ title: this.t("more"), value: "more" }] : []),
+      ],
+    };
+  }
+
+  private async pickService2(sel: Selection, serviceId: string): Promise<void> {
+    const service = (await this.ports.services()).find(
+      (s) => s.id === serviceId && s.id !== sel.serviceId,
+    );
+    if (!service) return this.showServices2(sel, 0);
+    if (service.variants.length === 0) return this.withSecond(sel, service.id, null);
+    this.step = { name: "variant2", sel, serviceId };
+    const variants = service.variants.slice(0, PAGE_SIZE + 1);
+    this.menu = {
+      text: [
+        this.t("chooseVariant", { service: service.name }),
+        ...variants.map(
+          (v, i) =>
+            `${String(i + 1)}. ${v.name} · ${this.price(v.priceMinor, v.priceMaxMinor)} · ${String(v.durationMinutes)}'`,
+        ),
+      ].join("\n"),
+      items: variants.length,
+      options: variants.map((v) => ({ title: truncate(v.name), value: `var2:${v.id}` })),
+    };
+  }
+
+  private async withSecond(
+    sel: Selection,
+    serviceId: string,
+    variantId: string | null,
+  ): Promise<void> {
+    const service = (await this.ports.services()).find((s) => s.id === serviceId);
+    if (!service || (variantId && !service.variants.some((v) => v.id === variantId))) {
+      return this.pickService2(sel, serviceId);
+    }
+    return this.showDays({ ...sel, second: { serviceId, variantId } }, null, 0);
   }
 
   private async showDays(sel: Selection, rescheduleId: string | null, page: number): Promise<void> {
@@ -791,22 +886,30 @@ class BotRun {
   }
 
   private async showConfirm(sel: Selection, startsAt: string): Promise<void> {
-    const service = (await this.ports.services()).find((s) => s.id === sel.serviceId);
+    const services = await this.ports.services();
+    const service = services.find((s) => s.id === sel.serviceId);
     if (!service) return this.showServices(0);
     const variant = sel.variantId ? service.variants.find((v) => v.id === sel.variantId) : null;
+    const second = this.secondOf(services, sel);
     const staffName = sel.staffId
       ? ((await this.ports.staffFor(sel.serviceId, sel.variantId)).find((s) => s.id === sel.staffId)
           ?.name ?? this.t("anyStaffName"))
       : this.t("anyStaffName");
-    const priced = variant ?? service;
+    const priced = [variant ?? service, ...(second ? [second.priced] : [])];
+    const min = priced.reduce((sum, p) => sum + p.priceMinor, 0);
+    const ranged = priced.some((p) => p.priceMaxMinor !== null);
+    const max = ranged
+      ? priced.reduce((sum, p) => sum + (p.priceMaxMinor ?? p.priceMinor), 0)
+      : null;
+    const first = variant ? `${service.name} (${variant.name})` : service.name;
     this.reach("confirm");
     this.step = { name: "confirm", sel, startsAt };
     this.menu = {
       text: this.t("confirmSummary", {
-        service: variant ? `${service.name} (${variant.name})` : service.name,
+        service: second ? `${first} + ${second.label}` : first,
         when: this.when(startsAt),
         staff: staffName,
-        price: this.price(priced.priceMinor, priced.priceMaxMinor),
+        price: this.price(min, max),
       }),
       items: 0,
       options: [
@@ -815,6 +918,20 @@ class BotRun {
         { title: this.t("cancelFlow"), value: "abort" },
       ],
     };
+  }
+
+  /** The second service of the selection, for the summary (null when none or gone). */
+  private secondOf(
+    services: readonly BotService[],
+    sel: Selection,
+  ): { label: string; priced: { priceMinor: number; priceMaxMinor: number | null } } | null {
+    if (!sel.second) return null;
+    const svc = services.find((s) => s.id === sel.second?.serviceId);
+    if (!svc) return null;
+    const v = sel.second.variantId
+      ? svc.variants.find((x) => x.id === sel.second?.variantId)
+      : null;
+    return { label: v ? `${svc.name} (${v.name})` : svc.name, priced: v ?? svc };
   }
 
   private async book(sel: Selection, startsAt: string): Promise<void> {
@@ -954,6 +1071,8 @@ class BotRun {
       serviceId: booking.serviceId,
       variantId: booking.variantId,
       staffId: booking.staffId,
+      // A two-service booking moves as a whole (M6.8).
+      second: booking.second ?? null,
     };
     return this.showDays(sel, bookingId, 0);
   }

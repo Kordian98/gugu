@@ -46,7 +46,15 @@
       "receptionist": "Lễ tân",
       "staff": "Nhân viên"
     },
-    "docTitle": "{{page}} · GuGu Studio"
+    "docTitle": "{{page}} · GuGu Studio",
+    "suspension": {
+      "title": "Salon đang bị GuGu tạm khóa",
+      "titleSince": "Salon bị GuGu tạm khóa từ {{date}}",
+      "body": "Bạn vẫn xem được toàn bộ dữ liệu nhưng không thể thay đổi. Trợ lý đặt lịch trên Zalo và tin nhắc lịch cho khách đang tạm dừng.",
+      "contact": "Liên hệ bộ phận hỗ trợ GuGu: {{email}}",
+      "contactPhone": "Liên hệ bộ phận hỗ trợ GuGu: {{email}} · {{phone}}",
+      "emailAction": "Gửi email cho hỗ trợ"
+    }
   },
   "greeting": {
     "morning": "Chào buổi sáng",
@@ -115,7 +123,8 @@
       "pending": "Chờ xác nhận",
       "completed": "Hoàn thành",
       "noShow": "Vắng mặt"
-    }
+    },
+    "chainPart": "phần {{index}}/{{count}}"
   },
   "upcoming": {
     "title": "Lịch hẹn sắp tới",
@@ -255,7 +264,12 @@
     "resource_in_use": "Không thể giảm hoặc tắt: đã có lịch hẹn sắp tới đang dùng chỗ này.",
     "resource_not_found": "Không tìm thấy phòng/thiết bị.",
     "resource_type_not_found": "Không tìm thấy loại phòng/thiết bị.",
-    "salon_suspended": "Salon đang bị GuGu tạm khóa. Bạn vẫn xem được dữ liệu nhưng không thể thay đổi. Vui lòng liên hệ bộ phận hỗ trợ GuGu."
+    "salon_suspended": "Salon đang bị GuGu tạm khóa. Bạn vẫn xem được dữ liệu nhưng không thể thay đổi. Vui lòng liên hệ bộ phận hỗ trợ GuGu.",
+    "booking_multi_service_disabled": "Salon chưa bật đặt nhiều dịch vụ trong một lịch hẹn.",
+    "privacy_export_in_progress": "Một bản xuất đang được tạo. Vui lòng đợi.",
+    "privacy_export_unavailable": "Bản xuất chưa sẵn sàng hoặc đã hết hạn.",
+    "privacy_export_not_found": "Không tìm thấy bản xuất.",
+    "customers_not_found": "Không tìm thấy khách hàng."
   },
   "services": {
     "subtitle": "Dịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện",
@@ -516,7 +530,14 @@
     "dragUnavailable": "Khung giờ bạn vừa chọn không còn trống.",
     "overrideOn": "Đặt ngoài giờ / ngoài quy định",
     "overrideOff": "Quay lại giờ trống",
-    "overrideExplain": "Nhập giờ bất kỳ (ngoài giờ mở cửa, sát giờ…) kèm lý do. Lịch vẫn không được trùng với lịch khác của nhân viên. Thao tác được ghi nhật ký."
+    "overrideExplain": "Nhập giờ bất kỳ (ngoài giờ mở cửa, sát giờ…) kèm lý do. Lịch vẫn không được trùng với lịch khác của nhân viên. Thao tác được ghi nhật ký.",
+    "addService": "Thêm dịch vụ",
+    "removeService": "Bỏ dịch vụ này",
+    "nextServiceTitle": "Dịch vụ {{n}}",
+    "nextServiceHint": "Làm ngay sau dịch vụ trước. “Ai cũng được” sẽ ưu tiên người làm dịch vụ trước.",
+    "chainTotal": "Tổng {{minutes}} phút · {{price}}",
+    "chainPlan": "{{time}} {{service}} · {{staff}}",
+    "chainSeparator": " → "
   },
   "booking": {
     "title": "Lịch hẹn {{code}}",
@@ -591,7 +612,9 @@
     "rescheduleTitle": "Chọn giờ mới",
     "sameStaff": "Cùng nhân viên",
     "resources": "Phòng / thiết bị",
-    "deletedCustomer": "Khách đã xoá tài khoản"
+    "deletedCustomer": "Khách đã xoá tài khoản",
+    "services": "Các dịch vụ",
+    "lineDetail": "{{time}} · {{staff}} · {{price}}"
   },
   "wizard": {
     "later": "Để sau",

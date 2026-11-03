@@ -247,6 +247,10 @@ model User {
 
   customerNotes CustomerNote[] @relation("CustomerNoteAuthor")
 
+  adminMfaFactor     AdminMfaFactor?
+  adminRecoveryCodes AdminRecoveryCode[]
+  privacyExports     PrivacyExport[]
+
   @@map("users")
 }
 
@@ -327,6 +331,8 @@ model Session {
   lastSeenAt     DateTime    @default(now()) @map("last_seen_at") @db.Timestamptz(6)
   revokedAt      DateTime?   @map("revoked_at") @db.Timestamptz(6)
   revokeReason   String?     @map("revoke_reason")
+  /// Platform admins: end of the step-up elevation granted by a TOTP/recovery code on THIS session.
+  stepUpUntil    DateTime?   @map("step_up_until") @db.Timestamptz(6)
   userAgent      String?     @map("user_agent")
   /// /24 (IPv4) or /48 (IPv6) prefix only.
   ipPrefix       String?     @map("ip_prefix")
@@ -338,6 +344,42 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+/// Platform-admin TOTP factor (topic 05 step 9, ADR-0011). One per user. Secrets are sealed with
+/// AES-256-GCM (MFA_ENCRYPTION_KEY, user id as associated data) and never returned after
+/// enrolment. A (re-)enrolment lives in `pending_*` until its first code is confirmed, so the active
+/// factor keeps working meanwhile. `last_used_step` blocks replay of a code within its window.
+model AdminMfaFactor {
+  id                      String    @id @default(uuid(7)) @db.Uuid
+  userId                  String    @unique @map("user_id") @db.Uuid
+  /// Active secret; null until the first enrolment is confirmed.
+  secretCiphertext        String?   @map("secret_ciphertext")
+  confirmedAt             DateTime? @map("confirmed_at") @db.Timestamptz(6)
+  lastUsedStep            BigInt?   @map("last_used_step")
+  pendingSecretCiphertext String?   @map("pending_secret_ciphertext")
+  /// A pending enrolment expires 15 minutes after this.
+  pendingCreatedAt        DateTime? @map("pending_created_at") @db.Timestamptz(6)
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("admin_mfa_factors")
+}
+
+/// Single-use recovery codes for the admin factor; only HMACs are stored (AUTH_SECRET).
+model AdminRecoveryCode {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash")
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@map("admin_recovery_codes")
 }
 
 /// Native refresh tokens. Each use marks `used_at` and issues a successor; presenting a used token
@@ -565,6 +607,7 @@ model Salon {
   zaloConversations      ZaloConversation[]
   assistantConversations AssistantConversation[]
   notificationSettings   NotificationSettings?
+  privacyExports         PrivacyExport[]
 
   @@unique([organizationId, id])
   @@index([organizationId])
@@ -1057,7 +1100,8 @@ model Booking {
   customerPhoneHash    String?          @map("customer_phone_hash")
   identityVerified     Boolean          @default(false) @map("identity_verified")
   customerNote         String?          @map("customer_note")
-  /// Staff member of the (single, q17) booked service; denormalised for calendar queries.
+  /// Staff member of the first service line; denormalised for calendar queries (other lines'
+  /// staff are on booking_services, M6.8).
   staffId              String           @map("staff_id") @db.Uuid
   startsAt             DateTime         @map("starts_at") @db.Timestamptz(6)
   endsAt               DateTime         @map("ends_at") @db.Timestamptz(6)
@@ -1106,6 +1150,7 @@ model Booking {
 }
 
 /// Booked service with price/duration snapshots (MVP: exactly one per booking, q17).
+/// One service of a booking (1..4 lines in order, M6.8); snapshots never change after creation.
 model BookingService {
   id                  String   @id @default(uuid(7)) @db.Uuid
   salonId             String   @map("salon_id") @db.Uuid
@@ -1135,6 +1180,8 @@ model BookingService {
 
   @@unique([salonId, id])
   @@unique([bookingId, sequence])
+  /// Calendar / own-calendar lookups by the staff member of any line (M6.8).
+  @@index([salonId, staffId, startsAt])
   @@map("booking_services")
 }
 
@@ -1658,6 +1705,47 @@ model CustomerSalonProfile {
   @@unique([salonId, id])
   @@index([salonId, displayName])
   @@map("customer_salon_profiles")
+}
+
+// ─── Privacy (topic 05 step 8; docs/domains/auth-security.md#privacy) ────────────────────────────
+
+enum PrivacyExportStatus {
+  queued
+  running
+  ready
+  failed
+  /// Content purged after PRIVACY_EXPORT_TTL_HOURS; the row stays as a record of the request.
+  expired
+
+  @@map("privacy_export_status")
+}
+
+/// Salon-wide client data export requested by an owner (async job). The files are stored gzipped
+/// in the row and downloadable from the panel only until `expires_at`; then the content is purged.
+model PrivacyExport {
+  id                String              @id @default(uuid(7)) @db.Uuid
+  salonId           String              @map("salon_id") @db.Uuid
+  requestedByUserId String              @map("requested_by_user_id") @db.Uuid
+  status            PrivacyExportStatus @default(queued)
+  jsonGz            Bytes?              @map("json_gz")
+  csvGz             Bytes?              @map("csv_gz")
+  sizeBytes         Int?                @map("size_bytes")
+  clients           Int?
+  bookings          Int?
+  /// Error code only (never data).
+  error             String?
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  startedAt         DateTime?           @map("started_at") @db.Timestamptz(6)
+  completedAt       DateTime?           @map("completed_at") @db.Timestamptz(6)
+  expiresAt         DateTime?           @map("expires_at") @db.Timestamptz(6)
+
+  salon       Salon @relation(fields: [salonId], references: [id], onDelete: Restrict)
+  requestedBy User  @relation(fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([salonId, id])
+  @@index([salonId, createdAt])
+  @@index([status, expiresAt])
+  @@map("privacy_exports")
 }
 
 /// Internal note about a client. Team-only: never serialised in any customer-facing response.

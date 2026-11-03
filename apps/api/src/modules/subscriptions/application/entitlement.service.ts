@@ -60,7 +60,7 @@ export class EntitlementService {
     // A salon without a subscription is about to get one (registration → startTrial); never cache
     // that state, and never cache a trial beyond its end.
     if (subscription) {
-      const ttl = cacheTtl(subscription.trialEndsAt, now);
+      const ttl = cacheTtl([subscription.trialEndsAt, ...overrides.map((o) => o.expiresAt)], now);
       if (ttl > 0) await this.cache.set(salonId, result, ttl);
     }
     return result;
@@ -139,10 +139,16 @@ export class EntitlementService {
   }
 }
 
-/** Seconds to cache: ≤ the TTL and never beyond a trial's end. */
-function cacheTtl(trialEndsAt: Date | null, now: Date): number {
-  const untilTrialEnd = trialEndsAt
-    ? Math.floor((trialEndsAt.getTime() - now.getTime()) / 1000)
-    : Number.POSITIVE_INFINITY;
-  return Math.min(ENTITLEMENT_CACHE_TTL_SECONDS, untilTrialEnd);
+/**
+ * Seconds to cache: ≤ the TTL and never beyond the earliest boundary at which the resolved
+ * entitlements change on their own — a trial's end or the expiry of an active override.
+ * A boundary at or before `now` yields 0 (do not cache).
+ */
+export function cacheTtl(boundaries: readonly (Date | null)[], now: Date): number {
+  let ttl = ENTITLEMENT_CACHE_TTL_SECONDS;
+  for (const at of boundaries) {
+    if (!at) continue;
+    ttl = Math.min(ttl, Math.floor((at.getTime() - now.getTime()) / 1000));
+  }
+  return Math.max(ttl, 0);
 }

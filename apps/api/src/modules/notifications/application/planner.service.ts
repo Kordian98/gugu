@@ -66,9 +66,13 @@ export class PlannerService {
     if (!bookingId) return;
     const booking = await this.prisma.booking.findFirst({
       where: { id: bookingId, salonId },
-      select: { id: true, staffId: true },
+      select: { id: true, staffId: true, services: { select: { staffId: true } } },
     });
     if (!booking) return;
+    // Every staff member of the appointment (multi-service bookings, M6.8).
+    const staffOfBooking = [
+      ...new Set([booking.staffId, ...booking.services.map((l) => l.staffId)]),
+    ];
     const version = int(p["version"]) ?? event.id;
     const bySalon = p["actorType"] === "salon_member";
     const actorId = bySalon ? str(p["actorId"]) : null;
@@ -86,7 +90,7 @@ export class PlannerService {
       if (bySalon && p["status"] === "confirmed") {
         await this.customer("booking.confirmed", salonId, booking.id, version, event.id);
       }
-      await team("salon.booking_received", [booking.staffId]);
+      await team("salon.booking_received", staffOfBooking);
     } else if (event.type === "booking.status_changed") {
       const to = str(p["to"]);
       if (bySalon && to === "confirmed" && p["from"] === "pending") {
@@ -96,15 +100,21 @@ export class PlannerService {
         await this.customer("booking.cancelled_by_salon", salonId, booking.id, version, event.id);
       }
       if (to === "cancelled_by_salon" || to === "cancelled_by_customer") {
-        await team("salon.booking_cancelled", [booking.staffId]);
+        await team("salon.booking_cancelled", staffOfBooking);
       }
     } else if (event.type === "booking.rescheduled") {
       if (bySalon) {
         await this.customer("booking.rescheduled", salonId, booking.id, version, event.id);
       }
-      const staffIds = [str(p["fromStaffId"]), str(p["toStaffId"]), booking.staffId].filter(
-        (s): s is string => s !== null,
+      const moved = [p["fromStaffIds"], p["toStaffIds"]].flatMap((v) =>
+        Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [],
       );
+      const staffIds = [
+        str(p["fromStaffId"]),
+        str(p["toStaffId"]),
+        ...moved,
+        ...staffOfBooking,
+      ].filter((s): s is string => s !== null);
       await team("salon.booking_rescheduled", [...new Set(staffIds)]);
     } else {
       return;

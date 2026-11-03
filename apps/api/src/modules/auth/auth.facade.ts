@@ -12,3 +12,5 @@ export {
   type RequestMeta,
 } from "./infra/http-meta";
 export { safeEqual } from "./infra/tokens";
+export { AdminMfaService, MFA_FAILURE_RULE } from "./mfa/admin-mfa.service";
+export { generateTotpSecret, totp } from "./mfa/totp";

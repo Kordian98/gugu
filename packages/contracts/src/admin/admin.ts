@@ -20,7 +20,10 @@ import {
 export const adminReasonSchema = z.string().trim().min(5).max(500);
 
 export const ADMIN_ERRORS = {
-  /** High-risk action needs a recent sign-in (step-up). The client asks the admin to sign in again. */
+  /**
+   * High-risk action needs a step-up: a TOTP (or recovery) code verified on this session within
+   * ADMIN_STEP_UP_MINUTES (topic 05 step 9, ADR-0011). The client asks for a code and retries.
+   */
   stepUpRequired: "admin.step_up_required",
   alreadySuspended: "admin.already_suspended",
   notSuspended: "admin.not_suspended",
@@ -36,9 +39,6 @@ export const ADMIN_ERRORS = {
 
 /** Returned to members of a suspended salon on any write (read-only until unsuspended). */
 export const SALON_SUSPENDED_ERROR = "salon.suspended";
-
-/** Minutes a sign-in counts as fresh for high-risk admin actions (step-up). */
-export const ADMIN_STEP_UP_MINUTES = 15;
 
 export const PAID_PLAN_CODES = ["basic", "pro", "ultra"] as const;
 export const paidPlanCodeSchema = z.enum(PAID_PLAN_CODES);

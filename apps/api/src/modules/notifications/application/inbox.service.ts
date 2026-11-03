@@ -19,6 +19,18 @@ const localized = (v: unknown): { vi: string; en: string } | null => {
     : null;
 };
 
+/** Multi-service bookings (M6.8): "Sơn gel + Pedicure" in each locale. */
+const joinLocalized = (
+  names: ({ vi: string; en: string } | null)[],
+): { vi: string; en: string } | null => {
+  const list = names.filter((n): n is { vi: string; en: string } => n !== null);
+  if (list.length <= 1) return list[0] ?? null;
+  return {
+    vi: list.map((n) => n.vi).join(" + "),
+    en: list.map((n) => n.en || n.vi).join(" + "),
+  };
+};
+
 /**
  * The member's own bell (spec 11 §4.5, panel only): items are the member's (`user_id`) in this
  * salon. Booking and conversation details are joined at read time and filtered by the member's
@@ -55,7 +67,10 @@ export class InboxService {
               customerName: true,
               customerAnonymisedAt: true,
               staff: { select: { displayName: true } },
-              services: { select: { name: true }, orderBy: { sequence: "asc" }, take: 1 },
+              services: {
+                select: { name: true, staffId: true, staff: { select: { displayName: true } } },
+                orderBy: { sequence: "asc" },
+              },
             },
           })
         : [],
@@ -75,7 +90,8 @@ export class InboxService {
       if (!(TEAM_NOTIFICATION_EVENTS as readonly string[]).includes(event)) continue;
       const rule = (CATALOG[event] as TeamEventDef).permission;
       const b = r.bookingId ? bookingById.get(r.bookingId) : undefined;
-      if (!(await this.recipients.allowed(salon, userId, rule, b ? [b.staffId] : []))) continue;
+      const staffIds = b ? [...new Set([b.staffId, ...b.services.map((l) => l.staffId)])] : [];
+      if (!(await this.recipients.allowed(salon, userId, rule, staffIds))) continue;
       const c = r.conversationId ? convById.get(r.conversationId) : undefined;
       items.push({
         id: r.id,
@@ -87,10 +103,12 @@ export class InboxService {
               id: b.id,
               referenceCode: b.referenceCode,
               startsAt: b.startsAt.toISOString(),
-              service: localized(b.services[0]?.name),
+              service: joinLocalized(b.services.map((l) => localized(l.name))),
               customerName: b.customerAnonymisedAt ? null : b.customerName,
               customerAnonymised: b.customerAnonymisedAt !== null,
-              staffName: b.staff.displayName,
+              staffName:
+                [...new Set(b.services.map((l) => l.staff.displayName))].join(", ") ||
+                b.staff.displayName,
             }
           : null,
         conversation: c ? { id: c.id, displayName: c.displayName } : null,
@@ -120,9 +138,9 @@ export class InboxService {
       (
         await this.prisma.booking.findMany({
           where: { salonId: salon.salonId, id: { in: ids } },
-          select: { id: true, staffId: true },
+          select: { id: true, staffId: true, services: { select: { staffId: true } } },
         })
-      ).map((b) => [b.id, b.staffId]),
+      ).map((b) => [b.id, [b.staffId, ...b.services.map((l) => l.staffId)]]),
     );
     const own = await this.prisma.staffProfile.findFirst({
       where: { salonId: salon.salonId, deletedAt: null, member: { userId } },
@@ -133,8 +151,10 @@ export class InboxService {
       if (!(TEAM_NOTIFICATION_EVENTS as readonly string[]).includes(event)) return false;
       const rule = (CATALOG[event] as TeamEventDef).permission;
       if (salon.permissions.has(rule.full)) return true;
-      const staffId = r.bookingId ? staffOf.get(r.bookingId) : undefined;
-      return Boolean(rule.own && salon.permissions.has(rule.own) && own && staffId === own.id);
+      const staffIds = r.bookingId ? (staffOf.get(r.bookingId) ?? []) : [];
+      return Boolean(
+        rule.own && salon.permissions.has(rule.own) && own && staffIds.includes(own.id),
+      );
     }).length;
   }
 

@@ -38,6 +38,8 @@ describe("parseEnv", () => {
         NODE_ENV: "production",
         AUTH_SECRET: "x".repeat(40),
         BOOKING_TOKEN_SECRET: "y".repeat(40),
+        SUPPORT_EMAIL: "support@example.com",
+        MFA_ENCRYPTION_KEY: "m".repeat(40),
       }).AUTH_SECRET,
     ).toHaveLength(40);
   });
@@ -48,6 +50,32 @@ describe("parseEnv", () => {
     ).toThrow(/BOOKING_TOKEN_SECRET/);
   });
 
+  it("refuses the dev SUPPORT_EMAIL in production (q89 banner)", () => {
+    const prod = {
+      ...base,
+      NODE_ENV: "production",
+      AUTH_SECRET: "x".repeat(40),
+      BOOKING_TOKEN_SECRET: "y".repeat(40),
+      MFA_ENCRYPTION_KEY: "m".repeat(40),
+    };
+    expect(() => parseEnv(prod)).toThrow(/SUPPORT_EMAIL/);
+    expect(parseEnv({ ...prod, SUPPORT_EMAIL: "help@example.com" }).SUPPORT_EMAIL).toBe(
+      "help@example.com",
+    );
+  });
+
+  it("refuses the built-in MFA_ENCRYPTION_KEY in production (topic 05 step 9)", () => {
+    expect(() =>
+      parseEnv({
+        ...base,
+        NODE_ENV: "production",
+        AUTH_SECRET: "x".repeat(40),
+        BOOKING_TOKEN_SECRET: "y".repeat(40),
+        SUPPORT_EMAIL: "help@example.com",
+      }),
+    ).toThrow(/MFA_ENCRYPTION_KEY/);
+  });
+
   it("Zalo: emulator by default outside production, disabled in production, http needs keys", () => {
     expect(parseEnv(base).ZALO_CLIENT).toBe("emulated");
     const prod = {
@@ -55,6 +83,8 @@ describe("parseEnv", () => {
       NODE_ENV: "production",
       AUTH_SECRET: "x".repeat(40),
       BOOKING_TOKEN_SECRET: "y".repeat(40),
+      SUPPORT_EMAIL: "support@example.com",
+      MFA_ENCRYPTION_KEY: "m".repeat(40),
     };
     expect(parseEnv(prod).ZALO_CLIENT).toBe("disabled");
     expect(() => parseEnv({ ...prod, ZALO_CLIENT: "emulated" })).toThrow(/ZALO_CLIENT/);

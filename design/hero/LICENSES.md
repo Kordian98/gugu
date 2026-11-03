@@ -13,3 +13,16 @@ Record of the source and usage terms of every generated or third-party asset. Ru
 People: no real people appear. Characters are stylized chibi figures; the demo salon interiors contain no people. Demo salon names, ratings and prices are fictional and labelled **DEMO** in the UI.
 
 Open item: screenshot the fal model pages (tags) into `design/hero/licenses/` before any production release, since tags can change.
+
+## GuGu Studio landing (v3)
+
+| Asset | Tool | Terms | Notes |
+|---|---|---|---|
+| `design/hero/studio/raw/reception-calm.png` → `apps/app/assets/studio/people/*` | FLUX 3 Edit (`blackforestlabs/flux-3/edit-image`) via fal MCP | Tagged "Commercial use" on fal | Reference: our ref-01 diorama. People are stylized chibi characters, not real persons. |
+
+## GuGu Studio landing (v4, photoreal)
+
+| Asset | Tool | Terms | Notes |
+|---|---|---|---|
+| `apps/app/public/studio/photo/*.webp` (stills) | Nano Banana Pro (`fal-ai/nano-banana-pro`, `/edit`) via fal MCP | fal commercial use per model terms | Illustrative AI people (not real persons, never presented as customers). Logos/labels/sign text removed or blurred. |
+| `apps/app/public/studio/walk/**` (frame sequences), `public/studio/loop/*.mp4` | Wan 3.0 Prime image-to-video (`alibaba/wan-3.0-prime/image-to-video`) + ByteDance video upscaler | fal commercial use per model terms | Generated from our own stills (first/last frame). Sources: `design/hero/studio/photo/{raw,video}` (local, gitignored); request ids in `scripts/runs.jsonl`. |

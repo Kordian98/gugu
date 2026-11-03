@@ -20,6 +20,7 @@ import {
   SubscriptionCard,
   UsageCard,
 } from "./SalonDetailCards";
+import { MfaBanner } from "./MfaBanner";
 import { LoadError, Loading, Page, StatusPill } from "./ui";
 
 /** Display-only permission check (the API enforces every write). */
@@ -92,6 +93,7 @@ export function SalonDetailScreen() {
         </>
       }
     >
+      <MfaBanner />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <StatusPill label={t(`salonStatus.${d.salon.status}`)} status={d.salon.status} />
         {d.salon.suspendedAt ? (

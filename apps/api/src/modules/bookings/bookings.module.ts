@@ -4,6 +4,7 @@ import { AuthModule } from "../auth/auth.facade";
 import { BookingActors } from "./application/booking-actor";
 import { BookingAnonymiser } from "./application/booking-anonymiser";
 import { BookingClock } from "./application/booking-clock";
+import { BookingFeatures } from "./application/booking-chain";
 import { BookingLifecycleCommands } from "./application/booking-lifecycle.commands";
 import { BookingMaintenance } from "./application/booking-maintenance";
 import { BookingQueries } from "./application/booking.queries";
@@ -33,6 +34,7 @@ import { BookingSecrets } from "./infra/booking-secrets";
     BookingAnonymiser,
     BookingClock,
     BookingContexts,
+    BookingFeatures,
     BookingLifecycleCommands,
     BookingMaintenance,
     BookingQueries,
@@ -45,6 +47,7 @@ import { BookingSecrets } from "./infra/booking-secrets";
     BookingMaintenance,
     // For tests that mount the unrouted PublicBookingController (X23).
     BookingContexts,
+    BookingFeatures,
     BookingQueries,
     BookingSecrets,
     CreateBookingCommand,
@@ -79,6 +82,7 @@ export class BookingsWorkerModule {}
     AvailabilityCache,
     BookingClock,
     BookingContexts,
+    BookingFeatures,
     BookingLifecycleCommands,
     BookingQueries,
     BookingSecrets,
@@ -87,6 +91,7 @@ export class BookingsWorkerModule {}
   exports: [
     BookingAnonymiser,
     BookingContexts,
+    BookingFeatures,
     BookingLifecycleCommands,
     BookingQueries,
     CreateBookingCommand,

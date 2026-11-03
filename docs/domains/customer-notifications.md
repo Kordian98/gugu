@@ -24,6 +24,7 @@ Durable reference for customer accounts, favorites, reviews/moderation, privacy 
 - Customers get messages only for changes the salon made (`actorType = salon_member`); changes made in the Zalo chat were already answered there.
 - Customer emails speak as the salon (sender name = salon name, reply-to = salon's address), never mention GuGu and contain no link to a booking surface (owner, 2026-11-03) — only `tel:` for the salon phone. No staff-typed cancellation reason, no notes.
 - Reminder sends re-check booking status, version and start time in the worker; stale → `skipped/stale`.
+- Salon suspended by GuGu (q89, ADR-0010): every customer email (confirmations, changes, reminders) is checked in the worker at send time and logged `skipped/salon_suspended`. A reminder whose moment falls inside the suspension is not sent later; one whose moment comes after unsuspend goes out as planned. Team emails are unaffected. Test: `notifications-suspension.int.test.ts`.
 - Every event × channel has vi and en templates (template coverage test); variables are validated with Zod.
 - Times are rendered in the salon's timezone; customer locale = salon default (customers have no account), team locale = the member's preferred locale.
 - Team recipients come from the permission matrix (`MembershipService`): `bookings.read`, or `bookings.read.own` for the member's own staff profile; Zalo hand-off needs `zalo.inbox.use`. The actor never notifies themself. Access is checked again at send time and when the bell is read.

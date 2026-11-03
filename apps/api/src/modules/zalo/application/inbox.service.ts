@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import {
+  SALON_SUSPENDED_ERROR,
   ZALO_ERRORS,
   type ZaloAttention,
   type ZaloConversation,
@@ -40,6 +41,21 @@ export class InboxService {
     private readonly clock: ZaloClock,
     private readonly audit: AuditService,
   ) {}
+
+  /**
+   * q89: a salon suspended by GuGu keeps reading its inbox but cannot message customers. The guard
+   * already refuses every write of a suspended salon; this re-reads the status so the rule holds
+   * for any caller of the service (and the send worker re-checks it again at send time).
+   */
+  private async assertNotSuspended(salonId: string): Promise<void> {
+    const row = await this.prisma.salon.findUnique({
+      where: { id: salonId },
+      select: { status: true },
+    });
+    if (row?.status === "suspended") {
+      throw new AppError(403, SALON_SUSPENDED_ERROR, "Salon is suspended");
+    }
+  }
 
   async conversations(
     salon: SalonContext,
@@ -159,6 +175,7 @@ export class InboxService {
     conversationId: string,
     text: string,
   ): Promise<void> {
+    await this.assertNotSuspended(salon.salonId);
     const conv = await this.conversation(salon.salonId, conversationId);
     const conn = await this.prisma.zaloOaConnection.findUnique({
       where: { salonId: salon.salonId },

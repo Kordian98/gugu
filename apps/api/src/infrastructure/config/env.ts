@@ -4,10 +4,12 @@ import { z } from "zod";
  * Environment contract for the API and worker. Parsed once at boot; the process refuses to start on
  * invalid config. Add a variable here before reading it anywhere (never read process.env directly).
  */
+const DEV_SUPPORT_EMAIL = "support@gugu.local";
 const DEV_AUTH_SECRET = "dev-only-insecure-auth-secret-do-not-use-in-prod";
 const DEV_BOOKING_TOKEN_SECRET = "dev-only-insecure-booking-token-secret-not-for-prod";
 const DEV_ZALO_TOKEN_KEY = "dev-only-insecure-zalo-token-key-do-not-use-in-prod";
 const DEV_ZALO_OA_SECRET_KEY = "dev-only-zalo-emulator-oa-secret-key";
+const DEV_MFA_ENCRYPTION_KEY = "dev-only-insecure-admin-mfa-key-do-not-use-in-prod";
 
 export const envSchema = z
   .object({
@@ -30,6 +32,18 @@ export const envSchema = z
      * topic 06). Separate from AUTH_SECRET so either can rotate alone. ≥ 32 chars.
      */
     BOOKING_TOKEN_SECRET: z.string().min(32).default(DEV_BOOKING_TOKEN_SECRET),
+    /**
+     * Seals platform-admin TOTP secrets at rest (AES-256-GCM, key derived with SHA-256; topic 05
+     * step 9). Separate from AUTH_SECRET so a leaked HMAC key does not reveal second factors.
+     * ≥ 32 chars; the default only works outside production.
+     */
+    MFA_ENCRYPTION_KEY: z.string().min(32).default(DEV_MFA_ENCRYPTION_KEY),
+    /**
+     * Per-user limits on the platform admin API (`/api/v1/admin/*`), per minute: all requests and
+     * writes only. Integration tests raise them (vitest.integration.config.ts).
+     */
+    ADMIN_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(240),
+    ADMIN_WRITE_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).default(30),
     /** Public web app origin; magic links point here (`/{locale}/auth/verify?token=…`). */
     WEB_APP_URL: z.url().default("http://localhost:8097"),
     /**
@@ -73,6 +87,11 @@ export const envSchema = z
       .enum(["true", "false"])
       .default("false")
       .transform((v) => v === "true"),
+    /**
+     * Feature flag `booking.multiService` (topic 06 M6.8): several services in one appointment.
+     * Unset = on outside production, off in production (q17: single service at launch).
+     */
+    BOOKING_MULTI_SERVICE: z.enum(["true", "false"]).optional(),
     /** Public origin of this API (Zalo OAuth callback, emulator pages and webhook target). */
     API_PUBLIC_URL: z.url().default("http://localhost:3001"),
     /**
@@ -100,10 +119,25 @@ export const envSchema = z
      * becomes active before this moment becomes a founding partner (X20). ISO 8601 UTC.
      */
     MARKETPLACE_LAUNCH_AT: z.iso.datetime().optional(),
+    /**
+     * GuGu support contact shown to salon members, e.g. in the suspension banner (q89). Set the
+     * real address per environment; the default only exists for local dev and tests.
+     */
+    SUPPORT_EMAIL: z.email().default(DEV_SUPPORT_EMAIL),
+    /** Optional support phone / Zalo number, shown as written (e.g. `0901 234 567`). */
+    SUPPORT_PHONE: z.string().trim().max(40).optional(),
+    /**
+     * Suspended salon (q89): the Zalo bot answers a conversation with the neutral "please contact
+     * the salon" notice at most once per this many hours.
+     */
+    ZALO_SUSPENDED_NOTICE_COOLDOWN_HOURS: z.coerce.number().min(1).max(720).default(24),
   })
   .transform((env) => ({
     ...env,
     ZALO_CLIENT: env.ZALO_CLIENT ?? (env.NODE_ENV === "production" ? "disabled" : "emulated"),
+    BOOKING_MULTI_SERVICE: env.BOOKING_MULTI_SERVICE
+      ? env.BOOKING_MULTI_SERVICE === "true"
+      : env.NODE_ENV !== "production",
   }))
   .refine((env) => env.NODE_ENV !== "production" || env.AUTH_SECRET !== DEV_AUTH_SECRET, {
     path: ["AUTH_SECRET"],
@@ -112,6 +146,14 @@ export const envSchema = z
   .refine(
     (env) => env.NODE_ENV !== "production" || env.BOOKING_TOKEN_SECRET !== DEV_BOOKING_TOKEN_SECRET,
     { path: ["BOOKING_TOKEN_SECRET"], message: "must be set in production" },
+  )
+  .refine((env) => env.NODE_ENV !== "production" || env.SUPPORT_EMAIL !== DEV_SUPPORT_EMAIL, {
+    path: ["SUPPORT_EMAIL"],
+    message: "must be set in production (shown to suspended salons, q89)",
+  })
+  .refine(
+    (env) => env.NODE_ENV !== "production" || env.MFA_ENCRYPTION_KEY !== DEV_MFA_ENCRYPTION_KEY,
+    { path: ["MFA_ENCRYPTION_KEY"], message: "must be set in production" },
   )
   .refine((env) => env.NODE_ENV !== "production" || env.ZALO_CLIENT !== "emulated", {
     path: ["ZALO_CLIENT"],

@@ -16,6 +16,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import {
   useAvailability,
+  useBookingFeatures,
   useClientLookup,
   useCreateBooking,
   requiredOverrides,
@@ -44,6 +45,7 @@ import {
   Toggle,
   isClock,
 } from "../../ui/form";
+import { type ExtraLine, nextServicesOf, ServiceLines } from "./ServiceLines";
 import { SlotGrid } from "./SlotPicker";
 
 type Source = "phone" | "zalo_chat" | "walk_in" | "staff_created";
@@ -124,6 +126,11 @@ export function NewAppointmentSheet({
   const [slot, setSlot] = useState<string | null>(null);
   const [source, setSource] = useState<Source>("phone");
   const [note, setNote] = useState("");
+  // Further services in sequence (06 M6.8), only when the engine flag is on.
+  const features = useBookingFeatures();
+  const maxExtra = features.data?.multiService ? Math.max(0, features.data.maxServices - 1) : 0;
+  const [extras, setExtras] = useState<ExtraLine[]>([]);
+  const nextServices = nextServicesOf(extras, active);
   const lookup = useClientLookup(q, !walkIn && !client);
   const create = useCreateBooking();
   const service = active.find((s) => s.id === serviceId) ?? null;
@@ -140,7 +147,7 @@ export function NewAppointmentSheet({
   const [overrideOn, setOverrideOn] = useState(false);
   const manualMode = beyondWindow || overrideOn;
   const availability = useAvailability(
-    service && (!service.variants.length || variantId) && month.last >= today
+    service && (!service.variants.length || variantId) && nextServices && month.last >= today
       ? {
           serviceId: service.id,
           variantId,
@@ -148,6 +155,7 @@ export function NewAppointmentSheet({
           staffId,
           date: month.first < today ? today : month.first,
           to: month.last > maxDate ? maxDate : month.last,
+          nextServices,
         }
       : null,
   );
@@ -210,8 +218,8 @@ export function NewAppointmentSheet({
     reason === null;
   const [earliestOpen, setEarliestOpen] = useState(false);
   const earliest = useEarliestSlots(
-    service && (!service.variants.length || variantId)
-      ? { serviceId: service.id, variantId, addOnIds, staffId }
+    service && (!service.variants.length || variantId) && nextServices
+      ? { serviceId: service.id, variantId, addOnIds, staffId, nextServices }
       : null,
     earliestOpen,
   );
@@ -254,6 +262,7 @@ export function NewAppointmentSheet({
   const ready = Boolean(
     service &&
     chosenSlot &&
+    nextServices &&
     (!manualMode || (staffId && overrideReason.trim().length >= 3)) &&
     (walkIn || (contact.name && contact.phone.replace(/\D/g, "").length >= 8 && !emailInvalid)),
   );
@@ -267,6 +276,7 @@ export function NewAppointmentSheet({
         addOnIds,
         staffId,
         startsAt: chosenSlot,
+        nextServices: nextServices ?? [],
         source: walkIn ? "walk_in" : source,
         customer: walkIn ? null : contact,
         note: note.trim() || null,
@@ -542,6 +552,20 @@ export function NewAppointmentSheet({
         </Section>
       ) : null}
 
+      {service && maxExtra > 0 ? (
+        <ServiceLines
+          lines={extras}
+          services={active}
+          staff={staff}
+          max={maxExtra}
+          onChange={(next) => {
+            setExtras(next);
+            setSlot(null);
+            setSlotTouched(true);
+          }}
+        />
+      ) : null}
+
       {service ? (
         <Section title={t("calendar.time")}>
           {dragUnavailable && !earliestOpen ? (
@@ -686,6 +710,24 @@ export function NewAppointmentSheet({
               }}
             />
           )}
+          {extras.length > 0 && availability.data ? (
+            <ChainPlan
+              durationMinutes={availability.data.durationMinutes}
+              price={[service, ...extras.map((l) => active.find((x) => x.id === l.serviceId))]
+                .filter((x): x is Service => Boolean(x))
+                .reduce((sum, x, i) => {
+                  const v =
+                    i === 0
+                      ? x.variants.find((y) => y.id === variantId)
+                      : x.variants.find((y) => y.id === extras[i - 1]?.variantId);
+                  return sum + (v?.price ?? x.price);
+                }, 0)}
+              lines={slots.find((x) => x.startsAt === chosenSlot)?.lines ?? []}
+              services={active}
+              staff={staff}
+              tz={tz}
+            />
+          ) : null}
         </Section>
       ) : null}
 
@@ -833,7 +875,15 @@ function EarliestList({
               {data.slots
                 .filter((x) => x.date === d)
                 .map((x) => {
-                  const who = staff.find((p) => p.id === x.staffIds[0])?.displayName;
+                  const nameOf = (id: string | null | undefined) =>
+                    staff.find((p) => p.id === id)?.displayName;
+                  // Chains (06 M6.8): everyone in order, "Linh → Mai".
+                  const who =
+                    x.lines.length > 1
+                      ? [...new Set(x.lines.map((l) => nameOf(l.staffId)).filter(Boolean))].join(
+                          t("calendar.chainSeparator"),
+                        )
+                      : nameOf(x.staffIds[0]);
                   return (
                     <Pressable
                       key={x.startsAt}
@@ -853,7 +903,7 @@ function EarliestList({
                       }}
                     >
                       <Text role="uiSemiBold" size={14} color={c.ink}>
-                        {showStaff && who
+                        {(showStaff || x.lines.length > 1) && who
                           ? `${formatTime(new Date(x.startsAt), locale, tz)} · ${who}`
                           : formatTime(new Date(x.startsAt), locale, tz)}
                       </Text>
@@ -864,6 +914,47 @@ function EarliestList({
           </View>
         ))
       )}
+    </View>
+  );
+}
+
+/** Total of a multi-service appointment and, for the chosen time, who does what when. */
+function ChainPlan({
+  durationMinutes,
+  price,
+  lines,
+  services,
+  staff,
+  tz,
+}: {
+  durationMinutes: number;
+  /** Base prices (add-ons excluded); the booking shows the exact estimate. */
+  price: number;
+  lines: { serviceId: string; startsAt: string; staffId: string | null }[];
+  services: Service[];
+  staff: StaffMember[];
+  tz: string;
+}) {
+  const { c } = useCalm();
+  const { t } = useTranslation("crm");
+  const locale = useLocale();
+  return (
+    <View testID="crm-chain-plan" style={{ gap: 4 }}>
+      <Text role="uiSemiBold" size={13} color={c.ink}>
+        {t("calendar.chainTotal", { minutes: durationMinutes, price: formatVND(price, locale) })}
+      </Text>
+      {lines.map((l) => {
+        const s = services.find((x) => x.id === l.serviceId);
+        return (
+          <Text key={`${l.serviceId}-${l.startsAt}`} size={12} color={c.body}>
+            {t("calendar.chainPlan", {
+              time: formatTime(new Date(l.startsAt), locale, tz),
+              service: s ? (locale === "en" && s.name.en) || s.name.vi : "",
+              staff: staff.find((p) => p.id === l.staffId)?.displayName ?? t("calendar.anyStaff"),
+            })}
+          </Text>
+        );
+      })}
     </View>
   );
 }

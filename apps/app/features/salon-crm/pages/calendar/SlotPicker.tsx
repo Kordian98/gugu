@@ -138,7 +138,7 @@ export function SlotGrid({
   );
 }
 
-/** Reschedule picker inside the booking sheet: same service, this staff or anyone, any day. */
+/** Reschedule picker inside the booking sheet: same services, this staff or anyone, any day. */
 export function RescheduleSlots({
   booking,
   tz,
@@ -162,6 +162,14 @@ export function RescheduleSlots({
     addOnIds: booking.service.addOns.map((a) => a.addOnId),
     staffId: who === "same" ? booking.staffId : null,
     date,
+    // The whole chain moves (06 M6.8). "Anyone" frees the lines the first staff member does;
+    // lines done by someone else keep their staff, like the API's reschedule.
+    nextServices: booking.services.slice(1).map((l) => ({
+      serviceId: l.serviceId,
+      variantId: l.variantId,
+      addOnIds: l.addOns.map((a) => a.addOnId),
+      staffId: who === "any" && l.staffId === booking.staffId ? null : l.staffId,
+    })),
   });
   const name = staff.find((s) => s.id === booking.staffId)?.displayName ?? t("booking.sameStaff");
   return (

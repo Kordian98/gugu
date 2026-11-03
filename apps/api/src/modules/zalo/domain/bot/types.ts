@@ -38,6 +38,12 @@ export interface Selection {
   variantId: string | null;
   /** null = any staff member. */
   staffId: string | null;
+  /**
+   * Optional second service right after the first (booking engine M6.8, flag
+   * `booking.multiService`; the bot offers at most two). Done by any staff member — the engine
+   * prefers the first service's.
+   */
+  second?: { serviceId: string; variantId: string | null } | null;
 }
 
 export type BotStep =
@@ -45,6 +51,10 @@ export type BotStep =
   | { name: "service"; page: number }
   | { name: "variant"; serviceId: string }
   | { name: "staff"; serviceId: string; variantId: string | null }
+  /** "Add another service?" after the first service and staff (M6.8). */
+  | { name: "add_more"; sel: Selection }
+  | { name: "service2"; sel: Selection; page: number }
+  | { name: "variant2"; sel: Selection; serviceId: string }
   | { name: "day"; sel: Selection; page: number; rescheduleId: string | null }
   | {
       name: "time";
@@ -111,6 +121,8 @@ export interface BotBooking {
   startsAt: string;
   serviceId: string;
   variantId: string | null;
+  /** Second service of a two-service booking (M6.8), kept when rescheduling. */
+  second?: { serviceId: string; variantId: string | null } | null;
   staffId: string;
   serviceName: string;
   staffName: string | null;
@@ -130,7 +142,13 @@ export type RescheduleResult =
 
 /** Data and actions the bot needs; implemented over the booking engine (application/bot-ports). */
 export interface BotPorts {
-  salon: { name: string; timeZone: string; hideStaffChoice: boolean };
+  salon: {
+    name: string;
+    timeZone: string;
+    hideStaffChoice: boolean;
+    /** Offer a second service (booking engine flag `booking.multiService`). */
+    multiService?: boolean;
+  };
   customer: { name: string | null; phone: string | null };
   services(): Promise<BotService[]>;
   staffFor(serviceId: string, variantId: string | null): Promise<{ id: string; name: string }[]>;

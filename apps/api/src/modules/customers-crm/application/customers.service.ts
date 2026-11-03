@@ -143,18 +143,24 @@ export class CustomersService {
           },
           orderBy: { startsAt: "desc" },
           take: 200,
-          include: { services: { select: { serviceId: true, name: true } } },
+          include: {
+            services: { select: { serviceId: true, name: true }, orderBy: { sequence: "asc" } },
+          },
         })
       : [];
     if (scope.staffId && bookings.length === 0) throw notFound();
     const now = Date.now();
     const visit = (b: (typeof bookings)[number]) => {
-      const name = (b.services[0]?.name ?? {}) as Partial<Record<"vi" | "en", string>>;
+      // Multi-service bookings (M6.8) list every service: "Sơn gel + Pedicure".
+      const names = b.services.map((l) => (l.name ?? {}) as Partial<Record<"vi" | "en", string>>);
       return {
         bookingId: b.id,
         startsAt: b.startsAt.toISOString(),
         status: b.status,
-        service: { vi: name.vi ?? "", en: name.en ?? name.vi ?? "" },
+        service: {
+          vi: names.map((n) => n.vi ?? "").join(" + "),
+          en: names.map((n) => n.en ?? n.vi ?? "").join(" + "),
+        },
         staffId: b.staffId,
         priceMinor: Number(b.totalPriceMinor),
       };

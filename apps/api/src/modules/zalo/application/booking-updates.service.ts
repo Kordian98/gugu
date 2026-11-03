@@ -29,7 +29,7 @@ export class BookingUpdatesService {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        services: true,
+        services: { orderBy: { sequence: "asc" } },
         zaloLink: { include: { conversation: true } },
         salon: { select: { name: true, timezone: true, zaloConnection: true } },
       },
@@ -77,7 +77,10 @@ export class BookingUpdatesService {
       hourCycle: "h23",
       timeZone: tz,
     }).format(booking.startsAt);
-    const service = ((booking.services[0]?.name ?? {}) as { vi?: string }).vi ?? "";
+    // Every service of a multi-service booking (M6.8): "Sơn gel + Pedicure".
+    const service = booking.services
+      .map((l) => ((l.name ?? {}) as { vi?: string }).vi ?? "")
+      .join(" + ");
     const vars = { ref: booking.referenceCode, service, when: time, salon: booking.salon.name };
     const text =
       update === "confirmed"

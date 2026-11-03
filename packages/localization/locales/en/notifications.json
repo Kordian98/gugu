@@ -153,6 +153,7 @@
         "not_connected": "Zalo not connected",
         "user_unreachable": "Customer unreachable on Zalo",
         "cap": "Daily email limit reached",
+        "salon_suspended": "Salon is suspended",
         "other": "Other reason"
       }
     },

@@ -9,7 +9,7 @@ EXCLUDE constraint, create/transition/reschedule with idempotency + history + ou
 TTL + sweeper, CRM APIs. The public salon booking page and guest manage links exist in code
 (`http/public-booking.controller.ts`) but are **not routed** (roadmap X23: no customer-facing booking
 surface on gugu.vn until a legal review); tests mount the controller to keep customer paths covered. **M6.6 resources** implemented on `booking/06-resources` (2026-11-03). **Not implemented yet:**
-~~availability cache (M6.7)~~ (done on `booking/06-cache`), multi-service (M6.8), AI-agent drafts (M6.9), outbox relay
+~~availability cache (M6.7)~~ (done on `booking/06-cache`), ~~multi-service (M6.8)~~ (done on `booking/06-multi-service`, flagged), AI-agent drafts (M6.9), outbox relay
 (04-S5), Turnstile bot check, alternative slots in `409 slot_taken`, account-deletion
 anonymisation (q71).
 
@@ -21,6 +21,7 @@ anonymisation (q71).
 | Resource unit | One capacity slot of a resource; capacity N → N units. |
 | Buffer | Prep/cleanup time before/after a service, included in occupancy. |
 | Draft | Unconfirmed booking needing human confirmation — only AI-agent bookings (X9 + X11). Customer self-service needs no OTP; it may start `pending` via `require_confirmation_for`. |
+| Chain / line | Multi-service booking (M6.8): 1–4 services in sequence (`booking_services` rows, `sequence` 1..4), each with its own staff, times, snapshots and occupancy rows. A single service is a chain of one. |
 | Add-on | Optional per-service extra (extra duration + price) chosen with the service; snapshotted per booking (q17). |
 | identity_verified | Whether the booking phone has been verified; `false` does not block a booking (X11). |
 | Source | `BookingSource` enum owned by topic 12, imported from `packages/contracts`. |
@@ -38,13 +39,24 @@ anonymisation (q71).
 
 ## Data model
 Migration `20261102140746_add_booking_core` (after topic 07's catalog migration):
-`bookings` (status, source = `BookingSource`, contact snapshot + `customer_phone_hash`, `identity_verified`, totals, `late_cancellation`, `rule_overrides`, `manage_token_hash/expires_at`, `pending_expires_at`, `version`), `booking_services` (1 per booking, snapshots, `CHECK sequence = 1`), `booking_service_addons`, `booking_holds` (device hash, TTL), `booking_occupancy` (kind booking|hold, `period tstzrange`, `active`), `booking_status_history`, `idempotency_keys`, `outbox_events`. Raw objects: `booking_occupancy_no_staff_overlap`, `booking_occupancy_valid`, `bookings_valid`, `booking_services_valid`, `booking_status_history_no_update_delete`, `outbox_events_unpublished`.
+`bookings` (status, source = `BookingSource`, contact snapshot + `customer_phone_hash`, `identity_verified`, totals, `late_cancellation`, `rule_overrides`, `manage_token_hash/expires_at`, `pending_expires_at`, `version`), `booking_services` (1–4 lines per booking since M6.8, snapshots, `CHECK sequence BETWEEN 1 AND 4`, index `(salon_id, staff_id, starts_at)`), `booking_service_addons`, `booking_holds` (device hash, TTL), `booking_occupancy` (kind booking|hold, `period tstzrange`, `active`), `booking_status_history`, `idempotency_keys`, `outbox_events`. Raw objects: `booking_occupancy_no_staff_overlap`, `booking_occupancy_valid`, `bookings_valid`, `booking_services_valid`, `booking_status_history_no_update_delete`, `outbox_events_unpublished`.
 
 ## Resources (M6.6)
 - Tables (migration `20261103180000_add_resources`): `resource_types` (salon-defined kinds), `resources` (type, name, active), `resource_units` (capacity N = N active units, `position` 1..N, managed by the API), `service_resource_requirements` (service → type, quantity 1–3). `booking_occupancy` gains `resource_unit_id`; exactly one of staff/unit per row (`booking_occupancy_one_target`); `booking_occupancy_no_unit_overlap` EXCLUDE guards units like staff.
 - Engine: `pickUnits` (`packages/domain/src/booking/resources.ts`) — every staff option needs `quantity` free units of each required type for the same occupancy interval (buffers included); units fill in resource order then unit number. `unavailableReason` → `no_resource` when a required type has too few active units.
 - Writes lock staff candidates **and** all units of required types in one sorted list (`lockClaims`), release expired holds on both, and insert one occupancy row per unit; holds, reschedule (re-resolves today's requirements), cancel/no-show (deactivate by booking) cover units.
 - CRUD: `GET/POST/PATCH/DELETE /salons/:id/resource-types|resources`, `GET/PUT /salons/:id/services/:serviceId/resource-requirements`; also `resourceRequirements` in the catalog service payload/read model. Lowering capacity, pausing or deleting refuses units with future claims (`409 resource.in_use`); deleting a type in use → `409 resource.type_in_use`.
+
+## Multi-service bookings (M6.8)
+ADR: `docs/adr/0013-multi-service-chains.md`. Flag `booking.multiService` = env `BOOKING_MULTI_SERVICE` (unset: on outside production, off in production); `GET /salons/:id/booking-features` → `{ multiService, maxServices: 4 }`; chains with the flag off → `422 booking.multi_service_disabled`.
+- **Contracts:** `nextServices: [{ serviceId, variantId?, addOnIds, staffId? }]` (≤ 3) on `POST bookings`, and as a JSON-array query param on `availability`, `availability/earliest`, `booking-check`. Slots gain `lines[]` (best plan: service, start, end, staff per line); `durationMinutes` = Σ service lengths. Bookings gain `services[]` (every line with `staffId`, `startsAt`, `endsAt`, snapshots); `service`, `staffId`, `startsAt`/`endsAt` keep their single-service meaning (first line / whole span).
+- **Timing** (`lineTiming` in `packages/domain/src/booking/chain.ts`): same staff → next start = previous end + max(after, before), rows touch; other staff → next start = previous end, their prep overlaps the previous service. The whole chain must fit inside each staff member's free time that day; only the first start obeys lead time.
+- **Planning:** `planLines` (DFS) per start and first-line staff; "any" on later lines prefers the previous line's staff. Units are claimed per line; earlier lines' units are busy for later ones.
+- **Writes:** one sorted `lockClaims` over every line's candidates + units → revalidate the chain with `findSlot` → one occupancy row per staff/unit per line. Reschedule moves every line (snapshots kept); request `staffId` re-assigns the lines the first line's staff member was doing. Cancel / no-show release every row. Outbox `booking.created` adds `staffIds`, `serviceCount`; `booking.rescheduled` adds `fromStaffIds`, `toStaffIds`.
+- **Scopes:** own-calendar staff read bookings where they do any line (`staffOnBooking`), write only where they do every line (`ownsEveryLine`, security review); their new chains go into their own calendar. CRM `staffId` list filter matches any line.
+- **Integrations:** CRM new appointment (add/remove lines, chain earliest slot, per-line plan), calendar (one block per staff part, "part n/m", drag by first block), drawer (lines with time/staff/price; reschedule offers chain times); emails/bell list all services ("A + B") and staff; team notifications reach every line's staff; Zalo bot offers an optional second service (max 2), messages name all services; insights top services use line prices; client lookup counts one visit per booking.
+- **Not covered:** holds and the public page stay single-service; customers-crm own scope and insights per-staff figures still attribute a chain to its first staff member.
+- Tests: `chain.test.ts`, `chain.property.test.ts` (domain), `multi-service.int.test.ts` (API: create/reschedule/cancel, scopes, flag, cache, race harness chains vs singles incl. a shared unit), `zalo/domain/bot/multi-service.test.ts`.
 
 ## Availability cache (M6.7)
 `apps/api/src/modules/bookings/infra/availability-cache.ts` — read-through Valkey cache for `BookingQueries.availability` and `.earliest` (CRM, Zalo bot, earliest-slot search). Key: salon + `salon_settings.availability_version` (bumped in-transaction by hours/holidays/schedules/time off/catalog/resources/booking-settings writes) + per-salon occupancy generation `avail:occ:<salonId>` (INCR after every booking/hold/transition/reschedule commit) + current minute + query hash; TTL 90 s; fails open. Staleness is safe: writes always revalidate. Benchmark (`availability-cache.int.test.ts`): month view, 10 staff, 3 resource types, 120 bookings → p95 ≈ 60 ms cold, ≈ 16 ms warm over HTTP (local stack, 2026-11-03).
@@ -121,7 +133,7 @@ Known gaps (by design or later): the `staff_service_assignment` override from th
 Latency is queueing under the per-target advisory locks with the default pool (10); no deadlock (`40P01`) or 5xx was seen in repeated runs.
 
 ## Known limitations
-- One service per appointment (+ variant + add-ons); multi-service Phase B/C not implemented.
+- Multi-service chains (M6.8) are behind `booking.multiService`; holds and the public page stay single-service.
 - Resources/capacity units, availability cache, waitlist, recurring, group bookings, deposits not implemented.
 - `409 slot_taken` carries no alternative slots yet; clients refetch availability.
 - Public page has no bot check yet (Turnstile); rate limits and per-phone limit only.
