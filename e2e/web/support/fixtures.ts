@@ -27,6 +27,13 @@ export function adminEmailFor(project: string): string {
   return e;
 }
 
+/** Base32 TOTP secret enrolled for this project's admin by global-setup. */
+export function adminTotpSecretFor(project: string): string {
+  const s = manifest()[project]?.adminTotpSecret;
+  if (!s) throw new Error(`no admin TOTP secret for ${project} in ${SEED_FILE}`);
+  return s;
+}
+
 /** A salon of the other project (a different tenant) for cross-tenant probes. */
 export function otherTenant(project: string, area: Area): SeededSalon {
   const other = Object.entries(manifest()).find(([p]) => p !== project)?.[1]?.[area];

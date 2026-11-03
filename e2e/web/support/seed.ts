@@ -74,7 +74,10 @@ export interface SeededSalon {
   today: string;
 }
 
-export type SeedManifest = Record<string, Record<Area, SeededSalon> & { adminEmail: string }>;
+export type SeedManifest = Record<
+  string,
+  Record<Area, SeededSalon> & { adminEmail: string; adminTotpSecret?: string }
+>;
 
 interface Item {
   id: string;
