@@ -56,6 +56,19 @@ export function endOfDayVn(ymd: string): string {
   return new Date(`${ymd}T23:59:59+07:00`).toISOString();
 }
 
+/**
+ * Last free day of the free Basic year (X25): `freeUntil` is an exclusive local midnight, so the
+ * day shown is the one just before it.
+ */
+export function fmtFreeDay(iso: string | null, locale: AppLocale): string | null {
+  return iso ? fmtDate(new Date(Date.parse(iso) - 1).toISOString(), locale) : null;
+}
+
+/** Start (00:00) of a Vietnam calendar day as a UTC instant. */
+export function startOfDayVn(ymd: string): string {
+  return new Date(`${ymd}T00:00:00+07:00`).toISOString();
+}
+
 /** `YYYY-MM` in Vietnam time, shifted by `deltaMonths`. */
 export function monthVn(deltaMonths = 0, now = new Date()): string {
   const [y, m] = todayVn(now).split("-").map(Number) as [number, number];

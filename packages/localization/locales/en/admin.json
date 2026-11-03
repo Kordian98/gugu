@@ -106,11 +106,17 @@
       "created": "Created",
       "bookings": "Bookings",
       "sort": "Sort",
-      "any": "Any"
+      "any": "Any",
+      "freeEnds": "Free Basic year"
     },
     "trialEnds": {
       "7": "Within 7 days",
       "14": "Within 14 days"
+    },
+    "freeEnds": {
+      "30": "Ends within 30 days",
+      "90": "Ends within 90 days",
+      "ended": "Ended (Basic is paid)"
     },
     "activity": {
       "active7": "Active in last 7 days",
@@ -138,7 +144,8 @@
       "name_asc": "Name A–Z",
       "trial_ends_asc": "Trial ends soonest",
       "last_activity_desc": "Recently active",
-      "bookings_desc": "Most bookings"
+      "bookings_desc": "Most bookings",
+      "free_until_asc": "Free year ends soonest"
     },
     "col": {
       "salon": "Salon",
@@ -148,7 +155,8 @@
       "created": "Created",
       "activity": "Last activity",
       "bookings": "Bookings (30 d)",
-      "zalo": "Zalo"
+      "zalo": "Zalo",
+      "freeUntil": "Free through"
     },
     "bookingsValue": "{{total}} ({{recent}})",
     "overdue": "Overdue",
@@ -182,7 +190,9 @@
       "history": "History",
       "historyEmpty": "No changes yet.",
       "historyRow": "{{from}} → {{to}}",
-      "by": "by {{actor}}"
+      "by": "by {{actor}}",
+      "freeUntil": "Basic free through",
+      "extendFree": "Extend free year"
     },
     "interval": {
       "month": "Monthly",
@@ -327,7 +337,13 @@
     "nextMonth": "Next month",
     "enrolTitle": "Two-step verification required",
     "enrolBody": "Every change in the admin panel needs two-step verification (TOTP). Set it up first.",
-    "enrolAction": "Set it up"
+    "enrolAction": "Set it up",
+    "free": {
+      "title": "Extend the free Basic year",
+      "body": "The last day the salon uses Basic for free. Nothing is charged; after this day GuGu invoices Basic as usual.",
+      "until": "New last free day (Vietnam time)",
+      "hint": "Only later, at most one year beyond the current end. A past-due Basic subscription becomes active again."
+    }
   },
   "entitlementKey": {
     "crm_core": "CRM",
@@ -360,7 +376,8 @@
     "privacy_client_exported": "Exported one client's data",
     "privacy_client_erased": "Deleted one client's data",
     "privacy_salon_export_requested": "Requested a salon data export",
-    "privacy_salon_export_downloaded": "Downloaded a salon data export"
+    "privacy_salon_export_downloaded": "Downloaded a salon data export",
+    "admin_free_period_extended": "Free Basic year extended"
   },
   "actor": {
     "platform_admin": "GuGu admin",
@@ -391,7 +408,9 @@
     "admin_mfa_fresh_sign_in_required": "To turn on two-step verification, sign out, sign in again and retry within 15 minutes.",
     "admin_mfa_enrollment_not_started": "The setup expired. Start again.",
     "admin_mfa_code_invalid": "Wrong or already used code. Try a new one.",
-    "common_rate_limited": "Too many attempts. Wait a moment and try again."
+    "common_rate_limited": "Too many attempts. Wait a moment and try again.",
+    "admin_mfa_reset_self_forbidden": "You cannot reset your own two-step verification. Ask another super admin.",
+    "admin_free_period_not_applicable": "The free year only applies to salons on the trial or on Basic."
   },
   "security": {
     "title": "Security",
@@ -422,6 +441,25 @@
     "copy": "Copy",
     "copied": "Copied",
     "bannerTitle": "Turn on two-step verification",
-    "bannerBody": "You cannot change anything in the admin panel until two-step verification is on."
+    "bannerBody": "You cannot change anything in the admin panel until two-step verification is on.",
+    "team": {
+      "title": "Admin team",
+      "body": "For an admin who lost both their phone and all recovery codes. Only super admins see this.",
+      "you": "You",
+      "roleSuper": "Super admin",
+      "roleSupport": "Support admin",
+      "on": "Two-step verification on",
+      "off": "Two-step verification off",
+      "details": "{{codes}} recovery codes left · {{sessions}} signed-in sessions",
+      "noEmail": "No email",
+      "reset": "Reset two-step verification",
+      "resetTitle": "Reset two-step verification for {{email}}",
+      "resetBody": "Removes their authenticator app and recovery codes and signs them out on every device. They must sign in again and set up two-step verification before they can change anything. Check who you are talking to first, e.g. on a video call.",
+      "resetAction": "Reset",
+      "resetting": "Resetting…",
+      "selfHint": "You cannot reset your own two-step verification here. Use a recovery code, or ask another super admin.",
+      "done": "Reset. They have been signed out everywhere.",
+      "empty": "No other admins."
+    }
   }
 }

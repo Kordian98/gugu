@@ -106,11 +106,17 @@
       "created": "Ngày tạo",
       "bookings": "Lịch hẹn",
       "sort": "Sắp xếp",
-      "any": "Tất cả"
+      "any": "Tất cả",
+      "freeEnds": "Năm miễn phí Basic"
     },
     "trialEnds": {
       "7": "Trong 7 ngày",
       "14": "Trong 14 ngày"
+    },
+    "freeEnds": {
+      "30": "Hết trong 30 ngày",
+      "90": "Hết trong 90 ngày",
+      "ended": "Đã hết (Basic trả phí)"
     },
     "activity": {
       "active7": "Hoạt động trong 7 ngày qua",
@@ -138,7 +144,8 @@
       "name_asc": "Tên A–Z",
       "trial_ends_asc": "Dùng thử sắp hết nhất",
       "last_activity_desc": "Hoạt động gần đây",
-      "bookings_desc": "Nhiều lịch hẹn nhất"
+      "bookings_desc": "Nhiều lịch hẹn nhất",
+      "free_until_asc": "Năm miễn phí sắp hết trước"
     },
     "col": {
       "salon": "Salon",
@@ -148,7 +155,8 @@
       "created": "Ngày tạo",
       "activity": "Hoạt động gần nhất",
       "bookings": "Lịch hẹn (30 ngày)",
-      "zalo": "Zalo"
+      "zalo": "Zalo",
+      "freeUntil": "Miễn phí đến"
     },
     "bookingsValue": "{{total}} ({{recent}})",
     "overdue": "Quá hạn",
@@ -182,7 +190,9 @@
       "history": "Lịch sử",
       "historyEmpty": "Chưa có thay đổi.",
       "historyRow": "{{from}} → {{to}}",
-      "by": "bởi {{actor}}"
+      "by": "bởi {{actor}}",
+      "freeUntil": "Basic miễn phí đến hết",
+      "extendFree": "Gia hạn năm miễn phí"
     },
     "interval": {
       "month": "Hằng tháng",
@@ -327,7 +337,13 @@
     "nextMonth": "Tháng sau",
     "enrolTitle": "Cần bật xác thực hai bước",
     "enrolBody": "Mọi thay đổi trong trang quản trị cần xác thực hai bước (TOTP). Hãy thiết lập trước.",
-    "enrolAction": "Thiết lập ngay"
+    "enrolAction": "Thiết lập ngay",
+    "free": {
+      "title": "Gia hạn năm miễn phí gói Basic",
+      "body": "Ngày cuối cùng salon dùng gói Basic miễn phí. Không có khoản thu nào; sau ngày này GuGu xuất hóa đơn Basic như bình thường.",
+      "until": "Ngày miễn phí cuối cùng mới (giờ Việt Nam)",
+      "hint": "Chỉ được dời về sau, tối đa 1 năm kể từ ngày hết hiện tại. Gói Basic quá hạn thanh toán sẽ hoạt động lại."
+    }
   },
   "entitlementKey": {
     "crm_core": "CRM",
@@ -360,7 +376,8 @@
     "privacy_client_exported": "Xuất dữ liệu một khách",
     "privacy_client_erased": "Xoá dữ liệu một khách",
     "privacy_salon_export_requested": "Yêu cầu xuất dữ liệu salon",
-    "privacy_salon_export_downloaded": "Tải bản xuất dữ liệu salon"
+    "privacy_salon_export_downloaded": "Tải bản xuất dữ liệu salon",
+    "admin_free_period_extended": "Đã gia hạn năm miễn phí Basic"
   },
   "actor": {
     "platform_admin": "Quản trị viên GuGu",
@@ -391,7 +408,9 @@
     "admin_mfa_fresh_sign_in_required": "Để bật xác thực hai bước, hãy đăng xuất, đăng nhập lại rồi thử trong 15 phút.",
     "admin_mfa_enrollment_not_started": "Phiên thiết lập đã hết hạn. Hãy bắt đầu lại.",
     "admin_mfa_code_invalid": "Mã không đúng hoặc đã được dùng. Hãy thử mã mới.",
-    "common_rate_limited": "Quá nhiều lần thử. Vui lòng đợi rồi thử lại."
+    "common_rate_limited": "Quá nhiều lần thử. Vui lòng đợi rồi thử lại.",
+    "admin_mfa_reset_self_forbidden": "Bạn không thể tự đặt lại xác thực hai bước của mình. Hãy nhờ một quản trị viên cấp cao khác.",
+    "admin_free_period_not_applicable": "Năm miễn phí chỉ áp dụng cho salon đang dùng thử hoặc dùng gói Basic."
   },
   "security": {
     "title": "Bảo mật",
@@ -422,6 +441,25 @@
     "copy": "Sao chép",
     "copied": "Đã sao chép",
     "bannerTitle": "Bật xác thực hai bước",
-    "bannerBody": "Bạn chưa thể thay đổi gì trong trang quản trị cho đến khi bật xác thực hai bước."
+    "bannerBody": "Bạn chưa thể thay đổi gì trong trang quản trị cho đến khi bật xác thực hai bước.",
+    "team": {
+      "title": "Đội ngũ quản trị",
+      "body": "Dành cho quản trị viên bị mất cả điện thoại lẫn toàn bộ mã khôi phục. Chỉ quản trị viên cấp cao thấy mục này.",
+      "you": "Bạn",
+      "roleSuper": "Quản trị viên cấp cao",
+      "roleSupport": "Quản trị viên hỗ trợ",
+      "on": "Đã bật xác thực hai bước",
+      "off": "Chưa bật xác thực hai bước",
+      "details": "Còn {{codes}} mã khôi phục · {{sessions}} phiên đang đăng nhập",
+      "noEmail": "Không có email",
+      "reset": "Đặt lại xác thực hai bước",
+      "resetTitle": "Đặt lại xác thực hai bước cho {{email}}",
+      "resetBody": "Xóa ứng dụng xác thực và mã khôi phục của người này, đồng thời đăng xuất họ trên mọi thiết bị. Họ phải đăng nhập lại và bật xác thực hai bước trước khi thay đổi bất cứ điều gì. Hãy xác nhận đúng người trước, ví dụ qua cuộc gọi video.",
+      "resetAction": "Đặt lại",
+      "resetting": "Đang đặt lại…",
+      "selfHint": "Bạn không thể tự đặt lại xác thực hai bước của mình tại đây. Hãy dùng mã khôi phục hoặc nhờ một quản trị viên cấp cao khác.",
+      "done": "Đã đặt lại. Người này đã bị đăng xuất trên mọi thiết bị.",
+      "empty": "Không có quản trị viên nào khác."
+    }
   }
 }

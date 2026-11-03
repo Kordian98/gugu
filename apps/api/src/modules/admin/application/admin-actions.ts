@@ -86,6 +86,45 @@ export class AdminActions {
     await Promise.all(salonIds.map((id) => this.entitlements.invalidate(id)));
     return { auditId };
   }
+
+  /**
+   * Platform-level admin write about another GuGu admin (no salon; q93 2FA reset). Same rules as
+   * `run`: reason validated, enrolled factor + (when `stepUp`) a step-up of the actor's session,
+   * change and audit row (actor, platform role, reason, before, after) in ONE transaction.
+   */
+  async runOnAdmin(
+    params: Omit<AdminActionParams, "salonId">,
+    change: (db: Db) => Promise<AdminChange>,
+  ): Promise<AdminMutationResult> {
+    const reason = adminReasonSchema.safeParse(params.reason);
+    if (!reason.success) {
+      throw new AppError(400, COMMON_ERRORS.validationFailed, "Reason required", {
+        errors: [{ path: "reason", code: COMMON_ERRORS.validationFailed }],
+      });
+    }
+    await this.mfa.assertWriteAllowed(params.admin, { stepUp: params.stepUp === true });
+    const auditId = await this.prisma.$transaction(async (tx) => {
+      const result = await change(tx);
+      return this.audit.record(
+        {
+          action: params.action,
+          actor: { type: "platform_admin", id: params.admin.userId },
+          targetType: result.targetType,
+          targetId: result.targetId,
+          ipPrefix: params.meta.ipPrefix,
+          userAgent: params.meta.userAgent,
+          metadata: {
+            reason: reason.data,
+            platformRole: params.admin.platformRole,
+            before: result.before,
+            after: result.after,
+          },
+        },
+        tx,
+      );
+    });
+    return { auditId };
+  }
 }
 
 /** Salon suspension (topic 12 M12.6): read-only workspace, nothing granted, until unsuspended. */

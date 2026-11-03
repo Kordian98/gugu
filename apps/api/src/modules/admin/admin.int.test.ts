@@ -136,6 +136,7 @@ describe("platform admin (integration)", () => {
         paidUntil: inDays(30),
       },
       "admin/salons/:salonId/subscription/trial": { trialEndsAt: inDays(20) },
+      "admin/salons/:salonId/subscription/free-until": { freeUntil: inDays(400) },
       "admin/salons/:salonId/subscription/paid-until": { paidUntil: inDays(60) },
       "admin/salons/:salonId/suspend": {},
       "admin/salons/:salonId/unsuspend": {},
@@ -151,10 +152,14 @@ describe("platform admin (integration)", () => {
       "admin/mfa/totp/confirm": { code: "123456" },
       "admin/mfa/step-up": { code: "123456" },
       "admin/mfa/recovery-codes": { code: "123456" },
+      "admin/team/:userId/mfa/reset": {},
     };
     const body = bodies[route.path];
     if (!body) throw new Error(`add a valid body for ${route.method} ${route.path}`);
-    return { path: route.path.replace(":overrideId", overrideId), body };
+    return {
+      path: route.path.replace(":overrideId", overrideId).replace(":userId", overrideId),
+      body,
+    };
   }
 
   describe("authorization matrix (default deny)", () => {
@@ -421,9 +426,14 @@ describe("platform admin (integration)", () => {
       });
       expect(problemSchema.parse(tooFar.body).code).toBe(ADMIN_ERRORS.invalidDate);
 
-      // Expire it (clock past the end, then the job records it), then re-open.
+      // Expire it (clock past the end, then the job records it), then re-open. The free Basic year
+      // is moved into the past first, otherwise the ended trial would fall to free Basic (X25).
+      await prisma.subscription.updateMany({
+        where: { salonId: s.salonId },
+        data: { freeUntil: new Date(Date.now() + 5 * DAY) },
+      });
       clock.offsetMs = 31 * DAY;
-      await facade.expireDueTrials();
+      await facade.endDueTrials();
       clock.offsetMs = 0;
       const reopenedEnd = new Date(Date.now() + 7 * DAY).toISOString();
       await post(`salons/${s.salonId}/subscription/trial`, superAdmin, {
@@ -480,6 +490,122 @@ describe("platform admin (integration)", () => {
       const after = await prisma.subscription.findUniqueOrThrow({ where: { id: sub.id } });
       expect(after.status).toBe("active");
       expect(after.currentPeriodEnd?.toISOString()).toBe(until);
+    });
+  });
+
+  describe("free Basic year (X25)", () => {
+    it("shows, filters and extends the free year (step-up, audited); Pro is refused", async () => {
+      const trial = await newSalon("Free Trial");
+      await facade.startTrial({ salonId: trial.salonId });
+      const lapsed = await newSalon("Free Lapsed");
+      await facade.startTrial({ salonId: lapsed.salonId });
+      const basicPlan = await prisma.plan.findUniqueOrThrow({ where: { code: "basic" } });
+      // Basic whose free year is over and whose invoice is overdue (past_due).
+      await prisma.subscription.updateMany({
+        where: { salonId: lapsed.salonId },
+        data: {
+          planId: basicPlan.id,
+          status: "past_due",
+          trialEndsAt: new Date(Date.now() - 400 * DAY),
+          freeUntil: new Date(Date.now() - DAY),
+          currentPeriodEnd: new Date(Date.now() - DAY),
+        },
+      });
+      await entitlements.invalidate(lapsed.salonId);
+      const pro = await newSalon("Free Pro");
+      await post(`salons/${pro.salonId}/subscription/plan`, superAdmin, {
+        plan: "pro",
+        interval: "month",
+        paidUntil: new Date(Date.now() + 30 * DAY).toISOString(),
+        reason: REASON,
+      }).expect(200);
+
+      const list = async (qs: string) =>
+        adminSalonListSchema.parse(
+          (
+            await request(http(app))
+              .get(`/api/v1/admin/salons?q=${encodeURIComponent(`${tag} Free`)}&${qs}`)
+              .set("authorization", supportAdmin)
+              .expect(200)
+          ).body,
+        );
+      const ids = async (qs: string) => (await list(qs)).items.map((i) => i.id).sort();
+      expect(await ids("freeEnded=false")).toEqual([trial.salonId]);
+      expect(await ids("freeEnded=true")).toEqual([lapsed.salonId]);
+      expect(await ids("freeEndsWithinDays=366")).toEqual([trial.salonId]);
+      expect(await ids("freeEndsWithinDays=30")).toEqual([]);
+      const sorted = await list("sort=free_until_asc");
+      expect(sorted.items[0]?.id).toBe(lapsed.salonId);
+      const trialItem = sorted.items.find((i) => i.id === trial.salonId);
+      const stored = await prisma.subscription.findFirstOrThrow({
+        where: { salonId: trial.salonId },
+      });
+      expect(trialItem?.freeUntil).toBe(stored.freeUntil?.toISOString());
+
+      // Extending needs a step-up, like plan changes (ADR-0011).
+      const current = stored.freeUntil as Date;
+      const later = new Date(current.getTime() + 30 * DAY).toISOString();
+      const stale = await post(
+        `salons/${trial.salonId}/subscription/free-until`,
+        superAdminNotElevated,
+        { freeUntil: later, reason: "Pilot partner, extra free month" },
+      );
+      expect(problemSchema.parse(stale.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
+      expect(await auditCount(trial.salonId)).toBe(0);
+
+      await entitlements.forSalon(trial.salonId); // warm the cache
+      await post(`salons/${trial.salonId}/subscription/free-until`, superAdmin, {
+        freeUntil: later,
+        reason: "Pilot partner, extra free month",
+      }).expect(200);
+      expect((await entitlements.forSalon(trial.salonId)).freeUntil).toBe(later);
+      const audit = await prisma.auditLog.findFirstOrThrow({
+        where: { salonId: trial.salonId, action: "admin.free_period_extended" },
+      });
+      expect(audit.metadata).toMatchObject({
+        reason: "Pilot partner, extra free month",
+        before: { freeUntil: current.toISOString(), plan: "trial" },
+        after: { freeUntil: later, plan: "trial" },
+      });
+      const detail = adminSalonDetailSchema.parse(
+        (
+          await request(http(app))
+            .get(`/api/v1/admin/salons/${trial.salonId}`)
+            .set("authorization", supportAdmin)
+            .expect(200)
+        ).body,
+      );
+      expect(detail.subscription?.freeUntil).toBe(later);
+
+      // Only later, and at most 366 days beyond the current end.
+      for (const freeUntil of [current.toISOString(), new Date(Date.parse(later) + 367 * DAY)]) {
+        const bad = await post(`salons/${trial.salonId}/subscription/free-until`, superAdmin, {
+          freeUntil: typeof freeUntil === "string" ? freeUntil : freeUntil.toISOString(),
+          reason: REASON,
+        });
+        expect(problemSchema.parse(bad.body).code).toBe(ADMIN_ERRORS.invalidDate);
+      }
+
+      // A lapsed Basic salon gets a new free period: covered again and active.
+      const until = new Date(Date.now() + 60 * DAY).toISOString();
+      await post(`salons/${lapsed.salonId}/subscription/free-until`, superAdmin, {
+        freeUntil: until,
+        reason: "Goodwill after support incident",
+      }).expect(200);
+      expect(await entitlements.forSalon(lapsed.salonId)).toMatchObject({
+        plan: "basic",
+        status: "active",
+        freeUntil: until,
+        paidUntil: until,
+      });
+      expect(await ids("freeEnded=false")).toEqual([trial.salonId, lapsed.salonId].sort());
+
+      const refused = await post(`salons/${pro.salonId}/subscription/free-until`, superAdmin, {
+        freeUntil: new Date(Date.now() + 400 * DAY).toISOString(),
+        reason: REASON,
+      });
+      expect(refused.status).toBe(409);
+      expect(problemSchema.parse(refused.body).code).toBe(ADMIN_ERRORS.freePeriodNotApplicable);
     });
   });
 

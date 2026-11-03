@@ -49,6 +49,9 @@ export const GROUP_BY_VALUES = ["none", "status", "staff", "service", "day"] as 
 export const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const isoDateTimeSchema = z.iso.datetime({ offset: true });
 export const moneyVndSchema = z.number().int().min(0);
+/** Profit and margins can be negative (a loss month). */
+export const signedMoneyVndSchema = z.number().int();
+export const signedPercentSchema = z.number().min(-100_000).max(1000);
 export const countSchema = z.number().int().min(0);
 export const percentSchema = z.number().min(0).max(1000);
 export const minutesSchema = z.number().int().min(0);

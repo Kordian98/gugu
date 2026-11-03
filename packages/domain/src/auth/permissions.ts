@@ -52,6 +52,12 @@ export const SALON_PERMISSIONS = [
   "billing.manage",
   "subscription.read",
   "audit.read",
+  /** Staff pay, commissions, monthly payroll, fixed costs and the profit view (owner by default). */
+  "payroll.read",
+  /** Change pay settings, adjustments, close/reopen a month, mark paid, fixed costs. */
+  "payroll.manage",
+  /** One's own commissions and earnings estimate (any member with a staff profile). */
+  "payroll.self.read",
 ] as const;
 export type SalonPermission = (typeof SALON_PERMISSIONS)[number];
 
@@ -83,6 +89,11 @@ export const PLATFORM_PERMISSIONS = [
    * session. Every platform role has it: enrolment is required before any admin write.
    */
   "platform.mfa.self",
+  /**
+   * Reset ANOTHER admin's second factor (owner answer q93): super_admin only, with the actor's own
+   * step-up and a reason; never one's own account. Also lists the admin team's 2FA status.
+   */
+  "platform.mfa.reset",
 ] as const;
 export type PlatformPermission = (typeof PLATFORM_PERMISSIONS)[number];
 
@@ -96,10 +107,20 @@ export const OWNER_ONLY_PERMISSIONS: readonly SalonPermission[] = [
   "billing.manage",
 ];
 
+/**
+ * Owner by default, but the owner may grant them to a **manager** through an override (owner
+ * request 2026-11-04). Not owner-only (those can never be granted); grants to receptionists or
+ * staff are ignored, because salary data of colleagues is personal (X10 spirit, ADR-0016).
+ */
+export const MANAGER_GRANTABLE_PERMISSIONS: readonly SalonPermission[] = [
+  "payroll.read",
+  "payroll.manage",
+];
+
 const ALL_SALON = new Set<SalonPermission>(SALON_PERMISSIONS);
 
 const MANAGER: readonly SalonPermission[] = SALON_PERMISSIONS.filter(
-  (p) => !OWNER_ONLY_PERMISSIONS.includes(p),
+  (p) => !OWNER_ONLY_PERMISSIONS.includes(p) && !MANAGER_GRANTABLE_PERMISSIONS.includes(p),
 );
 
 const RECEPTIONIST: readonly SalonPermission[] = [
@@ -114,6 +135,7 @@ const RECEPTIONIST: readonly SalonPermission[] = [
   "customers.notes.write",
   "customers.block",
   "zalo.inbox.use",
+  "payroll.self.read",
 ];
 
 /** Staff see customer phone numbers by default (owner answer q24); the owner can revoke it. */
@@ -127,6 +149,7 @@ const STAFF: readonly SalonPermission[] = [
   "customers.phone.read",
   "customers.notes.write",
   "analytics.read.own",
+  "payroll.self.read",
 ];
 
 export const ROLE_PERMISSIONS: Readonly<Record<SalonRole, ReadonlySet<SalonPermission>>> = {
@@ -189,6 +212,13 @@ export function strongestRole(a: SalonRole | null, b: SalonRole | null): SalonRo
   return ROLE_RANK[a] >= ROLE_RANK[b] ? a : b;
 }
 
+/** Owner-only permissions are never granted; manager-grantable ones only to managers. */
+function isGrantable(role: SalonRole, p: SalonPermission): boolean {
+  if (role === "owner") return true;
+  if (OWNER_ONLY_PERMISSIONS.includes(p)) return false;
+  return !MANAGER_GRANTABLE_PERMISSIONS.includes(p) || role === "manager";
+}
+
 /**
  * Effective permissions of one membership: role bundle, then overrides. Grants of owner-only or
  * unknown permissions are ignored; revokes always apply.
@@ -199,9 +229,7 @@ export function effectiveSalonPermissions(
 ): ReadonlySet<SalonPermission> {
   const result = new Set(ROLE_PERMISSIONS[role]);
   for (const p of override?.grant ?? []) {
-    if (isSalonPermission(p) && (role === "owner" || !OWNER_ONLY_PERMISSIONS.includes(p))) {
-      result.add(p);
-    }
+    if (isSalonPermission(p) && isGrantable(role, p)) result.add(p);
   }
   for (const p of override?.revoke ?? []) {
     if (isSalonPermission(p) && !(role === "owner" && OWNER_ONLY_PERMISSIONS.includes(p))) {

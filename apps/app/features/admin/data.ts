@@ -3,9 +3,11 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import type {
   AdminAssignPlanInput,
   AdminCreateOverrideInput,
+  AdminExtendFreePeriodInput,
   AdminExtendTrialInput,
   AdminMfaEnrolment,
   AdminMfaRecoveryCodes,
+  AdminMfaResetInput,
   AdminMfaStatus,
   AdminMutationResult,
   AdminReasonInput,
@@ -14,6 +16,7 @@ import type {
   AdminSetPaidUntilInput,
   AdminStepUpInput,
   AdminStepUpResult,
+  AdminTeamList,
   AdminUsageOverview,
 } from "@gugu/contracts";
 
@@ -71,6 +74,7 @@ export function useAdminUsage(month: string | null) {
 export type AdminAction =
   | { kind: "assignPlan"; body: AdminAssignPlanInput }
   | { kind: "extendTrial"; body: AdminExtendTrialInput }
+  | { kind: "extendFreePeriod"; body: AdminExtendFreePeriodInput }
   | { kind: "setPaidUntil"; body: AdminSetPaidUntilInput }
   | { kind: "suspend"; body: AdminReasonInput }
   | { kind: "unsuspend"; body: AdminReasonInput }
@@ -86,6 +90,8 @@ function actionPath(salonId: string, a: AdminAction): string {
       return `${base}/subscription/plan`;
     case "extendTrial":
       return `${base}/subscription/trial`;
+    case "extendFreePeriod":
+      return `${base}/subscription/free-until`;
     case "setPaidUntil":
       return `${base}/subscription/paid-until`;
     case "suspend":
@@ -156,3 +162,29 @@ export const useRegenerateRecoveryCodes = () =>
       body: { code },
     }),
   );
+
+// ─── Admin team: reset another admin's 2FA (super_admin, owner answer q93) ───────────────────
+
+const teamKey = ["admin", "team"] as const;
+
+/** GuGu admins and their 2FA state. Only fetched for super admins (`platform.mfa.reset`). */
+export function useAdminTeam(enabled: boolean) {
+  return useQuery({
+    queryKey: teamKey,
+    queryFn: () => apiFetch<AdminTeamList>("/admin/team"),
+    enabled,
+  });
+}
+
+/** Needs this session's step-up and a reason; the API refuses one's own account. */
+export function useResetAdminMfa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { userId: string; body: AdminMfaResetInput }) =>
+      apiFetch<AdminMutationResult>(`/admin/team/${v.userId}/mfa/reset`, {
+        method: "POST",
+        body: v.body,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: teamKey }),
+  });
+}

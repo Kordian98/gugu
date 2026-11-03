@@ -53,7 +53,10 @@ export class ClientLookupQuery {
         JOIN booking_services bs
           ON bs.booking_id = b.id AND bs.salon_id = b.salon_id AND bs.sequence = 1
         WHERE b.salon_id = ${ctx.salonId}::uuid
-          AND (${ownStaff}::uuid IS NULL OR b.staff_id = ${ownStaff}::uuid)
+          -- Any line of the member (booking engine read scope; security review L2).
+          AND (${ownStaff}::uuid IS NULL OR EXISTS (
+            SELECT 1 FROM booking_services ox WHERE ox.booking_id = b.id
+              AND ox.salon_id = b.salon_id AND ox.staff_id = ${ownStaff}::uuid))
           AND b.customer_phone_e164 IS NOT NULL
           AND b.customer_name IS NOT NULL
           AND (

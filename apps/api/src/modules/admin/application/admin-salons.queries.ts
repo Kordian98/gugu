@@ -18,6 +18,7 @@ import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import {
   Clock,
   EntitlementService,
+  effectivePlan,
   effectiveStatus,
 } from "../../subscriptions/subscriptions.facade";
 import { AdminUsageQueries } from "./admin-usage.queries";
@@ -36,6 +37,7 @@ interface SalonRow {
   sub_status: AdminSalonListItem["subscriptionStatus"];
   trial_ends_at: Date | null;
   paid_until: Date | null;
+  free_until: Date | null;
   bookings_total: number;
   bookings_30d: number;
   last_activity_at: Date | null;
@@ -49,6 +51,7 @@ const SORTS: Record<AdminSalonListQuery["sort"], Prisma.Sql> = {
   created_asc: Prisma.sql`created_at ASC, id ASC`,
   name_asc: Prisma.sql`lower(name) ASC, id ASC`,
   trial_ends_asc: Prisma.sql`trial_ends_at ASC NULLS LAST, id ASC`,
+  free_until_asc: Prisma.sql`free_until ASC NULLS LAST, id ASC`,
   last_activity_desc: Prisma.sql`last_activity_at DESC NULLS LAST, id DESC`,
   bookings_desc: Prisma.sql`bookings_total DESC, id DESC`,
 };
@@ -85,6 +88,17 @@ export class AdminSalonsQueries {
         Prisma.sql`sub_status = 'trialing' AND trial_ends_at > ${now} AND trial_ends_at <= ${until}`,
       );
     }
+    // X25 free Basic year: only meaningful while the salon is on the trial or on Basic.
+    const onFreeablePlan = Prisma.sql`plan IN ('trial', 'basic') AND sub_status IN ('trialing', 'active', 'past_due')`;
+    if (query.freeEndsWithinDays !== undefined) {
+      const until = new Date(now.getTime() + query.freeEndsWithinDays * DAY_MS);
+      where.push(Prisma.sql`${onFreeablePlan} AND free_until > ${now} AND free_until <= ${until}`);
+    }
+    if (query.freeEnded === true) {
+      where.push(Prisma.sql`${onFreeablePlan} AND free_until <= ${now}`);
+    } else if (query.freeEnded === false) {
+      where.push(Prisma.sql`${onFreeablePlan} AND free_until > ${now}`);
+    }
     if (query.createdFrom) {
       where.push(Prisma.sql`created_at >= ${new Date(`${query.createdFrom}T00:00:00Z`)}`);
     }
@@ -113,22 +127,36 @@ export class AdminSalonsQueries {
 
     const since30 = new Date(now.getTime() - 30 * DAY_MS);
     const rows = await this.prisma.$queryRaw<SalonRow[]>`
-      WITH cur AS (
+      WITH latest AS (
         SELECT DISTINCT ON (s.salon_id)
-          s.salon_id, s.status::text AS status, s.trial_ends_at, s.current_period_end, p.code AS plan
+          s.salon_id, s.status::text AS status, s.trial_ends_at, s.current_period_end, s.free_until,
+          p.code AS plan,
+          (s.status = 'trialing' AND s.trial_ends_at <= ${now}) AS trial_ended,
+          (s.free_until > ${now}) AS in_free_year
         FROM subscriptions s JOIN plans p ON p.id = s.plan_id
         ORDER BY s.salon_id, s.created_at DESC, s.id DESC
+      ),
+      -- Effective plan/status (mirrors domain/subscription-status.ts): an ended trial inside the
+      -- free year reads as active Basic covered until the free year ends (X25), else expired.
+      cur AS (
+        SELECT salon_id, trial_ends_at, free_until,
+          CASE WHEN trial_ended AND in_free_year THEN 'basic' ELSE plan END AS plan,
+          CASE
+            WHEN trial_ended AND in_free_year THEN 'active'
+            WHEN trial_ended THEN 'expired'
+            ELSE status
+          END AS status,
+          CASE WHEN trial_ended AND in_free_year THEN free_until ELSE current_period_end END
+            AS current_period_end
+        FROM latest
       ),
       base AS (
         SELECT sa.id, sa.name, sa.slug::text AS slug, sa.status, sa.created_at,
           cur.plan,
-          CASE
-            WHEN cur.salon_id IS NULL THEN 'none'
-            WHEN cur.status = 'trialing' AND cur.trial_ends_at <= ${now} THEN 'expired'
-            ELSE cur.status
-          END AS sub_status,
+          COALESCE(cur.status, 'none') AS sub_status,
           cur.trial_ends_at,
           CASE WHEN cur.plan <> 'trial' THEN cur.current_period_end END AS paid_until,
+          cur.free_until,
           (SELECT count(*) FROM bookings b WHERE b.salon_id = sa.id)::int AS bookings_total,
           (SELECT count(*) FROM bookings b
             WHERE b.salon_id = sa.id AND b.created_at >= ${since30})::int AS bookings_30d,
@@ -165,6 +193,7 @@ export class AdminSalonsQueries {
         subscriptionStatus: r.sub_status,
         trialEndsAt: r.trial_ends_at?.toISOString() ?? null,
         paidUntil: r.paid_until?.toISOString() ?? null,
+        freeUntil: r.free_until?.toISOString() ?? null,
         paidUntilOverdue:
           r.paid_until !== null &&
           r.paid_until <= now &&
@@ -267,7 +296,7 @@ export class AdminSalonsQueries {
       subscription: subscription
         ? {
             id: subscription.id,
-            plan: planCodeSchema.parse(subscription.plan.code),
+            plan: effectivePlan(subscription, planCodeSchema.parse(subscription.plan.code), now),
             planVersion: subscription.planVersion,
             status: effectiveStatus(subscription, now),
             storedStatus: subscription.status,
@@ -276,10 +305,9 @@ export class AdminSalonsQueries {
             invoicingEntity: subscription.invoicingEntity,
             trialEndsAt: subscription.trialEndsAt?.toISOString() ?? null,
             currentPeriodStart: subscription.currentPeriodStart?.toISOString() ?? null,
-            paidUntil:
-              subscription.plan.code === "trial"
-                ? null
-                : (subscription.currentPeriodEnd?.toISOString() ?? null),
+            // Same rule as the entitlements read model (an ended trial in the free year → Basic).
+            paidUntil: entitlements.paidUntil,
+            freeUntil: subscription.freeUntil?.toISOString() ?? null,
             createdAt: subscription.createdAt.toISOString(),
           }
         : null,

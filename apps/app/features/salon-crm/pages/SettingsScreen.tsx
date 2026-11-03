@@ -2,7 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmCard, Icon, Text, useCalm, type IconName } from "@gugu/design-system";
+import { CalmCard, checkableA11y, Icon, Text, type IconName, useCalm } from "@gugu/design-system";
 import { LOCALE_LABELS, LOCALES } from "@gugu/localization";
 
 import { NotificationsSection } from "@/features/notifications/NotificationsSection";
@@ -13,6 +13,7 @@ import { useSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
 import { BookingSection, PoliciesSection } from "./settings/BookingSection";
 import { HolidaysSection, HoursSection } from "./settings/HoursSection";
+import { PlanSection } from "./settings/PlanSection";
 import { PrivacySection } from "./settings/PrivacySection";
 import { ProfileSection } from "./settings/ProfileSection";
 import { ZaloSection } from "./settings/ZaloSection";
@@ -45,6 +46,7 @@ export function SettingsScreen() {
       <PageHeader title={t("pages.settings.title")} workspace={ws} />
       {settings.data ? (
         <View key={settings.dataUpdatedAt} style={{ gap: 20, maxWidth: 860 }}>
+          {can("subscription.read") ? <PlanSection timeZone={ws.timeZone} /> : null}
           <ProfileSection settings={settings.data} canEdit={can("salon.profile.write")} />
           <HoursSection settings={settings.data} canEdit={can("salon.settings.write")} />
           <BookingSection settings={settings.data} canEdit={can("salon.settings.write")} />
@@ -122,8 +124,7 @@ function Choice({
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
+      {...checkableA11y("radio", selected)}
       onPress={onPress}
       style={{
         height: 42,

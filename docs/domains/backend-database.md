@@ -52,7 +52,7 @@ Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`),
 | Table | Tenant | Deletion policy | Owner module | Notes |
 |---|---|---|---|---|
 | plans, plan_entitlements, plan_prices | no (reference data) | never deleted; `Restrict` | subscriptions | rows inserted by migration `20261102115055_add_subscriptions_entitlements` |
-| subscriptions | yes (`salon_id`, no FK until salons lands) | never deleted; `Restrict` | subscriptions | one current per salon |
+| subscriptions | yes (`salon_id`, no FK until salons lands) | never deleted; `Restrict` | subscriptions | one current per salon; `free_until` = end of the free Basic year (X25, ADR-0015, backfilled by `20261104170100_x25_backfill_free_year`) |
 | subscription_events | yes | append-only | subscriptions | composite FK `(salon_id, subscription_id)` |
 | entitlement_overrides | yes | revoked via `revoked_at`, never deleted | subscriptions | admin overrides always carry `expires_at` |
 | founding_partners | organisation (`organization_id` unique) | revoked via `revoked_at`, never deleted | subscriptions | X20; ADR-0010 |
@@ -70,6 +70,9 @@ Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`),
 | notifications, notification_member_prefs | yes | bell items deleted after 12 months (`privacy.retention`); prefs kept | notifications | team bell items; per-member email switch |
 | privacy_exports | yes (`salon_id`, FK) | row kept as a request record; content purged 24 h after completion | privacy | gzipped JSON + CSV; one queued/running per salon |
 | admin_mfa_factors, admin_recovery_codes | no (platform admins) | replaced on re-enrolment | auth | secret sealed AES-256-GCM (`MFA_ENCRYPTION_KEY`); recovery codes HMAC only |
+| staff_pay_settings, staff_commission_overrides, salon_commission_policies | yes (composite FKs to staff/services/variants) | kept (history: effective-dated versions never rewrite past months); overrides replaced with their version | salon-crm (payroll) | ADR-0016; amounts are staff personal data (never to an LLM) |
+| payroll_adjustments, payroll_months, payroll_payouts | yes | soft delete (`deleted_at`) for adjustments; months/payouts kept | salon-crm (payroll) | closed month = `closed_at` + snapshot JSON; bookkeeping only |
+| salon_costs | yes | soft delete; recurring rows ended with `end_month` | salon-crm (payroll) | owner-entered monthly costs for the profit view |
 | sessions, refresh_tokens, magic_link_tokens, idempotency_keys | — | ended sessions deleted after 30 days, magic links 1 day after expiry, idempotency keys after expiry (`privacy.retention`) | auth / bookings | |
 
 ## Raw SQL objects
@@ -81,7 +84,7 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `subscriptions_one_current_per_salon` | partial unique index | `20261102115055_add_subscriptions_entitlements` | `subscriptions.int.test.ts` (one current per salon; concurrent startTrial) |
 | `subscriptions_trial_ends_when_trialing` | check | `20261102115055_add_subscriptions_entitlements` | `db:drift` |
 | `plan_prices_amount_non_negative` | check | `20261102115055_add_subscriptions_entitlements` | `db:drift` |
-| `audit_logs_no_update_delete` (+ function `audit_logs_append_only`) | trigger | `20261102115341_add_identity_tenancy` | `auth.int.test.ts` (audit log is append-only); `db:drift` checks `triggers` |
+| `audit_logs_no_update_delete` (+ function `audit_logs_append_only`) | trigger | `20261102115341_add_identity_tenancy`; function replaced in `20261104160000_audit_log_retention` (q94: DELETE allowed only with transaction-local `gugu.audit_retention = on` on rows older than 12 months) | `auth.int.test.ts` (audit log is append-only); `privacy.int.test.ts` (q94 retention exception); `db:drift` checks `triggers` |
 | `locations_parent_by_level` | check | `20261102115341_add_identity_tenancy` | `db:drift` |
 | `salon_members_one_owner` | partial unique index | `20261102115341_add_identity_tenancy` | `db:drift` |
 | `magic_link_tokens_attempts_range` | check | `20261102115341_add_identity_tenancy` | `auth.int.test.ts` (code lock after 5 attempts) |
@@ -94,6 +97,9 @@ Machine-checked list: `apps/api/prisma/raw-objects.json` (`pnpm db:drift` fails 
 | `privacy_exports_one_in_flight` | partial unique index | `20261104150000_add_privacy_admin_mfa` | `privacy.int.test.ts` (one at a time → 409) |
 | `privacy_exports_content_valid`, `admin_mfa_factors_step_valid` | check | `20261104150000_add_privacy_admin_mfa` | `db:drift`; `privacy.int.test.ts`, `admin-mfa.int.test.ts` |
 | `booking_status_history_append_only()` (new body: only `reason_text → NULL` allowed) | trigger function | `20261104150000_add_privacy_admin_mfa` | `privacy.int.test.ts` (append-only apart from blanking reason_text) |
+
+| `staff_pay_settings_valid`, `staff_commission_overrides_valid`, `payroll_adjustments_valid`, `payroll_months_first_day`, `salon_costs_valid` | check | `20261105090000_add_payroll` | `db:drift`; `payroll.int.test.ts` (constraints) |
+| `staff_commission_overrides_one_per_target` | unique expression index | `20261105090000_add_payroll` | `payroll.int.test.ts` (constraints) |
 
 ## Read-model registry
 Base layer of the registries (X7): read models here → metric catalogue (07, `packages/domain/metrics`) → agent tools (08).

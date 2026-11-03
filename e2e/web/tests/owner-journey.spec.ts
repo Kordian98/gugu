@@ -58,9 +58,10 @@ test.describe("owner journey @vi", () => {
     await test.step("wizard: hours preset → services → team → go live", async () => {
       await expect(page).toHaveURL(/\/vi\/business\/setup/);
       await tap(page.getByRole("button", { name: t(L, "crm:settings.hoursPreset") }));
-      // Seven open days → seven start-time inputs. (Toggle state is not asserted via aria-checked:
-      // react-native-web drops it for role=switch — reported as a product a11y bug.)
+      // Seven open days → seven start-time inputs and seven day switches exposed as checked.
       await expect(page.getByLabel(t(L, "crm:team.start"), { exact: true })).toHaveCount(7);
+      await expect(page.getByRole("switch", { checked: true })).toHaveCount(7);
+      await expect(page.getByRole("switch", { checked: false })).toHaveCount(0);
       await tap(page.getByTestId("crm-hours-save"));
       await expect(page.getByText(t(L, "crm:common.saving"))).toHaveCount(0);
       await tap(page.getByTestId("crm-wizard-next"));
@@ -71,10 +72,11 @@ test.describe("owner journey @vi", () => {
       await expect(page.getByText("Sơn gel", { exact: true })).toBeVisible();
       await tap(page.getByTestId("crm-wizard-next"));
 
+      // Type the next name right after "add myself": its success must not wipe the field.
       await tap(page.getByTestId("crm-wizard-add-me"));
-      // Wait for "me" before typing: add-me's success handler clears the name field (reported).
-      await expect(page.getByText(ownerName, { exact: true })).toBeVisible();
       await fillField(page.getByTestId("crm-wizard-staff-name"), "Trần Mai");
+      await expect(page.getByText(ownerName, { exact: true })).toBeVisible();
+      await expect(page.getByTestId("crm-wizard-staff-name")).toHaveValue("Trần Mai");
       await tap(page.getByTestId("crm-wizard-staff-add"));
       await expect(page.getByText("Trần Mai", { exact: true })).toBeVisible();
       await tap(page.getByTestId("crm-wizard-next"));
@@ -91,7 +93,11 @@ test.describe("owner journey @vi", () => {
       await fillField(page.getByLabel(t(L, "crm:services.duration"), { exact: true }), "45");
       const staff = page.getByTestId("crm-service-staff");
       await expect(staff.getByText(t(L, "crm:assign.count", { count: 2, total: 2 }))).toBeVisible();
-      await tap(staff.getByRole("checkbox", { name: ownerName }));
+      const me = staff.getByRole("checkbox", { name: ownerName });
+      await expect(me).toBeChecked();
+      await tap(me);
+      await expect(me).not.toBeChecked();
+      await expect(staff.getByRole("checkbox", { name: "Trần Mai" })).toBeChecked();
       await expect(staff.getByText(t(L, "crm:assign.count", { count: 1, total: 2 }))).toBeVisible();
       await tap(page.getByTestId("crm-service-save"));
       const row = page.getByRole("button", {

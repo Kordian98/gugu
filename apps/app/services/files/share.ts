@@ -28,3 +28,23 @@ export async function copyText(text: string): Promise<void> {
   }
   await Share.share({ message: text });
 }
+
+/** Binary file (base64) on web, e.g. an .xlsx export; native gets the share sheet with the name. */
+export async function saveBase64File(fileName: string, mimeType: string, base64: string) {
+  if (Platform.OS === "web") {
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return;
+  }
+  // No file system module in the app yet: native shares the CSV export instead (TODO 13).
+  await Share.share({ title: fileName, message: fileName });
+}

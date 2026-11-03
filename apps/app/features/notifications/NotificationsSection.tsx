@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, CalmCard, Pill, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, CalmCard, checkableA11y, Pill, Text, useCalm } from "@gugu/design-system";
 import {
   MAX_REMINDER_OFFSETS,
   type NotificationEventSetting,
@@ -123,8 +123,7 @@ function Editor({ initial, canEdit }: { initial: NotificationSettings; canEdit: 
               <Pressable
                 key={m}
                 testID={`crm-notify-offset-${String(m)}`}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: on, disabled: !canEdit }}
+                {...checkableA11y("checkbox", on, { disabled: !canEdit })}
                 accessibilityLabel={offsetLabel(m, t)}
                 onPress={() => {
                   toggleOffset(m);

@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Icon, Text, alpha, color, font, useCalm } from "@gugu/design-system";
+import { alpha, checkableA11y, color, font, Icon, Text, useCalm } from "@gugu/design-system";
 
 import { useBreakpoint } from "../shell/useBreakpoint";
 
@@ -200,9 +200,8 @@ export function Toggle({
   return (
     <Pressable
       testID={testID}
-      accessibilityRole="switch"
+      {...checkableA11y("switch", value)}
       accessibilityLabel={label}
-      accessibilityState={{ checked: value }}
       onPress={() => {
         onChange(!value);
       }}
@@ -274,8 +273,7 @@ export function Segmented<T extends string>({
         return (
           <Pressable
             key={o.id}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: on }}
+            {...checkableA11y("radio", on)}
             onPress={() => {
               onChange(o.id);
             }}

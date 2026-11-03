@@ -151,7 +151,8 @@ export function TeamStep({
       {
         onSuccess: ({ id }) => {
           schedule.mutate({ id, body: defaultSchedule(settings) });
-          setName("");
+          // Clear only what was submitted: "add myself" must not wipe a name typed meanwhile.
+          if (!linkToMe) setName((cur) => (cur.trim() === displayName ? "" : cur));
         },
       },
     );

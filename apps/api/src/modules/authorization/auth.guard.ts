@@ -2,9 +2,18 @@ import { type CanActivate, type ExecutionContext, Injectable } from "@nestjs/com
 import { Reflector } from "@nestjs/core";
 import type { Request, Response } from "express";
 import { AUTH_ERRORS, SALON_SUSPENDED_ERROR, uuidV7Schema } from "@gugu/contracts";
-import { PLATFORM_ROLE_PERMISSIONS, type PlatformPermission } from "@gugu/domain";
+import {
+  PLATFORM_ROLE_PERMISSIONS,
+  type PlatformPermission,
+  type SalonPermission,
+} from "@gugu/domain";
 import { RequestContext } from "../../common/context/request-context";
-import { AUTH_POLICY, type AuthPolicy } from "../../common/guards/auth-policy";
+import {
+  ALLOW_WHILE_SUSPENDED,
+  AUTH_POLICY,
+  type AuthPolicy,
+  SUSPENSION_EXEMPT_PERMISSIONS,
+} from "../../common/guards/auth-policy";
 import type { AuthenticatedRequestState, Principal } from "../../common/guards/principal";
 import { AppError } from "../../common/problem/app-error";
 import { COMMON_ERRORS } from "../../common/problem/error-codes";
@@ -45,11 +54,20 @@ export function adminRateLimits(env: {
   };
 }
 
-/** Suspended by GuGu (topic 12 M12.6): members keep read access, every write is refused. */
-function assertWritable(salon: { suspended?: boolean }, method: string): void {
-  if (salon.suspended && !SAFE_METHODS.has(method)) {
-    throw new AppError(403, SALON_SUSPENDED_ERROR, "Salon is suspended");
-  }
+/**
+ * Suspended by GuGu (topic 12 M12.6): members keep read access, every write is refused — except
+ * the narrow q92 allow-list (client erasure, salon-wide export start). A route is exempt only if it
+ * carries `@AllowWhileSuspended()` AND requires one of SUSPENSION_EXEMPT_PERMISSIONS; the boot check
+ * pins the decorator to the exact routes in SUSPENSION_WRITE_ALLOWLIST.
+ */
+export function assertWritable(
+  salon: { suspended?: boolean },
+  method: string,
+  exempt: { allowWhileSuspended: boolean; permission: SalonPermission },
+): void {
+  if (!salon.suspended || SAFE_METHODS.has(method)) return;
+  if (exempt.allowWhileSuspended && SUSPENSION_EXEMPT_PERMISSIONS.has(exempt.permission)) return;
+  throw new AppError(403, SALON_SUSPENDED_ERROR, "Salon is suspended");
 }
 
 /**
@@ -106,7 +124,15 @@ export class AuthGuard implements CanActivate {
         if (!salon.permissions.has(policy.permission)) {
           throw new AppError(403, COMMON_ERRORS.forbidden, "Permission required");
         }
-        assertWritable(salon, req.method);
+        const allowWhileSuspended =
+          this.reflector.getAllAndOverride<boolean | undefined>(ALLOW_WHILE_SUSPENDED, [
+            context.getHandler(),
+            context.getClass(),
+          ]) === true;
+        assertWritable(salon, req.method, {
+          allowWhileSuspended,
+          permission: policy.permission,
+        });
         return true;
       }
     }

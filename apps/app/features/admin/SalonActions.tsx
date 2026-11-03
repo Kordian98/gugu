@@ -14,10 +14,12 @@ import { Text, useCalm } from "@gugu/design-system";
 import { Field, MoneyInput, Segmented, Select } from "../salon-crm/ui/form";
 import { ActionSheet, DayField } from "./ActionSheet";
 import { addDays, endOfDayVn, keyId, todayVn } from "./format";
+import { FreePeriodSheet } from "./FreePeriodSheet";
 
 export type SheetId =
   | "assignPlan"
   | "extendTrial"
+  | "extendFreePeriod"
   | "setPaidUntil"
   | "suspend"
   | "unsuspend"
@@ -38,6 +40,12 @@ export function SalonActionSheets({ salon, sheet, onClose }: Props) {
       <AssignPlanSheet open={is("assignPlan")} onClose={onClose} salon={salon} />
       <TrialSheet open={is("extendTrial")} onClose={onClose} salonId={id} />
       <PaidUntilSheet open={is("setPaidUntil")} onClose={onClose} salonId={id} />
+      <FreePeriodSheet
+        open={is("extendFreePeriod")}
+        onClose={onClose}
+        salonId={id}
+        freeUntil={salon.subscription?.freeUntil ?? null}
+      />
       <OverrideSheet open={is("createOverride")} onClose={onClose} salonId={id} />
       <ActionSheet
         testID="admin-suspend"

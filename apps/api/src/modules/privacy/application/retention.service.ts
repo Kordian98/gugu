@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { NOTIFICATION_DELIVERY_RETENTION_MONTHS } from "@gugu/contracts";
+import { AppConfig } from "../../../infrastructure/config/app-config";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../../audit/audit.facade";
 
@@ -21,6 +22,11 @@ export const RETENTION = {
   idempotencyKeysMs: 0,
   /** A salon export stuck in queued/running this long is marked failed. */
   stuckExportMs: 6 * HOUR,
+  /**
+   * Audit log: AUDIT_RETENTION_MONTHS (default 24, owner answer q94; confirm in the legal review,
+   * q04). Never below this floor — the `audit_logs_append_only` trigger enforces it as well.
+   */
+  auditLogMinMonths: 12,
 } as const;
 
 export type RetentionCounts = Record<
@@ -31,7 +37,8 @@ export type RetentionCounts = Record<
   | "magicLinks"
   | "idempotencyKeys"
   | "exportsExpired"
-  | "exportsFailed",
+  | "exportsFailed"
+  | "auditLogs",
   number
 >;
 
@@ -39,14 +46,15 @@ export type RetentionCounts = Record<
  * Daily retention purge (`privacy.retention`, system job). Platform-wide on purpose: retention is
  * a platform rule, not a tenant action, and every statement is a time-based predicate that never
  * reads tenant data into the process. Deletes in batches so no statement holds long locks.
- * Zalo raw webhook events are purged by the zalo module (30 days); audit logs are kept until the
- * legal review sets a period.
+ * Zalo raw webhook events are purged by the zalo module (30 days). Audit logs are deleted after
+ * AUDIT_RETENTION_MONTHS (q94) through the trigger's narrow retention exception.
  */
 @Injectable()
 export class RetentionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly config: AppConfig,
   ) {}
 
   async purge(now = new Date()): Promise<RetentionCounts> {
@@ -103,6 +111,7 @@ export class RetentionService {
           data: { status: "failed", error: "timeout", completedAt: now },
         })
       ).count,
+      auditLogs: await this.purgeAuditLogs(this.auditCutoff(now)),
     };
     if (Object.values(counts).some((n) => n > 0)) {
       await this.audit.record({
@@ -112,6 +121,31 @@ export class RetentionService {
       });
     }
     return counts;
+  }
+
+  /** `now` minus AUDIT_RETENTION_MONTHS, never later than the 12-month floor. */
+  auditCutoff(now: Date): Date {
+    const months = Math.max(this.config.env.AUDIT_RETENTION_MONTHS, RETENTION.auditLogMinMonths);
+    const cutoff = new Date(now);
+    cutoff.setUTCMonth(cutoff.getUTCMonth() - months);
+    return cutoff;
+  }
+
+  /**
+   * audit_logs is append-only; its trigger lets a DELETE through only with the transaction-local
+   * flag `gugu.audit_retention = on` and only for rows older than 12 months. Each batch is its own
+   * short transaction so the flag never outlives it.
+   */
+  private async purgeAuditLogs(before: Date): Promise<number> {
+    return this.batched((limit) =>
+      this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT set_config('gugu.audit_retention', 'on', true)`;
+        return tx.$executeRaw`
+          DELETE FROM audit_logs WHERE id IN (
+            SELECT id FROM audit_logs WHERE created_at < ${before}
+            ORDER BY created_at LIMIT ${limit})`;
+      }),
+    );
   }
 
   private async purgeSessions(before: Date): Promise<number> {

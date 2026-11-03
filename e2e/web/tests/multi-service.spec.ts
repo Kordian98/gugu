@@ -85,4 +85,30 @@ test.describe("multi-service @vi", () => {
       expect(confirmed?.Text).toContain(cut.vi);
     });
   });
+
+  test("availability 'truncated' shows the incomplete-results hint", async ({ seed, signedIn }) => {
+    // The engine sets `truncated` only when the chain search budget runs out (ADR-0013); the seed
+    // is too small to hit it, so the flag is set on the real response. This checks the UI wiring.
+    const { gel, cut } = SEED.services;
+    const page = await signedIn(seed.ownerEmail);
+    await page.route(/\/salons\/[^/]+\/availability(\/earliest)?\?/, async (route) => {
+      const res = await route.fetch();
+      const json = (await res.json()) as Record<string, unknown>;
+      await route.fulfill({ response: res, json: { ...json, truncated: true } });
+    });
+    await page.goto("/vi/business");
+    await tap(page.getByTestId("crm-new-appointment"));
+    await tap(page.getByTestId("crm-chip").filter({ hasText: gel.vi }));
+    await tap(page.getByTestId("crm-add-service"));
+    await tap(
+      page.getByTestId("crm-next-service").getByTestId("crm-next-chip").filter({ hasText: cut.vi }),
+    );
+    await expect(page.getByTestId("crm-availability-truncated")).toHaveText(
+      t(L, "crm:calendar.truncated"),
+    );
+    await tap(page.getByTestId("crm-find-earliest"));
+    await expect(page.getByTestId("crm-earliest-truncated")).toHaveText(
+      t(L, "crm:calendar.truncated"),
+    );
+  });
 });

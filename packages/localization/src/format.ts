@@ -50,6 +50,23 @@ export function formatTime(
   }).format(date);
 }
 
+/**
+ * "09:30" / "14:30" in both locales: 24-hour clock for grids whose hour axis is 24-hour (the CRM
+ * calendar), so a block's time reads the same way as the column next to it.
+ */
+export function formatClock24(
+  date: Date,
+  locale: AppLocale,
+  timeZone = DEFAULT_SALON_TIMEZONE,
+): string {
+  return new Intl.DateTimeFormat(tag(locale), {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(date);
+}
+
 /** "3/12 14:30" (vi) / "Dec 3, 2:30 PM" (en) in the salon's timezone — compact logs and lists. */
 export function formatDateTimeShort(
   date: Date,
@@ -74,4 +91,33 @@ export function hourInZone(date: Date, timeZone = DEFAULT_SALON_TIMEZONE): numbe
     timeZone,
   }).format(date);
   return Number(h);
+}
+
+/** Calendar month "2026-11" → "Tháng 11/2026" (vi) / "November 2026" (en). */
+export function formatMonth(month: string, locale: AppLocale): string {
+  const [y, m] = month.split("-");
+  if (locale === "vi") return `Tháng ${String(Number(m))}/${y ?? ""}`;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${month}-15T12:00:00Z`));
+}
+
+/** Ratio 0.284 → "28,4%" (vi) / "28.4%" (en); one decimal. */
+export function formatPercent(ratio: number, locale: AppLocale): string {
+  return `${new Intl.NumberFormat(tag(locale), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(ratio * 100)}%`;
+}
+
+/** Local date "2026-12-31" → "31/12/2026" (vi) / "Dec 31, 2026" (en); no timezone shift. */
+export function formatLocalDate(date: string, locale: AppLocale): string {
+  return new Intl.DateTimeFormat(tag(locale), {
+    day: locale === "vi" ? "2-digit" : "numeric",
+    month: locale === "vi" ? "2-digit" : "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T12:00:00Z`));
 }

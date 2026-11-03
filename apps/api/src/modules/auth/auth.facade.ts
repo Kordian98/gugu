@@ -13,4 +13,5 @@ export {
 } from "./infra/http-meta";
 export { safeEqual } from "./infra/tokens";
 export { AdminMfaService, MFA_FAILURE_RULE } from "./mfa/admin-mfa.service";
+export { AdminMfaResetService } from "./mfa/admin-mfa-reset.service";
 export { generateTotpSecret, totp } from "./mfa/totp";

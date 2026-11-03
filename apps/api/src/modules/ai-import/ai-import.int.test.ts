@@ -167,6 +167,33 @@ describe("AI import (integration)", () => {
     expect(llm.requests.length).toBe(calls);
   }, 30_000);
 
+  it("X25: AI import still works on Basic, with the import-sized cap", async () => {
+    const basic = await createSalonFixture(prisma, "AI import basic");
+    const plan = await prisma.plan.findUniqueOrThrow({ where: { code: "basic" } });
+    await prisma.subscription.create({
+      data: {
+        salonId: basic.salonId,
+        planId: plan.id,
+        planVersion: plan.version,
+        status: "active",
+        interval: "month",
+        freeUntil: new Date(Date.now() + 300 * 86_400_000),
+      },
+    });
+    const bearer = await bearerFor(app, basic.ownerUserId);
+    const res = await api()
+      .get(`/api/v1/salons/${basic.salonId}/ai-import`)
+      .set("authorization", bearer)
+      .expect(200);
+    const status = aiImportStatusSchema.parse(res.body);
+    expect(status).toMatchObject({ configured: true, entitled: true });
+    expect(status.usage.capVnd).toBe(10_000);
+    const out = aiImportExtractResultSchema.parse(
+      (await extract(basic.salonId, bearer).expect(200)).body,
+    );
+    expect(out.items[0]?.name.vi).toBe("Sơn gel tay");
+  }, 60_000);
+
   it("requires the plan entitlement", async () => {
     const res = await extract(noPlan.salonId, ownerNoPlan).expect(403);
     expect((res.body as { code: string }).code).toBe(SUBSCRIPTION_ERRORS.entitlementRequired);

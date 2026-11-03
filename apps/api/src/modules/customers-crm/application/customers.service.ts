@@ -78,10 +78,15 @@ export class CustomersService {
           min(b.starts_at) FILTER (WHERE b.status = 'completed') AS first_visit,
           min(b.starts_at) FILTER (WHERE b.status IN ('pending', 'confirmed', 'checked_in') AND b.starts_at > now()) AS next_visit,
           coalesce(sum(b.total_price_minor) FILTER (WHERE b.status = 'completed'), 0) AS spend,
-          bool_or(${own}::uuid IS NULL OR b.staff_id = ${own}::uuid) AS visible
+          bool_or(${own}::uuid IS NULL OR EXISTS (
+            SELECT 1 FROM booking_services ox WHERE ox.booking_id = b.id
+              AND ox.salon_id = b.salon_id AND ox.staff_id = ${own}::uuid)) AS visible
         FROM bookings b
         WHERE b.salon_id = ${ctx.salonId}::uuid AND b.customer_phone_e164 IS NOT NULL
-          AND (${own}::uuid IS NULL OR b.staff_id = ${own}::uuid)
+          -- Own scope = bookings with any line of the member (booking engine read scope, L2).
+          AND (${own}::uuid IS NULL OR EXISTS (
+            SELECT 1 FROM booking_services ox WHERE ox.booking_id = b.id
+              AND ox.salon_id = b.salon_id AND ox.staff_id = ${own}::uuid))
         GROUP BY b.customer_phone_e164
       ), rows AS (
         SELECT p.id, p.display_name, p.phone_e164, p.tags, p.created_at,
@@ -114,7 +119,9 @@ export class CustomersService {
         AND (${own}::uuid IS NULL OR EXISTS (
           SELECT 1 FROM bookings b
           WHERE b.salon_id = p.salon_id AND b.customer_phone_e164 = p.phone_e164
-            AND b.staff_id = ${own}::uuid))
+            AND EXISTS (
+            SELECT 1 FROM booking_services ox WHERE ox.booking_id = b.id
+              AND ox.salon_id = b.salon_id AND ox.staff_id = ${own}::uuid)))
       ORDER BY 1 LIMIT 100`;
     return {
       items: rows.map((r) => this.summary(r, showPhone)),
@@ -139,7 +146,15 @@ export class CustomersService {
           where: {
             salonId: ctx.salonId,
             customerPhoneE164: profile.phoneE164,
-            ...(scope.staffId ? { staffId: scope.staffId } : {}),
+            // Any line of the member (booking engine read scope; security review L2).
+            ...(scope.staffId
+              ? {
+                  OR: [
+                    { staffId: scope.staffId },
+                    { services: { some: { staffId: scope.staffId } } },
+                  ],
+                }
+              : {}),
           },
           orderBy: { startsAt: "desc" },
           take: 200,

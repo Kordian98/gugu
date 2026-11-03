@@ -1,5 +1,4 @@
 export * from "./tokens";
-export * from "./a11y";
 export * from "./scale";
 export * from "./components/Text";
 export * from "./components/GradientText";
@@ -12,6 +11,7 @@ export * from "./components/Icon";
 export * from "./components/HandDrawnHeart";
 export * from "./brand/Logo";
 export * from "./calm";
+export * from "./a11y";
 export * from "./components/calm/CalmCard";
 export * from "./components/calm/CalmButton";
 export * from "./components/calm/Pill";

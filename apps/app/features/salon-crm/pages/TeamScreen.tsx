@@ -17,11 +17,12 @@ import { useBreakpoint } from "../shell/useBreakpoint";
 import { useCrmNav } from "../shell/useCrmNav";
 import { BookabilityWarning } from "../ui/BookabilityWarning";
 import { EmptyState } from "../ui/EmptyState";
+import { PaySheet } from "./payroll/PaySheet";
 import { InviteSheet } from "./team/InviteSheet";
 import { ScheduleEditor, weekdayLabel } from "./team/ScheduleEditor";
 import { StaffEditor } from "./team/StaffEditor";
 
-type Open = { kind: "edit" | "schedule" | "invite"; staff: StaffMember | null } | null;
+type Open = { kind: "edit" | "schedule" | "invite" | "pay"; staff: StaffMember | null } | null;
 
 /** "T2–T7 · 09:00–18:00" style summary of a weekly schedule. */
 function scheduleSummary(s: StaffMember, locale: "vi" | "en", none: string): string {
@@ -51,6 +52,8 @@ export function TeamScreen() {
   const [open, setOpen] = useState<Open>(null);
   const canInvite = can("members.invite");
   const canSchedule = can("schedules.write");
+  // Settings → Team → Pay & commission (owner; managers only with the owner's grant).
+  const canPay = can("payroll.manage");
   const items = team.data?.items ?? [];
   const mobile = bp === "mobile";
   const { user } = useAuth();
@@ -228,6 +231,18 @@ export function TeamScreen() {
                     }}
                   />
                 ) : null}
+                {canPay ? (
+                  <CalmButton
+                    testID={`crm-staff-pay-${s.id}`}
+                    size="sm"
+                    variant="secondary"
+                    icon="wallet"
+                    label={t("payroll.pay.button")}
+                    onPress={() => {
+                      setOpen({ kind: "pay", staff: s });
+                    }}
+                  />
+                ) : null}
                 {canInvite ? (
                   <CalmButton
                     size="sm"
@@ -270,6 +285,16 @@ export function TeamScreen() {
           key={open.staff.id}
           open
           staff={open.staff}
+          onClose={() => {
+            setOpen(null);
+          }}
+        />
+      ) : null}
+      {open?.kind === "pay" && open.staff ? (
+        <PaySheet
+          key={open.staff.id}
+          staffId={open.staff.id}
+          name={open.staff.displayName}
           onClose={() => {
             setOpen(null);
           }}

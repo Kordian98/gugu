@@ -12,7 +12,9 @@ import {
   adminMfaEnrolmentSchema,
   adminMfaRecoveryCodesSchema,
   adminMfaStatusSchema,
+  adminMutationResultSchema,
   adminStepUpResultSchema,
+  adminTeamListSchema,
   problemSchema,
 } from "@gugu/contracts";
 import type { PlatformRole } from "@gugu/domain";
@@ -20,6 +22,8 @@ import {
   addSalonMember,
   bearerFor,
   createSalonFixture,
+  enrolAdminMfa,
+  steppedUpBearerFor,
   testEmail,
 } from "../../../test/factories/identity";
 import { http } from "../../../test/http-app";
@@ -367,5 +371,132 @@ describe("admin TOTP step-up (integration)", () => {
       code: totp(secret, Date.now() + STEP_MS),
     });
     expect(res.status).toBe(401);
+  });
+  describe("q93: a second super_admin resets another admin's 2FA", () => {
+    const REASON = "Lost phone and recovery codes, verified by video call";
+    const reset = (target: string, bearer: string, body: object = { reason: REASON }) =>
+      call("post", `team/${target}/mfa/reset`, bearer, body);
+    /** A target admin with a factor, recovery codes and two live (one elevated) sessions. */
+    const target = async (role: PlatformRole = "support_admin") => {
+      const t = await admin(role);
+      await enrol(t.bearer);
+      const second = await admin(role);
+      // Move the second session onto the same user (two devices).
+      await prisma.session.update({ where: { id: second.sessionId }, data: { userId: t.id } });
+      return { ...t, otherBearer: second.bearer, otherSessionId: second.sessionId };
+    };
+
+    it("resets factor, recovery codes, elevations and sessions; audited with actor, target, reason", async () => {
+      const actor = await admin("super_admin");
+      const actorBearer = await steppedUpBearerFor(app, actor.id);
+      // Another super_admin: after the reset they must re-enrol before their next admin write.
+      const t = await target("super_admin");
+      expect(await prisma.adminRecoveryCode.count({ where: { userId: t.id } })).toBe(10);
+
+      const team = adminTeamListSchema.parse(
+        (await call("get", "team", actorBearer).expect(200)).body,
+      );
+      const row = team.items.find((i) => i.userId === t.id);
+      expect(row).toMatchObject({ isSelf: false, mfaEnrolled: true, recoveryCodesRemaining: 10 });
+      expect(team.items.find((i) => i.userId === actor.id)?.isSelf).toBe(true);
+      expect(JSON.stringify(team)).not.toMatch(/secret|Ciphertext|codeHash/i);
+
+      const res = adminMutationResultSchema.parse(
+        (await reset(t.id, actorBearer).expect(200)).body,
+      );
+      expect(await prisma.adminMfaFactor.count({ where: { userId: t.id } })).toBe(0);
+      expect(await prisma.adminRecoveryCode.count({ where: { userId: t.id } })).toBe(0);
+      const sessions = await prisma.session.findMany({ where: { userId: t.id } });
+      expect(sessions.length).toBeGreaterThanOrEqual(2);
+      for (const s of sessions) {
+        expect(s.revokedAt).not.toBeNull();
+        expect(s.stepUpUntil).toBeNull();
+      }
+      expect(sessions.find((s) => s.id === t.sessionId)?.revokeReason).toBe("admin_mfa_reset");
+      // Both devices are signed out at once.
+      await call("get", "mfa", t.bearer).expect(401);
+      await call("get", "mfa", t.otherBearer).expect(401);
+
+      const audit = await prisma.auditLog.findUniqueOrThrow({ where: { id: res.auditId } });
+      expect(audit).toMatchObject({
+        action: "admin.mfa_reset_by_admin",
+        actorType: "platform_admin",
+        actorId: actor.id,
+        targetType: "user",
+        targetId: t.id,
+        salonId: null,
+      });
+      expect(audit.metadata).toMatchObject({
+        reason: REASON,
+        platformRole: "super_admin",
+        before: { enrolled: true, recoveryCodes: 10 },
+        after: { enrolled: false, targetPlatformRole: "super_admin" },
+      });
+
+      // The target signs in again: no factor, so every admin write needs a fresh enrolment first.
+      const back = await bearerFor(app, t.id);
+      const write = await suspendSalon(back);
+      expect(problemSchema.parse(write.body).code).toBe(ADMIN_MFA_ERRORS.enrollmentRequired);
+      const status = adminMfaStatusSchema.parse((await call("get", "mfa", back).expect(200)).body);
+      expect(status).toMatchObject({ enrolled: false, recoveryCodesRemaining: 0 });
+      await enrol(back);
+    });
+
+    it("refuses a reset of one's own account (403), nothing changes", async () => {
+      const actor = await admin("super_admin");
+      const bearer = await steppedUpBearerFor(app, actor.id);
+      const res = await reset(actor.id, bearer);
+      expect(res.status).toBe(403);
+      expect(problemSchema.parse(res.body).code).toBe(ADMIN_MFA_ERRORS.resetSelfForbidden);
+      expect(await prisma.adminMfaFactor.count({ where: { userId: actor.id } })).toBe(1);
+      expect(
+        await prisma.auditLog.count({
+          where: { action: "admin.mfa_reset_by_admin", targetId: actor.id },
+        }),
+      ).toBe(0);
+    });
+
+    it("support_admin cannot list the team or reset anyone (403)", async () => {
+      const support = await admin("support_admin");
+      const bearer = await steppedUpBearerFor(app, support.id);
+      const t = await target();
+      await call("get", "team", bearer).expect(403);
+      const res = await reset(t.id, bearer);
+      expect(res.status).toBe(403);
+      expect(problemSchema.parse(res.body).code).toBe("common.forbidden");
+      expect(await prisma.adminMfaFactor.count({ where: { userId: t.id } })).toBe(1);
+    });
+
+    it("needs the actor's own step-up, an enrolled factor and a 5–500 character reason", async () => {
+      const t = await target();
+      const notEnrolled = await admin("super_admin");
+      const r0 = await reset(t.id, notEnrolled.bearer);
+      expect(problemSchema.parse(r0.body).code).toBe(ADMIN_MFA_ERRORS.enrollmentRequired);
+
+      const actor = await admin("super_admin");
+      await enrolAdminMfa(app, actor.id);
+      const r1 = await reset(t.id, actor.bearer);
+      expect(r1.status).toBe(403);
+      expect(problemSchema.parse(r1.body).code).toBe(ADMIN_ERRORS.stepUpRequired);
+
+      const elevated = await steppedUpBearerFor(app, actor.id);
+      await reset(t.id, elevated, { reason: "abc" }).expect(400);
+      await reset(t.id, elevated, { reason: "x".repeat(501) }).expect(400);
+      await reset(t.id, elevated, {}).expect(400);
+      expect(await prisma.adminMfaFactor.count({ where: { userId: t.id } })).toBe(1);
+      expect(
+        await prisma.auditLog.count({
+          where: { action: "admin.mfa_reset_by_admin", targetId: t.id },
+        }),
+      ).toBe(0);
+    });
+
+    it("a salon member or unknown id is not an admin target (404)", async () => {
+      const actor = await admin("super_admin");
+      const bearer = await steppedUpBearerFor(app, actor.id);
+      const s = await createSalonFixture(prisma, "MFA Reset Owner");
+      await reset(s.ownerUserId, bearer).expect(404);
+      await reset("0190f000-0000-7000-8000-0000000000cc", bearer).expect(404);
+    });
   });
 });

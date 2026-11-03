@@ -11,6 +11,7 @@ export type NavItemId =
   | "reviews"
   | "zalo"
   | "insights"
+  | "payroll"
   | "settings";
 
 export type NavSectionId = "workspace" | "growth" | "business" | "system";
@@ -20,7 +21,7 @@ export type NavItem = {
   icon: IconName;
   path: string;
   /** Hidden for members without it (UX only; the API enforces). */
-  permission?: "members.read" | "zalo.inbox.use";
+  permission?: "members.read" | "zalo.inbox.use" | "payroll.read";
 };
 
 /**
@@ -47,7 +48,14 @@ export const NAV: { id: NavSectionId; items: NavItem[] }[] = [
       // "reviews" returns once topic 11 ships the reviews read model (no placeholder entries).
     ],
   },
-  { id: "business", items: [{ id: "insights", icon: "chart", path: "/business/insights" }] },
+  {
+    id: "business",
+    items: [
+      { id: "insights", icon: "chart", path: "/business/insights" },
+      // Owner by default; managers only with the owner's grant (ADR-0016).
+      { id: "payroll", icon: "wallet", path: "/business/payroll", permission: "payroll.read" },
+    ],
+  },
   { id: "system", items: [{ id: "settings", icon: "settings", path: "/business/settings" }] },
 ];
 

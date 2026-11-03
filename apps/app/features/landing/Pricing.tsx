@@ -33,8 +33,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
           {PERIODS.map((p) => (
             <Pressable
               key={p}
-              accessibilityRole="radio"
-              {...checkableA11y(period === p)}
+              {...checkableA11y("radio", period === p)}
               onPress={() => {
                 setPeriod(p);
               }}

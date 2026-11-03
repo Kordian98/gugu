@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AiImportModule } from "../ai-import/ai-import.facade";
+import { InsightsModule } from "../insights/insights.facade";
 import { AssistantClock } from "./application/clock";
 import { AssistantDirectory } from "./application/directory";
 import { AssistantService } from "./application/assistant.service";
@@ -13,7 +14,7 @@ import { ReadTools } from "./tools/read-tools";
  * the Anthropic client and the hard monthly AI cost cap with the AI import module.
  */
 @Module({
-  imports: [AiImportModule],
+  imports: [AiImportModule, InsightsModule],
   controllers: [AssistantController],
   providers: [
     AssistantService,

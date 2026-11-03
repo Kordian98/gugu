@@ -148,7 +148,8 @@ export class AdminUsageQueries {
       return {
         salonId: s.id,
         name: s.name,
-        plan: s.plan ? planCodeSchema.parse(s.plan) : null,
+        // Effective plan from the read model (an ended trial inside the free year is Basic, X25).
+        plan: ents[i]?.plan ?? (s.plan ? planCodeSchema.parse(s.plan) : null),
         subscriptionStatus: ents[i]?.status ?? "none",
         aiCostVnd,
         aiCapVnd,

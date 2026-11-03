@@ -128,16 +128,11 @@ test.describe("roles @vi", () => {
     });
   });
 
-  test("BUG: staff on desktop see an empty Today timeline despite own bookings", async ({
+  test("staff (desktop): Today timeline shows her own column with her own booking", async ({
     seed,
     signedIn,
   }) => {
-    test.info().annotations.push({
-      type: "issue",
-      description:
-        "Today timeline columns come from GET /team, which staff may not read (members.read), so a staff member with appointments sees 'Chưa có lịch hẹn hôm nay' on desktop while the KPI says 1. Expected: her own column with her booking.",
-    });
-    test.fail();
+    // Columns come from her own bookings (she may not read the team, members.read).
     const page = await signedIn(need(seed.staffEmail, "staff account"));
     await page.goto("/vi/business");
     await expect(
@@ -145,5 +140,7 @@ test.describe("roles @vi", () => {
         name: new RegExp(`^${lan.time} ${SEED.services.gel.vi}, ${lan.name},`),
       }),
     ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("crm-timeline-empty")).toHaveCount(0);
+    await expect(page.getByText(mai.name)).toHaveCount(0);
   });
 });

@@ -8,6 +8,6 @@ export {
   SubscriptionAdminService,
 } from "./application/subscription-admin.service";
 export { Clock } from "./application/clock";
-export { effectiveStatus } from "./domain/subscription-status";
+export { effectivePlan, effectiveStatus } from "./domain/subscription-status";
 export { RequiresEntitlement } from "./http/requires-entitlement";
 export { SubscriptionsModule } from "./subscriptions.module";

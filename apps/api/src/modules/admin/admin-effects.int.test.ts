@@ -135,7 +135,7 @@ describe("platform admin side effects (integration)", () => {
   });
 
   describe("suspension", () => {
-    it("every non-GET salon route answers 403 salon.suspended to the owner; GETs stay open", async () => {
+    it("every non-GET salon route but the q92 allow-list answers 403 salon.suspended; GETs stay open", async () => {
       const s = await newSalon("SuspendMatrix");
       await facade.startTrial({ salonId: s.salonId });
       const owner = await bearerFor(app, s.ownerUserId);
@@ -147,15 +147,27 @@ describe("platform admin side effects (integration)", () => {
       const url = (r: RouteInfo) =>
         `/api/v1/${r.path.replace(":salonId", s.salonId).replace(/:[A-Za-z]+/g, PLACEHOLDER_ID)}`;
       const leaks: string[] = [];
+      const exempt: string[] = [];
       for (const r of writes) {
         const method = r.method.toLowerCase() as "post" | "patch" | "put" | "delete";
         const res = await request(http(app))[method](url(r)).set("authorization", owner).send({});
         const code = (res.body as { code?: string }).code;
-        if (res.status !== 403 || code !== SALON_SUSPENDED_ERROR) {
+        if (r.allowWhileSuspended) {
+          // q92: client erasure and the salon export start pass the suspension check.
+          expect({ route: r.path, code }).not.toEqual({
+            route: r.path,
+            code: SALON_SUSPENDED_ERROR,
+          });
+          exempt.push(`${r.method} ${r.path}`);
+        } else if (res.status !== 403 || code !== SALON_SUSPENDED_ERROR) {
           leaks.push(`${r.method} ${r.path} → ${String(res.status)} ${String(code)}`);
         }
       }
       expect(leaks, "salon writes not refused while suspended").toEqual([]);
+      expect(exempt.sort()).toEqual([
+        "POST salons/:salonId/customers/:customerId/erase",
+        "POST salons/:salonId/privacy/exports",
+      ]);
 
       const blockedReads: string[] = [];
       for (const r of salonRoutes.filter((x) => x.method === "GET")) {
@@ -208,6 +220,11 @@ describe("platform admin side effects (integration)", () => {
       await act("admin/salons/:salonId/subscription/trial", `${base}/subscription/trial`, {
         trialEndsAt: inDays(20),
       });
+      await act(
+        "admin/salons/:salonId/subscription/free-until",
+        `${base}/subscription/free-until`,
+        { freeUntil: inDays(400) },
+      );
       await act("admin/salons/:salonId/subscription/plan", `${base}/subscription/plan`, {
         plan: "pro",
         interval: "month",
@@ -315,6 +332,7 @@ describe("platform admin side effects (integration)", () => {
       const STEP_UP_ROUTES = [
         "admin/salons/:salonId/founding-partner/revoke",
         "admin/salons/:salonId/overrides",
+        "admin/salons/:salonId/subscription/free-until",
         "admin/salons/:salonId/subscription/plan",
         "admin/salons/:salonId/suspend",
         "admin/salons/:salonId/unsuspend",
@@ -334,6 +352,7 @@ describe("platform admin side effects (integration)", () => {
           paidUntil: inDays(30),
         },
         "admin/salons/:salonId/subscription/trial": { trialEndsAt: inDays(20) },
+        "admin/salons/:salonId/subscription/free-until": { freeUntil: inDays(400) },
         "admin/salons/:salonId/subscription/paid-until": { paidUntil: inDays(60) },
         "admin/salons/:salonId/overrides": {
           key: "ai.agent.enabled",
@@ -393,9 +412,10 @@ describe("platform admin side effects (integration)", () => {
   });
 
   describe("founding partner vs MARKETPLACE_LAUNCH_AT (R-FP3, R-FP4)", () => {
+    // Pro: a paid plan. Basic inside the free year (X25) is not paid and never qualifies.
     const assign = (salonId: string, now: Date) =>
       post(`salons/${salonId}/subscription/plan`, superAdmin, {
-        plan: "basic",
+        plan: "pro",
         interval: "month",
         paidUntil: new Date(now.getTime() + 30 * DAY).toISOString(),
         reason: REASON,
@@ -458,6 +478,32 @@ describe("platform admin side effects (integration)", () => {
       }).expect(200);
       expect(await flag(s.organizationId)).toBeNull();
       expect((await entitlements.forSalon(s.salonId)).foundingPartner).toBeNull();
+    });
+
+    it("X25: Basic inside the free year is not a paid activation and never qualifies", async () => {
+      setLaunch(null);
+      const s = await newSalon("FP Free Basic");
+      await facade.startTrial({ salonId: s.salonId });
+      await post(`salons/${s.salonId}/subscription/plan`, superAdmin, {
+        plan: "basic",
+        interval: "month",
+        paidUntil: new Date(Date.now() + 30 * DAY).toISOString(),
+        reason: REASON,
+      }).expect(200);
+      expect(await flag(s.organizationId)).toBeNull();
+      // Once the free year is over, a paid Basic activation qualifies as before (X20 unchanged).
+      const late = await newSalon("FP Paid Basic");
+      await prisma.salon.update({
+        where: { id: late.salonId },
+        data: { createdAt: new Date(Date.now() - 400 * DAY) },
+      });
+      await post(`salons/${late.salonId}/subscription/plan`, superAdmin, {
+        plan: "basic",
+        interval: "month",
+        paidUntil: new Date(Date.now() + 30 * DAY).toISOString(),
+        reason: REASON,
+      }).expect(200);
+      expect((await flag(late.organizationId))?.source).toBe("paid_before_launch");
     });
 
     it("the earned flag survives a later plan change (idempotent, first qualification kept)", async () => {

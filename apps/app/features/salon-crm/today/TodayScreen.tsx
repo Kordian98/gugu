@@ -24,7 +24,9 @@ import { greetingKey } from "./greeting";
 import { KpiRow } from "./KpiRow";
 import { ActivityCard, UpcomingCard } from "./RailCards";
 import { BookabilityIssues } from "./BookabilityIssues";
+import { MyEarningsCard, ProfitCard } from "./MonthCards";
 import { MyDay } from "./MyDay";
+import { PlanNotice } from "./PlanNotice";
 import { SetupCard } from "./SetupCard";
 import { ZaloWaitingCard } from "./ZaloWaitingCard";
 import { WeekStrip } from "./WeekStrip";
@@ -136,9 +138,12 @@ export function TodayScreen() {
           <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} compact />
         ) : null}
         {ws.demo ? null : <BookabilityIssues />}
+        {ws.demo ? null : <PlanNotice timeZone={ws.timeZone} />}
         <ZaloWaitingCard />
         <WeekStrip now={now} />
         <KpiRow today={ws.today} only="revenue" />
+        {ws.demo ? null : <ProfitCard />}
+        {ws.demo ? null : <MyEarningsCard />}
         <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
         {sheet}
       </ScrollView>
@@ -162,8 +167,11 @@ export function TodayScreen() {
         <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} />
       ) : null}
       {ws.demo ? null : <BookabilityIssues />}
+      {ws.demo ? null : <PlanNotice timeZone={ws.timeZone} />}
       <ZaloWaitingCard />
       <KpiRow today={ws.today} />
+      {ws.demo ? null : <ProfitCard />}
+      {ws.demo ? null : <MyEarningsCard />}
       {bp === "wide" ? (
         <View style={{ flexDirection: "row", gap: 16, alignItems: "flex-start" }}>
           {timeline}

@@ -48,6 +48,7 @@ export const AUDIT_ACTIONS = [
   // Platform admin (topic 12 M12.6): metadata = { reason, before, after }.
   "admin.subscription_plan_assigned",
   "admin.trial_extended",
+  "admin.free_period_extended",
   "admin.paid_until_set",
   "admin.salon_suspended",
   "admin.salon_unsuspended",
@@ -61,6 +62,8 @@ export const AUDIT_ACTIONS = [
   "admin.mfa_step_up",
   "admin.mfa_step_up_failed",
   "admin.mfa_recovery_codes_regenerated",
+  /** q93: a super_admin reset ANOTHER admin's factor. Target = that user; metadata: reason, counts. */
+  "admin.mfa_reset_by_admin",
   /** Written by scripts/seed-platform-admin.mjs (local dev) until topic 05 ships role management. */
   "admin.platform_role_granted",
   "notifications.settings_updated",
@@ -70,6 +73,21 @@ export const AUDIT_ACTIONS = [
   "privacy.salon_export_requested",
   "privacy.salon_export_downloaded",
   "privacy.retention_purged",
+  // Staff pay & payroll (topic 07, ADR-0016). Metadata: dates, kinds, amounts, counts; never the
+  // free-text reason of an adjustment, never names.
+  "payroll.pay_settings_saved",
+  "payroll.commission_policy_saved",
+  "payroll.manager_access_changed",
+  "payroll.adjustment_added",
+  "payroll.adjustment_removed",
+  "payroll.month_closed",
+  "payroll.month_reopened",
+  "payroll.marked_paid",
+  "payroll.paid_mark_removed",
+  "payroll.exported",
+  "costs.created",
+  "costs.updated",
+  "costs.removed",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

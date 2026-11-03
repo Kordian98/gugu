@@ -20,7 +20,7 @@ import {
   salonExportSchema,
   salonParamsSchema,
 } from "@gugu/contracts";
-import { RequirePermission } from "../../../common/guards/auth-policy";
+import { AllowWhileSuspended, RequirePermission } from "../../../common/guards/auth-policy";
 import {
   CurrentSalon,
   CurrentUser,
@@ -36,7 +36,9 @@ type ClientParams = { salonId: string; customerId: string };
  * Privacy tools for salon owners (topic 05 step 8, q80): the salon answers its clients' requests.
  * Owner-only permissions (`customers.export`, `customers.erase`, never grantable). Tenant scope
  * comes from the guard's SalonContext; another salon's client or export is a 404. Everything is
- * audited with counts only. GuGu Studio is designed to support such requests; no compliance claim.
+ * audited with counts only. Erasure and the salon export stay available while GuGu suspends the
+ * salon (q92, `@AllowWhileSuspended`); every other salon write is refused then. GuGu Studio is
+ * designed to support such requests; no compliance claim.
  */
 @ApiTags("privacy")
 @Controller("salons/:salonId")
@@ -66,6 +68,8 @@ export class PrivacyController {
   @Post("customers/:customerId/erase")
   @HttpCode(200)
   @RequirePermission("customers.erase")
+  // q92: the owner can still answer a client's erasure request while GuGu suspends the salon.
+  @AllowWhileSuspended()
   @ApiOperation({
     operationId: "privacy.eraseClient",
     summary:
@@ -95,6 +99,8 @@ export class PrivacyController {
   @Post("privacy/exports")
   @HttpCode(202)
   @RequirePermission("customers.export")
+  // q92: the salon-wide export can still be started (and downloaded, a GET) while suspended.
+  @AllowWhileSuspended()
   @ApiOperation({
     operationId: "privacy.requestExport",
     summary: "Start a salon-wide client data export (async; one at a time, 3 per day).",
