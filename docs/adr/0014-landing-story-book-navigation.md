@@ -38,7 +38,7 @@ directional settle. The owner then asked for a different model: "mega robust, li
    ×3 · office · Insights · pay & commissions · switching, counted "n / 9". They turn only by Next/Prev, HUD chapters (Front
    desk, Treatment room, Back office, Switch; Arrive is gone), keys while the hero or story is in view, or
    one swipe per page. A turn plays the existing timeline at the original pacing and never stops
-   half-way. Next during a turn fast-forwards it (≤ 0.45 s) and queues at most one page. Chapter jumps
+   half-way. Pressing Next / → again during a forward turn (or Prev / ← during a backward one) speeds it up to finish within 0.45 s and never skips a page; the opposite direction reverses it. Turns use an out-ease so they react at once (owner). Chapter jumps
    keep the old distance-based duration.
 5. **No before/after divider.** The handle and drag were removed. Before → after is the original sweep
    (photo split + gradient line + scene content), played by Next ("Xem sau khi dùng"), a key or a swipe.

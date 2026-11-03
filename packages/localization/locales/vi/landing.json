@@ -468,16 +468,7 @@
       "i3": "Lợi nhuận gộp theo từng dịch vụ, tính từ chi phí thực hiện",
       "i4": "Lịch hẹn sắp tới của cả đội",
       "i5": "Phễu Zalo: từ tin nhắn đến lịch hẹn",
-      "win": "Báo cáo · 30 ngày",
-      "eg": "Số liệu minh hoạ",
-      "margin": "Lợi nhuận gộp theo dịch vụ",
-      "s1": "Sơn gel",
-      "s2": "Đắp bột",
-      "s3": "Nhuộm tóc",
-      "funnel": "Phễu Zalo",
-      "f1": "tin nhắn",
-      "f2": "hỏi giờ trống",
-      "f3": "lịch hẹn"
+      "shot": "Phân tích & báo cáo · 30 ngày"
     },
     "free": {
       "eyebrow": "GuGu Studio Basic",
@@ -499,11 +490,7 @@
       "p4": "Mục “Tháng này” cho chủ salon: đã có, sắp tới từ lịch hẹn, lương, chi phí, lãi ròng ước tính và biên lợi nhuận",
       "p5": "Nhân viên chỉ xem được thu nhập của chính mình",
       "note": "Số ước tính trước thuế và bảo hiểm.",
-      "payRow": "Lương và hoa hồng",
-      "margin": "biên {{pct}}",
-      "s1": "Nguyễn Linh",
-      "s2": "Trần Mai",
-      "s3": "Lê Tuấn"
+      "shot": "Lương & hoa hồng · từng người, tháng này"
     }
   }
 }

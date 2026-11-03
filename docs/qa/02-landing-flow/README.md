@@ -110,6 +110,16 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - **`srcset` + `sizes`:** derived from the displayed width (box width × crop aspect ÷ box aspect). `width`/`height` attributes give the ratio before lazy load, which fixes a 0 px image on phones.
 - **Measured upscale** (displayed device px ÷ chosen file px; ≤ 1.15 required): 1440@2× 0.76–1.00, 1280@1× 0.44–0.52, 390@3× 0.60–0.82, 360@3× 0.59–0.82.
 
+## Back office uses real screens (owner, 2026-11-04)
+
+- **Insights page:** a real crop of the app's Insights screen ("Phân tích & báo cáo", 30 days: completed bookings, new and returning clients, estimated revenue, recorded at the salon, estimated gross margin).
+- **Pay page:** a real crop of the payroll screen (per person: pay type, base, commission, adjustments, totals).
+- **Capture:** both come from the seeded demo salon on my own DB at 3× with srcset. The CRM-styled mocks are gone.
+- **"Tháng này" is not used yet:** the seeded month shows a negative estimated profit, which is wrong for marketing.
+- **Final payroll screenshots:** to come via the coordinator after `crm/07-payroll-ux` merges.
+- **Bug fixed:** the Insights animation also targeted the payroll window (shared classes), so on Insights an empty payroll window covered the real one. The selectors are now scoped to `.ov-i`.
+- **Turns react at once:** an out-ease, with the same durations; the intro keeps its in-out ease. Pressing Next or → again during a forward turn (or ← during a backward one) speeds it up to finish within 0.45 s, without skipping a page.
+
 ## No card, no payment method (owner, 2026-11-04)
 
 - **"Không cần thẻ hay thanh toán khi đăng ký"** is in the hero note, the X25 band, the Basic card and the final CTA.

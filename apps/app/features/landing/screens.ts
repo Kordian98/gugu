@@ -23,6 +23,10 @@ const SCREENS = {
     calendarCrop2x: require("../../assets/studio/vi/calendar-crop-2x.webp") as number,
     servicesCrop2x: require("../../assets/studio/vi/services-crop-2x.webp") as number,
     appointmentsCrop2x: require("../../assets/studio/vi/appointments-crop-2x.webp") as number,
+    insightsKpis: require("../../assets/studio/vi/insights-kpis.webp") as number,
+    insightsKpis2x: require("../../assets/studio/vi/insights-kpis-2x.webp") as number,
+    payrollTable: require("../../assets/studio/vi/payroll-table.webp") as number,
+    payrollTable2x: require("../../assets/studio/vi/payroll-table-2x.webp") as number,
   },
   en: {
     overview: require("../../assets/studio/en/overview.webp") as number,
@@ -40,6 +44,10 @@ const SCREENS = {
     calendarCrop2x: require("../../assets/studio/en/calendar-crop-2x.webp") as number,
     servicesCrop2x: require("../../assets/studio/en/services-crop-2x.webp") as number,
     appointmentsCrop2x: require("../../assets/studio/en/appointments-crop-2x.webp") as number,
+    insightsKpis: require("../../assets/studio/en/insights-kpis.webp") as number,
+    insightsKpis2x: require("../../assets/studio/en/insights-kpis-2x.webp") as number,
+    payrollTable: require("../../assets/studio/en/payroll-table.webp") as number,
+    payrollTable2x: require("../../assets/studio/en/payroll-table-2x.webp") as number,
   },
 } as const;
 

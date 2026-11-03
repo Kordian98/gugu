@@ -17,8 +17,9 @@ import { gsap } from "gsap";
  * - Pages turn only by Next/Prev, HUD chapters, ← / → while the story is in view and one HORIZONTAL
  *   touch swipe per page. ↑ ↓ PgUp PgDn Space and vertical swipes scroll the page. Every input is ignored
  *   while the intro plays. A turn plays the timeline from one composed page to
- *   the next at the original pacing and cannot stop half-way; Next during a turn fast-forwards it
- *   (≤ 0.45 s) and queues at most one page; Prev reverses it. Page 1 has no Prev (nothing replays).
+ *   the next at the original pacing and cannot stop half-way. Pressing Next / → again during a forward
+ *   turn (or Prev / ← during a backward one) speeds it up to finish within 0.45 s, without skipping a
+ *   page; the opposite direction reverses it. Page 1 has no Prev (nothing replays).
  * - Reduced motion: the intro and every turn are short crossfades.
  */
 
@@ -173,8 +174,13 @@ export function book(o: Opts): BookApi {
     if (q > 0) next();
     else if (q < 0) prev();
   };
-  const play = (to: number, dur: number, ease = "sine.inOut") => {
+  /** Direction of the running turn: +1 forward, −1 back. */
+  let turnDir: 1 | -1 = 1;
+  // Turns start moving at once (owner: "the reaction to Next must be visible much sooner"); the intro keeps
+  // its gentle in-out.
+  const play = (to: number, dur: number, ease = "power2.out") => {
     const my = ++token;
+    turnDir = to >= page ? 1 : -1;
     turn?.kill();
     const from = clock.t;
     const target = pages[to]?.t ?? 0;
@@ -220,7 +226,7 @@ export function book(o: Opts): BookApi {
     scroller.scrollTop = dockY;
     clock.t = 0;
     draw();
-    play(1, pages[1]?.dur ?? 7);
+    play(1, pages[1]?.dur ?? 7, "sine.inOut");
     if (then) after = then;
   };
   function next() {
@@ -230,8 +236,10 @@ export function book(o: Opts): BookApi {
       return;
     }
     if (turn) {
-      if (queued === 0) queued = 1;
-      fastForward();
+      // Next / → while a page turns: speed the running animation up (no extra page). Against a running
+      // backward turn it turns forward again.
+      if (turnDir > 0) fastForward();
+      else play(page + 1, durFor(page + 1, true));
       return;
     }
     if (page >= last) {
@@ -244,8 +252,9 @@ export function book(o: Opts): BookApi {
     if (intro !== "done") return;
     if (turn) {
       queued = 0;
-      if (page > 1 && clock.t < (pages[page]?.t ?? 0)) play(page - 1, durFor(page - 1, true));
-      else fastForward();
+      // Prev / ← while a page turns back: speed it up; against a forward turn: reverse it.
+      if (turnDir < 0) fastForward();
+      else if (page > 1) play(page - 1, durFor(page - 1, true));
       return;
     }
     if (page <= 1) return; // nothing replays: the hero is reached by scrolling up

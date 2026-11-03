@@ -40,9 +40,7 @@ const mailpit = `${arg("mailpit", "http://localhost:18025")}/api/v1`;
 const email = arg("email", `owner-landing-${Date.now()}@demo.gugu`);
 const seed = !process.argv.includes("--no-seed");
 /** Comma list of shot names to (re)take; default all. */
-const only = arg("only", "")
-  .split(",")
-  .filter(Boolean);
+const only = arg("only", "").split(",").filter(Boolean);
 /**
  * Crops are taken at 3× device pixels so they stay sharp on retina desktops (2×) and phones (3×) without
  * ever being upscaled (≤ 1.15× rule); the landing serves them with srcset (`-2x` + full size; not `@2x`, which Metro treats as a scale variant).
@@ -77,6 +75,8 @@ const SHOTS = (t) => [
   { name: "insights", route: "business/insights" },
   { name: "insights-month", route: "business/insights", tab: t.profit.tabs.month },
   { name: "payroll", route: "business/payroll" },
+  { name: "insights-kpis", route: "business/insights", region: [736, 204, 677, 324] },
+  { name: "payroll-table", route: "business/payroll", region: [276, 220, 944, 366] },
   { name: "zalo", route: "business/zalo" },
 ];
 
@@ -91,7 +91,11 @@ function run(cmd, args, cwd = root) {
  */
 const statePath = join(tmpdir(), `gugu-landing-screens-${email.replace(/\W/g, "_")}.json`);
 async function signIn(browser) {
-  const opts = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, colorScheme: "light" };
+  const opts = {
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 2,
+    colorScheme: "light",
+  };
   if (existsSync(statePath)) {
     const cached = await browser.newContext({ ...opts, storageState: statePath });
     const probe = await cached.newPage();
@@ -188,7 +192,7 @@ for (const loc of ["vi", "en"]) {
     await pg.waitForTimeout(3500);
     await pg.addStyleTag({ content: "#error-overlay,#error-toast{display:none!important}" });
     if (s.tab) {
-      await pg.getByText(s.tab, { exact: true }).first().click();
+      await pg.getByText(s.tab, { exact: true }).filter({ visible: true }).first().click();
       await pg.waitForTimeout(2000);
     }
     // The landing must show a salon that is already set up: the checklist title may not be on a used
@@ -234,7 +238,17 @@ for (const loc of ["vi", "en"]) {
     const scale = clip ? 1 : 2400 / w;
     if (s.region) {
       // srcset companion at 2× (2/3 of the 3× pixels) for retina desktops and smaller downloads.
-      execFileSync("cwebp", ["-quiet", "-q", "84", "-resize", String(Math.round((w * 2) / 3)), "0", png, "-o", png.replace(/\.png$/, "-2x.webp")]);
+      execFileSync("cwebp", [
+        "-quiet",
+        "-q",
+        "84",
+        "-resize",
+        String(Math.round((w * 2) / 3)),
+        "0",
+        png,
+        "-o",
+        png.replace(/\.png$/, "-2x.webp"),
+      ]);
     }
     (manifest[loc] ??= {})[s.name] = { w: Math.round(w * scale), h: Math.round(h * scale) };
     execFileSync("cwebp", [

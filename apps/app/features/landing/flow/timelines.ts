@@ -402,29 +402,16 @@ export function buildJourney(
   // back office, second page: Insights (metrics, revenue estimated vs recorded, margin, Zalo funnel)
   const IN = PH.ins;
   show(tl, q, ".ov-i .t", IN, { y: 50 }, 0.025);
-  stagger(tl, q, ".in-list li", IN + 0.012, 0.007, { x: -20 }, 0.02);
-  show(tl, q, ".in-win", IN + 0.006, { x: 40, scale: 0.96 }, 0.025);
-  stagger(tl, q, ".in-kpi", IN + 0.02, 0.006, { y: 16 }, 0.018);
-  q(".in-fill").forEach((el, i) => {
-    tl.fromTo(
-      el,
-      { scaleX: 0 },
-      { scaleX: Number((el as HTMLElement).style.getPropertyValue("--w") || 1), duration: 0.025 },
-      IN + 0.032 + i * 0.005,
-    );
-  });
-  stagger(tl, q, ".in-step", IN + 0.05, 0.006, { y: 12, scale: 0.9 }, 0.016);
-  hide(tl, q, ".ov-i .t, .in-win", PH.insOut);
+  stagger(tl, q, ".ov-i .in-list li", IN + 0.012, 0.007, { x: -20 }, 0.02);
+  show(tl, q, ".ov-i .bo-shot", IN + 0.006, { x: 40, scale: 0.96 }, 0.03);
+  hide(tl, q, ".ov-i .t, .ov-i .bo-shot", PH.insOut);
 
-  // back office, third page: pay & commissions (rows of "This month", then the payroll table)
+  // back office, third page: pay & commissions (the real payroll table)
   const PY = PH.pay;
   show(tl, q, ".ov-p .t", PY, { y: 50 }, 0.025);
   stagger(tl, q, ".ov-p .in-list li", PY + 0.012, 0.007, { x: -20 }, 0.02);
-  show(tl, q, ".py-win", PY + 0.006, { x: 40, scale: 0.96 }, 0.025);
-  stagger(tl, q, ".py-row", PY + 0.02, 0.006, { y: 12 }, 0.016);
-  stagger(tl, q, ".py-tr", PY + 0.04, 0.006, { y: 12 }, 0.016);
-  show(tl, q, ".py-actions", PY + 0.058, { y: 8 }, 0.012);
-  hide(tl, q, ".ov-p .t, .py-win", PH.payOut);
+  show(tl, q, ".ov-p .bo-shot", PY + 0.006, { x: 40, scale: 0.96 }, 0.03);
+  hide(tl, q, ".ov-p .t, .ov-p .bo-shot", PH.payOut);
 
   // switching (still in the office): the old system (notebook, spreadsheet, another app) flows into
   // GuGu Studio — the AI reads the price list and fills the services screen, then the remaining steps.

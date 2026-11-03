@@ -47,6 +47,22 @@
     "services-crop": {
       "w": 2736,
       "h": 930
+    },
+    "insights": {
+      "w": 2400,
+      "h": 1500
+    },
+    "insights-month": {
+      "w": 2400,
+      "h": 1500
+    },
+    "insights-kpis": {
+      "w": 2031,
+      "h": 972
+    },
+    "payroll-table": {
+      "w": 2832,
+      "h": 1098
     }
   },
   "en": {
@@ -97,6 +113,22 @@
     "services-crop": {
       "w": 2736,
       "h": 930
+    },
+    "insights": {
+      "w": 2400,
+      "h": 1500
+    },
+    "insights-month": {
+      "w": 2400,
+      "h": 1500
+    },
+    "insights-kpis": {
+      "w": 2031,
+      "h": 972
+    },
+    "payroll-table": {
+      "w": 2832,
+      "h": 1098
     }
   }
 }

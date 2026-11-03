@@ -316,89 +316,35 @@ export const FLOW_CSS = `
   .sw-status{height:32px}.sw-status span{white-space:normal;line-height:1.3}
   .sw-rows{margin:0 10px 10px}
 }
-/* back office · Insights (CRM-styled, illustrative figures) */
-.ov-i .t{grid-column:1/6;grid-row:1 / 3;align-self:center}
-.ov-i .t .fl-h{font-size:clamp(30px,3.2vw,52px)}
-.ov-i .t,.in-list li,.in-win,.in-kpi,.in-step{opacity:0;will-change:transform,opacity}
+/* back office · Insights and pay pages: list on the left, a REAL CRM crop on the right */
+.ov-i .t,.ov-p .t{grid-column:1/6;grid-row:1 / 3;align-self:center}
+.ov-i .t .fl-h,.ov-p .t .fl-h{font-size:clamp(28px,2.9vw,48px)}
+.ov-i .t,.ov-p .t,.in-list li,.bo-shot{opacity:0;will-change:transform,opacity}
 .in-sub{font-size:clamp(14px,1.1vw,17px)!important;margin-top:6px}
 .in-list{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .in-list li{display:flex;gap:10px;align-items:center;font-family:${font.uiMedium};font-size:clamp(13px,1vw,15px);color:${color.ink};background:${color.white};border-radius:14px;padding:9px 12px;box-shadow:0 10px 26px rgba(42,20,38,.08)}
 .in-list li i{font-style:normal;flex:0 0 22px;height:22px;border-radius:50%;background:${color.ink};color:${color.white};display:flex;align-items:center;justify-content:center;font-size:12px}
-.in-win{grid-column:7/13;grid-row:1 / 3;align-self:center;padding:0;overflow:hidden}
-.in-eg{margin-left:auto;font-style:normal;font-family:${font.ui};font-size:11.5px;color:${color.muted}}
-.in-body{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.in-kpis{grid-column:1/3;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.in-kpi{border:1px solid ${color.lineSoft};border-radius:14px;padding:12px 14px}
-.in-kpi small{display:block;font-family:${font.uiMedium};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${color.muted}}
-.in-kpi b{display:block;margin-top:6px;font-family:${font.uiSemiBold};font-size:clamp(22px,2vw,30px);color:${color.ink};font-variant-numeric:tabular-nums}
-.in-block{border:1px solid ${color.lineSoft};border-radius:14px;padding:12px 14px}
-.in-zalo{grid-column:1/3}
-.in-bh{font-family:${font.uiSemiBold};font-size:12.5px;color:${color.ink};margin-bottom:8px}
-.in-bh.sm{margin-top:10px;font-family:${font.uiMedium};color:${color.ink2}}
-.in-bar{position:relative;display:flex;align-items:center;gap:8px;height:22px}
-.in-bar.sm{flex:1;height:10px;background:${color.tile};border-radius:6px;overflow:hidden}
-.in-fill{display:block;height:100%;border-radius:6px;transform-origin:left center;transform:scaleX(0)}
-.in-bar:not(.sm) .in-fill{flex:1}
-.in-bar.sm .in-fill{width:100%}
-.in-fill.a{background:${color.lilac500}}.in-fill.b{background:${color.lilac300}}
-.in-bar em{flex:0 0 auto;min-width:5.6em;text-align:right;font-style:normal;font-family:${font.uiSemiBold};font-size:12.5px;color:${color.ink};font-variant-numeric:tabular-nums}
-.in-row{display:grid;grid-template-columns:minmax(0,1.1fr) 1.4fr auto;align-items:center;gap:10px;font-family:${font.ui};font-size:12.5px;color:${color.ink2};margin-top:8px}
-.in-row b{font-family:${font.uiSemiBold};color:${color.ink};font-variant-numeric:tabular-nums}
-.in-fun{display:flex;align-items:center;gap:10px}
-.in-step{flex:1;display:flex;align-items:center;gap:10px}
-.in-step>div{flex:1;background:${color.lilac100};border-radius:12px;padding:10px 12px}
-.in-step:last-child>div{background:${color.ink};color:${color.white}}
-.in-fun b{display:block;font-family:${font.uiSemiBold};font-size:20px;font-variant-numeric:tabular-nums}
-.in-fun small{font-family:${font.ui};font-size:11.5px;opacity:.8}
-.in-fun i{flex:0 0 14px;height:2px;background:${color.line}}
+.py-note{font-family:${font.ui};font-size:12.5px;color:${color.ink2};margin:12px 0 0}
+.bo-shot{grid-row:1 / 3;align-self:center;margin:0;padding:14px}
+.bo-shot.ins{grid-column:7/13}.bo-shot.pay{grid-column:6/13}
+.bo-shot figcaption{font-family:${font.uiSemiBold};font-size:14px;color:${color.ink};padding:2px 4px 12px}
+/* desktop: the whole crop at ≈ 1:1 CSS px; phones: full height, cropped sideways (text stays legible) */
+.bo-img{position:relative;overflow:hidden;border-radius:14px;border:1px solid ${color.lineSoft};background:${color.canvas};aspect-ratio:var(--ar)}
+.bo-img img{position:absolute;top:0;left:0;height:100%;width:auto;max-width:none;display:block}
+.bo-shot.ins{--ar:2.09}.bo-shot.pay{--ar:2.58}
 @media (max-width:899px){
-  .ov-i{justify-content:flex-start}
-  .ov-i .t .fl-h{font-size:clamp(24px,6.6vw,30px);margin-bottom:0}
+  .ov-i,.ov-p{justify-content:flex-start}
+  .ov-i .t .fl-h,.ov-p .t .fl-h{font-size:clamp(22px,6.2vw,27px);margin-bottom:0}
   .in-sub{display:none}
   .in-list{gap:5px;margin-top:10px}
   .in-list li{padding:6px 10px;font-size:12px}
-  .ov-i .in-list li:nth-child(4){display:none}
-  .in-body{padding:10px;gap:8px}
-  .in-kpi{padding:8px 10px}.in-kpi small{font-size:9.5px}.in-kpi b{font-size:19px}
-  .in-mg{display:none}
   .ov-i .in-list li:nth-child(n+4){display:none}
-  .in-rev{grid-column:1/3}
-  .in-fun b{font-size:16px}
-}
-/* back office · pay & commissions (CRM-styled, illustrative) */
-.ov-p .t{grid-column:1/6;grid-row:1 / 3;align-self:center}
-.ov-p .t .fl-h{font-size:clamp(28px,2.9vw,48px)}
-.ov-p .t,.ov-p .in-list li,.py-win,.py-row,.py-tr,.py-actions{opacity:0;will-change:transform,opacity}
-.py-note{font-family:${font.ui};font-size:12.5px;color:${color.ink2};margin:12px 0 0}
-.py-win{grid-column:7/13;grid-row:1 / 3;align-self:center;padding:0;overflow:hidden}
-.py-body{padding:14px;display:flex;flex-direction:column;gap:12px}
-.py-row{display:flex;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid ${color.lineSoft};font-family:${font.ui};font-size:13.5px;color:${color.ink2}}
-.py-row b{margin-left:auto;font-family:${font.uiSemiBold};color:${color.ink};font-variant-numeric:tabular-nums}
-.py-net{border-bottom:0;padding-top:10px}
-.py-net span{font-family:${font.uiSemiBold};color:${color.ink};white-space:nowrap}
-.py-net b{white-space:nowrap}
-.py-net b{font-size:clamp(18px,1.6vw,24px)}
-.py-net em{font-style:normal;font-family:${font.uiMedium};font-size:12px;color:${color.ink2};white-space:nowrap;background:${color.lilac100};padding:3px 8px;border-radius:99px}
-.py-tr{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid ${color.lineSoft};font-family:${font.ui};font-size:12.5px;color:${color.ink2};font-variant-numeric:tabular-nums}
-.py-tr b{font-family:${font.uiSemiBold};color:${color.ink}}
-.py-th{font-family:${font.uiMedium};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${color.body}}
-.py-actions{display:flex;gap:8px;justify-content:flex-end;padding-top:10px}
-.py-chip{font-family:${font.uiSemiBold};font-size:12px;padding:7px 12px;border-radius:99px;border:1px solid ${color.line};color:${color.ink}}
-.py-chip.dark{background:${color.ink};color:${color.white};border-color:${color.ink}}
-@media (max-width:899px){
-  .ov-p{justify-content:flex-start}
-  .ov-p .t .fl-h{font-size:clamp(22px,6.2vw,27px);margin-bottom:0}
   .ov-p .in-list li:nth-child(3),.ov-p .in-list li:nth-child(4){display:none}
-  .py-table{display:none}
-  .py-net{flex-wrap:wrap;row-gap:4px}
-  .py-net span{font-size:12.5px;flex:1 0 100%}
-  .py-net b{margin-left:0}
   .py-note{font-size:11px;margin-top:6px}
-  .py-body{padding:10px;gap:8px}
-  .py-row{padding:5px 0;font-size:12.5px}
-  .py-tr{font-size:11px;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:4px}
+  .bo-shot{padding:10px;width:100%;box-sizing:border-box}
+  .bo-shot figcaption{font-size:12.5px;padding:0 2px 8px}
+  .bo-shot.ins{--ar:1.3}.bo-shot.pay{--ar:1.45}
 }
-@media (max-width:899px) and (max-height:860px){.py-table .py-tr:nth-child(4),.py-actions{display:none}}
 /* X25 band right after the story: Basic free for the first year */
 .fy{padding:clamp(72px,12vh,140px) var(--g);background:linear-gradient(180deg,${color.canvas},${color.lilac100})}
 .fy-in{max-width:980px;margin:0 auto;text-align:center}
@@ -445,7 +391,7 @@ export const FLOW_CSS = `
   .ov-s .sw-steps li{padding:5px 9px;font-size:11.5px}
   .ov-p .in-list li:nth-child(2){display:none}
 }
-@media (max-width:899px) and (max-height:860px){.in-zalo{display:none}.in-rev .in-bh.sm,.in-rev .in-bar:last-child{display:none}}
+
 /* story HUD: chapters + next + skip */
 .jr-hud{position:absolute;left:50%;bottom:clamp(14px,3vh,28px);transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px;border-radius:99px;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(42,20,38,.16);border:1px solid rgba(255,255,255,.7)}
 .jr-hud{transition:opacity ${String(motion.duration.slow)}ms ${motion.ease.out},visibility ${String(motion.duration.slow)}ms ${motion.ease.out}}

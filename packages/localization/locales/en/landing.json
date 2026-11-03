@@ -468,16 +468,7 @@
       "i3": "Gross margin per service, from its execution cost",
       "i4": "The whole team's upcoming appointments",
       "i5": "Zalo funnel: from message to booking",
-      "win": "Insights · 30 days",
-      "eg": "Illustrative figures",
-      "margin": "Gross margin by service",
-      "s1": "Gel polish",
-      "s2": "Acrylic set",
-      "s3": "Hair colour",
-      "funnel": "Zalo funnel",
-      "f1": "messages",
-      "f2": "asked for a slot",
-      "f3": "bookings"
+      "shot": "Insights · 30 days"
     },
     "free": {
       "eyebrow": "GuGu Studio Basic",
@@ -499,11 +490,7 @@
       "p4": "The owner's “This month”: earned so far, still to come from bookings, payroll, costs, estimated net profit and margins",
       "p5": "Staff only see their own earnings",
       "note": "Estimates before tax and insurance.",
-      "payRow": "Pay and commissions",
-      "margin": "margin {{pct}}",
-      "s1": "Nguyễn Linh",
-      "s2": "Trần Mai",
-      "s3": "Lê Tuấn"
+      "shot": "Pay & commissions · per person, this month"
     }
   }
 }
