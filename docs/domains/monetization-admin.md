@@ -2,11 +2,11 @@
 
 Durable reference for booking attribution, commission, plans/entitlements, usage metering, feature flags, analytics/metrics, trust signals and the platform admin. Read this before changing any of them. The spec with rationale is `docs/tasks/12-monetization-admin.md`.
 
-Status: **M12.1 implemented** (plans, subscriptions, entitlements, trial). **M12.6 platform admin panel implemented** (platform roles, audited admin API, salon directory/detail, manual plans/trials/paid-until, overrides, founding partners, suspension, usage overview; ADR-0010). Everything else in this doc is still a skeleton.
+Status: **X25 implemented** (Basic free for the first year, then 99,000 VND/month; no assistant in Basic; trial ends into free Basic; ADR-0014). **M12.1 implemented** (plans, subscriptions, entitlements, trial). **M12.6 platform admin panel implemented** (platform roles, audited admin API, salon directory/detail, manual plans/trials/paid-until, overrides, founding partners, suspension, usage overview; ADR-0010). Everything else in this doc is still a skeleton.
 
 ## Summary
 - Customers book for free and pay at the salon. GuGu never processes customer payments.
-- Revenue is monthly/yearly SaaS subscriptions only: **Basic, Pro, Ultra**, monthly or yearly (prices TBD). There is **no free plan**. AI onboarding import is in all three. The AI assistant and the monthly Opus review are included from Pro. Basic: CRM, calendar, AI import, marketplace listing. Pro adds the AI assistant, the monthly review, the Zalo inbox and higher message quotas. Ultra adds multi-location chain reporting, the highest AI cap, admin-level analytics and promoted-listing credits. New salons get a 14-day trial with Pro features but Basic limits (AI cap 20,000 VND, 100 Zalo template messages, 30 SMS). Final matrix: spec R-S2a. Every salon has a hard AI cost cap. GuGu pays for messaging inside the plan and tracks its cost. Plans are assigned manually in the MVP.
+- Revenue is monthly/yearly SaaS subscriptions only: **Basic, Pro, Ultra**, monthly or yearly. There is **no free plan**. **X25:** every salon gets **Basic free for its first 12 months** from registration; after that Basic costs **99,000 VND/month** (`plan_prices`, display only; Pro/Ultra prices TBD). AI onboarding import is in all three. The AI assistant and the monthly Opus review are included **from Pro** (never in Basic). Basic: CRM, calendar, Zalo (OA + inbox, every plan), AI import (AI cap 10,000 VND, import only), marketplace listing. Pro adds the AI assistant, the monthly review and higher message quotas. Ultra adds multi-location chain reporting, the highest AI cap, admin-level analytics and promoted-listing credits. New salons get a 14-day trial with Pro features including the assistant, an AI cap of 20,000 VND and Basic message limits (100 Zalo template messages, 30 SMS); when it ends they drop to the free Basic year (q96). Final matrix: spec R-S2a. Every salon has a hard AI cost cap. GuGu pays for messaging inside the plan and tracks its cost. Plans are assigned manually in the MVP.
 - Every booking has one immutable attribution record. Commission is **dormant**: specified (append-only ledger, no automatic charging) but not built for launch.
 
 ## Invariants
@@ -61,7 +61,11 @@ Registry: `ENTITLEMENT_KEYS` in `packages/contracts/src/subscriptions/entitlemen
 - Tables: `plans`, `plan_prices` (empty, prices TBD), `plan_entitlements`, `subscriptions`, `subscription_events` (append-only history), `entitlement_overrides`.
 - State machine (`domain/subscription-status.ts`): trialing → active | expired | cancelled; active → past_due | cancelled | expired; past_due → active | cancelled | expired. `cancelled` and `expired` are terminal; a returning salon gets a new row. Each transition writes a `subscription_events` row (from, to, actor, reason).
 - One current (trialing | active | past_due) subscription per salon: partial unique index `subscriptions_one_current_per_salon`.
-- Trial: `trial` plan (internal), 14 days, Pro features with Basic limits. A trial past `trial_ends_at` reads as `expired` immediately. `SubscriptionsFacade.expireDueTrials()` records the transition; it is not scheduled yet.
+- Trial: `trial` plan (internal), 14 days, Pro features (incl. the assistant), AI cap 20,000 VND (`TRIAL_AI_CAP_VND`, q96), Basic message limits.
+- **Free Basic year (X25, ADR-0014):** `subscriptions.free_until` = local midnight after (registration date + 12 months) in the salon's time zone (`domain/free-year.ts`), set by `startTrial` and on every new row an admin creates. A trial past `trial_ends_at` reads immediately as **active Basic** while `free_until` is ahead (`effectiveStatus` / `effectivePlan`), otherwise as `expired`. `SubscriptionsFacade.endDueTrials()` records it in place (`trialing → active`, plan `trial → basic`, `current_period_end = free_until`, reason `trial_ended_free_basic`) or writes `expired`; it is not scheduled yet. After `free_until` Basic is paid: an admin records paid-until; lapses follow the manual state machine. A free Basic year never qualifies a founding partner.
+- Read model (`GET /salons/:salonId/entitlements`) adds `freeUntil`, `paidUntil` and `basicMonthlyPriceVnd`. The cache TTL is capped by the trial end and the free-year end while they are ahead.
+- Owner UI: Settings → Plan (`PlanSection`: plan, status, trial end, last free day, paid-until) and a Today notice in the last 14 days before the trial or the free year ends (`PlanNotice`, logic `planEndingNotice` in `packages/domain`). Visible with `subscription.read` (owner, manager).
+- The assistant bubble shows the "available from Pro" upsell when `ai.agent.enabled` is off, before any "not configured" notice; `POST /assistant/turns` answers 403 `entitlement.required` on Basic. AI import keeps working on Basic.
 
 ## Contract with topic 05 (salon registration)
 Inside the registration transaction, right after inserting the salon, call `SubscriptionsFacade.startTrial({ salonId }, tx)` (input schema `startTrialInputSchema`, result `subscriptionSummarySchema` in `@gugu/contracts`). It is idempotent while that trial is current. If the salon already had a subscription, it throws `subscription.trial_unavailable` (409). It joins the caller's transaction, so a failed registration also rolls back the trial. Open items for topic 05:
@@ -93,10 +97,13 @@ GuGu staff only. A platform role is a column on the user (`users.platform_role`)
 | Assign/change paid plan (+ interval, paid-until, invoicing entity) | `POST /admin/salons/:salonId/subscription/plan` | `platform.subscriptions.write` | no | yes | yes (can create a founding partner) |
 | Extend trial (≤ 90 days ahead; re-opens an expired trial) | `POST …/subscription/trial` | `platform.subscriptions.write` | no | yes | — |
 | Set paid-until (past_due paid into the future → active) | `POST …/subscription/paid-until` | `platform.subscriptions.write` | no | yes | — |
+| Extend the free Basic year (X25; trial or Basic only, only later, ≤ 366 days beyond the current end) | `POST …/subscription/free-until` | `platform.subscriptions.write` | no | yes | yes (gives away paid months) |
 | Entitlement override (mandatory expiry ≤ 366 days) / revoke | `POST …/overrides`, `POST …/overrides/:id/revoke` | `platform.entitlements.write` | no | yes | create |
 | Founding partner grant / revoke | `POST …/founding-partner`, `POST …/founding-partner/revoke` | `platform.founding_partner.write` | no | yes | revoke |
 | Suspend / unsuspend | `POST …/suspend`, `POST …/unsuspend` | `platform.salons.suspend` | no | yes | yes |
 | Own second factor (status, enrol, confirm, step-up, recovery codes) | `GET /admin/mfa`, `POST /admin/mfa/*` | `platform.mfa.self` | yes | yes | — |
+
+Directory filters (X25): `freeEndsWithinDays`, `freeEnded=true|false`, sort `free_until_asc`; list items and the detail carry `freeUntil` (the panel shows the last free day).
 
 Every write above also needs an enrolled TOTP factor (403 `admin.mfa_enrollment_required`). Step-up = a TOTP or recovery code verified on the current session within 10 minutes (ADR-0011). Per-user limits: 240 requests and 30 writes per minute on `/admin/*`.
 
@@ -125,7 +132,10 @@ The script requires `NODE_ENV=development`, a loopback host and a local database
 
 ## File map
 - `apps/api/src/modules/subscriptions/`: `domain/` (plan catalogue, state machine, resolver), `application/` (`EntitlementService`, `SubscriptionsFacade`, `Clock`, cache port), `infra/` (Redis cache), `http/` (`EntitlementsController`, `@RequiresEntitlement`, `SALON_ACCESS` placeholder)
-- `apps/api/src/modules/subscriptions/application/subscription-admin.service.ts`: admin operations (plan, trial, paid-until, overrides, founding partners), each returning before/after for the audit row
+- `apps/api/src/modules/subscriptions/application/subscription-admin.service.ts`: admin operations (plan, trial, free year, paid-until, overrides, founding partners), each returning before/after for the audit row
+- `apps/api/src/modules/subscriptions/domain/free-year.ts` (free-year end in the salon zone), `domain/subscription-status.ts` (`effectiveStatus`, `effectivePlan`)
+- Migrations `20261104160000_x25_basic_free_year` (column, Basic cap 10,000, Basic v2, 99,000 VND price) and `20261104160100_x25_backfill_free_year` (data backfill; replayed in `x25-backfill.int.test.ts`)
+- `apps/app/features/salon-crm/pages/settings/PlanSection.tsx`, `apps/app/features/salon-crm/today/PlanNotice.tsx`, `apps/app/features/salon-crm/data/plan.ts`, `apps/app/features/admin/FreePeriodSheet.tsx`, `packages/domain/src/subscriptions/plan-notice.ts`
 - `apps/api/src/modules/admin/`: `application/admin-actions.ts` (audited runner, step-up, suspension), `application/admin-salons.queries.ts` (directory/detail), `application/admin-usage.queries.ts` (usage overview), `http/admin.controller.ts`, `admin.int.test.ts`
 - `apps/api/scripts/seed-platform-admin.mjs` (local dev)
 - `packages/contracts/src/subscriptions/` (keys, read model, start-trial contract, error codes), `packages/contracts/src/admin/admin.ts` (admin API contracts, `ADMIN_ERRORS`)
@@ -136,4 +146,5 @@ The script requires `NODE_ENV=development`, a loopback host and a local database
 ## ADRs
 - ADR-0010 platform admin actions (roles on the user, audited runner, step-up, suspension).
 - ADR-0011 admin TOTP step-up (supersedes ADR-0010 decision 3).
+- ADR-0014 Basic free for the first year (`free_until`, trial ends into free Basic, backfill).
 _TODO: attribution model & window · entitlement keys vs plan names · in-house analytics on Postgres · append-only commission ledger (dormant) · hard AI cost cap._

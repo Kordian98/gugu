@@ -16,6 +16,7 @@ import {
   Prisma,
   type Subscription,
 } from "../../../infrastructure/prisma/generated/client";
+import { freeYearEnd } from "../domain/free-year";
 import { canTransition, CURRENT_STATUSES } from "../domain/subscription-status";
 import { Clock } from "./clock";
 
@@ -34,6 +35,7 @@ export interface AdminChange {
 const DAY_MS = 86_400_000;
 export const MAX_TRIAL_AHEAD_DAYS = 90;
 export const MAX_OVERRIDE_DAYS = 366;
+export const MAX_FREE_AHEAD_DAYS = 366;
 
 /**
  * Manual subscription management for the platform admin (topic 12 M12.6; no payment processor,
@@ -105,12 +107,18 @@ export class SubscriptionAdminService {
         invoicingEntity: input.invoicingEntity ?? "tbd",
         currentPeriodStart: now,
         currentPeriodEnd: paidUntil,
+        freeUntil: await salonFreeYearEnd(db, salonId),
         events: {
           create: { fromStatus: null, toStatus: "active", toPlanCode: plan.code, actor, reason },
         },
       });
     }
-    const salonIds = await this.qualifyFoundingPartner(db, salonId, after.id, now);
+    // X20 unchanged: only a *paid* subscription qualifies. Basic inside the free year (X25) is not
+    // paid, so assigning it does not make the organisation a founding partner.
+    const freeBasic = input.plan === "basic" && after.freeUntil !== null && after.freeUntil > now;
+    const salonIds = freeBasic
+      ? undefined
+      : await this.qualifyFoundingPartner(db, salonId, after.id, now);
     return {
       before: current ? await snapshot(db, current) : null,
       after: await snapshot(db, after),
@@ -167,6 +175,7 @@ export class SubscriptionAdminService {
         planVersion: trialPlan.version,
         status: "trialing",
         trialEndsAt,
+        freeUntil: await salonFreeYearEnd(db, salonId),
         currentPeriodStart: now,
         currentPeriodEnd: trialEndsAt,
         events: {
@@ -203,6 +212,67 @@ export class SubscriptionAdminService {
     const after = await db.subscription.update({
       where: { id: current.id },
       data: { currentPeriodEnd: paidUntil, status: toStatus },
+    });
+    await db.subscriptionEvent.create({
+      data: {
+        salonId,
+        subscriptionId: current.id,
+        fromStatus: current.status,
+        toStatus,
+        actor,
+        reason,
+      },
+    });
+    return {
+      before: await snapshot(db, current),
+      after: await snapshot(db, after),
+      targetType: "subscription",
+      targetId: current.id,
+    };
+  }
+
+  /**
+   * X25: moves the end of the free Basic year later (only later; at most 366 days beyond the current
+   * end, or beyond now when that has passed or is unset). Applies to a
+   * current trial or Basic subscription. On Basic the covered period moves with it and a past_due
+   * subscription becomes active again (manual billing: nothing is charged either way).
+   */
+  async extendFreePeriod(
+    db: Db,
+    salonId: string,
+    freeUntilIso: string,
+    actor: string,
+    reason: string,
+  ): Promise<AdminChange> {
+    const now = this.clock.now();
+    const freeUntil = new Date(freeUntilIso);
+    const current = await lockCurrent(db, salonId);
+    if (!current) {
+      throw new AppError(409, ADMIN_ERRORS.noCurrentSubscription, "No current subscription");
+    }
+    const plan = await planCode(db, current.planId);
+    if (plan !== "trial" && plan !== "basic") {
+      throw new AppError(409, ADMIN_ERRORS.freePeriodNotApplicable, "Not on trial or Basic");
+    }
+    const from = Math.max(now.getTime(), current.freeUntil?.getTime() ?? 0);
+    if (
+      freeUntil <= now ||
+      (current.freeUntil !== null && freeUntil <= current.freeUntil) ||
+      freeUntil.getTime() > from + MAX_FREE_AHEAD_DAYS * DAY_MS
+    ) {
+      throw invalidDate("freeUntil");
+    }
+    const onBasic = plan === "basic";
+    const toStatus = onBasic && current.status === "past_due" ? "active" : current.status;
+    const after = await db.subscription.update({
+      where: { id: current.id },
+      data: {
+        freeUntil,
+        status: toStatus,
+        ...(onBasic && (current.currentPeriodEnd === null || current.currentPeriodEnd < freeUntil)
+          ? { currentPeriodEnd: freeUntil }
+          : {}),
+      },
     });
     await db.subscriptionEvent.create({
       data: {
@@ -402,6 +472,15 @@ async function lockCurrent(db: Db, salonId: string): Promise<Subscription | null
   return id ? db.subscription.findUniqueOrThrow({ where: { id } }) : null;
 }
 
+/** X25: the salon's free Basic year end, from its registration date in its own zone. */
+async function salonFreeYearEnd(db: Db, salonId: string): Promise<Date> {
+  const salon = await db.salon.findUniqueOrThrow({
+    where: { id: salonId },
+    select: { createdAt: true, timezone: true },
+  });
+  return freeYearEnd(salon.createdAt, salon.timezone);
+}
+
 async function planCode(db: Db, planId: string): Promise<string> {
   return (await db.plan.findUniqueOrThrow({ where: { id: planId }, select: { code: true } })).code;
 }
@@ -417,6 +496,7 @@ async function snapshot(db: Db, s: Subscription): Promise<Snapshot> {
     trialEndsAt: s.trialEndsAt?.toISOString() ?? null,
     currentPeriodStart: s.currentPeriodStart?.toISOString() ?? null,
     paidUntil: s.currentPeriodEnd?.toISOString() ?? null,
+    freeUntil: s.freeUntil?.toISOString() ?? null,
   };
 }
 

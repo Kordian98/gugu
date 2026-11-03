@@ -13,7 +13,7 @@ import { formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { dotJoin, fmtDate, fmtDateTime, fmtLimit, fmtNumber, keyId } from "./format";
+import { dotJoin, fmtDate, fmtDateTime, fmtFreeDay, fmtLimit, fmtNumber, keyId } from "./format";
 import type { SheetId } from "./SalonActions";
 import { KV, Section, StatusPill } from "./ui";
 
@@ -32,6 +32,11 @@ export function SubscriptionCard({ d, can, open }: CardProps) {
   const none = t("common.none");
   const write = can("platform.subscriptions.write");
   const onTrial = s?.plan === "trial";
+  // X25: the free Basic year can be extended while the salon is on the trial or on Basic.
+  const freeable =
+    s !== null &&
+    (s.plan === "trial" || s.plan === "basic") &&
+    (s.status === "trialing" || s.status === "active" || s.status === "past_due");
   return (
     <Section
       testID="admin-subscription"
@@ -69,6 +74,17 @@ export function SubscriptionCard({ d, can, open }: CardProps) {
                 }}
               />
             )}
+            {freeable ? (
+              <CalmButton
+                testID="admin-open-free"
+                size="sm"
+                variant="secondary"
+                label={t("detail.subscription.extendFree")}
+                onPress={() => {
+                  open("extendFreePeriod");
+                }}
+              />
+            ) : null}
           </>
         ) : null
       }
@@ -87,6 +103,10 @@ export function SubscriptionCard({ d, can, open }: CardProps) {
           <KV
             label={t("detail.subscription.trialEnds")}
             value={fmtDate(s.trialEndsAt, locale) ?? none}
+          />
+          <KV
+            label={t("detail.subscription.freeUntil")}
+            value={fmtFreeDay(s.freeUntil, locale) ?? none}
           />
           <KV
             label={t("detail.subscription.paidUntil")}

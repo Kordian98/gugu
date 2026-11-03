@@ -48,6 +48,7 @@ export const AUDIT_ACTIONS = [
   // Platform admin (topic 12 M12.6): metadata = { reason, before, after }.
   "admin.subscription_plan_assigned",
   "admin.trial_extended",
+  "admin.free_period_extended",
   "admin.paid_until_set",
   "admin.salon_suspended",
   "admin.salon_unsuspended",

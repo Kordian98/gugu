@@ -109,6 +109,9 @@ model Subscription {
   trialEndsAt        DateTime?            @map("trial_ends_at") @db.Timestamptz(6)
   currentPeriodStart DateTime?            @map("current_period_start") @db.Timestamptz(6)
   currentPeriodEnd   DateTime?            @map("current_period_end") @db.Timestamptz(6)
+  /// X25: end (exclusive) of the salon's free Basic year — local midnight after the registration
+  /// date + 12 months in the salon's time zone. Basic costs nothing before it; null = no free year.
+  freeUntil          DateTime?            @map("free_until") @db.Timestamptz(6)
   createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
   plan               Plan                 @relation(fields: [planId], references: [id], onDelete: Restrict)

@@ -13,7 +13,8 @@ export const E2E = {
     password: env.POSTGRES_PASSWORD ?? "gugu",
     // `gugu_<suffix>` but not `*_test`: seed-platform-admin.mjs only runs against such names,
     // and `*_test` belongs to the API integration tests.
-    database: "gugu_e2e",
+    // E2E_PG_DATABASE lets parallel worktrees use their own `gugu_<suffix>` E2E database.
+    database: env.E2E_PG_DATABASE ?? "gugu_e2e",
   },
   redisDb: Number(env.E2E_REDIS_DB ?? 14),
   redisPort: Number(env.REDIS_PORT ?? 16379),

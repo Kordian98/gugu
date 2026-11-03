@@ -673,9 +673,9 @@
       "bookings_list": "Danh sách lịch hẹn"
     },
     "notConfigured": "Trợ lý AI chưa được bật trên máy chủ này.",
-    "upgradeTitle": "Trợ lý AI có trong gói Pro",
-    "upgradeBody": "Hỏi Gu bất cứ lúc nào: hôm nay có bao nhiêu lịch, doanh thu tháng này, ai đang kín lịch nhất. Nâng cấp lên Pro để dùng.",
-    "upgradeCta": "Xem gói Pro",
+    "upgradeTitle": "Trợ lý AI có từ gói Pro",
+    "upgradeBody": "Gói Basic đã có nhập bảng giá bằng AI. Từ gói Pro, anh/chị có thể hỏi Gu bất cứ lúc nào: hôm nay có bao nhiêu lịch, doanh thu tháng này, ai đang kín lịch nhất.",
+    "upgradeCta": "Xem gói của salon",
     "errors": {
       "generic": "Gu chưa trả lời được. Anh/chị thử lại giúp em nhé.",
       "assistant_not_configured": "Trợ lý AI chưa được bật trên máy chủ này.",
@@ -819,6 +819,41 @@
       "hours": "Ngoài giờ làm việc",
       "lead_time": "Quá sát giờ",
       "horizon": "Ngoài khoảng nhận đặt lịch"
+    }
+  },
+  "plan": {
+    "title": "Gói dịch vụ",
+    "name": {
+      "trial": "Dùng thử Pro",
+      "basic": "Basic",
+      "pro": "Pro",
+      "ultra": "Ultra",
+      "none": "Chưa có gói"
+    },
+    "status": {
+      "trialing": "Đang dùng thử",
+      "active": "Đang hoạt động",
+      "past_due": "Chờ thanh toán",
+      "cancelled": "Đã hủy",
+      "expired": "Đã hết hạn",
+      "none": "Chưa có gói"
+    },
+    "trialEnds": "Dùng thử kết thúc",
+    "freeUntil": "Basic miễn phí đến hết ngày",
+    "paidUntil": "Đã thanh toán đến",
+    "trialBody": "Trong thời gian dùng thử, salon có đủ tính năng Pro, kể cả trợ lý AI, với hạn mức AI nhỏ. Sau đó salon tiếp tục dùng gói Basic miễn phí trong năm đầu.",
+    "freeBody": "Năm đầu tiên gói Basic hoàn toàn miễn phí. Sau đó Basic có giá {{price}}/tháng, GuGu sẽ gửi hóa đơn cho anh/chị. Trợ lý AI có từ gói Pro.",
+    "freeBodyNoPrice": "Năm đầu tiên gói Basic hoàn toàn miễn phí. Trợ lý AI có từ gói Pro.",
+    "basicBody": "Gói Basic có lịch hẹn, khách hàng, Zalo và nhập bảng giá bằng AI. Trợ lý AI có từ gói Pro. Liên hệ GuGu để đổi gói.",
+    "contactBody": "GuGu gửi hóa đơn và cập nhật gói thủ công. Liên hệ GuGu để đổi gói.",
+    "notice": {
+      "trialTitle": "Dùng thử Pro sắp kết thúc",
+      "trialBody": "Dùng thử Pro kết thúc vào {{date}}. Sau đó salon tiếp tục dùng gói Basic miễn phí đến hết {{freeUntil}} (không có trợ lý AI).",
+      "trialBodyNoFree": "Dùng thử Pro kết thúc vào {{date}}. Liên hệ GuGu để chọn gói.",
+      "freeTitle": "Năm miễn phí gói Basic sắp kết thúc",
+      "freeBody": "Basic miễn phí đến hết {{date}}. Sau đó gói có giá {{price}}/tháng, GuGu sẽ gửi hóa đơn cho anh/chị.",
+      "freeBodyNoPrice": "Basic miễn phí đến hết {{date}}. Sau đó GuGu sẽ gửi hóa đơn cho anh/chị.",
+      "cta": "Xem gói"
     }
   }
 }

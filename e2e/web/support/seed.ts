@@ -5,11 +5,21 @@
 // Asia/Ho_Chi_Minh" because the booking engine refuses past times and has no injectable clock over
 // HTTP. Tests look entities up by these fixed values and by the IDs in the manifest.
 import { ApiClient } from "./api";
+import { totpCode } from "./totp";
 import { MAIL_DOMAIN } from "./env";
 import { addDays, vnDate, vnInstant, vnNow } from "./time";
 
 export const PROJECTS = ["chromium", "webkit"] as const;
-export const AREAS = ["roles", "zalo", "admin", "assistant", "mobile", "en", "multi"] as const;
+export const AREAS = [
+  "roles",
+  "zalo",
+  "admin",
+  "assistant",
+  "mobile",
+  "en",
+  "multi",
+  "basic",
+] as const;
 export type Area = (typeof AREAS)[number];
 
 export const mail = (local: string, project: string): string =>
@@ -59,6 +69,8 @@ const AREA_SPEC: Record<
   mobile: { bookings: true, staffAccount: false, receptionist: false, locale: "vi" },
   en: { bookings: true, staffAccount: false, receptionist: false, locale: "en" },
   multi: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
+  /** X25: moved from the trial to Basic (free first year, no AI assistant) by global-setup. */
+  basic: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
 };
 
 export interface SeededSalon {
@@ -204,6 +216,31 @@ export async function seedSalon(project: string, area: Area): Promise<SeededSalo
     bookingIds,
     today,
   };
+}
+
+/**
+ * X25: puts a seeded salon on Basic inside its free year, through the admin API as a GuGu admin
+ * would (step-up with the admin's TOTP, then plan assignment covered until the free year ends).
+ * Uses a setup-only admin account so it never spends the test admin's magic links or TOTP steps.
+ */
+export async function moveToFreeBasic(
+  adminEmail: string,
+  totpSecret: string,
+  salonId: string,
+): Promise<void> {
+  const admin = await ApiClient.signIn(adminEmail, nextIp());
+  await admin.call("/admin/mfa/step-up", "POST", { code: totpCode(totpSecret) });
+  const detail = await admin.call<{ subscription: { freeUntil: string | null } | null }>(
+    `/admin/salons/${salonId}`,
+  );
+  const freeUntil = detail.subscription?.freeUntil;
+  if (!freeUntil) throw new Error(`seed: salon ${salonId} has no free Basic year`);
+  await admin.call(`/admin/salons/${salonId}/subscription/plan`, "POST", {
+    plan: "basic",
+    interval: "month",
+    paidUntil: freeUntil,
+    reason: "E2E: salon on its free Basic year (X25)",
+  });
 }
 
 export { addDays };

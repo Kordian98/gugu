@@ -29,14 +29,15 @@ Not for gradual rollout or experiments → use a **feature flag** instead. Never
 - `enum`: `analytics.retention_window` = `30d|90d|365d`
 
 ## Implementation map (M12.1)
-- Module: `apps/api/src/modules/subscriptions` (global). Exports `EntitlementService` (`forSalon`, `get`, `isEnabled`, `limit`, `assert`, `invalidate`) and `SubscriptionsFacade` (`startTrial`, `transition`, `expireDueTrials`).
+- Module: `apps/api/src/modules/subscriptions` (global). Exports `EntitlementService` (`forSalon`, `get`, `isEnabled`, `limit`, `assert`, `invalidate`) and `SubscriptionsFacade` (`startTrial`, `transition`, `endDueTrials`).
 - Decorator: `@RequiresEntitlement(key)` from `modules/subscriptions/http/requires-entitlement.ts` (boolean keys only; salon from RequestContext, else `:salonId`).
 - Cache: Redis `entitlements:v1:<salonId>`, TTL ≤ 60 s (never past a trial end), fails open to the DB. Call `invalidate(salonId)` after writing subscriptions or overrides.
-- Expired trials read as `expired` immediately (effective status); the expiry job only records it.
+- An ended trial reads immediately as active **Basic** while the free year runs (X25, `subscriptions.free_until`), otherwise as `expired` (`effectiveStatus` / `effectivePlan`); `endDueTrials()` only records it. ADR-0014.
+- Free Basic year (X25): `free_until` = local midnight after registration date + 12 months in the salon zone. Not a plan and not an entitlement: never gate on it. A free Basic year never qualifies a founding partner.
 
 ## Procedure: add a boolean-gated feature
 1. Add the key to `ENTITLEMENT_KEYS` in `packages/contracts/src/subscriptions/entitlements.ts` (`boolean` or `limit`; defaults are deny / 0).
-2. Add a migration inserting a `plan_entitlements` row for every plan, update `PLAN_CATALOG` in `apps/api/src/modules/subscriptions/domain/plan-catalog.ts` and bump the plan `version` (the catalogue integration test fails if DB and file disagree). Every plan (`basic`, `pro`, `ultra` and the internal `trial`) gets an explicit value; there is no free plan. The trial copies Pro booleans and Basic limits.
+2. Add a migration inserting a `plan_entitlements` row for every plan, update `PLAN_CATALOG` in `apps/api/src/modules/subscriptions/domain/plan-catalog.ts` and bump the plan `version` (the catalogue integration test fails if DB and file disagree). Every plan (`basic`, `pro`, `ultra` and the internal `trial`) gets an explicit value; there is no free plan. The trial copies Pro booleans and Basic limits, except its AI cap (20,000 VND, q96).
 3. Protect the API route:
    ```ts
    @RequiresEntitlement('zalo.inbox')
@@ -72,7 +73,7 @@ Use the admin panel (`/vi/admin/salons/<id>` → "Add override") or `POST /api/v
 | `ai.tokens.input` / `ai.tokens.output` | none (cost cap only) | token | commit actual usage from the API response; drives `ai.cost` |
 | `zalo_template.messages` | `zalo_template.monthly_messages` (100 / 300 / 1,000) | message | ZBS Template Message (formerly ZNS), channel `zalo_template`, sent **only from the central GuGu OA**. Never name keys `zns.*` |
 | `sms.messages` | `notifications.sms.monthly_messages` (30 / 80 / 200) | message (segments counted) | provider **mocked** for now (provider-sink); metering still runs |
-| `ai.cost` | `ai.monthly_cost_cap_vnd` (Basic 20,000 / Pro 250,000 / Ultra 600,000 VND) | VND | **hard cap**: reserve the estimated cost before every LLM call, commit the actual cost from token usage × model price; deny at the cap |
+| `ai.cost` | `ai.monthly_cost_cap_vnd` (Basic 10,000 (import only) / trial 20,000 / Pro 250,000 / Ultra 600,000 VND) | VND | **hard cap**: reserve the estimated cost before every LLM call, commit the actual cost from token usage × model price; deny at the cap |
 | `sms.cost` | none yet (`notifications.sms.monthly_cost_cap_vnd` later) | VND (converted from the provider currency at the stored FX rate) | **metered per salon on every send**, even when no cap applies |
 
 Each usage event stores `unitCost`, `costCurrency` and `fxRateToVnd` for margin reporting in admin.
@@ -91,7 +92,7 @@ Plan rules and commission eligibility use the `BookingSource` → `gugu_acquired
 No payment processor in the MVP. Monthly/yearly subscriptions are invoiced manually by the owner's company (Polish or Vietnamese entity, TBD), and admin activates the plan. Gating code MUST NOT assume a payment webhook exists. Commission is dormant; the `BookingSource` mapping is captured now for later use.
 
 ## Plan placement (owner decisions)
-Plans: **Basic, Pro, Ultra**, billed monthly or yearly. **There is no free plan** (X17).
+Plans: **Basic, Pro, Ultra**, billed monthly or yearly. **There is no free plan** (X17). **X25:** Basic is free for the first 12 months after registration, then 99,000 VND/month (seeded in `plan_prices`).
 
 | Entitlement key | Basic | Pro | Ultra |
 |---|---|---|---|
@@ -101,8 +102,8 @@ Plans: **Basic, Pro, Ultra**, billed monthly or yearly. **There is no free plan*
 | `ai.onboarding_import` (price-list screenshots → services) | yes | yes | yes |
 | `ai.agent.enabled` (AI assistant) | no | yes | yes |
 | `ai.monthly_review` (monthly business review on Opus) | no | yes | yes |
-| `ai.monthly_cost_cap_vnd` (**hard**, all AI features) | 20,000 | 250,000 | 600,000 |
-| `zalo.oa_connect` + `zalo.inbox` (salon's own OA in the CRM inbox) | no | yes | yes |
+| `ai.monthly_cost_cap_vnd` (**hard**, all AI features) | 10,000 (import only, X25) | 250,000 | 600,000 |
+| `zalo.oa_connect` + `zalo.inbox` (salon's own OA in the CRM inbox) | yes | yes | yes |
 | `zalo_template.monthly_messages` (GuGu-paid, sent **only from the central GuGu OA**, q70) | 100 | 300 | 1,000 |
 | `notifications.sms.monthly_messages` (GuGu-paid; provider **mocked** for now) | 30 | 80 | 200 |
 | `salon.max_locations` | 1 | 1 | unlimited |
@@ -113,13 +114,13 @@ Plans: **Basic, Pro, Ultra**, billed monthly or yearly. **There is no free plan*
 
 Owner-approved (X13, X17, q73, q74, q75), 2026-11-02. Caps are VND or messages per salon per calendar month and are reviewed after the first 20 salons. Any plan may buy extra promoted-listing weeks (flat weekly fee, invoiced manually, q74).
 
-**Trial (`trial`, internal plan, `isPublic = false`):** used for the 14-day trial of every new salon. It is seeded with **Pro features** (all Pro booleans: `ai.agent.enabled`, `ai.monthly_review`, `zalo.oa_connect`, `zalo.inbox`, plus everything in Basic) and **Basic limits**: `ai.monthly_cost_cap_vnd` = 20,000, `zalo_template.monthly_messages` = 100, `notifications.sms.monthly_messages` = 30, `salon.max_locations` = 1, `promotion.weekly_credits_per_month` = 0. Ultra-only keys are `no`. This way trials cannot abuse AI.
+**Trial (`trial`, internal plan, `isPublic = false`):** used for the 14-day trial of every new salon. It is seeded with **Pro features** (all Pro booleans: `ai.agent.enabled`, `ai.monthly_review`, `zalo.oa_connect`, `zalo.inbox`, plus everything in Basic), an explicit AI cap `ai.monthly_cost_cap_vnd` = 20,000 (q96) and **Basic message limits**: `zalo_template.monthly_messages` = 100, `notifications.sms.monthly_messages` = 30, `salon.max_locations` = 1, `promotion.weekly_credits_per_month` = 0. Ultra-only keys are `no`. This way trials cannot abuse AI.
 
 **Later (not in any plan at launch; no seed rows):** `ai.agent.write_actions` (assistant phase B), `branding.custom_subdomain`, `zalo.mini_app` (not planned, q41), `notifications.sms.monthly_cost_cap_vnd` (only once a real SMS provider replaces the mock).
 
-New salons: 14-day trial on the internal `trial` plan, with **Pro features and Basic limits** (AI cap 20,000 VND, 100 Zalo template, 30 SMS), so trials cannot abuse AI. After the trial, the subscription becomes `expired` (read-only workspace, online bookings paused, no data deleted) until a paid plan is active. Spec G19.
+New salons: 14-day trial on the internal `trial` plan, with **Pro features** (incl. the assistant), AI cap 20,000 VND, 100 Zalo template, 30 SMS, so trials cannot abuse AI. After the trial the salon drops to **Basic, free until 12 months after registration** (X25, q96). Only without a trial, free year or paid plan does the subscription become `expired` (read-only workspace, online bookings paused, no data deleted). Spec G19, R-S1a.
 
-Prices are TBD. Never hardcode these in code; seed them as `PlanEntitlement` rows.
+Basic is 99,000 VND/month (X25); Pro/Ultra prices TBD. Never hardcode prices or caps in code; seed caps as `PlanEntitlement` rows and prices as `PlanPrice` rows (the read model exposes `basicMonthlyPriceVnd`).
 
 ## Checklist before PR
 - [ ] Key registered, typed, defaulted, described in vi/en

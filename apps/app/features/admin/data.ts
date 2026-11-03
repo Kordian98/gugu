@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import type {
   AdminAssignPlanInput,
   AdminCreateOverrideInput,
+  AdminExtendFreePeriodInput,
   AdminExtendTrialInput,
   AdminMfaEnrolment,
   AdminMfaRecoveryCodes,
@@ -71,6 +72,7 @@ export function useAdminUsage(month: string | null) {
 export type AdminAction =
   | { kind: "assignPlan"; body: AdminAssignPlanInput }
   | { kind: "extendTrial"; body: AdminExtendTrialInput }
+  | { kind: "extendFreePeriod"; body: AdminExtendFreePeriodInput }
   | { kind: "setPaidUntil"; body: AdminSetPaidUntilInput }
   | { kind: "suspend"; body: AdminReasonInput }
   | { kind: "unsuspend"; body: AdminReasonInput }
@@ -86,6 +88,8 @@ function actionPath(salonId: string, a: AdminAction): string {
       return `${base}/subscription/plan`;
     case "extendTrial":
       return `${base}/subscription/trial`;
+    case "extendFreePeriod":
+      return `${base}/subscription/free-until`;
     case "setPaidUntil":
       return `${base}/subscription/paid-until`;
     case "suspend":

@@ -16,6 +16,8 @@ import {
   adminAssignPlanInputSchema,
   type AdminCreateOverrideInput,
   adminCreateOverrideInputSchema,
+  type AdminExtendFreePeriodInput,
+  adminExtendFreePeriodInputSchema,
   type AdminExtendTrialInput,
   adminExtendTrialInputSchema,
   type AdminMutationResult,
@@ -185,6 +187,36 @@ export class AdminController {
       },
       (db, actor) =>
         this.subscriptions.extendTrial(db, p.salonId, body.trialEndsAt, actor, body.reason),
+    );
+  }
+
+  @Post("salons/:salonId/subscription/free-until")
+  @HttpCode(200)
+  @RequirePlatformPermission("platform.subscriptions.write")
+  @ApiOperation({
+    operationId: "admin.extendFreePeriod",
+    summary:
+      "Move the end of the free Basic year later (X25; trial or Basic only, ≤ 366 days ahead). Needs a step-up.",
+  })
+  @MutationResponses()
+  extendFreePeriod(
+    @Param({ schema: adminSalonParamsSchema }) p: SalonParams,
+    @Body({ schema: adminExtendFreePeriodInputSchema }) body: AdminExtendFreePeriodInput,
+    @CurrentUser() admin: UserPrincipal,
+    @Req() req: Request,
+  ): Promise<AdminMutationResult> {
+    return this.actions.run(
+      {
+        admin,
+        action: "admin.free_period_extended",
+        salonId: p.salonId,
+        reason: body.reason,
+        meta: requestMeta(req),
+        // Step-up (ADR-0011), as for plan changes: it gives away paid months of Basic.
+        stepUp: true,
+      },
+      (db, actor) =>
+        this.subscriptions.extendFreePeriod(db, p.salonId, body.freeUntil, actor, body.reason),
     );
   }
 

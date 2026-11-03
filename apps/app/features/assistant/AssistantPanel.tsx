@@ -70,13 +70,9 @@ export function AssistantPanel({
       </View>
       {loading ? (
         <ActivityIndicator color={c.accent} style={{ marginTop: 32 }} />
-      ) : status?.configured === false ? (
-        <Notice
-          testID="assistant-not-configured"
-          icon="settings"
-          title={t("assistant.notConfigured")}
-        />
       ) : status?.entitled === false ? (
+        // Plan first (X25: Basic has no assistant): the upsell is shown even where the server has
+        // no model configured, so owners always learn the assistant comes with Pro.
         <Notice
           testID="assistant-upgrade"
           icon="sparkles"
@@ -87,6 +83,12 @@ export function AssistantPanel({
             onClose();
             go("/business/settings");
           }}
+        />
+      ) : status?.configured === false ? (
+        <Notice
+          testID="assistant-not-configured"
+          icon="settings"
+          title={t("assistant.notConfigured")}
         />
       ) : (
         <ChatView salonId={salonId} locale={locale} />

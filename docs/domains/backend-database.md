@@ -52,7 +52,7 @@ Infrastructure (`apps/api/src/infrastructure`): `config` (Zod env, `AppConfig`),
 | Table | Tenant | Deletion policy | Owner module | Notes |
 |---|---|---|---|---|
 | plans, plan_entitlements, plan_prices | no (reference data) | never deleted; `Restrict` | subscriptions | rows inserted by migration `20261102115055_add_subscriptions_entitlements` |
-| subscriptions | yes (`salon_id`, no FK until salons lands) | never deleted; `Restrict` | subscriptions | one current per salon |
+| subscriptions | yes (`salon_id`, no FK until salons lands) | never deleted; `Restrict` | subscriptions | one current per salon; `free_until` = end of the free Basic year (X25, ADR-0014, backfilled by `20261104160100_x25_backfill_free_year`) |
 | subscription_events | yes | append-only | subscriptions | composite FK `(salon_id, subscription_id)` |
 | entitlement_overrides | yes | revoked via `revoked_at`, never deleted | subscriptions | admin overrides always carry `expires_at` |
 | founding_partners | organisation (`organization_id` unique) | revoked via `revoked_at`, never deleted | subscriptions | X20; ADR-0010 |

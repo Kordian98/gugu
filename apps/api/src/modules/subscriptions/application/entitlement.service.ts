@@ -14,7 +14,7 @@ import { AppError } from "../../../common/problem/app-error";
 import { AppConfig } from "../../../infrastructure/config/app-config";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { resolveEntitlements } from "../domain/resolve-entitlements";
-import { effectiveStatus, isCurrent } from "../domain/subscription-status";
+import { effectivePlan, effectiveStatus, isCurrent } from "../domain/subscription-status";
 import { Clock } from "./clock";
 import {
   ENTITLEMENT_CACHE,
@@ -39,28 +39,55 @@ export class EntitlementService {
     const cached = await this.cache.get(salonId);
     if (cached) return cached;
     const now = this.clock.now();
-    const [subscription, overrides, salon] = await this.load(salonId, now);
+    const [subscription, overrides, salon, basicPrice] = await this.load(salonId, now);
     const status = subscription ? effectiveStatus(subscription, now) : "none";
+    const storedPlan = subscription ? planCodeSchema.parse(subscription.plan.code) : null;
+    const plan = subscription && storedPlan ? effectivePlan(subscription, storedPlan, now) : null;
     // A suspended salon gets nothing, overrides included (platform admin suspension, M12.6).
     const suspended = salon?.status === "suspended";
     const granting = subscription !== null && status !== "none" && isCurrent(status) && !suspended;
+    // X25: an ended trial inside the free year grants Basic before the end-of-trial job runs.
+    const planEntitlements =
+      granting && plan !== storedPlan && plan
+        ? await this.prisma.planEntitlement.findMany({
+            where: { plan: { code: plan } },
+            select: { key: true, value: true },
+          })
+        : subscription?.plan.entitlements;
     const result: SalonEntitlements = {
       salonId,
-      plan: subscription ? planCodeSchema.parse(subscription.plan.code) : null,
+      plan,
       status,
       trialEndsAt: subscription?.trialEndsAt?.toISOString() ?? null,
+      freeUntil: subscription?.freeUntil?.toISOString() ?? null,
+      paidUntil:
+        !subscription || plan === "trial"
+          ? null
+          : // An ended trial read as free Basic is covered until the free year ends.
+            ((plan !== storedPlan
+              ? subscription.freeUntil
+              : subscription.currentPeriodEnd
+            )?.toISOString() ?? null),
+      basicMonthlyPriceVnd: basicPrice ? Number(basicPrice.amountMinor) : null,
       suspended,
       foundingPartner: this.foundingPartner(salon?.organization.foundingPartner ?? null),
       entitlements: resolveEntitlements(
-        granting ? subscription.plan.entitlements : null,
+        granting ? (planEntitlements ?? null) : null,
         suspended ? [] : overrides,
         now,
       ),
     };
     // A salon without a subscription is about to get one (registration → startTrial); never cache
-    // that state, and never cache a trial beyond its end.
+    // that state, and never cache past a trial end or the end of the free year.
     if (subscription) {
-      const ttl = cacheTtl([subscription.trialEndsAt, ...overrides.map((o) => o.expiresAt)], now);
+      // Only boundaries still ahead: a passed trial end or free-year end is already reflected in
+      // `result` (e.g. ended trial → free Basic), so it must not disable caching for good.
+      const ahead = [
+        subscription.trialEndsAt,
+        subscription.freeUntil,
+        ...overrides.map((o) => o.expiresAt),
+      ].filter((at) => at !== null && at > now);
+      const ttl = cacheTtl(ahead, now);
       if (ttl > 0) await this.cache.set(salonId, result, ttl);
     }
     return result;
@@ -87,6 +114,17 @@ export class EntitlementService {
             select: { foundingPartner: { select: { qualifiedAt: true, revokedAt: true } } },
           },
         },
+      }),
+      // Display price only (X25: Basic 99,000 VND/month after the free year; invoiced manually).
+      this.prisma.planPrice.findFirst({
+        where: {
+          plan: { code: "basic" },
+          interval: "month",
+          currency: "VND",
+          activeFrom: { lte: now },
+        },
+        orderBy: { activeFrom: "desc" },
+        select: { amountMinor: true },
       }),
     ]);
   }

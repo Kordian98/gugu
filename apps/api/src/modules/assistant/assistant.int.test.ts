@@ -295,6 +295,28 @@ describe("AI assistant (integration)", () => {
     expect(llm.requests).toHaveLength(0);
   });
 
+  it("X25: a Basic salon (free year) gets 403 entitlement.required and an upsell status", async () => {
+    const basic = await createSalonFixture(prisma, "Assistant basic");
+    await app.get(SubscriptionsFacade).startTrial({ salonId: basic.salonId });
+    // Trial ended inside the free year → Basic, read lazily before the end-of-trial job runs.
+    await prisma.subscription.updateMany({
+      where: { salonId: basic.salonId },
+      data: { trialEndsAt: new Date(Date.now() - 1000) },
+    });
+    await app.get(EntitlementService).invalidate(basic.salonId);
+    const bearer = await bearerFor(app, basic.ownerUserId);
+    const status = await request(http(app))
+      .get(`/api/v1/salons/${basic.salonId}/assistant`)
+      .set("authorization", bearer)
+      .expect(200);
+    expect(status.body).toEqual({ configured: true, entitled: false, permitted: true });
+    const res = await ask("Hôm nay thế nào?", bearer, undefined, basic.salonId).expect(403);
+    expect((res.body as { code: string; detail?: string }).code).toBe(
+      SUBSCRIPTION_ERRORS.entitlementRequired,
+    );
+    expect(llm.requests).toHaveLength(0);
+  });
+
   it("does not let another member reuse a conversation id", async () => {
     llm.script = () => ({ text: "OK" });
     const id = (parseSse((await ask("Hi").expect(200)).text)[0] as { conversationId: string })

@@ -25,6 +25,7 @@ import { KpiRow } from "./KpiRow";
 import { ActivityCard, UpcomingCard } from "./RailCards";
 import { BookabilityIssues } from "./BookabilityIssues";
 import { MyDay } from "./MyDay";
+import { PlanNotice } from "./PlanNotice";
 import { SetupCard } from "./SetupCard";
 import { ZaloWaitingCard } from "./ZaloWaitingCard";
 import { WeekStrip } from "./WeekStrip";
@@ -136,6 +137,7 @@ export function TodayScreen() {
           <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} compact />
         ) : null}
         {ws.demo ? null : <BookabilityIssues />}
+        {ws.demo ? null : <PlanNotice timeZone={ws.timeZone} />}
         <ZaloWaitingCard />
         <WeekStrip now={now} />
         <KpiRow today={ws.today} only="revenue" />
@@ -162,6 +164,7 @@ export function TodayScreen() {
         <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} />
       ) : null}
       {ws.demo ? null : <BookabilityIssues />}
+      {ws.demo ? null : <PlanNotice timeZone={ws.timeZone} />}
       <ZaloWaitingCard />
       <KpiRow today={ws.today} />
       {bp === "wide" ? (
