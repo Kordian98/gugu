@@ -191,11 +191,6 @@ export const customerContactSchema = z.object({
   phone: z.string().trim().min(6).max(32),
 });
 
-/** Staff entry may add an email for confirmations and reminders (topic 11 fallback after Zalo). */
-export const staffCustomerContactSchema = customerContactSchema.extend({
-  email: z.email().max(254).nullish(),
-});
-
 export const STAFF_ENTRY_SOURCE_VALUES = [
   "staff_created",
   "walk_in",
@@ -213,7 +208,7 @@ export const createSalonBookingInputSchema = z
     nextServices: nextServicesList,
     source: z.enum(STAFF_ENTRY_SOURCE_VALUES).default("staff_created"),
     /** Null only for anonymous walk-ins. */
-    customer: staffCustomerContactSchema.nullable(),
+    customer: customerContactSchema.nullable(),
     note: z.string().trim().max(1000).nullish(),
     /** Audited rule overrides (q18); needs `bookings.override_rules`. */
     overrides: z.array(ruleOverrideSchema).max(3).default([]),
@@ -297,9 +292,7 @@ const bookingCore = {
 export const salonBookingSchema = z.object({
   ...bookingCore,
   source: bookingSourceSchema,
-  customer: z
-    .object({ name: z.string(), phone: z.string().nullable(), email: z.string().nullable() })
-    .nullable(),
+  customer: z.object({ name: z.string(), phone: z.string().nullable() }).nullable(),
   identityVerified: z.boolean(),
   /** The customer deleted their account (q71): contact data removed, show a "deleted" label. */
   customerAnonymised: z.boolean(),

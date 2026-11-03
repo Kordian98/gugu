@@ -8,7 +8,7 @@ import { bookingMessagesSchema, bookingParamsSchema } from "@gugu/contracts";
 export const NOTIFICATIONS_READ_MODELS = {
   "notifications.bookingLog": {
     description:
-      "Messages sent to the customer about one booking: Zalo and email, with channel, status, skip reason and times (no address or content).",
+      "Zalo messages sent to the customer about one booking (the only channel to customers), with status, reason and times, and whether the salon's OA can reach the customer (no address or content).",
     input: bookingParamsSchema,
     output: bookingMessagesSchema,
     permission: "bookings.read",

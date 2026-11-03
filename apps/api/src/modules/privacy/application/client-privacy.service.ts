@@ -13,9 +13,6 @@ import { BookingAnonymiser } from "../../bookings/bookings.facade";
 import { renderClientExportText } from "../domain/render-export";
 import { buildClientExport, loadClientScope } from "./client-data";
 
-/** Notification abuse caps look back 24 h; recipient keys younger than that must stay. */
-const CAP_WINDOW_MS = 24 * 3600_000;
-
 /**
  * One client's privacy requests, answered by the salon owner (q80): export (JSON + readable text)
  * and erasure. Customers never authenticate (X23); the salon is the one that holds the record.
@@ -23,7 +20,8 @@ const CAP_WINDOW_MS = 24 * 3600_000;
  *
  * Erasure touches tables of other modules on purpose (this is the one place that removes a person
  * everywhere): customer_salon_profiles + customer_notes (07), bookings / offline_sales /
- * booking_status_history via BookingAnonymiser (06), zalo_* (09), notification_deliveries (11).
+ * booking_status_history via BookingAnonymiser (06), zalo_* (09). The client's optional email
+ * (q87) lives on the profile and goes with it; notification_deliveries (11) hold team rows only.
  * Assistant entity tokens (08) hold only staff/service/booking ids — no client data — and are kept
  * so existing conversations stay consistent; booking tokens re-hydrate to the reference code only.
  */
@@ -72,12 +70,11 @@ export class ClientPrivacyService {
   /**
    * Irreversible. One transaction removes the person: profile(s) and notes deleted, bookings
    * anonymised (kept for the salon's history), Zalo chat content deleted and the conversation
-   * stripped of name/phone/bot state, raw Zalo events of that user deleted, notification recipient
-   * hashes cleared outside the abuse-cap window. Upcoming bookings are cancelled after commit
+   * stripped of name/phone/bot state, raw Zalo events of that user deleted, profile with its stored
+   * email gone. Upcoming bookings are cancelled after commit
    * (their contact is already gone, so no customer message can go out).
    */
   async erase(ctx: SalonContext, profileId: string): Promise<ClientEraseResult> {
-    const now = new Date();
     const done = await this.prisma.$transaction(async (tx) => {
       const scope = await loadClientScope(tx, ctx.salonId, profileId);
       if (!scope) throw notFound();
@@ -115,26 +112,6 @@ export class ClientPrivacyService {
               OR payload->'recipient'->>'id' = ${c.zaloUserId}
               OR payload->'follower'->>'id' = ${c.zaloUserId})`;
       }
-      await tx.notificationDelivery.updateMany({
-        where: {
-          salonId,
-          audience: "customer",
-          recipientKey: { not: null },
-          OR: [
-            { bookingId: { in: booked.bookingIds } },
-            { conversationId: { in: conversationIds } },
-          ],
-          AND: [
-            {
-              OR: [
-                { reservedAt: null },
-                { reservedAt: { lt: new Date(now.getTime() - CAP_WINDOW_MS) } },
-              ],
-            },
-          ],
-        },
-        data: { recipientKey: null },
-      });
       // q71: the salon's notes about the person are deleted, not kept.
       const notes = await tx.customerNote.deleteMany({
         where: { salonId, profileId: { in: scope.profileIds } },

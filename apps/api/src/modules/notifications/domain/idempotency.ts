@@ -5,7 +5,7 @@ export interface IdempotencyParts {
   entityId: string;
   /** Booking version, or the source event id when the entity has no version. */
   entityVersion: number | string;
-  /** Team member user id, or `customer` (customers have no account, X23). */
+  /** Team member user id (customers get nothing from this module, X26). */
   recipientId: string;
   channel: string;
   variant?: string;

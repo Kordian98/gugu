@@ -70,7 +70,15 @@ export const customerVisitSchema = z.object({
   priceMinor: z.number().int(),
 });
 
+/**
+ * Optional email kept on the client profile (q87): stored for the salon's own records only —
+ * GuGu never sends email to a salon's customers (X26). Same visibility as the phone number.
+ */
+export const customerEmailSchema = z.email().max(254);
+
 export const customerDetailSchema = customerSummarySchema.extend({
+  /** Masked when the member lacks customers.phone.read (same rule as the phone). */
+  email: z.string().nullable(),
   consent: consentSchema,
   createdAt: z.iso.datetime(),
   upcoming: z.array(customerVisitSchema),
@@ -85,6 +93,7 @@ export type CustomerDetail = z.infer<typeof customerDetailSchema>;
 export const customerInputSchema = z.object({
   displayName: z.string().trim().min(1).max(120),
   phone: z.string().trim().min(6).max(32).nullable().default(null),
+  email: customerEmailSchema.nullable().default(null),
 });
 export type CustomerInput = z.input<typeof customerInputSchema>;
 
@@ -92,6 +101,8 @@ export const customerUpdateSchema = z.object({
   displayName: z.string().trim().min(1).max(120).optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(20).optional(),
   consent: consentSchema.optional(),
+  /** Needs customers.phone.read (the same rule that shows the address unmasked). Null clears it. */
+  email: customerEmailSchema.nullable().optional(),
 });
 export type CustomerUpdate = z.input<typeof customerUpdateSchema>;
 

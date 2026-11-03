@@ -10,6 +10,7 @@ const data: ClientExport = {
     id: "0190f000-0000-7000-8000-000000000002",
     displayName: "Nguyễn Thị Lan",
     phone: "+84901234567",
+    email: "lan@example.vn",
     tags: ["VIP"],
     marketingConsent: { zalo: true, email: false, sms: false },
     source: "manual",
@@ -28,7 +29,6 @@ const data: ClientExport = {
       currency: "VND",
       customerName: "Nguyễn Thị Lan",
       customerPhone: "+84901234567",
-      customerEmail: null,
       customerNote: "Tóc ngắn",
       cancellationReason: null,
       createdAt: "2026-10-01T03:00:00.000Z",
@@ -46,17 +46,6 @@ const data: ClientExport = {
   ],
   notes: [{ body: "Thích trà gừng", createdAt: "2026-10-10T05:00:00.000Z" }],
   zalo: [],
-  notificationDeliveries: [
-    {
-      bookingReference: "AB12",
-      event: "booking.confirmed",
-      channel: "email",
-      status: "sent",
-      reason: null,
-      createdAt: "2026-10-01T03:01:00.000Z",
-      sentAt: "2026-10-01T03:01:05.000Z",
-    },
-  ],
 };
 
 describe("renderClientExportText", () => {
@@ -68,7 +57,7 @@ describe("renderClientExportText", () => {
       expect(text).toContain("+84901234567");
       expect(text).toContain("#AB12");
       expect(text).toContain("Thích trà gừng");
-      expect(text).toContain("booking.confirmed");
+      expect(text).toContain("lan@example.vn");
       expect(text).toContain(locale === "vi" ? "Cắt tóc" : "Haircut");
       expect(text).not.toMatch(/privacy:|export\.fields/);
     }

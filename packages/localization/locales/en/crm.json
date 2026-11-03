@@ -501,9 +501,6 @@
     "clientSearch": "Search by phone or name",
     "newClientName": "Client name",
     "newClientPhone": "Phone number",
-    "newClientEmail": "Email (optional)",
-    "newClientEmailHint": "Used for email confirmations and reminders when Zalo can't reach the customer.",
-    "newClientEmailInvalid": "This email address doesn't look right.",
     "service": "Service",
     "staff": "Team member",
     "time": "Time",
@@ -587,7 +584,7 @@
     },
     "reasonText": "Reason note",
     "reasonPlaceholder": "Optional",
-    "cancelNotice": "The client is told once a notification channel (Zalo/email) is connected.",
+    "cancelNotice": "If the client has chatted with the salon's Zalo OA, they're told by Zalo. If not, remember to call them.",
     "correctReason": "Reason for the correction",
     "amountTitle": "Amount the client paid at the salon",
     "amountHint": "Optional. For the salon's own records; GuGu processes no payment.",
@@ -726,7 +723,11 @@
     "upcoming": "Upcoming",
     "history": "History",
     "noUpcoming": "No upcoming appointments.",
-    "noHistory": "No visits yet."
+    "noHistory": "No visits yet.",
+    "email": "Email (optional)",
+    "emailHint": "Saved for your records only. GuGu never emails your clients.",
+    "emailInvalid": "This email address doesn't look right.",
+    "emailSaved": "Email saved."
   },
   "insights": {
     "subtitle": "Figures from your salon's appointments. Revenue is an estimate, not money received.",

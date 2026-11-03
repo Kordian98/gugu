@@ -1,8 +1,8 @@
 import type { Locale } from "@gugu/contracts";
-import { formatDateLong, formatTime, formatVND, createI18n } from "@gugu/localization";
+import { formatDateLong, formatTime, createI18n } from "@gugu/localization";
 import type { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 
-/** Everything a notification about one booking needs, loaded once (tenant-scoped). */
+/** Everything a team notification about one booking needs, loaded once (tenant-scoped). */
 export async function loadBookingView(prisma: PrismaService, salonId: string, bookingId: string) {
   return prisma.booking.findFirst({
     where: { id: bookingId, salonId },
@@ -10,17 +10,10 @@ export async function loadBookingView(prisma: PrismaService, salonId: string, bo
       id: true,
       salonId: true,
       referenceCode: true,
-      status: true,
       startsAt: true,
-      endsAt: true,
-      version: true,
-      createdAt: true,
       staffId: true,
       customerName: true,
-      customerEmail: true,
       customerAnonymisedAt: true,
-      totalPriceMinor: true,
-      totalPriceMaxMinor: true,
       staff: { select: { displayName: true } },
       // Every service of the appointment, in order (multi-service bookings, M6.8).
       services: {
@@ -31,21 +24,6 @@ export async function loadBookingView(prisma: PrismaService, salonId: string, bo
           staff: { select: { displayName: true } },
         },
         orderBy: { sequence: "asc" },
-      },
-      salon: {
-        select: {
-          name: true,
-          timezone: true,
-          defaultLocale: true,
-          phoneE164: true,
-          location: {
-            select: {
-              addressLine: true,
-              ward: { select: { nameVi: true, nameEn: true } },
-              province: { select: { nameVi: true, nameEn: true } },
-            },
-          },
-        },
       },
     },
   });
@@ -91,19 +69,4 @@ export function formatWhen(at: Date, locale: Locale, timeZone: string): string {
     date: formatDateLong(at, locale, timeZone),
     time: formatTime(at, locale, timeZone),
   });
-}
-
-export function formatPrice(b: BookingView, locale: Locale): string {
-  const min = Number(b.totalPriceMinor);
-  const max = b.totalPriceMaxMinor === null ? null : Number(b.totalPriceMaxMinor);
-  return max !== null && max > min
-    ? `${formatVND(min, locale)} – ${formatVND(max, locale)}`
-    : formatVND(min, locale);
-}
-
-export function formatAddress(b: BookingView, locale: Locale): string | null {
-  const l = b.salon.location;
-  if (!l) return null;
-  const name = (x: { nameVi: string; nameEn: string }) => (locale === "en" ? x.nameEn : x.nameVi);
-  return [l.addressLine, name(l.ward), name(l.province)].filter(Boolean).join(", ");
 }

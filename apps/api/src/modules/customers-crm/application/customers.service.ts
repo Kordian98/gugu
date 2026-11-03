@@ -6,9 +6,10 @@ import {
   type CustomerListQuery,
   type CustomerSummary,
 } from "@gugu/contracts";
-import { maskPhone, normalizeVnPhone } from "@gugu/domain";
+import { maskEmail, maskPhone, normalizeVnPhone } from "@gugu/domain";
 import type { SalonContext } from "../../../common/guards/principal";
 import { AppError } from "../../../common/problem/app-error";
+import { COMMON_ERRORS } from "../../../common/problem/error-codes";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { AuditService } from "../../audit/audit.facade";
 import type { CrmScope } from "../../salon-crm/salon-crm.facade";
@@ -201,6 +202,8 @@ export class CustomersService {
           ? profile.phoneE164
           : maskPhone(profile.phoneE164)
         : null,
+      // q87: stored only, never used for sending (X26); same visibility as the phone.
+      email: profile.email ? (showPhone ? profile.email : maskEmail(profile.email)) : null,
       tags: profile.tags,
       visits: completed.length,
       noShows: bookings.filter((b) => b.status === "no_show").length,
@@ -240,8 +243,10 @@ export class CustomersService {
 
   async create(
     ctx: SalonContext,
-    input: { displayName: string; phone: string | null },
+    input: { displayName: string; phone: string | null; email?: string | null | undefined },
   ): Promise<{ id: string }> {
+    const email = normalizeEmail(input.email);
+    if (email !== null) assertContactAccess(ctx);
     const phone = input.phone ? normalizeVnPhone(input.phone) : null;
     if (input.phone && !phone) throw new AppError(400, "booking.phone_invalid", "Invalid phone");
     if (phone) {
@@ -263,6 +268,7 @@ export class CustomersService {
         salonId: ctx.salonId,
         displayName: input.displayName,
         phoneE164: phone,
+        email,
         source: "manual",
       },
     });
@@ -277,14 +283,18 @@ export class CustomersService {
       displayName?: string | undefined;
       tags?: string[] | undefined;
       consent?: { zalo: boolean; email: boolean; sms: boolean } | undefined;
+      email?: string | null | undefined;
     },
   ): Promise<void> {
+    // Editing the email needs the right that shows it unmasked (same rule as the phone, q87).
+    if (patch.email !== undefined) assertContactAccess(ctx);
     const { count } = await this.prisma.customerSalonProfile.updateMany({
       where: { id, salonId: ctx.salonId, deletedAt: null },
       data: {
         ...(patch.displayName ? { displayName: patch.displayName } : {}),
         ...(patch.tags ? { tags: [...new Set(patch.tags)] } : {}),
         ...(patch.consent ? { marketingConsent: patch.consent } : {}),
+        ...(patch.email !== undefined ? { email: normalizeEmail(patch.email) } : {}),
       },
     });
     if (count === 0) throw notFound();
@@ -356,3 +366,12 @@ export class CustomersService {
 }
 
 const notFound = () => new AppError(404, CUSTOMER_ERRORS.notFound, "Client not found");
+
+const normalizeEmail = (v: string | null | undefined): string | null =>
+  v?.trim().toLowerCase() || null;
+
+function assertContactAccess(ctx: SalonContext): void {
+  if (!ctx.permissions.has("customers.phone.read")) {
+    throw new AppError(403, COMMON_ERRORS.forbidden, "Permission required");
+  }
+}

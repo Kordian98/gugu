@@ -1,10 +1,10 @@
 // Multi-service appointment (06 M6.8, vi): one booking with two services in sequence done by two
 // staff members — Sơn gel with Nguyễn Lan, then Cắt tóc nữ with Trần Mai. The sheet shows the chain
-// plan, the calendar shows one block per staff part, the drawer and the customer's confirmation
-// email list both services.
-import { t, tx } from "../support/i18n";
+// plan, the calendar shows one block per staff part and the drawer lists both services. GuGu never
+// emails the customer (X26): the salon has no Zalo OA here, so no message reaches them at all.
+import { t } from "../support/i18n";
 import { expect, test } from "../support/fixtures";
-import { waitForMail } from "../support/mailpit";
+import { expectNoMail } from "../support/mailpit";
 import { SEED, mail } from "../support/seed";
 import { addDays, vnDate } from "../support/time";
 import { fillField, hydrated, tap } from "../support/ui";
@@ -20,12 +20,22 @@ test.describe("multi-service @vi", () => {
     const { lan, mai } = SEED.staff;
     const page = await signedIn(seed.ownerEmail);
 
+    await test.step("the client exists with an email stored on the profile (q87)", async () => {
+      await page.goto("/vi/business/customers");
+      await tap(await hydrated(page.getByTestId("crm-customer-add")));
+      await fillField(page.getByTestId("crm-customer-name"), "Đỗ Hải Yến");
+      await fillField(page.getByTestId("crm-customer-phone"), "0944 000 666");
+      await tap(page.getByTestId("crm-customer-save"));
+      await fillField(page.getByTestId("crm-customer-email"), customerEmail);
+      await tap(page.getByTestId("crm-customer-email-save"));
+      await expect(page.getByText(t(L, "crm:customers.emailSaved"))).toBeVisible();
+    });
+
     await test.step("compose the chain in the new-appointment sheet", async () => {
       await page.goto("/vi/business");
       await tap(page.getByTestId("crm-new-appointment"));
       await fillField(page.getByTestId("crm-client-name"), "Đỗ Hải Yến");
       await fillField(page.getByTestId("crm-client-phone"), "0944 000 666");
-      await fillField(page.getByTestId("crm-client-email"), customerEmail);
       await tap(page.getByTestId("crm-chip").filter({ hasText: gel.vi }));
       await tap(page.getByTestId("crm-chip").filter({ hasText: new RegExp(`^${lan.name}$`) }));
       await tap(page.getByTestId("crm-add-service"));
@@ -77,12 +87,13 @@ test.describe("multi-service @vi", () => {
       }
     });
 
-    await test.step("the customer's confirmation email names both services", async () => {
-      const [confirmed] = await waitForMail(customerEmail, {
-        subject: tx(L, "notifications:email.bookingConfirmed.subject", { salon: seed.salonName }),
-      });
-      expect(confirmed?.Text).toContain(gel.vi);
-      expect(confirmed?.Text).toContain(cut.vi);
+    await test.step("no email to the customer; the drawer says Zalo cannot reach them", async () => {
+      const messages = page.getByTestId("crm-booking-messages");
+      await expect(messages.getByTestId("crm-booking-message")).toHaveCount(0);
+      await expect(messages.getByTestId("crm-booking-messages-unreachable")).toHaveText(
+        t(L, "notifications:panel.messages.reach.not_connected"),
+      );
+      await expectNoMail(customerEmail);
     });
   });
 

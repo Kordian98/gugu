@@ -3,12 +3,14 @@ import { uuidV7Schema } from "../common/ids";
 import { localizedNameSchema } from "../salon/registration";
 
 /**
- * Notification contracts (topic 11; docs/domains/customer-notifications.md). Customers get email
- * only as the fallback after Zalo (ZBS Template Message, channel id `zalo_template`); team members
- * get an in-app item (bell) plus an optional email. No SMS (X12), no customer accounts (X23).
+ * Notification contracts (topic 11; docs/domains/customer-notifications.md). GuGu never emails a
+ * salon's customers (X26, owner q85/q86): customers hear only from the salon's own Zalo OA (module
+ * `zalo`: ZBS Template Message, channel id `zalo_template`, or a consultation message) and only
+ * when the OA can reach them; otherwise nothing is sent. Team members get an in-app item (bell)
+ * plus an optional email. No SMS (X12), no customer accounts (X23).
  */
 
-/** Events that reach the salon's customer (by Zalo first, email as the fallback). */
+/** Events that reach the salon's customer — only through the salon's Zalo OA (module `zalo`). */
 export const CUSTOMER_NOTIFICATION_EVENTS = [
   "booking.confirmed",
   "booking.rescheduled",
@@ -32,34 +34,32 @@ export const notificationEventSchema = z.enum(NOTIFICATION_EVENTS);
 export type NotificationEvent = z.infer<typeof notificationEventSchema>;
 export type CustomerNotificationEvent = (typeof CUSTOMER_NOTIFICATION_EVENTS)[number];
 export type TeamNotificationEvent = (typeof TEAM_NOTIFICATION_EVENTS)[number];
+export const teamNotificationEventSchema = z.enum(TEAM_NOTIFICATION_EVENTS);
 
 export const isTeamEvent = (e: NotificationEvent): e is TeamNotificationEvent =>
   (TEAM_NOTIFICATION_EVENTS as readonly string[]).includes(e);
 
-/** Reminder offsets (R19): at most 3, between 30 minutes and 7 days before the start. */
-export const REMINDER_OFFSET_MIN_MINUTES = 30;
-export const REMINDER_OFFSET_MAX_MINUTES = 7 * 24 * 60;
-export const MAX_REMINDER_OFFSETS = 3;
-export const DEFAULT_REMINDER_OFFSETS = [1440, 120] as const;
-
 // ─── Settings ───────────────────────────────────────────────────────────────────────────────────
 
+/** One team event: bell item and email copy on/off for the whole salon. */
 export const notificationEventSettingSchema = z.object({
-  event: notificationEventSchema,
-  audience: z.enum(["customer", "team"]),
-  /** Customer: email fallback on/off. Team: email copy on/off. */
+  event: teamNotificationEventSchema,
   email: z.boolean(),
-  /** Team only: bell item on/off; null for customer events. */
-  inApp: z.boolean().nullable(),
+  inApp: z.boolean(),
 });
 export type NotificationEventSetting = z.infer<typeof notificationEventSettingSchema>;
 
+/**
+ * Settings → Notifications. `zalo` is read-only here: what the salon's Zalo OA sends to customers
+ * (module `zalo`; the 24 h / 2 h reminder switches are edited in Settings → Zalo).
+ */
 export const notificationSettingsSchema = z.object({
   events: z.array(notificationEventSettingSchema),
-  reminderOffsetsMinutes: z.array(z.number().int()),
-  replyToEmail: z.string().nullable(),
-  /** The salon has a connected Zalo OA: Zalo goes first, email is the fallback. */
-  zaloConnected: z.boolean(),
+  zalo: z.object({
+    connected: z.boolean(),
+    reminder24h: z.boolean(),
+    reminder2h: z.boolean(),
+  }),
 });
 export type NotificationSettings = z.infer<typeof notificationSettingsSchema>;
 
@@ -67,57 +67,54 @@ export const notificationSettingsInputSchema = z.object({
   events: z
     .array(
       z.object({
-        event: notificationEventSchema,
+        event: teamNotificationEventSchema,
         email: z.boolean(),
-        inApp: z.boolean().nullish(),
+        inApp: z.boolean(),
       }),
     )
-    .max(NOTIFICATION_EVENTS.length)
+    .max(TEAM_NOTIFICATION_EVENTS.length)
     .refine((list) => new Set(list.map((e) => e.event)).size === list.length, "duplicate_event"),
-  reminderOffsetsMinutes: z
-    .array(z.number().int().min(REMINDER_OFFSET_MIN_MINUTES).max(REMINDER_OFFSET_MAX_MINUTES))
-    .max(MAX_REMINDER_OFFSETS)
-    .refine((list) => new Set(list).size === list.length, "duplicate_offset"),
-  replyToEmail: z.email().max(254).nullable(),
 });
 export type NotificationSettingsInput = z.infer<typeof notificationSettingsInputSchema>;
 
 // ─── Per-booking message timeline (CRM booking drawer) ──────────────────────────────────────────
 
+/** Outcome of a Zalo send (module `zalo` send log). */
 export const bookingMessageStatusSchema = z.enum([
-  "scheduled",
   "queued",
   "sent",
-  "delivered",
   "failed",
-  "skipped",
-  /** Zalo refused on purpose (window closed, quota, no template …). */
+  /** Zalo refused on purpose (window closed, quota, no template, salon suspended …). */
   "rejected",
 ]);
 export type BookingMessageStatus = z.infer<typeof bookingMessageStatusSchema>;
 
-/** One message to the customer about this booking. No address, no content (privacy). */
+/** One Zalo message to the customer about this booking. No address, no content (privacy). */
 export const bookingMessageSchema = z.object({
   id: uuidV7Schema,
-  channel: z.enum(["email", "zalo_template", "zalo_chat"]),
-  /** Notification event or Zalo purpose code (`booking_confirmation`, `reminder_24h`, …). */
+  channel: z.enum(["zalo_template", "zalo_chat"]),
+  /** Zalo purpose code (`booking_confirmation`, `booking_rescheduled`, `reminder_24h`, …). */
   kind: z.string(),
   /** Reminder offset in minutes, when the message is a reminder. */
   offsetMinutes: z.number().int().nullable(),
   status: bookingMessageStatusSchema,
   reason: z.string().nullable(),
-  /** Email sent (or planned) only because Zalo did not deliver. */
-  fallback: z.boolean(),
-  scheduledFor: z.iso.datetime({ offset: true }).nullable(),
   sentAt: z.iso.datetime({ offset: true }).nullable(),
   createdAt: z.iso.datetime({ offset: true }),
 });
 export type BookingMessage = z.infer<typeof bookingMessageSchema>;
 
+/**
+ * Can the salon's Zalo OA reach this customer right now? `not_connected`: the salon has no
+ * connected OA; `not_linked`: the customer has no (unique) Zalo conversation with the OA.
+ * Either way nothing is sent to the customer — there is no other channel (X26).
+ */
+export const zaloReachSchema = z.enum(["reachable", "not_linked", "not_connected"]);
+export type ZaloReach = z.infer<typeof zaloReachSchema>;
+
 export const bookingMessagesSchema = z.object({
   items: z.array(bookingMessageSchema),
-  /** The booking has an email address for the fallback. */
-  hasEmail: z.boolean(),
+  zaloReach: zaloReachSchema,
 });
 export type BookingMessages = z.infer<typeof bookingMessagesSchema>;
 

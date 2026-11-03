@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { RemindersService } from "./reminders.service";
+import { ReconcileService } from "./reconcile.service";
 import { SenderService } from "./sender.service";
 
 /** Entry points for the `notify` BullMQ queue (jobs/notify.processor.ts). */
@@ -7,7 +7,7 @@ import { SenderService } from "./sender.service";
 export class NotifyJobs {
   constructor(
     private readonly sender: SenderService,
-    private readonly reminders: RemindersService,
+    private readonly reconciler: ReconcileService,
   ) {}
 
   send(deliveryId: string, finalAttempt: boolean) {
@@ -15,6 +15,6 @@ export class NotifyJobs {
   }
 
   reconcile() {
-    return this.reminders.reconcile();
+    return this.reconciler.reconcile();
   }
 }

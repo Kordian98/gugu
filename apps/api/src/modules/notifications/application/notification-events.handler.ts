@@ -14,7 +14,6 @@ export class NotificationEventsHandler implements DomainEventHandler {
     "booking.status_changed",
     "booking.rescheduled",
     "zalo.handoff_requested",
-    "notifications.settings_updated",
   ] as const;
 
   constructor(private readonly planner: PlannerService) {}

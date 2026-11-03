@@ -1,32 +1,27 @@
 import { Injectable } from "@nestjs/common";
-import type { CustomerNotificationEvent, TeamNotificationEvent } from "@gugu/contracts";
+import type { TeamNotificationEvent } from "@gugu/contracts";
 import type { DomainEvent } from "../../../infrastructure/outbox/domain-events";
 import type { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
-import { ZaloDeliveryQueries } from "../../zalo/zalo.facade";
 import { channelEnabled, teamDef } from "../domain/catalog";
 import { idempotencyKey } from "../domain/idempotency";
 import { DeliveryQueue } from "./delivery-queue";
 import { NotifyClock } from "./notify-clock";
 import { RecipientsService } from "./recipients.service";
-import { RemindersService } from "./reminders.service";
 import { NotificationSettingsService } from "./settings.service";
-
-/** How long an email fallback waits before first checking what Zalo did. */
-export const ZALO_GRACE_MS = 90_000;
 
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
 const int = (v: unknown): number | null =>
   typeof v === "number" && Number.isInteger(v) ? v : null;
 
 /**
- * Turns domain events from the outbox (bookings, Zalo hand-off, settings) into delivery rows and
- * `notify.send` jobs. Idempotent: every row has a deterministic key (unique index) and the job id
- * is that key, so a redelivered or replayed event changes nothing.
+ * Turns domain events from the outbox (bookings, Zalo hand-off) into team delivery rows (bell +
+ * email copy) and `notify.send` jobs. Idempotent: every row has a deterministic key (unique index)
+ * and the job id is that key, so a redelivered or replayed event changes nothing.
  *
- * Customer messages only for changes the salon made (`actorType = salon_member`): changes the
- * customer made in the Zalo chat were already answered there. Customer channel plan: Zalo, then
- * email, then none — see `customer()`.
+ * Customers are not planned here (X26): the salon's Zalo OA tells them about changes the salon
+ * made and sends their reminders (module `zalo`, from the same outbox events); when the OA cannot
+ * reach the customer nothing is sent. GuGu never emails a salon's customers.
  */
 @Injectable()
 export class PlannerService {
@@ -34,8 +29,6 @@ export class PlannerService {
     private readonly prisma: PrismaService,
     private readonly settings: NotificationSettingsService,
     private readonly recipients: RecipientsService,
-    private readonly reminders: RemindersService,
-    private readonly zalo: ZaloDeliveryQueries,
     private readonly queue: DeliveryQueue,
     private readonly clock: NotifyClock,
   ) {}
@@ -44,10 +37,6 @@ export class PlannerService {
     const p = event.payload;
     const salonId = event.salonId;
     if (!salonId) return;
-    if (event.type === "notifications.settings_updated") {
-      await this.reminders.resyncSalon(salonId);
-      return;
-    }
     if (event.type === "zalo.handoff_requested") {
       const conversationId = str(p["conversationId"]);
       if (!conversationId) return;
@@ -87,25 +76,13 @@ export class PlannerService {
       });
 
     if (event.type === "booking.created") {
-      if (bySalon && p["status"] === "confirmed") {
-        await this.customer("booking.confirmed", salonId, booking.id, version, event.id);
-      }
       await team("salon.booking_received", staffOfBooking);
     } else if (event.type === "booking.status_changed") {
       const to = str(p["to"]);
-      if (bySalon && to === "confirmed" && p["from"] === "pending") {
-        await this.customer("booking.confirmed", salonId, booking.id, version, event.id);
-      }
-      if (bySalon && to === "cancelled_by_salon") {
-        await this.customer("booking.cancelled_by_salon", salonId, booking.id, version, event.id);
-      }
       if (to === "cancelled_by_salon" || to === "cancelled_by_customer") {
         await team("salon.booking_cancelled", staffOfBooking);
       }
     } else if (event.type === "booking.rescheduled") {
-      if (bySalon) {
-        await this.customer("booking.rescheduled", salonId, booking.id, version, event.id);
-      }
       const moved = [p["fromStaffIds"], p["toStaffIds"]].flatMap((v) =>
         Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [],
       );
@@ -116,79 +93,7 @@ export class PlannerService {
         ...staffOfBooking,
       ].filter((s): s is string => s !== null);
       await team("salon.booking_rescheduled", [...new Set(staffIds)]);
-    } else {
-      return;
     }
-    await this.reminders.sync(salonId, booking.id);
-  }
-
-  /**
-   * One customer email row per (event, booking, version):
-   * - no email and no Zalo route → `skipped/no_contact` (the timeline explains why nothing went);
-   * - Zalo route → `queued` as the fallback of `zalo_template`, checked after a grace period
-   *   against the Zalo send log (`booking_update:<eventId>`, written by module `zalo`);
-   * - email only → `queued` now; salon turned it off → `skipped/disabled`.
-   */
-  private async customer(
-    event: CustomerNotificationEvent,
-    salonId: string,
-    bookingId: string,
-    version: number | string,
-    sourceEventId: string,
-  ): Promise<void> {
-    const b = await this.prisma.booking.findFirst({
-      where: { id: bookingId, salonId },
-      select: {
-        customerName: true,
-        customerEmail: true,
-        customerAnonymisedAt: true,
-        startsAt: true,
-        salon: { select: { defaultLocale: true } },
-      },
-    });
-    if (!b || b.customerName === null || b.customerAnonymisedAt !== null) return;
-    const now = this.clock.now();
-    const route = await this.zalo.route(salonId, bookingId);
-    const settings = await this.settings.stored(salonId);
-    const hasEmail = b.customerEmail !== null;
-    if (!hasEmail && route.usable) return; // Zalo only; its own log shows the send.
-
-    const base = {
-      salonId,
-      bookingId,
-      event,
-      // Module clock: the Zalo wait and reconciliation windows use the same time source.
-      createdAt: now,
-      audience: "customer" as const,
-      channel: "email",
-      locale: b.salon.defaultLocale,
-      entityVersion: typeof version === "number" ? version : null,
-      idempotencyKey: idempotencyKey({
-        event,
-        entityId: bookingId,
-        entityVersion: version,
-        recipientId: "customer",
-        channel: "email",
-      }),
-      meta: {
-        sourceEventId,
-        startsAt: b.startsAt.toISOString(),
-        ...(route.usable ? { zaloDedupKey: `booking_update:${sourceEventId}` } : {}),
-      },
-    };
-    let row: Prisma.NotificationDeliveryCreateManyInput;
-    if (!hasEmail) row = { ...base, status: "skipped", reason: "no_contact" };
-    else if (!channelEnabled(settings.events, event, "email")) {
-      row = { ...base, status: "skipped", reason: "disabled" };
-    } else if (route.usable) {
-      row = {
-        ...base,
-        status: "queued",
-        fallbackOf: "zalo_template",
-        scheduledFor: new Date(now.getTime() + ZALO_GRACE_MS),
-      };
-    } else row = { ...base, status: "queued", scheduledFor: now };
-    await this.insertAndEnqueue([row]);
   }
 
   /** Bell item (+ email copy) for every allowed team member except the one who made the change. */

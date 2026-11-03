@@ -44,7 +44,6 @@ export const clientExportBookingSchema = z.object({
   /** Contact snapshot stored on the booking. */
   customerName: z.string().nullable(),
   customerPhone: z.string().nullable(),
-  customerEmail: z.string().nullable(),
   customerNote: z.string().nullable(),
   cancellationReason: z.string().nullable(),
   createdAt: z.iso.datetime(),
@@ -74,6 +73,8 @@ export const clientExportSchema = z.object({
     id: uuidV7Schema,
     displayName: z.string(),
     phone: z.string().nullable(),
+    /** Optional email stored on the profile (q87; never used for sending). */
+    email: z.string().nullable(),
     tags: z.array(z.string()),
     marketingConsent: z.object({ zalo: z.boolean(), email: z.boolean(), sms: z.boolean() }),
     source: z.string(),
@@ -98,18 +99,6 @@ export const clientExportSchema = z.object({
           text: z.string().nullable(),
         }),
       ),
-    }),
-  ),
-  /** Messages sent to the client (log only: no address or content is stored). */
-  notificationDeliveries: z.array(
-    z.object({
-      bookingReference: z.string().nullable(),
-      event: z.string(),
-      channel: z.string(),
-      status: z.string(),
-      reason: z.string().nullable(),
-      createdAt: z.iso.datetime(),
-      sentAt: z.iso.datetime().nullable(),
     }),
   ),
 });

@@ -46,7 +46,7 @@ export interface CreateBookingRequest {
   /** Further services in sequence (M6.8, flag `booking.multiService`); omitted = single. */
   nextServices?: readonly LineRequest[];
   /** E.164 already normalised; null only for anonymous walk-ins. */
-  customer: { name: string; phoneE164: string; email?: string | null } | null;
+  customer: { name: string; phoneE164: string } | null;
   note: string | null;
   overrides: readonly RuleOverride[];
   overrideReason: string | null;
@@ -220,7 +220,6 @@ export class CreateBookingCommand {
         customerUserId: actor.kind === "customer" ? actor.userId : null,
         customerName: req.customer?.name ?? null,
         customerPhoneE164: req.customer?.phoneE164 ?? null,
-        customerEmail: req.customer?.email?.trim().toLowerCase() || null,
         customerPhoneHash: phoneHash,
         customerNote: req.note,
         staffId: option.staffId,
