@@ -443,7 +443,9 @@
       "prev": "Previous",
       "page": "{{n}} / {{total}}",
       "hintKeys": "Press Next or use the → key",
-      "hintTouch": "Swipe or tap Next"
+      "hintTouch": "Swipe or tap Next to go on",
+      "hintStartKeys": "Scroll or press Start to walk in",
+      "hintStartTouch": "Swipe up or tap Start to walk in"
     },
     "calc": {
       "t": "What fewer no-shows are worth",

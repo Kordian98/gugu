@@ -23,9 +23,10 @@ directional settle. The owner then asked for a different model: "mega robust, li
 
 ## Decision
 
-1. **Doors stay scroll-driven.** The track is one "door segment" (1.2 screens) plus the pinned stage.
-   Its scroll position scrubs journey time 0 → page 1 (inside, at the desk) with a 70 ms smoother;
-   scrolling up closes the doors again.
+1. **Arrive is scroll-driven.** The track is one "door segment" (2.2 screens) plus the pinned stage.
+   Its scroll position scrubs journey time 0 → page 1 = Front desk "before" (doors, walk-in and the
+   stressed reception in one segment) with a 70 ms smoother; scrolling up reverses it to the hero. The book
+   docks on Front desk; Arrive is not a page you step through (owner correction, 2026-11-04).
 2. **Everything after is a book of explicit page turns** (`flow/book.ts`): Next/Prev, HUD chapters,
    keys (→ ↓ PgDn Space / ← ↑ PgUp Shift+Space while the story is in view and focus is not in a
    field), one touch swipe = one page while docked. A turn plays the existing GSAP timeline from one
@@ -40,7 +41,7 @@ directional settle. The owner then asked for a different model: "mega robust, li
    scrollbar is free.
 5. **Media gate:** a turn waits (≤ 2.5 s) until the walk it plays through has ≥ 50 % of its frames, and
    walks chain-preload in the background.
-6. **Signposting:** counter "n / 10", per-page HUD bars filling with journey time, a first-view hint
+6. **Signposting:** counter "n / 9", per-page HUD bars filling with journey time, a first-view hint
    (keys on fine pointers, swipe on touch), a Prev button, and a Next label that crossfades and morphs
    its width the moment a turn starts (start the tour · next · see the after · finish journey).
    "Finish journey" and "Skip" scroll to the first section after the story.

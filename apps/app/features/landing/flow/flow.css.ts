@@ -20,7 +20,7 @@ export const FLOW_CSS = `
 .lyr{position:absolute;will-change:transform,opacity}
 
 /* journey: ONE sticky full-screen stage (hero door portal → walk → desk → rooms) */
-.jr{position:relative;height:220vh}
+.jr{position:relative;height:320vh}
 .jr-stage{position:sticky;top:0;height:100vh;height:100svh;height:var(--sv,100svh);width:100%;overflow:hidden;contain:layout paint;background:${color.canvas};--fade:0}
 /* reduced motion: page turns fade through the canvas colour */
 .jr-stage::after{content:"";position:absolute;inset:0;background:${color.canvas};opacity:var(--fade);pointer-events:none;z-index:5}
@@ -400,6 +400,7 @@ export const FLOW_CSS = `
 .hud-hint{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);white-space:nowrap;font-family:${font.uiMedium};font-size:12.5px;color:${color.ink};background:rgba(255,255,255,.9);padding:7px 12px;border-radius:99px;box-shadow:0 10px 30px rgba(42,20,38,.14);opacity:0;transition:opacity .4s ease;pointer-events:none}
 .jr-hud.hinted .hud-hint{opacity:1}
 .hud-hint .tc{display:none}
+.jr-hud[data-page="0"] .hud-hint .h1,.jr-hud:not([data-page="0"]) .hud-hint .h0{display:none}
 @media (pointer:coarse){.hud-hint .k{display:none}.hud-hint .tc{display:inline}}
 @keyframes hudNudge{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
 @keyframes hudPulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.18)}}

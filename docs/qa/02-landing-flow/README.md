@@ -18,11 +18,11 @@ The HUD chapter jump felt good because it was a single long eased tween, with no
 
 ## Final model (owner, 2026-11-04): doors by scroll, then a book
 
-- **Doors:** hero → doors open → inside at the desk is scroll-scrubbed. Scrolling up closes the doors.
+- **Arrive (doors):** hero → doors open → walk-in → stressed front desk is one scroll-scrubbed segment. The book docks on Front desk page 1; scrolling up reverses to the hero.
 - **Page turns:** everything after moves only by Next/Prev, HUD chapters, keys (→ ↓ PgDn Space / ← ↑ PgUp Shift+Space while the story is in view), or one touch swipe per page.
 - **Turns:** each turn plays the existing animation at its original pacing and never stops half-way. Next during a turn fast-forwards it and queues at most one page.
-- **Wheel and trackpad:** they scroll past the story. The dock catches flicks: a fast flick at the hero lands exactly on page 1, and a flick up from below lands back on the book page you left.
-- **Label:** Next morphs immediately (start the tour → next → see the after → … → finish journey). A counter (n / 10), a first-view hint and Prev were added.
+- **Wheel and trackpad:** they scroll past the story. The dock catches flicks: a fast flick at the hero lands exactly on Front desk page 1, and a flick up from below lands back on the book page you left.
+- **Label:** Next morphs immediately (start the tour → next → see the after → … → finish journey). A counter (n / 9), a first-view hint and Prev were added.
 - **Finish and Skip:** both scroll to the X25 band right after the story.
 - **Reduced motion:** the same book, with page turns as short crossfades.
 
@@ -85,3 +85,5 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - A physical iPhone or iPad. The dock clamp writes `scrollTop` during iOS momentum.
 - Real Safari, as opposed to Playwright WebKit.
 - WebKit touch (Playwright has no WebKit touch-scroll synthesis).
+
+_2026-11-04 correction: Arrive is no longer a separate page; the tables above were measured with 10 pages (an extra "arrived" page). The rerun with 9 pages is in the commit message._

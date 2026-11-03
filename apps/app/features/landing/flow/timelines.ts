@@ -81,12 +81,11 @@ export const WIPE = [PH.wipe, PH.wipe + 0.055] as const;
  * Book pages (journey time where each is composed) and the seconds each forward turn plays — the original
  * pacing of the one-gesture transitions (7.0 s hero→before split at the doors, 3.4, 6.2 → treatment room
  * split into three facts, 6.0, then Insights, switching 1.6× slower). Page 0 → 1 (doors open) is
- * scroll-driven.
+ * scroll-driven: doors, walk-in and the stressed front desk are one scrubbed segment (Arrive).
  */
 export const PAGES: readonly Page[] = [
   { t: 0, dur: 0 },
-  { t: PH.desk, dur: 3.6 },
-  { t: 0.297, dur: 3.4 },
+  { t: 0.297, dur: 7.0 },
   { t: 0.41, dur: 3.4 },
   { t: PH.facts[0] + 0.045, dur: 5.5 },
   { t: PH.facts[1] + 0.045, dur: 1.5 },
@@ -162,10 +161,16 @@ export function buildJourney(
     if (key === lastHud) return;
     lastHud = key;
     fills.forEach((el) => {
-      const i = Number(el.dataset["stop"] ?? 0);
-      const a = PAGES[i - 1]?.t ?? 0;
-      const b = PAGES[i]?.t ?? 0;
-      const f = i === 0 ? 1 : Math.max(0, Math.min(1, (t - a) / Math.max(1e-6, b - a)));
+      // data-range="a,b": fills while the journey goes from page a to page b (a === b: full once on b).
+      const [ia = 0, ib = 0] = (el.dataset["range"] ?? "0,0").split(",").map(Number);
+      const a = PAGES[ia]?.t ?? 0;
+      const b = PAGES[ib]?.t ?? 0;
+      const f =
+        ia === ib
+          ? t >= b - 1e-4
+            ? 1
+            : 0
+          : Math.max(0, Math.min(1, (t - a) / Math.max(1e-6, b - a)));
       el.style.transform = `scaleX(${f.toFixed(3)})`;
     });
   };

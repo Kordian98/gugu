@@ -36,7 +36,7 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 
 ## Studio landing (web story)
 `apps/app/features/landing/flow/`: one pinned photoreal stage, one GSAP timeline (`timelines.ts`, paused), driven by `book.ts` (ADR 0014).
-- **Navigation:** hero → doors open is scroll-scrubbed (door segment 1.2 screens). After that the story is a book of 10 pages (`PAGES`): Next/Prev, HUD chapters, keys, one swipe per page. Wheels and trackpads scroll past the story, and the dock catches flicks from either side. Reduced motion uses crossfaded turns with no door scrub.
+- **Navigation:** hero → doors → walk-in → Front desk is scroll-scrubbed (Arrive, 2.2 screens) and the book docks on Front desk. The story is a book of 9 pages (`PAGES`): Next/Prev, HUD chapters, keys, one swipe per page. Wheels and trackpads scroll past the story, and the dock catches flicks from either side. Reduced motion uses crossfaded turns with no door scrub.
 - **Pages:** hero · arrived · front desk before · after · treatment room ×3 (one fact + one cropped CRM screen + a callout each) · office · Insights · switching (old system → GuGu Studio, 1.6× slower).
 - **After the story:** `FreeYear` band (X25: Basic free for the first year, then 99,000 VND/month), where Finish and Skip land.
 - **Stage height** = scroller `clientHeight` via `--sv` (no vh/svh/dvh mismatch inside the RN Web ScrollView).

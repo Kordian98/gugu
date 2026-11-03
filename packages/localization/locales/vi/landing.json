@@ -443,7 +443,9 @@
       "prev": "Trang trước",
       "page": "{{n}} / {{total}}",
       "hintKeys": "Nhấn Tiếp theo hoặc dùng phím →",
-      "hintTouch": "Vuốt hoặc nhấn Tiếp theo"
+      "hintTouch": "Vuốt hoặc nhấn Tiếp theo để đi tiếp",
+      "hintStartKeys": "Cuộn hoặc nhấn Bắt đầu để bước vào",
+      "hintStartTouch": "Vuốt lên hoặc nhấn Bắt đầu để bước vào"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",

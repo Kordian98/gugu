@@ -30,20 +30,43 @@ const SEP = " · ";
 const ZERO = "0";
 const DOWN = "\u2192";
 /**
- * Navigation chapters → resting beats (BEATS): "front desk" spans before | after, the treatment room its
- * three facts; each beat is one segment of the chapter's bar.
+ * Navigation chapters → pages (PAGES). Arrive is the scroll-driven doors + walk-in (its bar fills while
+ * scrolling); the book starts at Front desk (before | after), then the treatment room's three facts, the
+ * office + Insights and switching. `bars` = page ranges each segment fills over.
  */
 const HUD = [
-  { k: "c0", stops: [0, 1] },
-  { k: "c1", stops: [2, 3] },
-  { k: "c2", stops: [4, 5, 6] },
-  { k: "c3", stops: [7, 8] },
-  { k: "c4", stops: [9] },
+  { k: "c0", stops: [0], bars: [[0, 1]] },
+  {
+    k: "c1",
+    stops: [1, 2],
+    bars: [
+      [1, 1],
+      [1, 2],
+    ],
+  },
+  {
+    k: "c2",
+    stops: [3, 4, 5],
+    bars: [
+      [2, 3],
+      [3, 4],
+      [4, 5],
+    ],
+  },
+  {
+    k: "c3",
+    stops: [6, 7],
+    bars: [
+      [5, 6],
+      [6, 7],
+    ],
+  },
+  { k: "c4", stops: [8], bars: [[7, 8]] },
 ] as const;
 /** Next-button label per page: start the tour, see the after, finish, otherwise "Next". */
 const LABELS = ["start", "next", "after", "finish"] as const;
 const labelFor = (page: number) =>
-  page === 0 ? "start" : page === 2 ? "after" : page === PAGES.length - 1 ? "finish" : "next";
+  page === 0 ? "start" : page === 1 ? "after" : page === PAGES.length - 1 ? "finish" : "next";
 /** Walk segments' journey-time ranges (must be loaded before a turn plays through them). */
 const WALKS: [Segment, number, number][] = [
   ["w1", 0, 0.153],
@@ -119,7 +142,8 @@ export function Journey({
     const onPage = (page: number, settled: boolean) => {
       if (!h) return;
       h.dataset["page"] = String(page);
-      if (page > 0) h.classList.remove("hinted");
+      // First-view hints: on the hero "scroll or Start", on Front desk "Next or →"; gone after a turn.
+      if (page > 1) h.classList.remove("hinted");
       h.querySelectorAll<HTMLElement>(".hud-s").forEach((b) => {
         const stops = (b.dataset["stops"] ?? "").split(",").map(Number);
         b.classList.toggle("on", stops.includes(page));
@@ -169,7 +193,7 @@ export function Journey({
             track: el,
             stage,
             pages: PAGES,
-            doorLen: reduce ? 0 : 1.2,
+            doorLen: reduce ? 0 : 2.2,
             reduce,
             render: (time) => {
               render(time);
@@ -412,9 +436,9 @@ export function Journey({
                 }}
               >
                 <span className="hud-bars">
-                  {c.stops.map((si) => (
-                    <span key={si} className="hud-bar">
-                      <span className="hud-fill" data-stop={si} />
+                  {c.bars.map((r) => (
+                    <span key={r.join("-")} className="hud-bar">
+                      <span className="hud-fill" data-range={r.join(",")} />
                     </span>
                   ))}
                 </span>
@@ -452,8 +476,14 @@ export function Journey({
             <i>{DOWN}</i>
           </button>
           <span className="hud-hint">
-            <span className="k">{t("flow.hud.hintKeys")}</span>
-            <span className="tc">{t("flow.hud.hintTouch")}</span>
+            <span className="h0">
+              <span className="k">{t("flow.hud.hintStartKeys")}</span>
+              <span className="tc">{t("flow.hud.hintStartTouch")}</span>
+            </span>
+            <span className="h1">
+              <span className="k">{t("flow.hud.hintKeys")}</span>
+              <span className="tc">{t("flow.hud.hintTouch")}</span>
+            </span>
           </span>
         </nav>
         <button
