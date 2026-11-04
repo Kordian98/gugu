@@ -159,7 +159,7 @@ const vnd = (locale: string, n: number) =>
  * bookings/week × 10% no-show × 25% fewer with reminders (BMJ Open 2016) × price × 4.33 weeks.
  * The result counts up smoothly on change (rAF tween on text only).
  */
-function EarningsCard() {
+export function EarningsCard() {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const [price, setPrice] = useState(350000);

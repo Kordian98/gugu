@@ -8,6 +8,7 @@ import type { LandingNavActions } from "../useLandingNav";
 import { FLOW_CSS } from "./flow.css";
 import { FreeYear } from "./FreeYear";
 import { Journey } from "./Journey";
+import { MobileJourney } from "./MobileJourney";
 import { Businesses } from "./Rooms";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -69,7 +70,13 @@ export function Flow({
     <div className="fl" ref={root}>
       <style>{FLOW_CSS}</style>
 
-      <Journey nav={nav} desktop={desktop} width={width} reduce={reduce} />
+      {/* Phones (≤ 899 px): vertical full-screen sections with scroll snap (ADR-0014 "Mobile"); desktop
+          keeps the book. */}
+      {desktop ? (
+        <Journey nav={nav} desktop={desktop} width={width} reduce={reduce} />
+      ) : (
+        <MobileJourney nav={nav} width={width} reduce={reduce} />
+      )}
 
       <FreeYear nav={nav} />
 
