@@ -132,7 +132,6 @@ export const shadow = {
   glow: "0 0 18px 4px rgba(169,139,235,.75)",
 } as const;
 
-
 /** Opacity tokens. */
 export const opacity = { backdrop: 0.42, disabled: 0.4 } as const;
 
