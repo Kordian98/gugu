@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { color, font, gradient } from "./tokens";
+import { color, font, gradient, motion, typeScale } from "./tokens";
 
 describe("tokens", () => {
   it("uses the Lilac Glow brand colours that match the delivered logo", () => {
@@ -12,6 +12,12 @@ describe("tokens", () => {
     expect(font.display).toContain("NotoSerifDisplay");
     expect(font.ui).toContain("BeVietnamPro");
     expect(font.script).toContain("PatrickHand");
+  });
+  it("motion durations follow the skill scale", () => {
+    expect(motion.duration).toEqual({ fast: 120, base: 200, slow: 320, deliberate: 500 });
+  });
+  it("body text in the type scale is at least 16 px", () => {
+    expect(typeScale.body).toBeGreaterThanOrEqual(16);
   });
   it("gradients have at least 2 stops", () => {
     for (const g of Object.values(gradient)) expect(g.length).toBeGreaterThanOrEqual(2);

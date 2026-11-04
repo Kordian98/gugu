@@ -17,7 +17,7 @@
     "subtitle": "Bớt việc giấy tờ, thêm thời gian làm đẹp. Lịch làm việc cho cả đội, khách hàng, nhắc lịch và thiết lập bằng AI — trong một không gian làm việc nhẹ nhàng cho salon của bạn.",
     "trialCta": "Dùng thử miễn phí",
     "howCta": "Xem cách hoạt động",
-    "note": "Dùng thử miễn phí 14 ngày · dành cho các cơ sở làm đẹp tại Việt Nam"
+    "note": "Miễn phí năm đầu với gói Basic · dùng thử Pro 14 ngày · không cần thẻ hay thanh toán khi đăng ký"
   },
   "story": {
     "dive": {
@@ -60,7 +60,7 @@
     "reminders": {
       "eyebrow": "Tự động",
       "title": "Nhắc lịch tự gửi đi.",
-      "sub": "Xác nhận và nhắc lịch qua Zalo hoặc email. Ít ghế trống hơn.",
+      "sub": "Xác nhận và nhắc lịch gửi qua Zalo OA của salon, trước 24 giờ và 2 giờ. Ít ghế trống hơn.",
       "msg": "Chào chị Thu Trang! Hẹn gặp chị ngày mai lúc 15:00, sơn gel với Mai. Chị trả lời tin này nếu muốn đổi giờ nhé.",
       "sent": "Tự động gửi · trước 24 giờ"
     },
@@ -125,7 +125,7 @@
       "body": "Lịch sử ghé thăm, ghi chú, dịch vụ yêu thích và số lần không đến."
     },
     "reminders": {
-      "title": "Nhắc lịch qua Zalo & email",
+      "title": "Nhắc lịch qua Zalo",
       "body": "Tự động xác nhận và nhắc lịch trước mỗi lượt hẹn."
     },
     "aiSetup": {
@@ -151,37 +151,41 @@
     "aesthetics": "Thẩm mỹ & trang điểm"
   },
   "pricing": {
-    "eyebrow": "Các gói",
-    "title": "Gói đơn giản cho mọi salon",
-    "monthly": "Theo tháng",
-    "yearly": "Theo năm",
+    "eyebrow": "Bảng giá",
     "priceSoon": "Giá sắp công bố",
-    "billedMonthly": "thanh toán theo tháng",
-    "billedYearly": "thanh toán theo năm",
     "cta": "Dùng thử miễn phí",
     "popular": "Phổ biến nhất",
-    "trial": "Mọi gói đều bắt đầu với 14 ngày dùng thử tính năng Pro, áp dụng giới hạn của gói Basic (mức dùng AI và hạn mức tin nhắn). Không có gói miễn phí.",
+    "trial": "Gói Basic miễn phí cho mọi salon trong năm đầu tiên, sau đó {{price}}/tháng. Salon mới được dùng thử Pro 14 ngày, rồi tự chuyển về Basic miễn phí. Basic có thiết lập bằng AI từ bảng giá; trợ lý AI có từ gói Pro.",
     "basic": {
       "name": "Basic",
       "tagline": "Đủ mọi thứ để vận hành một salon",
-      "items": "Lịch cả đội\nKhách hàng\nNhắc lịch qua Zalo & email\nThiết lập bằng AI từ bảng giá\nBáo cáo"
+      "items": "Lịch cả đội và khách hàng\nZalo OA: bot đặt lịch, hộp thư và nhắc lịch\nThiết lập bằng AI từ ảnh bảng giá\nBáo cáo, lương và hoa hồng\nNhân viên không giới hạn"
     },
     "pro": {
       "name": "Pro",
       "tagline": "AI làm việc cho salon của bạn",
-      "items": "Mọi thứ trong gói Basic\nTrợ lý AI\nBáo cáo AI hằng tháng\nHộp thư Zalo\nHạn mức tin nhắn cao hơn"
+      "items": "Mọi thứ trong Basic, cộng thêm:\nGu · trợ lý AI cho số liệu của salon\nBáo cáo AI hằng tháng\nHạn mức AI cao hơn\n300 tin nhắn mẫu Zalo mỗi tháng (Basic: 100)"
     },
     "ultra": {
       "name": "Ultra",
       "tagline": "Cho chuỗi salon và thương hiệu đang phát triển",
-      "items": "Mọi thứ trong gói Pro\nNhiều chi nhánh với báo cáo tổng hợp\nGiới hạn dùng AI cao nhất\nPhân tích nâng cao"
-    }
+      "items": "Mọi thứ trong Pro, cộng thêm:\nNhiều chi nhánh với báo cáo tổng hợp\nPhân tích nâng cao\nHạn mức AI cao nhất\n1.000 tin nhắn mẫu Zalo mỗi tháng"
+    },
+    "basicFree": "Miễn phí năm đầu",
+    "basicThen": "sau đó {{price}}/tháng",
+    "basicCta": "Bắt đầu miễn phí",
+    "noCard": "Không cần thẻ hay thanh toán khi đăng ký.",
+    "titlePre": "Thêm giờ rảnh, thêm doanh thu. Năm đầu ",
+    "titleGlow": "miễn phí",
+    "titlePost": ".",
+    "proCta": "Dùng thử Pro 14 ngày"
   },
   "cta": {
-    "title": "Sẵn sàng toả sáng? Dùng thử miễn phí 14 ngày.",
-    "body": "Thiết lập trong vài phút nhờ AI. Khách vẫn thanh toán tại salon như bình thường.",
+    "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
+    "body": "Bắt đầu với 14 ngày dùng thử Pro, sau đó tự chuyển sang Basic miễn phí trọn năm đầu. Thiết lập trong vài phút nhờ AI; khách vẫn thanh toán tại salon như bình thường.",
     "trial": "Dùng thử miễn phí",
-    "signIn": "Đăng nhập"
+    "signIn": "Đăng nhập",
+    "noCard": "Không cần thẻ hay thanh toán khi đăng ký."
   },
   "footer": {
     "tagline": "Phần mềm salon dành cho Việt Nam. Lịch cả đội, khách hàng và nhắc lịch trong một không gian làm việc nhẹ nhàng.",
@@ -229,8 +233,7 @@
       "g2l": "lịch bị trùng",
       "g3n": "−25%",
       "g3l": "khách không đến*",
-      "src": "* Nhắc lịch và tỷ lệ không đến: Robotham và cộng sự, BMJ Open 2016 (phòng khám). Tên là hư cấu; số liệu chỉ là ví dụ minh hoạ.",
-      "drag": "Kéo để so sánh trước và sau"
+      "src": "* Nhắc lịch và tỷ lệ không đến: Robotham và cộng sự, BMJ Open 2016 (phòng khám). Tên là hư cấu; số liệu chỉ là ví dụ minh hoạ."
     },
     "ba": {
       "eyebrow": "Trước và sau",
@@ -271,19 +274,19 @@
       "eyebrow": "Trợ lý AI · Pro",
       "title": "Bận quá không kịp xem? Cứ hỏi.",
       "sub": "Trợ lý trả lời dựa trên lịch của chính salon và soạn sẵn tin trả lời Zalo. Không gửi thông tin cá nhân của khách cho mô hình AI.",
-      "q": "Chiều mai Mai còn trống giờ nào làm gel không?",
-      "a": "Chiều mai Mai trống lúc 14:00 và 16:30 (sơn gel, 60 phút). Soạn tin trả lời nhé?",
+      "q": "Tuần này ai đang kín lịch nhất?",
+      "a": "Mai kín 92% giờ làm, Tuấn còn trống nhiều nhất vào chiều thứ Ba.",
       "draft": "Soạn tin trả lời"
     },
     "switch": {
       "eyebrow": "Chuyển đổi",
-      "title": "Đang dùng ứng dụng khác hoặc sổ tay?\nChuyển sang trong vài phút.",
-      "sub": "Chụp bảng giá hoặc danh sách dịch vụ ở hệ thống cũ. AI thiết lập dịch vụ cho bạn. Nhẹ nhàng, có trong mọi gói.",
+      "title": "Đang dùng sổ tay hay app khác?\nChuyển sang GuGu Studio trong vài phút.",
+      "sub": "Sổ tay, Excel, tin nhắn Zalo hay một app đặt lịch khác: AI tạo bảng dịch vụ từ ảnh, phần còn lại chỉ vài bước ngắn.",
       "from": "Bảng giá của bạn",
       "to": "Dịch vụ của bạn trong GuGu Studio",
-      "st1": "Chụp bảng giá, hoặc ảnh màn hình ứng dụng cũ",
-      "st2": "AI tạo dịch vụ, thời lượng và giá",
-      "st3": "Bạn kiểm tra rồi bắt đầu; khách được thêm khi đặt lịch",
+      "st1": "Chụp bảng giá hoặc màn hình app cũ: AI tạo dịch vụ",
+      "st2": "Thêm nhân viên và giờ làm",
+      "st3": "Khách hàng được thêm cùng lịch hẹn đầu tiên",
       "ai": "Thiết lập bằng AI",
       "walk": "Bắt đầu",
       "win": "Dịch vụ",
@@ -319,7 +322,11 @@
       "p9": "300.000₫",
       "n10": "Tạo dáng chân mày",
       "d10": "30 phút",
-      "p10": "120.000₫"
+      "p10": "120.000₫",
+      "st4": "Bắt đầu nhận lịch hẹn",
+      "oNb": "Sổ tay",
+      "oXl": "Bảng tính",
+      "oApp": "App cũ"
     },
     "walk": {
       "eyebrow": "Thứ Bảy · 9:12 · Quận 1",
@@ -356,7 +363,7 @@
       "f7b": "Tin nhắn tới Zalo OA của salon tự động thành lịch hẹn.",
       "f8t": "Phân tích",
       "f8b": "Doanh thu, tỷ lệ lấp đầy và khách không đến khi lịch hoàn thành.",
-      "chip": "Ghế 2 + đèn UV đã giữ · 14:00",
+      "chip": "Ghế 2 + đèn UV đã giữ · 10:00",
       "today": "Hiện tại",
       "with": "Với GuGu Studio",
       "r1k": "Trùng lịch",
@@ -371,15 +378,13 @@
       "r3n": "≈10 phút",
       "r3p": "Giá và thời lượng chỉ nằm trong đầu một người",
       "r3g": "Dịch vụ, tuỳ chọn, dịch vụ thêm và khoảng giá, thiết lập từ ảnh chụp bảng giá.",
-      "r4k": "Giờ làm của đội",
-      "r4n": "1 link",
-      "r4p": "“Chủ nhật ai làm?” trôi mất trong nhóm chat",
-      "r4g": "Giờ làm, giờ nghỉ và ai làm dịch vụ nào, cho từng người; mời nhân viên bằng một link.",
-      "facts": "Salon demo, tuần này: 40 lịch hẹn · 7 dịch vụ · 4 nhân viên, trong một lịch",
+      "facts": "Salon demo, tuần này: 104 lịch hẹn · 7 dịch vụ · 4 nhân viên, trong một lịch",
       "eg": "Các vấn đề là ví dụ minh hoạ.",
       "shotCal": "Lịch · giữ ghế & thiết bị",
       "shotSvc": "Dịch vụ · tuỳ chọn & khoảng giá",
-      "shotAppt": "Lịch hẹn · một hàng chờ"
+      "shotAppt": "Lịch hẹn · một hàng chờ",
+      "callAppt": "Khách vãng lai, Zalo và điện thoại: một danh sách",
+      "callSvc": "Tuỳ chọn và dịch vụ thêm cho từng dịch vụ"
     },
     "office": {
       "eyebrow": "Phòng làm việc",
@@ -388,63 +393,321 @@
     },
     "biz": {
       "eyebrow": "Mọi loại hình làm đẹp",
-      "title": "Phù hợp với cách bạn làm việc.",
-      "hint": "Vuốt, kéo hoặc dùng mũi tên",
-      "prev": "Trước",
-      "next": "Tiếp",
       "nails": {
         "t": "Tiệm nail",
-        "b": "Sơn gel, đắp bột, vẽ móng, kèm tuỳ chọn và dịch vụ thêm.",
-        "c": "Sơn gel · 45 phút · 2 tuỳ chọn"
+        "s": "Không còn trùng ghế hay đèn UV, nhờ mỗi dịch vụ tự giữ đúng ghế và thiết bị."
       },
       "hair": {
         "t": "Salon tóc",
-        "b": "Dịch vụ nhuộm dài và khoảng giá, đặt theo từng thợ.",
-        "c": "Nhuộm tóc · 120 phút · từ 650.000₫"
+        "s": "Tiết kiệm khoảng 6 giờ nhắn tin hỏi giờ mỗi tuần, nhờ khách tự đặt lịch trong Zalo OA của salon."
       },
       "barber": {
         "t": "Barbershop",
-        "b": "Khách vãng lai và khách đặt trước trong cùng hàng chờ.",
-        "c": "Cắt tóc nam · 30 phút · vãng lai"
+        "s": "Khách vãng lai và khách đặt trước chung một hàng chờ, nhờ danh sách lịch hẹn của cả tiệm."
       },
       "spa": {
         "t": "Spa",
-        "b": "Phòng và giường được đặt như tài nguyên, không bao giờ trùng.",
-        "c": "Chăm sóc da mặt · 60 phút · Phòng 2"
+        "s": "Ít khách vắng hơn, nhờ nhắc lịch Zalo tự động trước 24 giờ và 2 giờ."
       },
       "lash": {
-        "t": "Tiệm nối mi",
-        "b": "Lịch dài, tỉ mỉ, đúng kỹ thuật viên.",
-        "c": "Nối mi · 75 phút"
+        "t": "Tiệm mi",
+        "s": "Có bảng dịch vụ đầy đủ trong khoảng 10 phút, nhờ AI đọc ảnh bảng giá."
       },
       "brow": {
         "t": "Tiệm chân mày",
-        "b": "Dịch vụ ngắn, xếp xen giữa các lịch dài.",
-        "c": "Tạo dáng chân mày · 30 phút"
+        "s": "Không còn cộng hoa hồng bằng tay, nhờ bảng lương tự tính theo từng dịch vụ."
       },
-      "note": "Ảnh minh hoạ, không phải khách hàng."
+      "note": "Ví dụ minh hoạ cho một salon điển hình; mức giảm khách vắng theo Robotham và cộng sự, BMJ Open 2016 (phòng khám). Ảnh minh hoạ, không phải khách hàng.",
+      "titlePre": "Nail, tóc, spa hay mi: ghế ",
+      "titleGlow": "kín hơn",
+      "titlePost": ", bớt việc vặt."
     },
     "hud": {
-      "c0": "Đến nơi",
       "c1": "Quầy lễ tân",
-      "c2": "Phòng làm",
+      "c2": "Phòng dịch vụ",
       "c3": "Văn phòng",
       "next": "Tiếp theo",
       "start": "Bắt đầu tham quan",
-      "cont": "Tiếp tục",
-      "skip": "Bỏ qua câu chuyện",
       "label": "Các phần của câu chuyện",
       "after": "Xem sau khi dùng",
-      "c4": "Chuyển sang"
+      "c4": "Chuyển từ sổ/app cũ",
+      "finish": "Kết thúc hành trình",
+      "prev": "Trang trước",
+      "page": "{{n}} / {{total}}",
+      "hintKeys": "Nhấn Tiếp theo hoặc dùng phím →",
+      "hintTouch": "Vuốt hoặc nhấn Tiếp theo để đi tiếp",
+      "pageSr": "Trang {{n}}/{{total}}: {{chapter}}",
+      "walkIn": "Cuộn xuống hoặc bấm Bắt đầu để bước vào",
+      "walkInTouch": "Vuốt lên hoặc bấm Bắt đầu để bước vào",
+      "startShort": "Bắt đầu",
+      "center": "Căn giữa câu chuyện"
     },
     "calc": {
       "t": "Bớt khách không đến đáng giá bao nhiêu",
       "price": "Giá dịch vụ trung bình",
       "weekly": "Lịch hẹn mỗi tuần",
-      "out": "thu lại mỗi tháng",
+      "out": "giữ lại mỗi tháng (ước tính)",
       "year": "mỗi năm",
       "note": "Ước tính minh hoạ: giả định 10% khách không đến và giảm ~25% nhờ nhắc lịch (BMJ Open 2016). Số liệu của bạn sẽ khác.",
       "perWeek": "/ tuần"
+    },
+    "insights": {
+      "eyebrow": "Văn phòng · Báo cáo nâng cao",
+      "title": "Biết salon đang lãi ở đâu.",
+      "sub": "Số liệu lấy từ chính lịch hẹn của salon, cập nhật khi lịch hẹn hoàn thành.",
+      "i1": "Chỉ số chính: lịch hẹn, khách mới và khách quay lại, tỷ lệ vắng mặt",
+      "i2": "Doanh thu ước tính so với số đã ghi nhận tại salon",
+      "i3": "Lợi nhuận gộp theo từng dịch vụ, tính từ chi phí thực hiện",
+      "i4": "Lịch hẹn sắp tới của cả đội",
+      "i5": "Phễu Zalo: từ tin nhắn đến lịch hẹn",
+      "shot": "Phân tích & báo cáo · 30 ngày"
+    },
+    "free": {
+      "eyebrow": "GuGu Studio Basic",
+      "pre": "Gói Basic ",
+      "glow": "miễn phí",
+      "post": " năm đầu cho mọi salon.",
+      "sub": "Sau đó {{price}}/tháng. Basic có thiết lập dịch vụ bằng AI từ ảnh bảng giá; trợ lý AI có từ gói Pro.",
+      "cta": "Bắt đầu miễn phí",
+      "plans": "Xem các gói",
+      "noCard": "Không cần thẻ hay thanh toán khi đăng ký.",
+      "how": "Đăng ký bằng email và bắt đầu với 14 ngày dùng thử Pro, sau đó dùng gói Basic miễn phí trong 12 tháng. Hết năm đầu, Basic là {{price}}/tháng: chúng tôi sẽ liên hệ với anh/chị trước khi đến hạn, không có khoản nào bị tự động trừ."
+    },
+    "payroll": {
+      "eyebrow": "Văn phòng · Lương & hoa hồng",
+      "title": "Lương và hoa hồng tự tính, theo từng dịch vụ.",
+      "p1": "Lương cứng theo tháng, theo ngày công hoặc theo giờ, cộng hoa hồng % hoặc số tiền cố định cho từng dịch vụ",
+      "p2": "Hoa hồng tính khi dịch vụ hoàn thành; hai người cùng làm một lịch hẹn thì mỗi người nhận đúng phần dịch vụ của mình",
+      "p3": "Bảng lương tháng có thưởng và khoản trừ; chốt tháng và tải Excel",
+      "p4": "Mục “Tháng này” cho chủ salon: đã có, sắp tới từ lịch hẹn, lương, chi phí, lãi ròng ước tính và biên lợi nhuận",
+      "p5": "Nhân viên chỉ xem được thu nhập của chính mình",
+      "note": "Số ước tính trước thuế và bảo hiểm.",
+      "shot": "Bảng lương tháng · tải CSV / Excel, chốt tháng",
+      "shotPerson": "Từng người · hoa hồng theo dịch vụ"
+    },
+    "m": {
+      "from": {
+        "client": {
+          "me": "Khách: ",
+          "them": "Salon: ",
+          "staff": "Nhân viên: ",
+          "sys": "Thông báo: "
+        },
+        "ai": {
+          "me": "Chủ salon: ",
+          "them": "Gu: ",
+          "staff": "Nhân viên: ",
+          "sys": "Thông báo: "
+        }
+      },
+      "tapNext": "Chạm bên phải để xem tiếp",
+      "tapBack": "Chạm bên trái để quay lại",
+      "zoom": "Phóng to",
+      "zoomHint": "Chụm hai ngón hoặc chạm hai lần để phóng to",
+      "close": "Đóng",
+      "fold": "Thu gọn",
+      "unfold": "Mở rộng",
+      "monthShot": "Tổng quan · Tháng này",
+      "monthH": "Tháng này lãi bao nhiêu, nhìn là biết.",
+      "swTitle": "Chuyển sang GuGu Studio trong vài phút.",
+      "monthB": "Đã có, sắp tới từ lịch hẹn và lãi ước tính sau lương và chi phí, tự cập nhật theo từng lịch hẹn."
+    }
+  },
+  "roi": {
+    "title": "Salon của bạn",
+    "sub": "Chỉnh hai con số để xem gói Basic giúp bạn tiết kiệm bao nhiêu.",
+    "weekly": "Lịch hẹn mỗi tuần",
+    "perWeek": "{{n}} / tuần",
+    "price": "Giá dịch vụ trung bình",
+    "less": "Giảm",
+    "more": "Tăng",
+    "note": "Ước tính minh hoạ, không phải cam kết: giả định khoảng 3 phút làm việc cho mỗi lịch hẹn (xác nhận, nhắc, đổi lịch), 10% khách không đến và giảm 25% nhờ nhắc lịch (BMJ Open 2016, phòng khám). Kết quả thực tế của salon có thể khác.",
+    "save": "Tiết kiệm mỗi tháng (ước tính)",
+    "saveHours": "~{{n}} giờ",
+    "saveMoney": "giữ lại ~{{v}} doanh thu",
+    "saveSub": "nhờ bớt việc xác nhận, nhắc lịch và ít khách vắng hơn",
+    "saveNote": "Đây là ước tính thời gian bạn tiết kiệm và doanh thu bạn giữ lại nhờ ít khách vắng hơn, không phải tiền GuGu trả cho salon. Kết quả thực tế có thể khác."
+  },
+  "views": {
+    "label": "Góc nhìn",
+    "tab": {
+      "salon": "Chủ salon",
+      "client": "Khách hàng",
+      "ai": "Trợ lý AI"
+    },
+    "toClient": "Xem góc nhìn của khách",
+    "toAi": "Xem trợ lý AI",
+    "toSalon": "Quay lại câu chuyện salon",
+    "finish": "Kết thúc hành trình",
+    "client": {
+      "eyebrow": "Góc nhìn của khách",
+      "title": "Khách đặt lịch ngay trong Zalo của salon.",
+      "note": "Hội thoại minh hoạ. Bot nói với tư cách salon của bạn; khách thanh toán tại salon.",
+      "avatar": "LN",
+      "who": "Lotus Nail & Spa",
+      "whoSub": "Zalo OA của salon",
+      "input": "Nhắn tin…",
+      "s1": {
+        "h": "Khách nhắn Zalo OA của salon",
+        "b": "Không cần tải app hay tạo tài khoản: khách đặt lịch trong Zalo, với tên và logo của salon bạn."
+      },
+      "s2": {
+        "h": "Chọn dịch vụ, thợ và giờ còn trống thật",
+        "b": "Bot chỉ đưa ra giờ còn trống trong lịch của salon, nên không bao giờ trùng lịch."
+      },
+      "s3": {
+        "h": "Đặt xong trong chưa đầy một phút",
+        "b": "Khách chia sẻ số điện thoại, lịch hẹn vào thẳng lịch của salon và cả đội thấy ngay."
+      },
+      "s4": {
+        "h": "Nhắc lịch trước 24 giờ và 2 giờ",
+        "b": "Khách bấm một nút để xác nhận, đổi giờ hoặc huỷ, nên ghế trống được báo sớm."
+      },
+      "s5": {
+        "h": "Cần người thật? Chỉ một chạm",
+        "b": "Khách bấm “Gặp nhân viên”, cuộc trò chuyện chuyển sang hộp thư Zalo của salon trong GuGu Studio."
+      },
+      "m1": "Chào salon, em muốn đặt lịch làm móng ạ",
+      "m2": "Chào chị! Chị muốn làm dịch vụ nào ạ?",
+      "b1": "Sơn gel",
+      "b2": "Đắp bột",
+      "b3": "Chăm sóc chân",
+      "b4": "Gặp nhân viên",
+      "m3": "Sơn gel",
+      "m4": "Chị muốn làm với ai ạ?",
+      "b5": "Mai",
+      "b6": "Linh",
+      "b7": "Ai cũng được",
+      "m5": "Mai",
+      "m6": "Giờ còn trống của Mai:",
+      "b8": "T7 · 14:00",
+      "b9": "T7 · 15:30",
+      "b10": "CN · 10:00",
+      "m7": "T7 · 14:00",
+      "m8": "Chị cho em xin số điện thoại để giữ lịch nhé.",
+      "b11": "Chia sẻ số điện thoại",
+      "m9": "Đã chia sẻ số điện thoại",
+      "m10": "Đã đặt lịch\nSơn gel · Mai\nThứ Bảy, 14:00 · 150.000đ\nThanh toán tại salon",
+      "m11": "Thứ Sáu · 14:00",
+      "m12": "Nhắc lịch: ngày mai 14:00 chị có hẹn Sơn gel với Mai.",
+      "b12": "Tôi sẽ đến",
+      "b13": "Đổi giờ",
+      "b14": "Hủy",
+      "m13": "Tôi sẽ đến",
+      "m14": "Cảm ơn chị, hẹn gặp chị ngày mai!",
+      "m15": "Gặp nhân viên",
+      "m16": "Em đã báo nhân viên, chị chờ một chút nhé.",
+      "m17": "Dạ em Lan đây ạ, chị cần em hỗ trợ gì?",
+      "day": "Hôm nay",
+      "clock": "9:41",
+      "t1": "20:41",
+      "t2": "20:42",
+      "t3": "20:43",
+      "t4": "14:00",
+      "t5": "14:02",
+      "t6": "14:05",
+      "sys": {
+        "title": "GuGu Studio của salon",
+        "live": "Trực tiếp",
+        "inbox": "Khách mới nhắn Zalo OA",
+        "inboxSub": "Bot đang trả lời thay bạn",
+        "day": "Thứ Bảy",
+        "staff1": "Mai",
+        "staff2": "Linh",
+        "slot": "Sơn gel",
+        "holding": "Đang giữ",
+        "booked": "Đã đặt",
+        "coming": "Sẽ đến ✓",
+        "other": "Đắp bột",
+        "rem": "Nhắc lịch 24 giờ",
+        "remPlanned": "Đã lên lịch · Thứ Sáu 14:00",
+        "remSent": "Đã gửi qua Zalo ✓",
+        "hand": "Cần nhân viên",
+        "handSub": "Chuyển vào hộp thư Zalo",
+        "handTaken": "Lan đã nhận cuộc trò chuyện",
+        "waiting": "Salon của bạn đang chờ khách nhắn"
+      },
+      "fx": {
+        "inbox": "Tin nhắn mới · bot tự trả lời",
+        "slots": "Bot lấy giờ trống thật từ lịch",
+        "hold": "Giữ chỗ 14:00 cho Mai",
+        "booked": "Lịch hẹn mới · Đã đặt",
+        "remSent": "Nhắc lịch 24 giờ đã gửi",
+        "confirmed": "Khách xác nhận sẽ đến",
+        "handoff": "Hộp thư: khách cần nhân viên",
+        "taken": "Lan đã nhận cuộc trò chuyện"
+      }
+    },
+    "ai": {
+      "eyebrow": "Trợ lý AI · gói Pro",
+      "title": "Hỏi về salon của bạn, có câu trả lời trong vài giây.",
+      "note": "Hội thoại minh hoạ, số liệu ví dụ. Có trong gói Pro và Ultra.",
+      "avatar": "Gu",
+      "who": "Gu · Trợ lý AI",
+      "whoSub": "Hỏi về lịch hẹn, doanh thu và công suất",
+      "input": "Hỏi Gu, ví dụ: Hôm nay có bao nhiêu lịch hẹn?",
+      "s1": {
+        "h": "Hỏi bằng lời, như hỏi một trợ lý",
+        "b": "Chủ salon hỏi về lịch hẹn, doanh thu, lương và lãi của chính salon mình, bằng tiếng Việt hoặc tiếng Anh."
+      },
+      "s2": {
+        "h": "Biết ai đang kín lịch, ai còn trống",
+        "b": "Số lịch hẹn của từng người trong tuần, lấy thẳng từ lịch của salon."
+      },
+      "s3": {
+        "h": "Doanh thu: ước tính và đã ghi nhận",
+        "b": "Luôn ghi rõ đâu là số ước tính từ lịch hẹn, đâu là số salon đã ghi nhận."
+      },
+      "s4": {
+        "h": "Lãi tháng này, không lộ lương từng người",
+        "b": "Gu chỉ thấy tổng lương của cả đội, không bao giờ thấy lương hay hoa hồng của từng người, và không thấy dữ liệu của khách."
+      },
+      "m1": "Tuần này salon có bao nhiêu lịch hẹn?",
+      "m2": "Tuần này có 104 lịch hẹn. Thứ Năm, thứ Sáu và thứ Bảy đông nhất, mỗi ngày 22 lịch.",
+      "src1": "Số lịch hẹn",
+      "m3": "Ai đang kín lịch nhất?",
+      "m4": "Tuấn kín lịch nhất với 31 lịch hẹn. Linh còn nhiều chỗ trống nhất (23 lịch).",
+      "src2": "Công suất",
+      "m5": "Doanh thu tháng này thế nào?",
+      "m6": "Doanh thu ước tính từ lịch hẹn đã hoàn thành, và số salon đã ghi nhận tại quầy:",
+      "src3": "Doanh thu",
+      "m7": "Tháng này lãi ước tính bao nhiêu?",
+      "m8": "Lãi ròng ước tính tháng này là 17.766.144đ, biên 15%:",
+      "src4": "Lãi tháng này",
+      "plan": "Pro",
+      "thinking": "Gu đang xem số liệu…",
+      "privacy": "Gu chỉ thấy số liệu kinh doanh, không thấy tên, số điện thoại hay ghi chú của khách.",
+      "viz": {
+        "k1": "Lịch hẹn",
+        "k1n": "104",
+        "k2": "Hoàn thành",
+        "k2n": "15",
+        "k3": "Vắng",
+        "k3n": "2",
+        "k4": "Sắp tới",
+        "k4n": "86",
+        "d1": "T2",
+        "d2": "T3",
+        "d3": "T4",
+        "d4": "T5",
+        "d5": "T6",
+        "d6": "T7",
+        "d7": "CN",
+        "p1": "Tuấn",
+        "p2": "Mai",
+        "p3": "Hà",
+        "r1": "Ước tính",
+        "r1tag": "Từ lịch hẹn",
+        "r2": "Đã ghi nhận",
+        "r2tag": "Tại salon",
+        "w1": "Doanh thu",
+        "w2": "Chi phí dịch vụ",
+        "w3": "Lương cả đội",
+        "w4": "Chi phí khác",
+        "w5": "Lãi ròng",
+        "p4": "Linh",
+        "unit": "{{n}} lịch"
+      }
     }
   }
 }

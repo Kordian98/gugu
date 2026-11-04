@@ -6,7 +6,9 @@ import { useLocale } from "@/services/i18n/useLocale";
 
 import type { LandingNavActions } from "../useLandingNav";
 import { FLOW_CSS } from "./flow.css";
+import { FreeYear } from "./FreeYear";
 import { Journey } from "./Journey";
+import { MobileJourney } from "./MobileJourney";
 import { Businesses } from "./Rooms";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -15,16 +17,18 @@ gsap.registerPlugin(ScrollTrigger);
  * v4 landing flow (web): the hero's arched door grows into ONE full-screen scene that walks through one
  * salon (street → front desk drowning → calm → treatment area features → back office), then the
  * before/after with the time-saved card, business types and switching.
- * Native and reduced motion use StoryStatic.
+ * Reduced motion: the same book, page turns crossfade (no door scrub). Native uses StoryStatic.
  */
 export function Flow({
   nav,
   desktop,
   width,
+  reduce,
 }: {
   nav: LandingNavActions;
   desktop: boolean;
   width: number;
+  reduce: boolean;
 }) {
   const locale = useLocale();
   const root = useRef<HTMLDivElement>(null);
@@ -66,7 +70,15 @@ export function Flow({
     <div className="fl" ref={root}>
       <style>{FLOW_CSS}</style>
 
-      <Journey nav={nav} desktop={desktop} width={width} />
+      {/* Phones (≤ 899 px): vertical full-screen sections with scroll snap (ADR-0014 "Mobile"); desktop
+          keeps the book. */}
+      {desktop ? (
+        <Journey nav={nav} desktop={desktop} width={width} reduce={reduce} />
+      ) : (
+        <MobileJourney nav={nav} width={width} reduce={reduce} />
+      )}
+
+      <FreeYear nav={nav} />
 
       <Businesses />
     </div>

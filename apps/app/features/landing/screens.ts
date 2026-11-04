@@ -20,6 +20,28 @@ const SCREENS = {
     calendarCrop: require("../../assets/studio/vi/calendar-crop.webp") as number,
     servicesCrop: require("../../assets/studio/vi/services-crop.webp") as number,
     appointmentsCrop: require("../../assets/studio/vi/appointments-crop.webp") as number,
+    calendarCrop2x: require("../../assets/studio/vi/calendar-crop-2x.webp") as number,
+    servicesCrop2x: require("../../assets/studio/vi/services-crop-2x.webp") as number,
+    appointmentsCrop2x: require("../../assets/studio/vi/appointments-crop-2x.webp") as number,
+    insightsKpis: require("../../assets/studio/vi/insights-kpis.webp") as number,
+    insightsKpis2x: require("../../assets/studio/vi/insights-kpis-2x.webp") as number,
+    payrollMonth: require("../../assets/studio/vi/payroll-month.webp") as number,
+    payrollMonth2x: require("../../assets/studio/vi/payroll-month-2x.webp") as number,
+    payrollPerson: require("../../assets/studio/vi/payroll-person.webp") as number,
+    payrollPerson2x: require("../../assets/studio/vi/payroll-person-2x.webp") as number,
+    // phone crops (mobile story)
+    mMonth: require("../../assets/studio/vi/m-month.webp") as number,
+    mMonth2x: require("../../assets/studio/vi/m-month-2x.webp") as number,
+    mInsights: require("../../assets/studio/vi/m-insights.webp") as number,
+    mInsights2x: require("../../assets/studio/vi/m-insights-2x.webp") as number,
+    mPayroll: require("../../assets/studio/vi/m-payroll.webp") as number,
+    mPayroll2x: require("../../assets/studio/vi/m-payroll-2x.webp") as number,
+    mAppointments: require("../../assets/studio/vi/m-appointments.webp") as number,
+    mAppointments2x: require("../../assets/studio/vi/m-appointments-2x.webp") as number,
+    mCalendar: require("../../assets/studio/vi/m-calendar.webp") as number,
+    mCalendar2x: require("../../assets/studio/vi/m-calendar-2x.webp") as number,
+    mServices: require("../../assets/studio/vi/m-services.webp") as number,
+    mServices2x: require("../../assets/studio/vi/m-services-2x.webp") as number,
   },
   en: {
     overview: require("../../assets/studio/en/overview.webp") as number,
@@ -34,6 +56,28 @@ const SCREENS = {
     calendarCrop: require("../../assets/studio/en/calendar-crop.webp") as number,
     servicesCrop: require("../../assets/studio/en/services-crop.webp") as number,
     appointmentsCrop: require("../../assets/studio/en/appointments-crop.webp") as number,
+    calendarCrop2x: require("../../assets/studio/en/calendar-crop-2x.webp") as number,
+    servicesCrop2x: require("../../assets/studio/en/services-crop-2x.webp") as number,
+    appointmentsCrop2x: require("../../assets/studio/en/appointments-crop-2x.webp") as number,
+    insightsKpis: require("../../assets/studio/en/insights-kpis.webp") as number,
+    insightsKpis2x: require("../../assets/studio/en/insights-kpis-2x.webp") as number,
+    payrollMonth: require("../../assets/studio/en/payroll-month.webp") as number,
+    payrollMonth2x: require("../../assets/studio/en/payroll-month-2x.webp") as number,
+    payrollPerson: require("../../assets/studio/en/payroll-person.webp") as number,
+    payrollPerson2x: require("../../assets/studio/en/payroll-person-2x.webp") as number,
+    // phone crops (mobile story)
+    mMonth: require("../../assets/studio/en/m-month.webp") as number,
+    mMonth2x: require("../../assets/studio/en/m-month-2x.webp") as number,
+    mInsights: require("../../assets/studio/en/m-insights.webp") as number,
+    mInsights2x: require("../../assets/studio/en/m-insights-2x.webp") as number,
+    mPayroll: require("../../assets/studio/en/m-payroll.webp") as number,
+    mPayroll2x: require("../../assets/studio/en/m-payroll-2x.webp") as number,
+    mAppointments: require("../../assets/studio/en/m-appointments.webp") as number,
+    mAppointments2x: require("../../assets/studio/en/m-appointments-2x.webp") as number,
+    mCalendar: require("../../assets/studio/en/m-calendar.webp") as number,
+    mCalendar2x: require("../../assets/studio/en/m-calendar-2x.webp") as number,
+    mServices: require("../../assets/studio/en/m-services.webp") as number,
+    mServices2x: require("../../assets/studio/en/m-services-2x.webp") as number,
   },
 } as const;
 
@@ -41,7 +85,8 @@ export type ScreenName = keyof (typeof SCREENS)["vi"];
 
 /** Pixel sizes written by the capture script (per locale; crops differ slightly with text length). */
 export const screenSize = (locale: AppLocale, name: ScreenName) => {
-  const key = name === "aiSetup" ? "ai-setup" : name;
+  // manifest keys are file names: aiSetup → ai-setup, calendarCrop → calendar-crop
+  const key = name.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
   return (
     (manifest as Record<AppLocale, Record<string, { w: number; h: number }>>)[locale][key] ?? {
       w: 16,

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { View, type LayoutChangeEvent } from "react-native";
 
-import { Text, color } from "@gugu/design-system";
+import { GradientText, Text, color, font, gradient } from "@gugu/design-system";
 
 import type { LandingAnchor } from "./useLandingNav";
 
@@ -20,11 +20,14 @@ export function SectionHead({
   title,
   center = false,
   onDark = false,
+  glow,
 }: {
   eyebrow: string;
   title: string;
   center?: boolean;
   onDark?: boolean;
+  /** Up to two words of the title in the brand gradient (rendered after `title`), plus trailing text. */
+  glow?: { words: string; after?: string };
 }) {
   return (
     <View className={`gap-3 ${center ? "items-center" : ""}`}>
@@ -40,6 +43,15 @@ export function SectionHead({
           style={center ? { textAlign: "center" } : undefined}
         >
           {title}
+          {glow ? (
+            <GradientText
+              colors={gradient.glowHere}
+              style={{ fontFamily: font.display, fontSize: 48, lineHeight: 56 }}
+            >
+              {glow.words}
+            </GradientText>
+          ) : null}
+          {glow?.after}
         </Text>
       </View>
     </View>

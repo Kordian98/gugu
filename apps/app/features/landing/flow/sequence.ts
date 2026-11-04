@@ -5,7 +5,8 @@
  * frames 720×1280 portrait crops that pan with the subject (~2 MB per walk).
  *
  * Smoothness: the position is a float, and the two neighbouring frames are cross-blended, so slow scrolling
- * glides instead of stepping. Loading is progressive (every 8th frame first, then 4th, 2nd, all) per walk,
+ * glides instead of stepping. Loading is progressive (every 8th frame first, then 4th, 2nd, all) per walk
+ * (the next walk preloads as soon as one completes),
  * nearest-loaded fallback, draws only in rAF when the position changes.
  */
 export type Segment = "w1" | "w2" | "w3";
@@ -13,7 +14,7 @@ export const SEGMENTS: Segment[] = ["w1", "w2", "w3"];
 export const FRAMES = 90;
 
 const pad = (n: number) => String(n).padStart(3, "0");
-const frameUrl = (seg: Segment, mobile: boolean, i: number) =>
+export const frameUrl = (seg: Segment, mobile: boolean, i: number) =>
   `/studio/walk/${seg}/${mobile ? "m" : "d"}/${pad(i + 1)}.webp`;
 
 type Track = { imgs: (HTMLImageElement | null)[]; started: boolean };
@@ -27,8 +28,14 @@ export class WalkPlayer {
   private ctx: CanvasRenderingContext2D | null;
   readonly mobile: boolean;
 
-  constructor(private canvas: HTMLCanvasElement) {
-    this.mobile = window.matchMedia("(max-width: 899px)").matches;
+  /** `chain`: when a walk is complete, preload the next one (desktop: one player for all walks). */
+  constructor(
+    private canvas: HTMLCanvasElement,
+    private chain = true,
+    /** portrait (phone) frames; default: the ≤ 899 px breakpoint */
+    mobile?: boolean,
+  ) {
+    this.mobile = mobile ?? window.matchMedia("(max-width: 899px)").matches;
     this.ctx = canvas.getContext("2d", { alpha: false });
     for (const s of SEGMENTS)
       this.tracks.set(s, { imgs: Array.from({ length: FRAMES }, () => null), started: false });
@@ -43,6 +50,16 @@ export class WalkPlayer {
     for (const step of [8, 4, 2, 1])
       for (let i = 0; i < FRAMES; i += step) if (!order.includes(i)) order.push(i);
     let k = 0;
+    let done = 0;
+    const settle = () => {
+      done += 1;
+      // When a walk is complete, preload the next one in the background, so a fast flick or a chapter
+      // jump never lands on an empty walk.
+      if (done === FRAMES && this.chain) {
+        const nextSeg = SEGMENTS[SEGMENTS.indexOf(seg) + 1];
+        if (nextSeg) this.load(nextSeg);
+      }
+    };
     const next = () => {
       const i = order[k++];
       if (i === undefined) return;
@@ -51,12 +68,23 @@ export class WalkPlayer {
       img.onload = () => {
         tr.imgs[i] = img;
         if (seg === this.seg) this.schedule(true);
+        settle();
         next();
       };
-      img.onerror = next;
+      img.onerror = () => {
+        settle();
+        next();
+      };
       img.src = frameUrl(seg, this.mobile, i);
     };
     for (let lane = 0; lane < 4; lane++) next();
+  }
+
+  /** Fraction of walk `seg`'s frames loaded (0..1). */
+  loaded(seg: Segment): number {
+    const tr = this.tracks.get(seg);
+    if (!tr) return 0;
+    return tr.imgs.reduce((n, im) => n + (im ? 1 : 0), 0) / FRAMES;
   }
 
   /** Shows walk `seg` at progress 0..1 (float; neighbouring frames are blended). */
