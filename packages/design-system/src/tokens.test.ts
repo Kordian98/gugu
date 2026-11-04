@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { color, font, gradient, motion, typeScale } from "./tokens";
+import { color, font, glass, gradient, motion, typeScale } from "./tokens";
 
 const lum = (hex: string) => {
   const [r, g, b] = [1, 3, 5].map((i) => {
@@ -39,6 +39,26 @@ describe("tokens", () => {
   it("glowInk stops stay readable on canvas", () => {
     for (const stop of gradient.glowInk)
       expect(contrast(stop, color.canvas)).toBeGreaterThanOrEqual(4.3);
+  });
+  it("ink text on liquid glass passes AA even over a black backdrop", () => {
+    // composite of the glass tint (rgba) over black
+    const over = (rgba: string) => {
+      const [r, g, b, a] = (rgba.match(/[\d.]+/g) ?? []).map(Number) as [
+        number,
+        number,
+        number,
+        number,
+      ];
+      const hex = (v: number) =>
+        Math.round(v * a)
+          .toString(16)
+          .padStart(2, "0");
+      return `#${hex(r)}${hex(g)}${hex(b)}`;
+    };
+    for (const tint of [glass.tint, glass.tintTop, glass.chip, glass.solid]) {
+      expect(contrast(color.ink, over(tint))).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(color.ink2, over(tint))).toBeGreaterThanOrEqual(4.5);
+    }
   });
   it("gradients have at least 2 stops", () => {
     for (const g of Object.values(gradient)) expect(g.length).toBeGreaterThanOrEqual(2);

@@ -99,7 +99,9 @@ First cut (same day): vertical full-screen sections with mandatory scroll snap. 
 the feel of Instagram stories, which is what ships:
 
 - **Tap right = next, tap left (left third) = back**, anywhere on the page except real controls
-  (buttons, links, sliders, the earnings card). A clear horizontal swipe does the same; ← / → too; hidden
+  (buttons, links, a slider's box plus 8 px). The earnings card is not a control: a tap on its text or
+  empty areas turns the page (owner, 2026-11-05). A tap on a screenshot opens the zoom viewer
+  (design review, 2026-11-05). A clear horizontal swipe does the same; ← / → too; hidden
   Prev / Next buttons appear on keyboard focus and a polite live region announces the page.
 - **Vertical scrolling is ordinary page scrolling.** No snapping, no capture: a page may be taller than
   the screen (payroll on 360×640, landscape) and you read it by scrolling; you can scroll out of the story
@@ -108,7 +110,8 @@ the feel of Instagram stories, which is what ships:
   between the hero and the free-year band. Next on the last page scrolls on to the free-year band; back on
   the first page scrolls up to the hero.
 - Pages: front desk (the street → reception walk plays ONCE per page load as the intro, when the story is
-  first on screen) → the same desk "after" (calm portrait wipes over the stressed one) → treatment room
+  first on screen) → the same desk "after" (the WHOLE screen wipes, as on desktop: photo, copy, pings,
+  chips and gains of the "before" scene give way to the complete "after" scene behind a glowing edge) → treatment room
   (walk 2) → three facts, each with one real CRM crop → office (walk 3) → "This month" (real overview
   card) → earnings estimate (big sliders) → Insights → payroll → switching → the client's Zalo chat
   (5 steps) → the AI assistant (4 steps). A chat step is a page; its messages type in on arrival.
@@ -117,17 +120,29 @@ the feel of Instagram stories, which is what ships:
 - **Frames:** portrait walk frames (720×1280) on one canvas per walk; portrait before/after stills cut
   from the 16:9 stills at the walk frames' own crop (x = 60 %, 644×1144, `public/studio/photo/m/`);
   landscape phones use the 16:9 frames and stills. Nothing is shown above 1.15× its pixels.
-- **Copy cards:** white glass (≥ 94 % white) over a dark bottom scrim, ink text (AA), at the bottom, away
-  from faces; the chevron folds a card to its title. Body text 16 px. Short phones drop the eyebrow under
-  a tag, the second Zalo note and the third list line; landscape puts the card beside the picture.
+- **Liquid glass (owner, 2026-11-05):** each page is laid out like an app screen inside ONE full-screen
+  glass panel under the chapter bar: headline, short text, then a large screenshot, chat or calculator.
+  The photo or walk shows through as a blurred (32 px), saturated (1.8×), tinted mood; faces no longer
+  matter. Rim highlight and inner light; `glass` tokens. Text on glass is ink / ink2 only: AA over any
+  backdrop (tokens.test.ts, worst case glass over black), measured ≥ 8.6:1 for ink2 over the real frames.
+  The chapter bar, toasts, zoom pill and center pill use the same glass. The chevron folds the panel to
+  its title. Content sits centred in the panel; screenshots end on a whole row. Short phones only drop
+  duplicates (eyebrow under a tag, extra Zalo notes); a long page scrolls. The "after" toast sits in
+  the panel under the gains, never over the headline.
 - **Screenshots:** never a shrunken desktop screen: `m-*` crops from `scripts/landing-screens.mjs` at a
   phone (390) or small-tablet (600 / 768) viewport at 3×, shown at about 1:1, srcset 2×/3×. A tap on the
-  picture turns the page like everywhere else; the caption's "Zoom" button opens a full-screen viewer
+  picture, or its "Zoom" pill (bottom-right, 12 px hit slop), opens a full-screen viewer
   (pinch 1–4×, drag, double-tap, Close / Esc / backdrop / back gesture; focus returns to the button).
 - **Perspectives:** not a phone inside the phone: a full-width Zalo chat (salon OA header, quick replies)
   with GuGu Studio toasts for what the salon's system just did; the AI chat with phone-sized visuals. The
   salon story comes first (default); the client and AI chapters follow it.
-- **Sliders:** 44 px tall, 32 px thumb, `touch-action: none`: a slider drag never scrolls or turns.
+- **Sliders:** 44 px hit box, 36 px thumb, a filled lilac700 track (≥ 3:1 against the unfilled part) and
+  a value label riding above the thumb; `touch-action: none`: a slider drag never scrolls or turns.
+- **Center view (phones too):** while the story is partly out of the viewport (12–97 % of the screen),
+  a glass "Căn giữa câu chuyện" pill smoothly scrolls it back to fill the screen. It steps aside while
+  the page scrolls and comes back once scrolling settles, at the lowest spot of the screen where no text
+  line, control or picture is under it (thumb zone first; the gap between the story and the next
+  section otherwise).
 - **Reduced motion:** no walks (final frames), no wipe, no typing, no entrance or tap flash.
 
 ## Consequences

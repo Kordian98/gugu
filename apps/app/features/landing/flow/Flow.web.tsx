@@ -9,14 +9,14 @@ import { FLOW_CSS } from "./flow.css";
 import { FreeYear } from "./FreeYear";
 import { Journey } from "./Journey";
 import { MobileJourney } from "./MobileJourney";
-import { Businesses } from "./Rooms";
 
 gsap.registerPlugin(ScrollTrigger);
 
 /**
  * v4 landing flow (web): the hero's arched door grows into ONE full-screen scene that walks through one
  * salon (street → front desk drowning → calm → treatment area features → back office), then the
- * before/after with the time-saved card, business types and switching.
+ * before/after with the time-saved card and switching, then the X25 free-year band. Pricing and the case
+ * studies follow in LandingScreen.
  * Reduced motion: the same book, page turns crossfade (no door scrub). Native uses StoryStatic.
  */
 export function Flow({
@@ -70,8 +70,8 @@ export function Flow({
     <div className="fl" ref={root}>
       <style>{FLOW_CSS}</style>
 
-      {/* Phones (≤ 899 px): vertical full-screen sections with scroll snap (ADR-0014 "Mobile"); desktop
-          keeps the book. */}
+      {/* Phones (≤ 899 px): Instagram-style stories in liquid-glass pages (ADR-0014 "Mobile");
+          desktop keeps the book. */}
       {desktop ? (
         <Journey nav={nav} desktop={desktop} width={width} reduce={reduce} />
       ) : (
@@ -79,8 +79,6 @@ export function Flow({
       )}
 
       <FreeYear nav={nav} />
-
-      <Businesses />
     </div>
   );
 }

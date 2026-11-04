@@ -6,6 +6,7 @@
     "story": "Cách hoạt động",
     "features": "Tính năng",
     "pricing": "Bảng giá",
+    "cases": "Ví dụ salon",
     "signIn": "Đăng nhập",
     "trial": "Dùng thử miễn phí",
     "trialShort": "Dùng thử"
@@ -477,37 +478,6 @@
       "title": "Cả salon trong một màn hình.",
       "sub": "Lịch hôm nay, dòng thời gian của đội ngũ và các lịch sắp tới, trên một màn hình. Phần phân tích sẽ đầy dần khi lịch hẹn hoàn thành."
     },
-    "biz": {
-      "eyebrow": "Mọi loại hình làm đẹp",
-      "nails": {
-        "t": "Tiệm nail",
-        "s": "Không còn trùng ghế hay đèn UV, nhờ mỗi dịch vụ tự giữ đúng ghế và thiết bị."
-      },
-      "hair": {
-        "t": "Salon tóc",
-        "s": "Tiết kiệm khoảng 6 giờ nhắn tin hỏi giờ mỗi tuần, nhờ khách tự đặt lịch trong Zalo OA của salon."
-      },
-      "barber": {
-        "t": "Barbershop",
-        "s": "Khách vãng lai và khách đặt trước chung một hàng chờ, nhờ danh sách lịch hẹn của cả tiệm."
-      },
-      "spa": {
-        "t": "Spa",
-        "s": "Ít khách vắng hơn, nhờ nhắc lịch Zalo tự động trước 24 giờ và 2 giờ."
-      },
-      "lash": {
-        "t": "Tiệm mi",
-        "s": "Có bảng dịch vụ đầy đủ trong khoảng 10 phút, nhờ AI đọc ảnh bảng giá."
-      },
-      "brow": {
-        "t": "Tiệm chân mày",
-        "s": "Không còn cộng hoa hồng bằng tay, nhờ bảng lương tự tính theo từng dịch vụ."
-      },
-      "note": "Ví dụ minh hoạ cho một salon điển hình; mức giảm khách vắng theo Robotham và cộng sự, BMJ Open 2016 (phòng khám). Ảnh minh hoạ, không phải khách hàng.",
-      "titlePre": "Nail, tóc, spa hay mi: ghế ",
-      "titleGlow": "kín hơn",
-      "titlePost": ", bớt việc vặt."
-    },
     "hud": {
       "c1": "Quầy lễ tân",
       "c2": "Phòng dịch vụ",
@@ -597,6 +567,171 @@
       "monthH": "Tháng này lãi bao nhiêu, nhìn là biết.",
       "swTitle": "Chuyển sang GuGu Studio trong vài phút.",
       "monthB": "Đã có, sắp tới từ lịch hẹn và lãi ước tính sau lương và chi phí, tự cập nhật theo từng lịch hẹn."
+    },
+    "cases": {
+      "eyebrow": "Ví dụ salon",
+      "titlePre": "Bốn salon, một tháng ",
+      "titleGlow": "nhẹ hơn",
+      "titlePost": ".",
+      "sub": "Chọn salon giống bạn nhất: cách làm cũ, bản đồ trước → sau, và ba điều thay đổi mỗi tháng.",
+      "label": "Ví dụ minh hoạ — tên và số liệu là giả định",
+      "tabs": "Chọn salon",
+      "carousel": "băng chuyền",
+      "slide": "ví dụ",
+      "slideLabel": "{{n}} / {{total}}: {{name}}",
+      "counter": "{{n}} / {{total}}",
+      "prev": "Salon trước",
+      "next": "Salon tiếp theo",
+      "before": "Trước",
+      "after": "Sau",
+      "afterLong": "Sau: GuGu Studio",
+      "mapLabel": "Bản đồ trước hoặc sau",
+      "v": {
+        "hours": "≈ {{n}} giờ",
+        "kept": "≈ {{v}}"
+      },
+      "nail": {
+        "type": "Tiệm nail · 3 thợ",
+        "name": "Bông Gòn Nails",
+        "setup": "Ba thợ. Khách vãng lai, tin nhắn Zalo và một cuốn sổ giấy ở quầy; thỉnh thoảng hai khách được ghi cùng một giờ cho cùng một ghế.",
+        "mapBefore": "Cách cũ: khách vãng lai, Zalo, sổ giấy",
+        "b1": "Khách vãng lai",
+        "b2": "Tin nhắn Zalo",
+        "b3": "Sổ giấy ở quầy",
+        "b4": "Trùng giờ, trùng ghế",
+        "b5": "Gọi lại hỏi giờ",
+        "a1": "Zalo OA đặt lịch",
+        "a2": "Khách vãng lai vào lịch",
+        "a3": "Giữ ghế và đèn UV",
+        "a4": "Nhắc 24 giờ",
+        "fix": "Khách nhắn hay ghé tiệm đều vào cùng một lịch; mỗi giờ giữ đúng thợ, ghế và đèn UV, nên không còn trùng.",
+        "o1": {
+          "s": "mỗi tháng không phải nhắn qua lại hỏi giờ rồi chép vào sổ.",
+          "f": "Đặt lịch qua Zalo OA · lịch cả đội"
+        },
+        "o2": {
+          "s": "doanh thu giữ lại mỗi tháng, vì khoảng {{n}} lượt khách bớt bỏ hẹn.",
+          "f": "Nhắc lịch Zalo trước 24 giờ và 2 giờ"
+        },
+        "o3": {
+          "s": "mỗi tháng chủ tiệm không phải tự tính hoa hồng, bảng lương cho 3 thợ và lãi tháng.",
+          "f": "Lương & hoa hồng · Tháng này"
+        },
+        "shot": "Lịch theo thợ · lịch hẹn sắp tới · Zalo OA (minh hoạ)",
+        "z": {
+          "msg": "Mai 10h còn chỗ sơn gel không ạ?",
+          "reply": "Còn ạ: 10:00 với chị Mai. Em giữ chỗ cho chị nhé.",
+          "done": "Đã đặt · đã gửi nhắc lịch"
+        }
+      },
+      "hair": {
+        "type": "Salon tóc · 5 người",
+        "name": "Lúa Hair",
+        "setup": "Năm người. Khách nhắn Zalo riêng của từng thợ, lịch chung là tờ lịch treo tường, cuối tháng chủ salon tính hoa hồng trong Excel.",
+        "mapBefore": "Cách cũ: Zalo riêng, lịch treo tường, Excel",
+        "b1": "Zalo riêng của thợ",
+        "b2": "Lịch treo tường",
+        "b3": "Excel hoa hồng",
+        "b4": "Máy tính tay",
+        "b5": "Hỏi lương, tính sai",
+        "a1": "Khách chọn thợ",
+        "a2": "Dịch vụ xong",
+        "a3": "Hoa hồng tự tính",
+        "a4": "Bảng lương, tải Excel",
+        "fix": "Mỗi lịch hẹn gắn với một thợ; dịch vụ xong là hoa hồng tự cộng vào bảng lương, cuối tháng chỉ cần chốt.",
+        "o1": {
+          "s": "mỗi tháng chủ salon không phải tự tính hoa hồng, bảng lương cho 5 người và lãi tháng.",
+          "f": "Lương & hoa hồng · tải Excel"
+        },
+        "o2": {
+          "s": "ở quầy mỗi tháng: khách tự chọn thợ và giờ trống, không cần gọi điện.",
+          "f": "Đặt lịch qua Zalo OA"
+        },
+        "o3": {
+          "s": "doanh thu giữ lại mỗi tháng nhờ khoảng {{n}} lượt khách bớt bỏ hẹn.",
+          "f": "Nhắc lịch tự động"
+        },
+        "shot": "Lịch theo thợ · bảng lương tháng · hoa hồng từng người"
+      },
+      "spa": {
+        "type": "Spa · 4 giường",
+        "name": "Sen Đá Spa",
+        "setup": "Bốn giường. Khách gọi điện đặt lịch, phòng ghi trên một tấm bảng giấy, và tối nào chủ spa cũng ngồi cộng doanh thu trong sổ.",
+        "mapBefore": "Cách cũ: điện thoại, bảng phòng, sổ tay",
+        "b1": "Điện thoại",
+        "b2": "Bảng phòng bằng giấy",
+        "b3": "Trùng giường",
+        "b4": "Sổ tay",
+        "b5": "Cộng sổ lúc nửa đêm",
+        "a1": "Khách tự đặt",
+        "a2": "Giữ giường, giữ phòng",
+        "a3": "Không trùng lịch",
+        "a4": "Tháng này: lãi",
+        "fix": "Mỗi liệu trình tự giữ giường và phòng của nó; doanh thu và lãi ước tính hiện sẵn trong Tháng này, không cần cộng sổ.",
+        "o1": {
+          "s": "doanh thu giữ lại mỗi tháng: khoảng {{n}} liệu trình không còn bỏ trống.",
+          "f": "Nhắc lịch Zalo trước 24 giờ và 2 giờ"
+        },
+        "o2": {
+          "s": "mỗi tháng không phải tự tính hoa hồng, bảng lương cho 4 kỹ thuật viên và lãi tháng.",
+          "f": "Lương & hoa hồng · Tháng này"
+        },
+        "o3": {
+          "s": "nghe điện thoại ít hơn mỗi tháng: khách đặt và đổi giờ ngay trong Zalo.",
+          "f": "Đặt lịch qua Zalo OA · giữ giường"
+        },
+        "shot": "Phòng & thiết bị · Tháng này"
+      },
+      "lash": {
+        "type": "Mi & mày · 2 người",
+        "name": "Nắng Lash & Brow",
+        "setup": "Hai người. Khách nhắn qua Instagram và Zalo, lịch ghi trong sổ tay, không ai kịp nhắc lịch, nên tuần nào cũng có khách không đến.",
+        "mapBefore": "Cách cũ: Instagram, Zalo, sổ tay",
+        "b1": "Tin nhắn Instagram",
+        "b2": "Tin nhắn Zalo",
+        "b3": "Sổ tay",
+        "b4": "Quên nhắc lịch",
+        "b5": "Khách không đến",
+        "a1": "Bot Zalo OA",
+        "a2": "Một danh sách",
+        "a3": "Nhắc 24 và 2 giờ",
+        "a4": "Khách xác nhận",
+        "fix": "Khách đặt qua bot Zalo OA kể cả lúc nửa đêm; mọi lịch nằm trong một danh sách và nhắc lịch tự gửi, khách chỉ cần bấm \"Tôi sẽ đến\".",
+        "o1": {
+          "s": "mỗi tháng không phải trả lời tin nhắn đặt lịch, kể cả lúc nửa đêm.",
+          "f": "Bot đặt lịch Zalo OA · hộp thư Zalo"
+        },
+        "o2": {
+          "s": "doanh thu giữ lại mỗi tháng nhờ khoảng {{n}} lượt khách bớt bỏ hẹn.",
+          "f": "Nhắc lịch tự động"
+        },
+        "o3": {
+          "s": "mỗi tháng không phải tự tính hoa hồng, bảng lương cho 2 người và lãi tháng.",
+          "f": "Lương & hoa hồng · Tháng này"
+        },
+        "shot": "Zalo OA (minh hoạ) · danh sách lịch hẹn",
+        "z": {
+          "msg": "Tối nay shop còn lịch nối mi không ạ?",
+          "reply": "Mai 9:30 còn trống ạ. Chị bấm để giữ chỗ nhé.",
+          "done": "Đã đặt lúc 23:05 · nhắc lịch trước 24 giờ"
+        }
+      },
+      "see": "Xem sau khi dùng GuGu Studio",
+      "zaloOa": "OA",
+      "zaloTag": "Minh hoạ Zalo OA của salon",
+      "shotNote": "Ảnh chụp màn hình thật của GuGu Studio (salon demo); thẻ Zalo là minh hoạ.",
+      "assume": "Ước tính thận trọng, tính đúng như ở bảng giá: {{weekly}} lịch hẹn mỗi tuần, giá trung bình {{price}}, {{staff}} nhân viên; {{minutes}} phút xác nhận và nhắc cho mỗi lịch hẹn, {{noShow}} khách không đến, nhắc lịch giảm {{cut}}; chủ salon mất {{commission}} phút tính hoa hồng và {{payroll}} phút làm lương cho mỗi nhân viên, cộng {{profit}} phút tính lãi mỗi tháng. Mọi tính năng ở đây đều có trong gói Basic.",
+      "alt": {
+        "calendarCrop": "Lịch theo từng thợ",
+        "mCalendar": "Lịch theo từng thợ",
+        "upcoming": "Lịch hẹn sắp tới, đã xác nhận",
+        "payrollMonth": "Bảng lương tháng: còn nhận, lương cứng và hoa hồng",
+        "mPayroll": "Bảng lương tháng: còn nhận, dự kiến thêm, chi phí thực tế",
+        "payrollPerson": "Hoa hồng và lương của một thợ trong tháng",
+        "mResources": "Phòng, giường và thiết bị dùng chung",
+        "mMonth": "Tháng này: doanh thu đã có, sắp tới và lãi ước tính",
+        "mAppointments": "Danh sách lịch hẹn trong ngày"
+      }
     }
   },
   "roi": {

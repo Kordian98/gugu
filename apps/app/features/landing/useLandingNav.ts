@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-export type LandingAnchor = "story" | "features" | "pricing";
+export type LandingAnchor = "story" | "features" | "pricing" | "cases";
 type Scrollable = { scrollTo: (o: { y: number; animated: boolean }) => void };
 
 /** Landing actions: in-page anchors (scroll) and routes to the business sign-up / sign-in. */

@@ -12,10 +12,4 @@ export const PHOTO = {
   exterior: "/studio/photo/exterior.webp",
   phone: "/studio/photo/phone.webp",
   customer: "/studio/photo/customer.webp",
-  nails: "/studio/photo/nails.webp",
-  hair: "/studio/photo/hair.webp",
-  barber: "/studio/photo/barber.webp",
-  spa: "/studio/photo/spa.webp",
-  lash: "/studio/photo/lash.webp",
-  brow: "/studio/photo/brow.webp",
 } as const;

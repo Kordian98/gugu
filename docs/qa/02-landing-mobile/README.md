@@ -100,3 +100,30 @@ Chromium tests use real CDP touch events; WebKit tests use touch taps, wheel and
 - The profit figure differs between the desktop overview crop (19.27M ₫) and the phone "Tháng này" crop
   (18.21M ₫). Both are real captures of the same demo salon, taken hours apart. They line up if both are
   retaken at the same time.
+
+## Liquid glass, full-screen before → after, center pill, calculator (owner, 2026-11-05; branch `design/02-cases`)
+
+Owner priorities on phones: readable content first (large screenshots, comfortable copy), then a calm flow, then atmosphere.
+
+- **Liquid glass:** each page is one full-screen glass panel under the chapter bar, laid out like an app screen: headline, short text, then a large screenshot, chat or calculator. The photo or walk shows through as a blurred (32 px), saturated (1.8×), tinted mood. The panel has a refraction rim and an inner light (`glass` tokens). Text on glass is ink or ink2 only. The chapter bar (a floating capsule), toasts (a notification that drops in and retracts), the zoom pill (on the picture) and the center pill use the same glass.
+- **Before → after:** page 2 holds two complete scenes. The whole "before" screen (photo, copy, Zalo pings, the 12 badge, the CTA) wipes to the whole "after" screen (calm photo, "Vẫn thứ Bảy đó. Nhẹ nhàng.", gains, booked toast) behind a glowing edge, with the desktop wipe ease (1.1 s). Reduced motion shows "after" at once.
+- **Center pill ("Căn giữa câu chuyện"):** it appears while the story covers 12–97 % of the screen, and a tap smoothly scrolls the story back to fill the screen. It steps aside while the page scrolls and comes back once scrolling settles, at the lowest spot where no text line, control or picture is under it: the thumb zone first, otherwise the gap between the story and the next section.
+- **Calculator:**
+  - big slider: 36 px thumb, a filled lilac700 track (≥ 3:1 against the unfilled part), and a value label above the thumb that never leaves the card;
+  - only the slider's own 44 px box is excluded from tap-to-advance;
+  - a tap on the card's text, label row or empty areas turns the page.
+
+### Checks (`mfix.mjs`, real taps and drags: CDP touch in Chromium, mouse drag in WebKit)
+
+Chromium mobile and WebKit touch × 360×640, 390×844, 430×932 × vi, en: **all pass** (12 / 12).
+
+| Check | Result |
+|---|---|
+| Center pill: story half below / half above the viewport | shown; nothing under it (exact text-line and control boxes); a tap re-docks the story (top 0, bottom = screen), then the pill hides |
+| Before → after | mid-wipe frame on page 2 shows both scenes split by the edge (clip at 11–21 %); "before" copy present under the wipe |
+| Slider drag | value changes (e.g. 350.000 → 1.000.000), page stays |
+| Tap on the slider track | no page turn |
+| Tap on the card's empty right area / label row | advances one page |
+| Glass contrast (text hidden; darkest backdrop pixel inside every glass panel of pages 1–12) | ink2 ≥ 8.66:1 (Chromium), ≥ 8.07:1 (WebKit); token test: ink and ink2 pass AA even with glass over black |
+| Design review fixes (2026-11-05) | the toast never overlaps the headline; slider near-miss (+ 8 px) doesn't turn; the payroll crop ends on a whole row; a tap on a screenshot opens zoom; short panels are centred; no long task after a scroll stops with 4× CPU throttling (was ~487 ms) |
+| Horizontal overflow | none |

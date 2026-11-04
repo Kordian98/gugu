@@ -120,6 +120,32 @@ export const overlay = {
   white0: "rgba(255,255,255,0)",
 } as const;
 
+/**
+ * Liquid glass (mobile landing story): a light tint over a strongly blurred, saturated backdrop, a
+ * bright refraction edge and an inner light. `tint` is the lightest the panel ever gets over a black
+ * backdrop: ink and ink2 text on it pass AA with any photo behind (tokens.test.ts); `body`, `eyebrow`
+ * and `lilac700` text must not sit directly on glass. `dark` is the viewer's glass on ink.
+ */
+export const glass = {
+  /** Panel fill, top → bottom (white → paper). */
+  tintTop: "rgba(255,255,255,.84)",
+  tint: "rgba(253,250,247,.78)",
+  /** Small controls and toasts (chapter bar, zoom pill, notifications). */
+  chip: "rgba(255,255,255,.80)",
+  /** Notifications over moving content (toasts): nearly opaque, so nothing behind shows through. */
+  solid: "rgba(255,255,255,.95)",
+  /** Refraction edge: bright rim fading out across the panel. */
+  edge: "rgba(255,255,255,.95)",
+  edgeSoft: "rgba(255,255,255,.18)",
+  /** Inner light from the top-left. */
+  light: "rgba(255,255,255,.55)",
+  dark: "rgba(255,255,255,.16)",
+  darkEdge: "rgba(255,255,255,.34)",
+  blur: 32,
+  blurChip: 18,
+  saturate: 1.8,
+} as const;
+
 /** Elevation for expressive web CSS. */
 export const shadow = {
   card: "0 18px 50px rgba(42,20,38,.22)",

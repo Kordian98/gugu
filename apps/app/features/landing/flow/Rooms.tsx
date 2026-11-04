@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { screen, screenSize, type ScreenName } from "../screens";
-import { PHOTO } from "./media";
 
 const SW_STEPS = ["st1", "st2", "st3", "st4"] as const;
 const SW_CELLS = Array.from({ length: 15 }, (_, i) => `c${String(i)}`);
@@ -16,7 +15,6 @@ const CROSS = "\u2715";
 const CHECK = "\u2713";
 const SEP = " \u00B7 ";
 const PIN = "\u25CF";
-const BIZ = ["nails", "hair", "barber", "spa", "lash", "brow"] as const;
 
 function useShot() {
   const locale = useLocale();
@@ -155,11 +153,58 @@ const vnd = (locale: string, n: number) =>
   }).format(Math.round(n / 1000) * 1000);
 
 /**
+ * A range input. Phones (`mobile`): wrapped with a filled track (`--k`, 0–1) and a value bubble above the
+ * thumb (mobile.css.ts); only this input's box is excluded from the story's tap-to-advance. Desktop:
+ * the plain input (unchanged).
+ */
+function Range({
+  mobile,
+  min,
+  max,
+  step,
+  value,
+  text,
+  onValue,
+}: {
+  mobile: boolean;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  text: string;
+  onValue: (v: number) => void;
+}) {
+  const input = (
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      {...(mobile ? { "aria-valuetext": text, "data-slider": true } : {})}
+      onChange={(e) => {
+        onValue(Number(e.target.value));
+      }}
+    />
+  );
+  if (!mobile) return input;
+  const k = (value - min) / (max - min);
+  return (
+    <span className="calc-sl" style={{ ["--k" as string]: k.toFixed(4) }}>
+      {input}
+      <output className="calc-bub" aria-hidden>
+        {text}
+      </output>
+    </span>
+  );
+}
+
+/**
  * Interactive, clearly illustrative estimate of revenue recovered from fewer no-shows:
  * bookings/week × 10% no-show × 25% fewer with reminders (BMJ Open 2016) × price × 4.33 weeks.
  * The result counts up smoothly on change (rAF tween on text only).
  */
-export function EarningsCard() {
+export function EarningsCard({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const [price, setPrice] = useState(350000);
@@ -194,15 +239,14 @@ export function EarningsCard() {
           {t("flow.calc.price")}
           <b>{vnd(locale, price)}</b>
         </span>
-        <input
-          type="range"
+        <Range
+          mobile={mobile}
           min={100000}
           max={1500000}
           step={50000}
           value={price}
-          onChange={(e) => {
-            setPrice(Number(e.target.value));
-          }}
+          text={vnd(locale, price)}
+          onValue={setPrice}
         />
       </label>
       <label className="calc-r">
@@ -212,15 +256,14 @@ export function EarningsCard() {
             {String(weekly)} {t("flow.calc.perWeek")}
           </b>
         </span>
-        <input
-          type="range"
+        <Range
+          mobile={mobile}
           min={20}
           max={300}
           step={10}
           value={weekly}
-          onChange={(e) => {
-            setWeekly(Number(e.target.value));
-          }}
+          text={`${String(weekly)} ${t("flow.calc.perWeek")}`}
+          onValue={setWeekly}
         />
       </label>
       <div className="calc-out">
@@ -367,41 +410,5 @@ export function SwitchPanel() {
         </div>
       </div>
     </div>
-  );
-}
-
-/**
- * Business types as ONE benefit view (owner): per business, one big illustrative result and the feature
- * that delivers it ("saved X thanks to Y"), over the photoreal scene. No swiping.
- */
-export function Businesses() {
-  const { t } = useTranslation("landing");
-  return (
-    <section className="bz" id="fl-biz">
-      <div className="bz-head">
-        <div className="fl-eye rv">{t("flow.biz.eyebrow")}</div>
-        <h2 className="fl-h rv">
-          {t("flow.biz.titlePre")}
-          <span className="fy-glow">{t("flow.biz.titleGlow")}</span>
-          {t("flow.biz.titlePost")}
-        </h2>
-      </div>
-      <div className="bz-grid">
-        {BIZ.map((k, i) => (
-          <article
-            key={k}
-            className="bz-tile rv"
-            style={{ ["--d" as string]: `${String(i * 70)}ms` }}
-          >
-            <img src={PHOTO[k]} alt="" loading="lazy" decoding="async" />
-            <div className="bz-body">
-              <span className="bz-type">{t(`flow.biz.${k}.t`)}</span>
-              <p className="bz-say">{t(`flow.biz.${k}.s`)}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-      <p className="bz-note">{t("flow.biz.note")}</p>
-    </section>
   );
 }

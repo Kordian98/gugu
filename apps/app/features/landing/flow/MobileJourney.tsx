@@ -12,6 +12,7 @@ import { AI_STEPS, AiViz, CLIENT_STEPS } from "./Perspectives";
 import { EarningsCard } from "./Rooms";
 import { WalkPlayer, frameUrl, type Segment } from "./sequence";
 import { StaticHero } from "./StaticHero";
+import { CUTS } from "./cuts";
 import { scrollParent } from "./timelines";
 import { openZoom } from "./zoom";
 
@@ -22,6 +23,7 @@ const Z = "Z";
 const SEP = " · ";
 const ARROW_R = "→";
 const ARROW_D = "↓";
+const CENTER = "\u2195";
 const NOTES = ["n1", "n2", "n3", "n4"] as const;
 const BEFORE = ["b1", "b2", "b3", "b4"] as const;
 const GAINS = ["g1", "g2", "g3"] as const;
@@ -105,8 +107,8 @@ const FACTS: readonly Facts[] = [
 ];
 
 /**
- * One real CRM crop taken at a phone viewport (scripts/landing-screens.mjs `m-*`), shown at about 1:1;
- * a tap opens the zoom viewer (pinch / double-tap). `sizes` = the displayed width.
+ * One real CRM crop taken at a phone viewport (scripts/landing-screens.mjs `m-*`), shown at about 1:1
+ * and cut on a whole row; a tap on it (or its Zoom pill) opens the zoom viewer (pinch / double-tap).
  */
 function MShot({
   name,
@@ -129,11 +131,57 @@ function MShot({
   const src2x = Asset.fromModule(screen(locale, name2x)).uri;
   const { w, h: ph } = screenSize(locale, name);
   const srcSet = `${src2x} ${String(Math.round((w * 2) / 3))}w, ${src} ${String(w)}w`;
-  // In a story every tap on the picture turns the page; the zoom is its own button in the caption.
+  const box = useRef<HTMLSpanElement>(null);
+  // The crop ends on a whole row (CUTS): the tallest row boundary that fits max(300 px, h svh).
+  useLayoutEffect(() => {
+    const el = box.current;
+    const cuts = CUTS[locale][name];
+    if (!el) return;
+    let lastW = -1;
+    const fit = () => {
+      // react to width changes only (setting max-height must not re-trigger the observer)
+      if (el.clientWidth === lastW) return;
+      lastW = el.clientWidth;
+      const natural = (el.clientWidth * ph) / w;
+      const svh = h ? Number.parseFloat(h) : 44;
+      const max = Math.max(300, (window.innerHeight * svh) / 100);
+      if (natural <= max) {
+        el.style.maxHeight = "none";
+        return;
+      }
+      const end = [...(cuts ?? [])].reverse().find((c) => c * natural <= max);
+      el.style.maxHeight = `${String(Math.round(end ? end * natural : max))}px`;
+      el.classList.toggle("row", end !== undefined);
+    };
+    fit();
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(fit);
+    });
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [locale, name, ph, w, h]);
+  // A tap on the picture opens the zoom viewer (as its Zoom pill does); pages turn from the text.
   return (
     <figure className="mj-shot mj-in" style={h ? { ["--shot-h" as string]: h } : undefined}>
       <figcaption className="cap">
         <span>{caption}</span>
+      </figcaption>
+      <span className="img" ref={box}>
+        <img
+          src={src}
+          srcSet={srcSet}
+          sizes="(orientation: landscape) 48vw, calc(100vw - 52px)"
+          width={w}
+          height={ph}
+          alt={caption}
+          decoding="async"
+          loading="lazy"
+        />
         <button
           type="button"
           className="mj-zbtn2"
@@ -152,18 +200,6 @@ function MShot({
           <i aria-hidden />
           {t("flow.m.zoom")}
         </button>
-      </figcaption>
-      <span className="img">
-        <img
-          src={src}
-          srcSet={srcSet}
-          sizes="(orientation: landscape) 48vw, calc(100vw - 32px)"
-          width={w}
-          height={ph}
-          alt={caption}
-          decoding="async"
-          loading="lazy"
-        />
         {call ? (
           <span className="mj-call">
             <i aria-hidden>{PIN}</i>
@@ -205,6 +241,55 @@ function Card({
       ) : null}
       <div className="mj-more">{children}</div>
     </div>
+  );
+}
+
+/** Front desk "before": its glass card (page 1, and the scene under the full-screen wipe on page 2). */
+function DeskBefore({ onAfter, replica = false }: { onAfter: () => void; replica?: boolean }) {
+  const { t } = useTranslation("landing");
+  return (
+    <Card
+      head={
+        <>
+          <span className="mj-tag b">{t("flow.pain.before")}</span>
+          <div className="mj-eye">{t("flow.pain.eyebrow")}</div>
+          <h2 className="mj-h" id={replica ? undefined : "mj-h-desk"}>
+            {t("flow.pain.title")}
+          </h2>
+        </>
+      }
+    >
+      <div className="mj-stat">
+        <b>
+          {t("flow.pain.statNum")}
+          <small>{t("flow.pain.statUnit")}</small>
+        </b>
+        <span>
+          <em>{t("flow.pain.pre")}</em>
+          {t("flow.pain.statLabel")}
+        </span>
+      </div>
+      <div className="mj-ping" aria-hidden>
+        <span className="z">{Z}</span>
+        <span className="n">
+          {NOTES.map((k) => (
+            <span key={k}>
+              <small>
+                {t("flow.pain.zalo")}
+                {SEP}
+                {t("flow.pain.now")}
+              </small>
+              {t(`flow.pain.${k}`)}
+            </span>
+          ))}
+        </span>
+        <span className="c">{String(BEFORE.length * 3)}</span>
+      </div>
+      <button type="button" className="mj-go" onClick={onAfter} tabIndex={replica ? -1 : undefined}>
+        {t("flow.hud.after")}
+        <i aria-hidden>{ARROW_R}</i>
+      </button>
+    </Card>
   );
 }
 
@@ -415,6 +500,7 @@ export function MobileJourney({
       (es) => {
         const vis = es.some((e) => e.isIntersecting);
         setLive(vis);
+        placeCenter();
         if (vis && !shown) {
           shown = true;
           show(cur, false);
@@ -464,11 +550,25 @@ export function MobileJourney({
     // Tap zones: left third = back, the rest = next (as Instagram stories). Controls inside the page
     // (buttons, links, sliders, the earnings card, the chapter bar) keep their own taps; a chat's quick
     // replies always mean "next"; a scroll never counts as a tap.
-    const INTERACTIVE = "button,a,input,label,select,textarea,.calc,[data-notap],.mj-zoom";
+    // The earnings card is NOT a control: only a slider's own box (its thumb and track hit area) is;
+    // a tap anywhere else on the card turns the page like everywhere else.
+    const INTERACTIVE = "button,a,input,select,textarea,label:not(.calc-r),[data-notap],.mj-zoom";
     const fx = el.querySelector<HTMLElement>(".mj-tapfx");
+    /** A slider's box plus 8 px: near-misses on a slider never turn the page. */
+    const nearSlider = (x: number, y: number) =>
+      Array.from(el.querySelectorAll<HTMLElement>(".mj-u.cur .calc-sl")).some((s) => {
+        const r = s.getBoundingClientRect();
+        return x > r.left - 8 && x < r.right + 8 && y > r.top - 8 && y < r.bottom + 8;
+      });
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      if (!target || target.closest(INTERACTIVE)) return;
+      if (!target || target.closest(INTERACTIVE) || nearSlider(e.clientX, e.clientY)) return;
+      // a tap on a screenshot opens it in the zoom viewer
+      const pic = target.closest(".mj-shot .img");
+      if (pic) {
+        pic.querySelector<HTMLButtonElement>(".mj-zbtn2")?.click();
+        return;
+      }
       const back = !target.closest("[data-advance]") && e.clientX < window.innerWidth / 3;
       if (fx && !reduce) {
         fx.className = `mj-tapfx ${back ? "l" : "r"}`;
@@ -490,7 +590,7 @@ export function MobileJourney({
       const dx = t0.clientX - sx;
       const dy = t0.clientY - sy;
       const target = e.target as HTMLElement | null;
-      if (target?.closest(INTERACTIVE)) return;
+      if (target?.closest(INTERACTIVE) || nearSlider(sx, sy)) return;
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6) step(dx < 0 ? 1 : -1);
     };
     // ← / → while the story is on screen
@@ -514,7 +614,109 @@ export function MobileJourney({
     track?.addEventListener("touchend", onTe, { passive: true });
     window.addEventListener("keydown", onKey);
 
+    // "Center view" (as desktop): while the story is partly out of the viewport, a glass pill in the
+    // thumb zone smoothly scrolls it back to fill the screen. It moves up until nothing readable or
+    // tappable is under it (never covers content) and hides while the zoom viewer is open.
+    const centerBtn = document.createElement("button");
+    centerBtn.type = "button";
+    centerBtn.className = "mj-center";
+    centerBtn.hidden = true;
+    const centerIcon = document.createElement("i");
+    centerIcon.setAttribute("aria-hidden", "true");
+    centerIcon.textContent = CENTER;
+    centerBtn.append(centerIcon, document.createTextNode(t("flow.hud.center")));
+    centerBtn.addEventListener("click", () => {
+      if (!scroller || !track) return;
+      const r = track.getBoundingClientRect();
+      const sr = scroller.getBoundingClientRect();
+      const H = vh();
+      // story below → its top to the top; story above → its bottom to the bottom (fills the screen)
+      const d = r.top - sr.top > 0 || r.height <= H ? r.top - sr.top : r.bottom - sr.top - H;
+      scrollY(scroller, scroller.scrollTop + d, !reduce);
+    });
+    // on <body>, as desktop: above every stacking context of the page
+    document.body.append(centerBtn);
+    /**
+     * Boxes of what a visitor reads or taps: a known list (the current story page's text, controls and
+     * pictures, the hero copy, the free-year band and pricing), measured once per settled scroll. A
+     * box still revealing (`.rv` not yet in) is widened by its 40 px travel.
+     */
+    const CONTENT = [
+      ".mj-u.cur :is(h1,h2,h3,p,li,button,a,img,.mj-tag,.mj-eye,.mj-stat,.mj-ping,.mj-gain,.mj-toast,.calc-sl,.calc-out,.calc-year,.mc-msg,.mc-copy,.mc-input)",
+      ".mj-bar",
+      ".jr-static :is(h1,p,button,a,.jr-plaque)",
+      "#fl-free :is(.fl-eye,h2,p,button)",
+      "[data-testid='pricing-section'] :is([dir='auto'],[role='button'],[role='radio'])",
+    ].join(",");
+    const contentBoxes = () => {
+      const H = window.innerHeight;
+      const boxes: DOMRect[] = [];
+      document.querySelectorAll<HTMLElement>(CONTENT).forEach((e) => {
+        const r = e.getBoundingClientRect();
+        if (r.width === 0 || r.bottom < 0 || r.top > H) return;
+        const moving = e.closest(".rv:not(.in)") ? 40 : 0;
+        boxes.push(new DOMRect(r.left, r.top - moving, r.width, r.height + 2 * moving));
+      });
+      return boxes;
+    };
+    let centerRaf = 0;
+    let settle = 0;
+    const placeCenter = () => {
+      // re-check once scrolling and the reveal transitions underneath have settled
+      window.clearTimeout(settle);
+      settle = window.setTimeout(() => {
+        placeNow(true);
+      }, 400);
+      placeNow(false);
+    };
+    const placeNow = (search: boolean) => {
+      cancelAnimationFrame(centerRaf);
+      centerRaf = requestAnimationFrame(() => {
+        if (!track || !scroller) return;
+        const r = track.getBoundingClientRect();
+        const sr = scroller.getBoundingClientRect();
+        const H = vh();
+        const visible = Math.max(0, Math.min(r.bottom, sr.bottom) - Math.max(r.top, sr.top));
+        const show =
+          shown && !document.querySelector(".mj-zoom") && visible > H * 0.12 && visible < H * 0.97;
+        if (!show) {
+          centerBtn.hidden = true;
+          return;
+        }
+        // while the page scrolls the pill steps aside; it comes back, placed clear of content, once the
+        // scroll has settled
+        if (!search) {
+          centerBtn.hidden = true;
+          return;
+        }
+        centerBtn.hidden = false;
+        const { width, height } = centerBtn.getBoundingClientRect();
+        const W = window.innerWidth;
+        const boxes = contentBoxes();
+        const gap = 6;
+        const free = (bottom: number) => {
+          const l = (W - width) / 2 - gap;
+          const r = (W + width) / 2 + gap;
+          const t = window.innerHeight - bottom - height - gap;
+          const b = window.innerHeight - bottom + gap;
+          return !boxes.some((x) => x.right > l && x.left < r && x.bottom > t && x.top < b);
+        };
+        const safe = 16;
+        // the thumb zone first (bottom up to 45 % of the screen, 8 px steps); if it is all content,
+        // the nearest free spot higher up; never on top of content
+        let at = safe;
+        while (at < H - 96 && !free(at)) at += 8;
+        if (at >= H - 96) {
+          centerBtn.hidden = true;
+          return;
+        }
+        centerBtn.style.bottom = `calc(${String(at)}px + env(safe-area-inset-bottom, 0px))`;
+      });
+    };
+    scroller?.addEventListener("scroll", placeCenter, { passive: true });
+
     const onResize = () => {
+      placeCenter();
       syncHero();
       players.forEach((p) => {
         p.resize();
@@ -543,6 +745,10 @@ export function MobileJourney({
     return () => {
       io.disconnect();
       endWalk();
+      cancelAnimationFrame(centerRaf);
+      window.clearTimeout(settle);
+      scroller?.removeEventListener("scroll", placeCenter);
+      centerBtn.remove();
       track?.removeEventListener("click", onClick);
       track?.removeEventListener("touchstart", onTs);
       track?.removeEventListener("touchend", onTe);
@@ -641,94 +847,62 @@ export function MobileJourney({
           <div className="mj-bg">
             <canvas data-walk="w1" aria-hidden />
           </div>
-          <div className="mj-scrim" />
-          <Card
-            head={
-              <>
-                <span className="mj-tag b">{t("flow.pain.before")}</span>
-                <div className="mj-eye">{t("flow.pain.eyebrow")}</div>
-                <h2 className="mj-h" id="mj-h-desk">
-                  {t("flow.pain.title")}
-                </h2>
-              </>
-            }
-          >
-            <div className="mj-stat">
-              <b>
-                {t("flow.pain.statNum")}
-                <small>{t("flow.pain.statUnit")}</small>
-              </b>
-              <span>
-                <em>{t("flow.pain.pre")}</em>
-                {t("flow.pain.statLabel")}
-              </span>
-            </div>
-            <div className="mj-ping" aria-hidden>
-              <span className="z">{Z}</span>
-              <span className="n">
-                {NOTES.slice(0, 2).map((k) => (
-                  <span key={k}>
-                    <small>
-                      {t("flow.pain.zalo")}
-                      {SEP}
-                      {t("flow.pain.now")}
-                    </small>
-                    {t(`flow.pain.${k}`)}
-                  </span>
-                ))}
-              </span>
-              <span className="c">{String(BEFORE.length * 3)}</span>
-            </div>
-            <button
-              type="button"
-              className="mj-go"
-              onClick={() => {
-                stepBy(1);
-              }}
-            >
-              {t("flow.hud.after")}
-              <i aria-hidden>{ARROW_R}</i>
-            </button>
-          </Card>
+          <DeskBefore
+            onAfter={() => {
+              stepBy(1);
+            }}
+          />
         </section>
 
-        {/* 2 · the same desk, after (wipe reveal on arrival) */}
-        <section className="mj-s mj-u" data-ch="c1" data-sec="after" aria-labelledby="mj-h-after">
-          <div className="mj-bg">
-            <Still k="stress" />
-            <Still k="calm" className="mj-after-img" />
-            <span className="mj-edge" aria-hidden />
-          </div>
-          <div className="mj-scrim" />
-          <div className="mj-toast later" role="status">
-            <i aria-hidden>{CHECK}</i>
-            <span>
-              <small>{t("flow.pain.zalo")}</small>
-              {t("flow.ba.booked")}
-            </span>
-          </div>
-          <Card
-            head={
-              <>
-                <span className="mj-tag a">{t("flow.pain.after")}</span>
-                <div className="mj-eye">{t("flow.pain.calmEyebrow")}</div>
-                <h2 className="mj-h" id="mj-h-after">
-                  {t("flow.pain.calmTitle")}
-                </h2>
-              </>
-            }
-          >
-            <p className="mj-p">{t("flow.pain.calmSub")}</p>
-            <div className="mj-gains">
-              {GAINS.map((k) => (
-                <div key={k} className="mj-gain">
-                  <b>{t(`flow.pain.${k}n`)}</b>
-                  <span>{t(`flow.pain.${k}l`)}</span>
-                </div>
-              ))}
+        {/* 2 · the same desk, after: the WHOLE screen (photo, copy, pings, gains) wipes from the
+            "before" scene to the "after" scene, as on desktop */}
+        <section
+          className="mj-s mj-u ba"
+          data-ch="c1"
+          data-sec="after"
+          aria-labelledby="mj-h-after"
+        >
+          <div className="mj-scene b" aria-hidden inert>
+            <div className="mj-bg">
+              <Still k="stress" />
             </div>
-            <p className="mj-small">{t("flow.pain.src")}</p>
-          </Card>
+            <DeskBefore onAfter={() => undefined} replica />
+          </div>
+          <div className="mj-scene a">
+            <div className="mj-bg">
+              <Still k="calm" />
+            </div>
+            <Card
+              head={
+                <>
+                  <span className="mj-tag a">{t("flow.pain.after")}</span>
+                  <div className="mj-eye">{t("flow.pain.calmEyebrow")}</div>
+                  <h2 className="mj-h" id="mj-h-after">
+                    {t("flow.pain.calmTitle")}
+                  </h2>
+                </>
+              }
+            >
+              <p className="mj-p">{t("flow.pain.calmSub")}</p>
+              <div className="mj-gains">
+                {GAINS.map((k) => (
+                  <div key={k} className="mj-gain">
+                    <b>{t(`flow.pain.${k}n`)}</b>
+                    <span>{t(`flow.pain.${k}l`)}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mj-small">{t("flow.pain.src")}</p>
+              <div className="mj-toast later" role="status">
+                <i aria-hidden>{CHECK}</i>
+                <span>
+                  <small>{t("flow.pain.zalo")}</small>
+                  {t("flow.ba.booked")}
+                </span>
+              </div>
+            </Card>
+          </div>
+          <span className="mj-edge" aria-hidden />
         </section>
 
         {/* 3 · treatment room (walk 2) */}
@@ -736,7 +910,6 @@ export function MobileJourney({
           <div className="mj-bg">
             <canvas data-walk="w2" aria-hidden />
           </div>
-          <div className="mj-scrim" />
           <Card
             head={
               <>
@@ -763,15 +936,6 @@ export function MobileJourney({
             <div className="mj-bg">
               <Still k="treat" />
             </div>
-            <div className="mj-veil" />
-            <MShot
-              name={f.shot}
-              name2x={f.shot2x}
-              caption={sh(`flow.features.${f.label}`)}
-              call={sh(`flow.features.${f.call}`)}
-              reduce={reduce}
-              h="36svh"
-            />
             <Card
               foldable={false}
               head={
@@ -793,6 +957,14 @@ export function MobileJourney({
                   {t(`flow.features.${f.k}p`)}
                 </span>
               </p>
+              <MShot
+                name={f.shot}
+                name2x={f.shot2x}
+                caption={sh(`flow.features.${f.label}`)}
+                call={sh(`flow.features.${f.call}`)}
+                reduce={reduce}
+                h="42svh"
+              />
             </Card>
           </section>
         ))}
@@ -802,7 +974,6 @@ export function MobileJourney({
           <div className="mj-bg">
             <canvas data-walk="w3" aria-hidden />
           </div>
-          <div className="mj-scrim" />
           <Card
             head={
               <>
@@ -827,14 +998,6 @@ export function MobileJourney({
           <div className="mj-bg">
             <Still k="office" />
           </div>
-          <div className="mj-veil" />
-          <MShot
-            name="mMonth"
-            name2x="mMonth2x"
-            caption={t("flow.m.monthShot")}
-            reduce={reduce}
-            h="44svh"
-          />
           <Card
             foldable={false}
             head={
@@ -849,6 +1012,13 @@ export function MobileJourney({
             <p className="mj-p mj-in" style={{ ["--i" as string]: 2 }}>
               {t("flow.m.monthB")}
             </p>
+            <MShot
+              name="mMonth"
+              name2x="mMonth2x"
+              caption={t("flow.m.monthShot")}
+              reduce={reduce}
+              h="44svh"
+            />
           </Card>
         </section>
 
@@ -862,10 +1032,11 @@ export function MobileJourney({
           <div className="mj-bg">
             <Still k="office" />
           </div>
-          <div className="mj-veil" />
-          <div className="mj-in">
-            <EarningsCard />
-          </div>
+          <Card foldable={false} head={null}>
+            <div className="mj-in">
+              <EarningsCard mobile />
+            </div>
+          </Card>
         </section>
 
         {/* 10 · Insights */}
@@ -873,14 +1044,6 @@ export function MobileJourney({
           <div className="mj-bg">
             <Still k="office" />
           </div>
-          <div className="mj-veil" />
-          <MShot
-            name="mInsights"
-            name2x="mInsights2x"
-            caption={t("flow.insights.shot")}
-            reduce={reduce}
-            h="34svh"
-          />
           <Card
             foldable={false}
             head={
@@ -900,6 +1063,13 @@ export function MobileJourney({
                 </li>
               ))}
             </ul>
+            <MShot
+              name="mInsights"
+              name2x="mInsights2x"
+              caption={t("flow.insights.shot")}
+              reduce={reduce}
+              h="40svh"
+            />
           </Card>
         </section>
 
@@ -908,14 +1078,6 @@ export function MobileJourney({
           <div className="mj-bg">
             <Still k="office" />
           </div>
-          <div className="mj-veil" />
-          <MShot
-            name="mPayroll"
-            name2x="mPayroll2x"
-            caption={t("flow.payroll.shot")}
-            reduce={reduce}
-            h="32svh"
-          />
           <Card
             foldable={false}
             head={
@@ -936,6 +1098,13 @@ export function MobileJourney({
               ))}
             </ul>
             <p className="mj-small">{t("flow.payroll.note")}</p>
+            <MShot
+              name="mPayroll"
+              name2x="mPayroll2x"
+              caption={t("flow.payroll.shot")}
+              reduce={reduce}
+              h="44svh"
+            />
           </Card>
         </section>
 
@@ -944,7 +1113,6 @@ export function MobileJourney({
           <div className="mj-bg">
             <Still k="office" />
           </div>
-          <div className="mj-veil" />
           <Card
             foldable={false}
             head={

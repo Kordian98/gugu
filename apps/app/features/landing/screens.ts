@@ -9,6 +9,7 @@ import manifest from "../../assets/studio/manifest.json";
 const SCREENS = {
   vi: {
     overview: require("../../assets/studio/vi/overview.webp") as number,
+    overview2x: require("../../assets/studio/vi/overview-2x.webp") as number,
     timeline: require("../../assets/studio/vi/timeline.webp") as number,
     upcoming: require("../../assets/studio/vi/upcoming.webp") as number,
     kpis: require("../../assets/studio/vi/kpis.webp") as number,
@@ -42,9 +43,12 @@ const SCREENS = {
     mCalendar2x: require("../../assets/studio/vi/m-calendar-2x.webp") as number,
     mServices: require("../../assets/studio/vi/m-services.webp") as number,
     mServices2x: require("../../assets/studio/vi/m-services-2x.webp") as number,
+    mResources: require("../../assets/studio/vi/m-resources.webp") as number,
+    mResources2x: require("../../assets/studio/vi/m-resources-2x.webp") as number,
   },
   en: {
     overview: require("../../assets/studio/en/overview.webp") as number,
+    overview2x: require("../../assets/studio/en/overview-2x.webp") as number,
     timeline: require("../../assets/studio/en/timeline.webp") as number,
     upcoming: require("../../assets/studio/en/upcoming.webp") as number,
     kpis: require("../../assets/studio/en/kpis.webp") as number,
@@ -78,6 +82,8 @@ const SCREENS = {
     mCalendar2x: require("../../assets/studio/en/m-calendar-2x.webp") as number,
     mServices: require("../../assets/studio/en/m-services.webp") as number,
     mServices2x: require("../../assets/studio/en/m-services-2x.webp") as number,
+    mResources: require("../../assets/studio/en/m-resources.webp") as number,
+    mResources2x: require("../../assets/studio/en/m-resources-2x.webp") as number,
   },
 } as const;
 

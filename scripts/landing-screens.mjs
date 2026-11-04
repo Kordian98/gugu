@@ -121,6 +121,8 @@ const SHOTS = (t) => [
   },
   { name: "m-calendar", route: "business/calendar", vp: [768, 900], region: [128, 126, 316, 440] },
   { name: "m-services", route: "business/services", vp: [600, 900], region: [10, 296, 404, 300] },
+  // rooms, beds and devices (landing case study "spa"; the demo salon has beds, rooms and devices)
+  { name: "m-resources", route: "business/resources", vp: [390, 900], region: [10, 282, 370, 440] },
 ];
 
 function run(cmd, args, cwd = root) {
