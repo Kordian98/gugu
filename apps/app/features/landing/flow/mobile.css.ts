@@ -13,13 +13,30 @@ const DELIB = motion.duration.deliberate;
 export const MOBILE_CSS = `
 @media (max-width:899px){
 .mj{--bar:52px;--pad:16px;position:relative;color:${color.ink}}
-.mj-track{position:relative}
+.mj-track{position:relative;touch-action:pan-y;-webkit-tap-highlight-color:transparent;cursor:pointer}
+/* stories: only the current page is in the layout; a long page simply scrolls with the page */
+.mj .mj-u{display:none}
+.mj .mj-u.cur{display:flex;animation:mjPage 240ms ${EASE} both}
+.mj .mc-track.cur{display:block}
+@keyframes mjPage{from{opacity:0}to{opacity:1}}
+.mj-kb{position:absolute;top:6px;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
+.mj-kb:focus-visible{width:auto;height:36px;clip:auto;padding:0 14px;border-radius:18px;background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:14px;outline:2px solid ${color.lilac500};outline-offset:2px;z-index:2}
+.mj-kb.prev{left:var(--pad)}.mj-kb.next{right:var(--pad)}
+.mj-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.mj-tapfx{position:absolute;top:0;bottom:0;width:34%;z-index:25;pointer-events:none;opacity:0}
+.mj-tapfx.l{left:0;background:linear-gradient(90deg,rgba(255,255,255,.35),rgba(255,255,255,0))}
+.mj-tapfx.r{right:0;background:linear-gradient(270deg,rgba(255,255,255,.35),rgba(255,255,255,0))}
+.mj-tapfx.go{animation:mjTap 360ms ${EASE} both}
+@keyframes mjTap{0%{opacity:1}100%{opacity:0}}
+.mj-taphint{position:absolute;left:var(--pad);right:var(--pad);top:calc(var(--bar) + 10px);z-index:26;display:flex;justify-content:space-between;gap:8px;pointer-events:none;animation:mjHint 4200ms ${EASE} 2800ms both}
+.mj-taphint span{padding:7px 12px;border-radius:14px;background:rgba(34,16,36,.82);color:${color.white};font-family:${font.uiMedium};font-size:13px;line-height:1.2}
+@keyframes mjHint{0%{opacity:0;transform:translate3d(0,-6px,0)}10%,80%{opacity:1;transform:none}100%{opacity:0}}
 
 /* chapter bar: sticky over the sections, fills with scroll; tap a chapter to go there */
 .mj-barwrap{position:sticky;top:0;height:0;z-index:30}
 .mj-bar{position:absolute;left:0;right:0;top:0;height:var(--bar);box-sizing:border-box;padding:8px var(--pad) 0;background:linear-gradient(180deg,rgba(253,250,247,.94),rgba(253,250,247,.78) 70%,rgba(253,250,247,0));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .mj-segs{display:flex;gap:4px}
-.mj-seg{flex:1 1 0;min-width:0;height:28px;padding:0;border:0;background:none;display:flex;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mj-seg{position:relative;z-index:1;flex:1 1 0;min-width:0;height:28px;padding:0;border:0;background:none;display:flex;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mj-seg i{display:block;position:relative;width:100%;height:4px;border-radius:2px;background:rgba(34,16,36,.14);overflow:hidden}
 .mj-seg i b{position:absolute;inset:0;border-radius:2px;background:${cssGradient(gradient.glowSoft)};transform-origin:left;transform:scaleX(0)}
 .mj-seg:focus-visible{outline:2px solid ${color.lilac500};outline-offset:2px;border-radius:4px}
@@ -27,7 +44,7 @@ export const MOBILE_CSS = `
 .mj-now small{font-family:${font.ui};font-size:12px;color:${color.muted};font-variant-numeric:tabular-nums}
 
 /* a full-screen section */
-.mj-s{position:relative;min-height:100svh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;padding:calc(var(--bar) + 8px) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom,0px));overflow:hidden;scroll-snap-align:start;scroll-snap-stop:always;isolation:isolate}
+.mj-s{position:relative;min-height:100svh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;padding:calc(var(--bar) + 8px) var(--pad) calc(var(--pad) + env(safe-area-inset-bottom,0px));overflow:hidden;isolation:isolate}
 .mj-bg{position:absolute;inset:0;z-index:-2;background:${color.tile}}
 .mj-bg canvas,.mj-bg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .mj-bg .mj-after-img{clip-path:inset(0 0 0 100%)}
@@ -82,9 +99,13 @@ export const MOBILE_CSS = `
 .mj-s.on .mj-toast.later{opacity:1;transform:none;transition-delay:1300ms}
 
 /* screenshots: one focused crop, tap to zoom */
-.mj-shot{position:relative;margin:0 0 12px;padding:0;border:1px solid ${color.lineSoft};border-radius:18px;background:${color.white};box-shadow:0 18px 44px rgba(42,20,38,.16);overflow:hidden;display:block;width:100%;text-align:left;cursor:zoom-in;font:inherit;color:inherit}
+.mj-shot{position:relative;margin:0 0 12px;padding:0;border:1px solid ${color.lineSoft};border-radius:18px;background:${color.white};box-shadow:0 18px 44px rgba(42,20,38,.16);overflow:hidden;display:block;width:100%;text-align:left;font:inherit;color:inherit}
 .mj-shot figcaption,.mj-shot .cap{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;font-family:${font.uiSemiBold};font-size:13px;line-height:1.3;color:${color.ink};border-bottom:1px solid ${color.lineSoft}}
-.mj-shot .cap em{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;font-style:normal;font-family:${font.uiMedium};font-size:12px;color:${color.lilac700}}
+.mj-shot .cap{padding:0 4px 0 12px;min-height:44px}
+.mj-zbtn2{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px;border:0;background:none;font-family:${font.uiSemiBold};font-size:13px;color:${color.lilac700};cursor:zoom-in}
+.mj-zbtn2 i{width:12px;height:12px;border:2px solid currentColor;border-radius:7px;position:relative}
+.mj-zbtn2 i::after{content:"";position:absolute;right:-5px;bottom:-5px;width:6px;height:2px;background:currentColor;transform:rotate(45deg)}
+.mj-zbtn2:focus-visible{outline:2px solid ${color.lilac500};outline-offset:-2px;border-radius:10px}
 .mj-shot .img{position:relative;display:block;max-height:var(--shot-h,40svh);overflow:hidden}
 .mj-shot .img img{display:block;width:100%;height:auto}
 .mj-shot .img::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(180deg,rgba(255,255,255,0),${color.white});pointer-events:none}
@@ -143,8 +164,7 @@ export const MOBILE_CSS = `
 
 /* perspectives: scroll-advanced full-screen chats (one snap = one step) */
 .mc-track{position:relative}
-.mc-mk{position:absolute;left:0;width:100%;height:100svh;scroll-snap-align:start;scroll-snap-stop:always;pointer-events:none}
-.mc-pin{position:sticky;top:0;height:100svh;display:flex;flex-direction:column;box-sizing:border-box;padding-top:var(--bar);overflow:hidden}
+.mc-pin{position:relative;height:100svh;display:flex;flex-direction:column;box-sizing:border-box;padding-top:var(--bar);overflow:hidden}
 .mc-client .mc-pin{background:${color.zaloChat}}
 .mc-ai .mc-pin{background:${color.canvas}}
 .mc-copy{position:relative;z-index:2;margin:6px var(--pad) 8px;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.96);box-shadow:0 10px 30px rgba(42,20,38,.12)}
@@ -173,7 +193,7 @@ export const MOBILE_CSS = `
 .mc-who b{display:block;font-family:${font.uiSemiBold};font-weight:400;font-size:16px;line-height:1.2}
 .mc-who small{display:block;font-family:${font.ui};font-size:12.5px;opacity:.85}
 .mc-plan{margin-left:6px;padding:1px 6px;border-radius:6px;background:${color.lilac100};color:${color.lilac700};font-style:normal;font-size:11px}
-.mc-log{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:12px 12px 8px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
+.mc-log{flex:1 1 auto;min-height:0;overflow:hidden;padding:12px 12px 8px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
 .mc-log::-webkit-scrollbar{display:none}
 .mc-day{align-self:center;padding:3px 10px;border-radius:10px;background:rgba(34,16,36,.1);font-family:${font.ui};font-size:12px;color:${color.ink2}}
 .mc-msg{display:flex;gap:8px;max-width:86%;animation:mcMsg 260ms ${EASE} both}
@@ -268,6 +288,7 @@ export const MOBILE_CSS = `
   .mj-edge{display:none}
   .mc-toast{opacity:1}
   .mc-hint{display:none}
+  .mj-taphint{opacity:1}
   .mj-zoom{transition:none}
 }
 }

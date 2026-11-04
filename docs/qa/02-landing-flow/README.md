@@ -199,6 +199,12 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - New tokens: `motion`, `danger*`, `zalo`, `paper*`, `sheet*`, `gradient.glowSoft` + `cssGradient`. Raw hex in the landing feature dropped from 108 on main to 48.
 - Insights and payroll figures go through `Intl` / `formatVND`. 99,000 VND comes from one constant via `{{price}}`. The Basic card CTA says "Bắt đầu miễn phí".
 
+## Round 4 (owner, 2026-11-04)
+
+- q101 = NO: the landing makes no onboarding-help promise anywhere (checked: none existed).
+- Demo month is realistically positive (`scripts/landing-demo-busier.mjs`, own capture DB only); the office laptop shows the real "Tháng này" card.
+- Mobile redesign: see `docs/qa/02-landing-mobile/README.md` and ADR-0014 "Mobile".
+
 ## vi copy: approved (owner's side, 2026-11-04)
 
 The vi copy below was reviewed and approved by the owner's side; the `i18n:vi-review` markers in earlier commit messages are resolved. For the record, the keys that changed:

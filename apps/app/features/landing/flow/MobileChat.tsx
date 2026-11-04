@@ -219,7 +219,7 @@ export function MobileChat({
             </div>
           ) : null}
         </div>
-        {live && step === 0 ? <div className="mc-hint">{t("flow.m.swipeOn")}</div> : null}
+        {live && step === 0 ? <div className="mc-hint">{t("flow.m.tapNext")}</div> : null}
         <div className="mc-input" aria-hidden>
           <span className="f">{t(`${ns}.input`)}</span>
           <span className="s">{SEND}</span>

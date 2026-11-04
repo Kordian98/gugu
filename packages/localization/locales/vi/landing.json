@@ -446,7 +446,7 @@
       "t": "Bớt khách không đến đáng giá bao nhiêu",
       "price": "Giá dịch vụ trung bình",
       "weekly": "Lịch hẹn mỗi tuần",
-      "out": "thu lại mỗi tháng",
+      "out": "giữ lại mỗi tháng (ước tính)",
       "year": "mỗi năm",
       "note": "Ước tính minh hoạ: giả định 10% khách không đến và giảm ~25% nhờ nhắc lịch (BMJ Open 2016). Số liệu của bạn sẽ khác.",
       "perWeek": "/ tuần"
@@ -486,7 +486,8 @@
       "shotPerson": "Từng người · hoa hồng theo dịch vụ"
     },
     "m": {
-      "swipeOn": "Vuốt lên để xem tiếp",
+      "tapNext": "Chạm bên phải để xem tiếp",
+      "tapBack": "Chạm bên trái để quay lại",
       "zoom": "Phóng to",
       "zoomHint": "Chụm hai ngón hoặc chạm hai lần để phóng to",
       "close": "Đóng",

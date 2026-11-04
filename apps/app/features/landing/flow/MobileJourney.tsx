@@ -79,7 +79,7 @@ const WALK_OF: Record<string, Segment> = { desk: "w1", treat: "w2", office: "w3"
 const scrollY = (sc: HTMLElement, top: number, smooth: boolean) => {
   // eslint-disable-next-line @typescript-eslint/unbound-method -- called with the node as `this`
   const domScrollTo = Element.prototype.scrollTo as (this: Element, o: ScrollToOptions) => void;
-  domScrollTo.call(sc, { top, behavior: smooth ? "smooth" : "auto" });
+  domScrollTo.call(sc, { top: Math.round(top), behavior: smooth ? "smooth" : "auto" });
 };
 /** Intro once per page load (also across a remount, e.g. a locale switch). */
 const played = new Set<Segment>();
@@ -128,27 +128,30 @@ function MShot({
   const src2x = Asset.fromModule(screen(locale, name2x)).uri;
   const { w, h: ph } = screenSize(locale, name);
   const srcSet = `${src2x} ${String(Math.round((w * 2) / 3))}w, ${src} ${String(w)}w`;
+  // In a story every tap on the picture turns the page; the zoom is its own button in the caption.
   return (
-    <button
-      type="button"
-      className="mj-shot mj-in"
-      style={h ? { ["--shot-h" as string]: h } : undefined}
-      aria-label={`${caption}. ${t("flow.m.zoom")}`}
-      onClick={(e) => {
-        openZoom(
-          src,
-          srcSet,
-          caption,
-          { close: t("flow.m.close"), hint: t("flow.m.zoomHint") },
-          e.currentTarget,
-          reduce,
-        );
-      }}
-    >
-      <span className="cap">
+    <figure className="mj-shot mj-in" style={h ? { ["--shot-h" as string]: h } : undefined}>
+      <figcaption className="cap">
         <span>{caption}</span>
-        <em aria-hidden>{t("flow.m.zoom")}</em>
-      </span>
+        <button
+          type="button"
+          className="mj-zbtn2"
+          aria-label={`${t("flow.m.zoom")}: ${caption}`}
+          onClick={(e) => {
+            openZoom(
+              src,
+              srcSet,
+              caption,
+              { close: t("flow.m.close"), hint: t("flow.m.zoomHint") },
+              e.currentTarget,
+              reduce,
+            );
+          }}
+        >
+          <i aria-hidden />
+          {t("flow.m.zoom")}
+        </button>
+      </figcaption>
       <span className="img">
         <img
           src={src}
@@ -156,7 +159,7 @@ function MShot({
           sizes="(orientation: landscape) 48vw, calc(100vw - 32px)"
           width={w}
           height={ph}
-          alt=""
+          alt={caption}
           decoding="async"
           loading="lazy"
         />
@@ -167,7 +170,7 @@ function MShot({
           </span>
         ) : null}
       </span>
-    </button>
+    </figure>
   );
 }
 
@@ -225,8 +228,11 @@ export function MobileJourney({
   const locale = useLocale();
   const root = useRef<HTMLDivElement>(null);
   const heroBlock = useRef<HTMLDivElement>(null);
-  const [unit, setUnit] = useState(-1);
+  const [page, setPage] = useState(0);
+  const [live, setLive] = useState(false);
   const goRef = useRef<(i: number) => void>(() => undefined);
+  const stepRef = useRef<(d: 1 | -1) => void>(() => undefined);
+  const startRef = useRef<() => void>(() => undefined);
 
   useLayoutEffect(() => {
     const el = root.current;
@@ -234,11 +240,18 @@ export function MobileJourney({
     if (!el) return;
     const sc = scrollParent(el);
     const scroller = sc instanceof HTMLElement ? sc : null;
-    const units = Array.from(el.querySelectorAll<HTMLElement>(".mj-u"));
+    const track = el.querySelector<HTMLElement>(".mj-track");
+    // page → its element (a chat is one element for all of its steps)
+    const els: HTMLElement[] = [];
+    el.querySelectorAll<HTMLElement>(".mj-u").forEach((u) => {
+      const n = Number(u.dataset["n"] ?? "1");
+      for (let k = 0; k < n; k++) els.push(u);
+    });
     const fills = Array.from(el.querySelectorAll<HTMLElement>(".mj-seg b"));
     const nowName = el.querySelector<HTMLElement>(".mj-now span");
     const nowCount = el.querySelector<HTMLElement>(".mj-now small");
     const segs = Array.from(el.querySelectorAll<HTMLButtonElement>(".mj-seg"));
+    const sr = el.querySelector<HTMLElement>(".mj-sr");
 
     // Hero door: the arch shows the first walk frame (same as the stage at time 0 on desktop).
     const syncHero = () => {
@@ -269,14 +282,12 @@ export function MobileJourney({
     };
     syncHero();
 
-    // One walk player per walk section (each loads only its own walk).
+    // One walk player per walk page (each loads only its own walk).
     const players = new Map<Segment, WalkPlayer>();
     el.querySelectorAll<HTMLCanvasElement>("canvas[data-walk]").forEach((cv) => {
       const seg = cv.dataset["walk"] as Segment;
       // landscape phones get the landscape frames (portrait ones would be upscaled)
       const p = new WalkPlayer(cv, false, window.matchMedia("(orientation: portrait)").matches);
-      p.resize();
-      p.set(seg, played.has(seg) || reduce ? 1 : 0);
       players.set(seg, p);
     });
     const load = (seg: Segment) => {
@@ -284,23 +295,13 @@ export function MobileJourney({
     };
     load("w1");
 
-    // Snap points in scroller coordinates (hero + every unit), refreshed on resize.
-    let tops: number[] = [];
-    let heroTop = 0;
-    const measure = () => {
-      if (!scroller) return;
-      const base = scroller.getBoundingClientRect().top - scroller.scrollTop;
-      heroTop = (hb?.getBoundingClientRect().top ?? 0) - base;
-      tops = units.map((u) => u.getBoundingClientRect().top - base);
-    };
-    measure();
-    const chapterOf = (i: number): Ch => (units[i]?.dataset["ch"] ?? "c1") as Ch;
+    const chapterOf = (i: number): Ch => (els[i]?.dataset["ch"] ?? "c1") as Ch;
     const ranges = CHAPTERS.map((c) => {
-      const idx = units.map((u, i) => (u.dataset["ch"] === c.k ? i : -1)).filter((i) => i >= 0);
+      const idx = els.map((u, i) => (u.dataset["ch"] === c.k ? i : -1)).filter((i) => i >= 0);
       return [idx[0] ?? 0, idx[idx.length - 1] ?? 0] as const;
     });
 
-    // Walk playback when a walk section is reached (the front desk's walk-in is the intro).
+    // Walk playback when a walk page is shown (the front desk's walk-in is the intro, once).
     let walkRaf = 0;
     let walking: { seg: Segment; sec: HTMLElement } | null = null;
     const endWalk = () => {
@@ -315,6 +316,7 @@ export function MobileJourney({
     };
     const playWalk = (seg: Segment, sec: HTMLElement) => {
       const p = players.get(seg);
+      p?.resize();
       if (!p || played.has(seg) || reduce) {
         p?.set(seg, 1);
         played.add(seg);
@@ -322,7 +324,7 @@ export function MobileJourney({
         if (seg === "w1") hb?.classList.add("done");
         return;
       }
-      endWalk();
+      p.set(seg, 0);
       walking = { seg, sec };
       sec.classList.add("walking");
       let t0 = 0;
@@ -345,134 +347,185 @@ export function MobileJourney({
       ready();
     };
 
-    // The unit crossing the middle of the screen is the current one.
+    const vh = () => scroller?.clientHeight ?? window.innerHeight;
+    const trackTop = () =>
+      scroller && track
+        ? track.getBoundingClientRect().top -
+          scroller.getBoundingClientRect().top +
+          scroller.scrollTop
+        : 0;
+    // Show page i (Instagram stories): only that page is in the layout; a long page simply scrolls.
     let cur = -1;
-    const enter = (i: number) => {
-      if (i === cur) return;
-      if (walking && units[cur] === walking.sec) endWalk();
-      cur = i;
-      setUnit(i);
-      const u = units[i];
+    let shown = false;
+    const show = (i: number, fromTap: boolean) => {
+      const n = Math.max(0, Math.min(els.length - 1, i));
+      const prevEl = els[cur];
+      const u = els[n];
       if (!u) return;
-      const sec = u.dataset["sec"] ?? "";
-      const seg = WALK_OF[sec];
-      if (seg) playWalk(seg, u);
-      else u.classList.add("on");
-      // preload the next walk one section early
-      if (i >= 0) load("w2");
-      if (i >= 2) load("w3");
-      const ch = chapterOf(i);
-      const ci = CHAPTERS.findIndex((c) => c.k === ch);
+      if (walking && prevEl === walking.sec && prevEl !== u) endWalk();
+      if (prevEl && prevEl !== u) {
+        prevEl.classList.remove("cur", "on");
+      }
+      cur = n;
+      setPage(n);
+      u.classList.add("cur");
+      // a new page starts at its top (only if the visitor had scrolled inside the previous one)
+      if (fromTap && scroller) {
+        const top = trackTop();
+        if (Math.abs(scroller.scrollTop - top) > 2 && scroller.scrollTop > top - vh() * 0.5)
+          scrollY(scroller, top, false);
+      }
+      const seg = WALK_OF[u.dataset["sec"] ?? ""];
+      if (seg && shown) playWalk(seg, u);
+      else if (shown)
+        requestAnimationFrame(() => {
+          u.classList.add("on");
+        });
+      // preload the next walks a page or two early
+      if (n >= 0) load("w2");
+      if (n >= 2) load("w3");
+      const ci = CHAPTERS.findIndex((c) => c.k === chapterOf(n));
       segs.forEach((b, k) => {
         b.setAttribute("aria-current", k === ci ? "step" : "false");
       });
-      if (nowName) nowName.textContent = t(CHAPTERS[ci]?.label ?? "flow.hud.c1");
-      if (nowCount) nowCount.textContent = t("flow.hud.page", { n: i + 1, total: UNITS });
-    };
-    const io = new IntersectionObserver(
-      (es) => {
-        es.forEach((e) => {
-          if (e.isIntersecting) enter(units.indexOf(e.target as HTMLElement));
-        });
-      },
-      { root: scroller, rootMargin: "-50% 0px -50% 0px" },
-    );
-    units.forEach((u) => {
-      io.observe(u);
-    });
-
-    // Chapter bar fill (continuous with scroll) + settle onto the nearest section after a fling that
-    // stopped between two (proximity snapping; never while the visitor reads a tall section or is below
-    // the story).
-    let raf = 0;
-    let idle = 0;
-    let touching = false;
-    const vh = () => scroller?.clientHeight ?? window.innerHeight;
-    const paint = () => {
-      raf = 0;
-      if (!scroller) return;
-      const y = scroller.scrollTop;
       ranges.forEach(([a, b], k) => {
         const f = fills[k];
-        if (!f) return;
-        const s0 = tops[a] ?? 0;
-        const s1 = tops[b] ?? 0;
-        const v = s1 > s0 ? (y - s0 + vh() * 0.5) / (s1 - s0 + vh()) : y >= s0 - vh() * 0.5 ? 1 : 0;
-        f.style.transform = `scaleX(${Math.max(0, Math.min(1, v)).toFixed(3)})`;
+        if (f)
+          f.style.transform = `scaleX(${(n > b ? 1 : n < a ? 0 : (n - a + 1) / (b - a + 1)).toFixed(3)})`;
       });
+      if (nowName) nowName.textContent = t(CHAPTERS[ci]?.label ?? "flow.hud.c1");
+      if (nowCount) nowCount.textContent = t("flow.hud.page", { n: n + 1, total: UNITS });
+      if (sr && fromTap)
+        sr.textContent = t("flow.hud.pageSr", {
+          n: n + 1,
+          total: UNITS,
+          chapter: t(CHAPTERS[ci]?.label ?? "flow.hud.c1"),
+        });
     };
-    const settle = () => {
-      if (!scroller || touching) return;
-      const y = scroller.scrollTop;
-      const h = vh();
-      const points = [heroTop, ...tops];
-      const last = tops[tops.length - 1] ?? 0;
-      if (y < heroTop - 2 || y > last + 2) return;
-      // inside a tall section (landscape / small phones): free reading
-      const i = points.findIndex((p, k) => y >= p && y < (points[k + 1] ?? Infinity));
-      const top = points[i] ?? 0;
-      const next = points[i + 1] ?? top + h;
-      if (next - top > h + 4 && y + h <= next + 2) return;
-      const target = y - top < (next - top) / 2 ? top : next;
-      if (Math.abs(target - y) > 3) scrollY(scroller, target, !reduce);
+    show(0, false);
+
+    // The story becomes "live" (intro, typing) once it is on screen.
+    const io = new IntersectionObserver(
+      (es) => {
+        const vis = es.some((e) => e.isIntersecting);
+        setLive(vis);
+        if (vis && !shown) {
+          shown = true;
+          show(cur, false);
+        }
+      },
+      { root: scroller, threshold: 0.55 },
+    );
+    if (track) io.observe(track);
+
+    // Next / back. Past the last page the story ends: scroll on to the free-year band; before the first,
+    // back up to the hero.
+    const step = (d: 1 | -1) => {
+      shown = true;
+      if (d > 0 && cur >= els.length - 1) {
+        const f = document.getElementById("fl-free");
+        if (scroller && f)
+          scrollY(
+            scroller,
+            f.getBoundingClientRect().top -
+              scroller.getBoundingClientRect().top +
+              scroller.scrollTop,
+            !reduce,
+          );
+        return;
+      }
+      if (d < 0 && cur <= 0) {
+        if (scroller) scrollY(scroller, 0, !reduce);
+        return;
+      }
+      show(cur + d, true);
     };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(paint);
-      window.clearTimeout(idle);
-      idle = window.setTimeout(settle, 160);
+    stepRef.current = step;
+    // Tap zones: left third = back, the rest = next (as Instagram stories). Controls inside the page
+    // (buttons, sliders, screenshots, links) keep their own taps; a scroll never counts as a tap.
+    const INTERACTIVE = "button,a,input,label,select,textarea,.calc,[data-notap]";
+    const fx = el.querySelector<HTMLElement>(".mj-tapfx");
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target || target.closest(INTERACTIVE)) return;
+      const back = e.clientX < window.innerWidth / 3;
+      if (fx && !reduce) {
+        fx.className = `mj-tapfx ${back ? "l" : "r"}`;
+        fx.getBoundingClientRect(); // restart the flash animation
+        fx.classList.add("go");
+      }
+      step(back ? -1 : 1);
     };
-    const onTs = () => {
-      touching = true;
+    // a clear horizontal swipe also turns the page (← next, → back)
+    let sx = 0;
+    let sy = 0;
+    const onTs = (e: TouchEvent) => {
+      sx = e.touches[0]?.clientX ?? 0;
+      sy = e.touches[0]?.clientY ?? 0;
     };
-    const onTe = () => {
-      touching = false;
-      window.clearTimeout(idle);
-      idle = window.setTimeout(settle, 220);
+    const onTe = (e: TouchEvent) => {
+      const t0 = e.changedTouches[0];
+      if (!t0) return;
+      const dx = t0.clientX - sx;
+      const dy = t0.clientY - sy;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input,.mj-zoom")) return;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6) step(dx < 0 ? 1 : -1);
     };
-    const prevSnap = scroller?.style.scrollSnapType ?? "";
-    if (scroller) {
-      scroller.style.scrollSnapType = "y proximity";
-      scroller.addEventListener("scroll", onScroll, { passive: true });
-      scroller.addEventListener("touchstart", onTs, { passive: true });
-      scroller.addEventListener("touchend", onTe, { passive: true });
-      scroller.addEventListener("touchcancel", onTe, { passive: true });
-    }
+    // ← / → while the story is on screen
+    const onKey = (e: KeyboardEvent) => {
+      const tg = e.target as HTMLElement | null;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(tg?.tagName ?? "") || e.altKey || e.metaKey || e.ctrlKey)
+        return;
+      if (!track) return;
+      const r = track.getBoundingClientRect();
+      if (r.bottom < vh() * 0.4 || r.top > vh() * 0.6) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        step(1);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        step(-1);
+      }
+    };
+    track?.addEventListener("click", onClick);
+    track?.addEventListener("touchstart", onTs, { passive: true });
+    track?.addEventListener("touchend", onTe, { passive: true });
+    window.addEventListener("keydown", onKey);
+
     const onResize = () => {
       syncHero();
       players.forEach((p) => {
         p.resize();
       });
-      measure();
-      paint();
     };
     window.addEventListener("resize", onResize);
     void document.fonts.ready.then(onResize);
-    paint();
 
     goRef.current = (i: number) => {
-      if (!scroller) return;
-      measure();
-      scrollY(scroller, tops[i] ?? 0, !reduce);
+      shown = true;
+      show(i, true);
+      if (scroller) scrollY(scroller, trackTop(), false);
+    };
+    startRef.current = () => {
+      if (scroller) scrollY(scroller, trackTop(), !reduce);
     };
     if (__DEV__)
       (window as unknown as { __mj?: unknown }).__mj = {
         go: goRef.current,
-        units: () => units.length,
+        step,
+        page: () => cur,
+        units: () => els.length,
       };
 
     return () => {
       io.disconnect();
       endWalk();
-      cancelAnimationFrame(raf);
-      window.clearTimeout(idle);
+      track?.removeEventListener("click", onClick);
+      track?.removeEventListener("touchstart", onTs);
+      track?.removeEventListener("touchend", onTe);
+      window.removeEventListener("keydown", onKey);
       window.removeEventListener("resize", onResize);
-      if (scroller) {
-        scroller.style.scrollSnapType = prevSnap;
-        scroller.removeEventListener("scroll", onScroll);
-        scroller.removeEventListener("touchstart", onTs);
-        scroller.removeEventListener("touchend", onTe);
-        scroller.removeEventListener("touchcancel", onTe);
-      }
       players.forEach((p) => {
         p.destroy();
       });
@@ -482,9 +535,12 @@ export function MobileJourney({
   const go = (i: number) => {
     goRef.current(i);
   };
+  const stepBy = (d: 1 | -1) => {
+    stepRef.current(d);
+  };
   const sh = (k: string) => t(k);
-  const clientStep = Math.max(0, Math.min(CLIENT_STEPS.length - 1, unit - CLIENT0));
-  const aiStep = Math.max(0, Math.min(AI_STEPS.length - 1, unit - AI0));
+  const clientStep = Math.max(0, Math.min(CLIENT_STEPS.length - 1, page - CLIENT0));
+  const aiStep = Math.max(0, Math.min(AI_STEPS.length - 1, page - AI0));
   // the handwritten price list, first lines, dots squeezed for the narrow note
   const swList = t("flow.switch.list")
     .split("\n")
@@ -500,7 +556,7 @@ export function MobileJourney({
         width={width}
         heroRef={heroBlock}
         onStart={() => {
-          go(0);
+          startRef.current();
         }}
       />
       <div className="mj-track">
@@ -529,8 +585,35 @@ export function MobileJourney({
               <span>{t("flow.hud.c1")}</span>
               <small>{t("flow.hud.page", { n: 1, total: UNITS })}</small>
             </div>
+            {/* keyboard / screen reader: the tap zones as real buttons (visible on focus) */}
+            <button
+              type="button"
+              className="mj-kb prev"
+              onClick={() => {
+                stepBy(-1);
+              }}
+            >
+              {t("flow.hud.prev")}
+            </button>
+            <button
+              type="button"
+              className="mj-kb next"
+              onClick={() => {
+                stepBy(1);
+              }}
+            >
+              {t("flow.hud.next")}
+            </button>
+            <span className="mj-sr" aria-live="polite" />
           </nav>
         </div>
+        <span className="mj-tapfx" aria-hidden />
+        {page === 0 && !played.has("w1") ? (
+          <div className="mj-taphint" aria-hidden>
+            <span>{t("flow.m.tapBack")}</span>
+            <span>{t("flow.m.tapNext")}</span>
+          </div>
+        ) : null}
 
         {/* 1 · front desk, before (the walk-in plays here once: the intro) */}
         <section className="mj-s mj-u" data-ch="c1" data-sec="desk" aria-labelledby="mj-h-desk">
@@ -579,7 +662,7 @@ export function MobileJourney({
               type="button"
               className="mj-go"
               onClick={() => {
-                go(1);
+                stepBy(1);
               }}
             >
               {t("flow.hud.after")}
@@ -885,24 +968,17 @@ export function MobileJourney({
 
         {/* 13 · the client's perspective (Zalo chat, one snap per step) */}
         <section
-          className="mc-track mc-client"
-          style={{ height: `${String(CLIENT_STEPS.length * 100)}svh` }}
+          className="mc-track mc-client mj-u"
+          data-ch="client"
+          data-n={CLIENT_STEPS.length}
+          aria-labelledby="mj-h-client"
         >
-          {CLIENT_STEPS.map((s, i) => (
-            <span
-              key={s.k}
-              className="mc-mk mj-u"
-              data-ch="client"
-              style={{ top: `${String(i * 100)}svh` }}
-              aria-hidden
-            />
-          ))}
           <MobileChat
             ns="views.client"
             kind="client"
             steps={CLIENT_STEPS}
             step={clientStep}
-            live={unit >= CLIENT0 && unit < AI0}
+            live={live && page >= CLIENT0 && page < AI0}
             reduce={reduce}
             chapterId="mj-h-client"
           />
@@ -910,24 +986,17 @@ export function MobileJourney({
 
         {/* 14 · the AI assistant (Pro) */}
         <section
-          className="mc-track mc-ai"
-          style={{ height: `${String(AI_STEPS.length * 100)}svh` }}
+          className="mc-track mc-ai mj-u"
+          data-ch="ai"
+          data-n={AI_STEPS.length}
+          aria-labelledby="mj-h-ai"
         >
-          {AI_STEPS.map((s, i) => (
-            <span
-              key={s.k}
-              className="mc-mk mj-u"
-              data-ch="ai"
-              style={{ top: `${String(i * 100)}svh` }}
-              aria-hidden
-            />
-          ))}
           <MobileChat
             ns="views.ai"
             kind="ai"
             steps={AI_STEPS}
             step={aiStep}
-            live={unit >= AI0}
+            live={live && page >= AI0}
             reduce={reduce}
             viz={(k) => <AiViz k={k} />}
             chapterId="mj-h-ai"

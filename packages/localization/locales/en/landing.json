@@ -446,7 +446,7 @@
       "t": "What fewer no-shows are worth",
       "price": "Average service price",
       "weekly": "Bookings per week",
-      "out": "back per month",
+      "out": "kept per month (estimate)",
       "year": "per year",
       "note": "Illustrative estimate: assumes 10% no-shows and ~25% fewer with reminders (BMJ Open 2016). Your numbers will differ.",
       "perWeek": "/ week"
@@ -486,7 +486,8 @@
       "shotPerson": "Per person · commission by service"
     },
     "m": {
-      "swipeOn": "Swipe up for the next step",
+      "tapNext": "Tap right for next",
+      "tapBack": "Tap left to go back",
       "zoom": "Zoom",
       "zoomHint": "Pinch or double-tap to zoom",
       "close": "Close",

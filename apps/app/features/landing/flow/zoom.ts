@@ -93,7 +93,11 @@ export function openZoom(
   let moved = false;
   const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
   const onDown = (e: PointerEvent) => {
-    stage.setPointerCapture(e.pointerId);
+    try {
+      stage.setPointerCapture(e.pointerId);
+    } catch {
+      // pointer already gone (or synthetic): track it without capture
+    }
     pts.push({ id: e.pointerId, x: e.clientX, y: e.clientY });
     moved = false;
     if (pts.length === 2 && pts[0] && pts[1]) {

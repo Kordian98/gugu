@@ -43,7 +43,8 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 - **Perspectives:** `Perspectives.tsx` + `ChatStory.tsx`: client (Zalo OA booking) and AI assistant (Pro) as scripted stepped chats in the same stage, switched by tabs, the hero plaque and the last salon page.
 - **After the story:** `FreeYear` band (X25: Basic free for the first year, then 99,000 VND/month), where Finish and Skip land.
 - **Stage height** = scroller `clientHeight` via `--sv` (no vh/svh/dvh mismatch inside the RN Web ScrollView).
-- **QA and metrics:** `docs/qa/02-landing-flow/README.md`.
+- **Phones (≤ 899 px):** `MobileJourney.tsx` + `MobileChat.tsx` + `mobile.css.ts` + `zoom.ts`: Instagram-style stories (tap right / left, free vertical scroll), sticky chapter bar, chats stepped by tap, phone crops with a Zoom viewer (`m-*` in `screens.ts`). Desktop never renders or receives it (ADR 0014 "Mobile").
+- **QA and metrics:** `docs/qa/02-landing-flow/README.md`, `docs/qa/02-landing-mobile/README.md`.
 
 **Tokens added (02-LANDING-FLOW):** `motion` (fast 120 · base 200 · slow 320 · deliberate 500 ms, ease out/inOut), `color.danger`/`dangerInk`/`dangerTint`, `zalo`, `paper`/`paperLine`, `sheet`/`sheetLine`, `gradient.glowSoft` + `cssGradient()`.
 
