@@ -559,6 +559,18 @@
       "note": "Số ước tính trước thuế và bảo hiểm.",
       "shot": "Bảng lương tháng · tải CSV / Excel, chốt tháng",
       "shotPerson": "Từng người · hoa hồng theo dịch vụ"
+    },
+    "m": {
+      "swipeOn": "Vuốt lên để xem tiếp",
+      "zoom": "Phóng to",
+      "zoomHint": "Chụm hai ngón hoặc chạm hai lần để phóng to",
+      "close": "Đóng",
+      "fold": "Thu gọn",
+      "unfold": "Mở rộng",
+      "monthShot": "Tổng quan · Tháng này",
+      "monthH": "Tháng này lãi bao nhiêu, nhìn là biết.",
+      "swTitle": "Chuyển sang GuGu Studio trong vài phút.",
+      "monthB": "Đã có, sắp tới từ lịch hẹn và lãi ước tính sau lương và chi phí, tự cập nhật theo từng lịch hẹn."
     }
   },
   "roi": {

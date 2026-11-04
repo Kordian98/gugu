@@ -28,8 +28,14 @@ export class WalkPlayer {
   private ctx: CanvasRenderingContext2D | null;
   readonly mobile: boolean;
 
-  constructor(private canvas: HTMLCanvasElement) {
-    this.mobile = window.matchMedia("(max-width: 899px)").matches;
+  /** `chain`: when a walk is complete, preload the next one (desktop: one player for all walks). */
+  constructor(
+    private canvas: HTMLCanvasElement,
+    private chain = true,
+    /** portrait (phone) frames; default: the ≤ 899 px breakpoint */
+    mobile?: boolean,
+  ) {
+    this.mobile = mobile ?? window.matchMedia("(max-width: 899px)").matches;
     this.ctx = canvas.getContext("2d", { alpha: false });
     for (const s of SEGMENTS)
       this.tracks.set(s, { imgs: Array.from({ length: FRAMES }, () => null), started: false });
@@ -49,7 +55,7 @@ export class WalkPlayer {
       done += 1;
       // When a walk is complete, preload the next one in the background, so a fast flick or a chapter
       // jump never lands on an empty walk.
-      if (done === FRAMES) {
+      if (done === FRAMES && this.chain) {
         const nextSeg = SEGMENTS[SEGMENTS.indexOf(seg) + 1];
         if (nextSeg) this.load(nextSeg);
       }

@@ -101,6 +101,26 @@ const SHOTS = (t) => [
     clickAt: [1380, 525],
   },
   { name: "zalo", route: "business/zalo" },
+  // Phone crops for the mobile landing (ADR-0014 mobile): the app at a phone / small-tablet viewport
+  // (`vp`, CSS px), so the crop is shown at about 1:1 on a phone; never a shrunken desktop screen.
+  { name: "m-month", route: "business", vp: [390, 1000], card: t.profit.card.title },
+  // x from `region`, y from the top of the first label's card to the bottom of the second's (vi/en wrap)
+  {
+    name: "m-insights",
+    route: "business/insights",
+    vp: [390, 900],
+    region: [10, 0, 370, 0],
+    span: [t.insights.metrics.appointments_count, t.insights.metrics.no_show_rate],
+  },
+  { name: "m-payroll", route: "business/payroll", vp: [390, 900], region: [10, 220, 370, 598] },
+  {
+    name: "m-appointments",
+    route: "business/appointments",
+    vp: [390, 900],
+    region: [10, 120, 370, 420],
+  },
+  { name: "m-calendar", route: "business/calendar", vp: [768, 900], region: [128, 126, 316, 440] },
+  { name: "m-services", route: "business/services", vp: [600, 900], region: [10, 296, 404, 300] },
 ];
 
 function run(cmd, args, cwd = root) {
@@ -207,10 +227,25 @@ for (const loc of ["vi", "en"]) {
     storageState: await ctx.storageState(),
   });
   const cropPage = await crops.newPage();
+  /** One context per phone viewport (`vp` shots), at CROP_DPR. */
+  const vpPages = new Map();
+  const vpPage = async ([vw, vh]) => {
+    const key = `${String(vw)}x${String(vh)}`;
+    if (!vpPages.has(key)) {
+      const c = await browser.newContext({
+        viewport: { width: vw, height: vh },
+        deviceScaleFactor: CROP_DPR,
+        colorScheme: "light",
+        storageState: await ctx.storageState(),
+      });
+      vpPages.set(key, { c, p: await c.newPage() });
+    }
+    return vpPages.get(key).p;
+  };
   for (const s0 of SHOTS(t)) {
     if (only.length && !only.includes(s0.name)) continue;
     const s = s0;
-    const pg = s.region ? cropPage : page;
+    const pg = s.vp ? await vpPage(s.vp) : s.region ? cropPage : page;
     // Metro can answer 500 (SSR "Server Error") while it rebuilds: retry a few times.
     for (let attempt = 0; ; attempt++) {
       const resp = await pg.goto(`${web}/${loc}/${s.route}`, { waitUntil: "load" });
@@ -302,6 +337,12 @@ for (const loc of ["vi", "en"]) {
           };
       }
       clip = { x: clip.x - 8, y: clip.y - 8, width: clip.width + 16, height: clip.height + 16 };
+    } else if (s.span) {
+      const a = await cardOf(pg, s.span[0], 80);
+      const b = await cardOf(pg, s.span[1], 80);
+      if (!a || !b) throw new Error(`label not found: ${loc} ${s.name} ${s.span.join(" / ")}`);
+      const [x, , w] = s.region;
+      clip = { x, y: a.y - 8, width: w, height: b.y + b.height + 8 - (a.y - 8) };
     } else if (s.region) {
       const [x, y, w, h] = s.region;
       clip = { x, y, width: w, height: h };
@@ -314,7 +355,7 @@ for (const loc of ["vi", "en"]) {
     const w = buf.readUInt32BE(16);
     const h = buf.readUInt32BE(20);
     const scale = clip ? 1 : 2400 / w;
-    if (s.region) {
+    if (s.region || s.vp) {
       // srcset companion at 2× (2/3 of the 3× pixels) for retina desktops and smaller downloads.
       execFileSync("cwebp", [
         "-quiet",
@@ -349,6 +390,7 @@ for (const loc of ["vi", "en"]) {
   }
   await page.close();
   await crops.close();
+  for (const { c } of vpPages.values()) await c.close();
 }
 await browser.close();
 writeFileSync(`${manifestPath}.tmp`, JSON.stringify(manifest, null, 2) + "\n");
