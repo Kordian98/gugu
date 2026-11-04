@@ -205,9 +205,92 @@ meant to show dark parts of the photo. The per-line measurement above replaces i
 | Desktop diff against the original reference | 6 of 192 images differ, each by 0–3 px, all in the Next button (noise) |
 | `pnpm verify` | green |
 
+## Owner iPhone round 2 (2026-11-05)
+
+### 1. Scroll down from the hero plays the intro, as on desktop
+
+- A scroll or swipe down at the hero of at least 10 % of the screen, or Start, commits to the whole
+  intro, once per visit:
+  1. the hero copy and plaque step aside (200 ms);
+  2. the page jumps to the identical door window on page 1 (same frame, same place on screen);
+  3. the doors grow to the full screen (`motion.story.doors`, 1.2 s, ease-out cubic, clip-path only);
+  4. the walk-in plays (2.6 s);
+  5. Front desk page 1 appears.
+- While it plays, scrolling is locked: `overflow: hidden` on the scroller, which also stops iOS
+  momentum, plus non-passive `touchmove` and `wheel` handlers. Taps, swipes, keys and bar taps are
+  ignored.
+- Below the threshold nothing happens. Scrolling back up shows the static hero, and the intro never
+  replays.
+- Reduced motion goes straight to page 1.
+- A test (`intro.mjs`) covers Chromium mobile with real CDP touch scroll gestures and Playwright WebKit
+  with the wheel, at 360 / 390 / 430 in vi and en. It checks that:
+  - a 4 % swipe does nothing;
+  - a 14 % swipe docks the story (track top 0) with the doors clip running;
+  - a further 80 % swipe and a tap during the intro are ignored;
+  - page 1 is on after the walk;
+  - a second swipe at the hero just scrolls;
+  - Start does the same (also with reduced motion).
+  Result: **12 / 12 configs pass**. Images: `intro/chromium-*`.
+- **iOS Simulator Safari** (iPhone 17 Pro, iOS 26), `intro/ios-*`: doors → full frame → walk-in →
+  page 1 with the glass and the new bar. Synthetic touch can't be sent to the Simulator from this
+  session: it can't be brought to the front, and posting mouse events could land in other apps. The
+  run therefore uses the dev hook `?mjqa=swipe`, a smooth 15 % scroll from the hero. That fires the same
+  `scroll` trigger a finger swipe does in Safari.
+
+### 2. Panels never fold
+
+The chevron, the folding state and its styles are gone. `flow.m.fold` and `flow.m.unfold` are removed
+from vi and en.
+
+### 3. Only pages that show the product working
+
+Final phone list, 19 pages:
+
+| # | Group | Page |
+|---|---|---|
+| 1 | Demo | Front desk, before (walk 1 is the intro) |
+| 2 | Demo | Front desk, after (full-screen wipe) |
+| 3 | Demo | Treatment room · "0 double bookings" + calendar crop (walk 2 plays into it) |
+| 4 | Demo | Treatment room · "1 list" + appointments crop |
+| 5 | Demo | Treatment room · "≈ 10 minutes" + services crop |
+| 6 | Demo | Office · "Tháng này" overview card (walk 3 plays into it) |
+| 7 | Demo | Earnings estimate (sliders) |
+| 8 | Demo | Insights + crop |
+| 9 | Demo | Payroll + crop |
+| 10 | Demo | Switching (animated AI setup) |
+| 11–15 | Khách hàng | Client's Zalo chat, 5 steps |
+| 16–19 | Trợ lý AI | AI assistant chat, 4 steps |
+
+Removed on phones: "Mọi ghế, mọi giờ, trong một lịch" (treatment room summary) and "Cả salon trong một
+màn hình" (office summary). Their walks now play into the first real page of each room.
+
+### 4. Instagram-style story bar
+
+- There is one 3 px segment per page (19). Seen pages and the current page are filled; the rest are
+  empty.
+- The segments sit in three labelled groups with a 10 px gap: "Demo" (10), "Khách hàng" (5) and
+  "Trợ lý AI" (4). The English labels are "Demo", "Your clients" and "AI assistant".
+- Each group is one 44 px button (label plus segments) that opens the group's first page. The current
+  group's label is semibold, and every label is ink.
+- The bar keeps the chip glass and still hides when less than 30 % of the story is in view.
+- Test results (`intro.mjs`): 3 groups and 19 segments; each group is 44 px tall; a tap on "Trợ lý AI"
+  opens page 16 and a tap on the first segment of "Khách hàng" opens page 11; after that tap the
+  segments read 11 filled, then 8 empty. Images: `intro/bar-*`.
+
+### Re-check after round 2
+
+| Check | Result |
+|---|---|
+| Contrast, every text line (19 pages × 360 / 390 / 430 × vi / en) | Chromium: 2,984 lines, 0 below AA, text on see-through glass ≥ 7.07:1. WebKit: 2,985 lines, 0 below AA, ≥ 6.29:1. |
+| Chrome hide/show, chats (no caption, hidden step text, tap advances), switching tap and replay, overflow | pass in all 12 configs |
+| Intro and bar (`intro.mjs`) | 12 / 12 pass |
+| Regression suite (`mfix.mjs`) | 12 / 12 pass |
+| Desktop diff against the original reference | 6 of 192 images differ, each by 0–3 px, all in the Next button (noise) |
+
 ## Dev-only QA hooks
 
-`?mj=<page>` opens a story page, and `?mjqa=notext,noglass` strips text or glass. Both work only in
+`?mj=<page>` opens a story page, `?mjqa=notext,noglass` strips text or glass, and `?mjqa=swipe`
+scrolls 15 % down from the hero, which triggers the intro the way a swipe would. They work only in
 `__DEV__`. They exist so the iOS Simulator, where no script can drive Safari, can verify the blur.
 
 ## Images

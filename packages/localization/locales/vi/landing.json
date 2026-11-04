@@ -561,12 +561,11 @@
       "zoom": "Phóng to",
       "zoomHint": "Chụm hai ngón hoặc chạm hai lần để phóng to",
       "close": "Đóng",
-      "fold": "Thu gọn",
-      "unfold": "Mở rộng",
       "monthShot": "Tổng quan · Tháng này",
       "monthH": "Tháng này lãi bao nhiêu, nhìn là biết.",
       "swTitle": "Chuyển sang GuGu Studio trong vài phút.",
-      "monthB": "Đã có, sắp tới từ lịch hẹn và lãi ước tính sau lương và chi phí, tự cập nhật theo từng lịch hẹn."
+      "monthB": "Đã có, sắp tới từ lịch hẹn và lãi ước tính sau lương và chi phí, tự cập nhật theo từng lịch hẹn.",
+      "demo": "Demo"
     },
     "cases": {
       "eyebrow": "Ví dụ salon",

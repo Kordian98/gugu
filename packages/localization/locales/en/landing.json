@@ -561,12 +561,11 @@
       "zoom": "Zoom",
       "zoomHint": "Pinch or double-tap to zoom",
       "close": "Close",
-      "fold": "Collapse",
-      "unfold": "Expand",
       "monthShot": "Overview · This month",
       "monthH": "This month's profit, at a glance.",
       "swTitle": "Switch to GuGu Studio in minutes.",
-      "monthB": "Earned so far, upcoming from bookings and the estimated profit after pay and costs, updated with every booking."
+      "monthB": "Earned so far, upcoming from bookings and the estimated profit after pay and costs, updated with every booking.",
+      "demo": "Demo"
     },
     "cases": {
       "eyebrow": "Salon examples",

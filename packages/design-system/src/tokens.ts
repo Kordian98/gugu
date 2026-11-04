@@ -84,10 +84,12 @@ export const motion = {
   spring: { pop: { friction: 5, tension: 160 } },
   /**
    * Expressive landing story (phones): page fade, before/after wipe, walk-in, first-view hint, and the
-   * switching page's AI setup (price-list scan sweep, then one services row every `row`) (ms).
+   * switching page's AI setup (price-list scan sweep, then one services row every `row`), and the
+   * phone intro's doors (the hero's arched window grows to the full screen before the walk-in) (ms).
    */
   story: {
     page: 240,
+    doors: 1200,
     toast: 2600,
     wipe: 1100,
     walk: 2600,

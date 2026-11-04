@@ -109,14 +109,25 @@ the feel of Instagram stories, which is what ships:
 - Only the current page is in the layout (`.mj-u.cur`), so the story is one screen in the page flow,
   between the hero and the free-year band. Next on the last page scrolls on to the free-year band; back on
   the first page scrolls up to the hero.
-- Pages: front desk (the street → reception walk plays ONCE per page load as the intro, when the story is
-  first on screen) → the same desk "after" (the WHOLE screen wipes, as on desktop: photo, copy, pings,
-  chips and gains of the "before" scene give way to the complete "after" scene behind a glowing edge) → treatment room
-  (walk 2) → three facts, each with one real CRM crop → office (walk 3) → "This month" (real overview
-  card) → earnings estimate (big sliders) → Insights → payroll → switching → the client's Zalo chat
-  (5 steps) → the AI assistant (4 steps). A chat step is a page; its messages type in on arrival.
-- **Bar:** sticky segments per chapter (Front desk, Treatment room, Office, Switching, Client, AI) fill
-  page by page, with the chapter name and "n / 21"; tapping a segment opens that chapter.
+- **Intro (owner, 2026-11-05, as desktop):** a small scroll or swipe down at the hero (≥ 10 % of the
+  screen), or Start, commits to the whole intro, once per visit: the hero copy and plaque step aside, the
+  page jumps to the identical door window on page 1 (same frame, same place on screen), the doors grow to
+  the full screen (`motion.story.doors`, 1.2 s), the walk-in plays (2.6 s), then Front desk page 1.
+  Scrolling is locked while it plays (this also stops iOS momentum); taps, swipes, keys and bar taps are
+  ignored. Below the threshold nothing happens. Opening a page directly (a bar group) spends the intro.
+  Reduced motion: straight to page 1.
+- **Pages (owner, 2026-11-05: only pages that show the product working):** 1 front desk before (walk 1
+  is the intro) → 2 the same desk after (the WHOLE screen wipes, as on desktop) → 3–5 treatment room:
+  three facts, each with one real CRM crop (walk 2 plays into the first) → 6 back office: "This month"
+  (real overview card; walk 3 plays into it) → 7 earnings estimate (big sliders) → 8 Insights → 9
+  payroll → 10 switching (animated AI setup) → 11–15 the client's Zalo chat → 16–19 the AI assistant. The
+  summary pages "Every chair, every hour, in one calendar" and "The whole salon on one screen" are gone
+  on phones. A chat step is a page; its messages type in on arrival.
+- **Bar (owner, 2026-11-05, Instagram-style):** one thin segment per page (19), filled up to the current
+  page, in three labelled groups with a small gap: "Demo" (10), "Khách hàng" (5) and "Trợ lý AI" (4).
+  Each group is one 44 px button (label + its segments) that opens the group's first page. Glass chip;
+  hides with the rest of the story chrome.
+- **Panels never fold** (owner, 2026-11-05): no chevron; a panel always shows its content.
 - **Frames:** portrait walk frames (720×1280) on one canvas per walk; portrait before/after stills cut
   from the 16:9 stills at the walk frames' own crop (x = 60 %, 644×1144, `public/studio/photo/m/`);
   landscape phones use the 16:9 frames and stills. Nothing is shown above 1.15× its pixels.
@@ -141,8 +152,7 @@ the feel of Instagram stories, which is what ships:
 - **Switching (owner, 2026-11-05):** the phone tells the AI setup in motion, as desktop does: the
   handwritten price list appears, a scan line sweeps it, it morphs into a clean services list that fills
   row by row (name, duration, price, toggle on), then "N services created · check and go live". Plays
-  each time the page opens; reduced motion shows the finished list; a tap always turns the page. The chevron folds the panel to
-  its title. Content sits centred in the panel; screenshots end on a whole row. Short phones only drop
+  each time the page opens; reduced motion shows the finished list; a tap always turns the page. Content sits centred in the panel; screenshots end on a whole row. Short phones only drop
   duplicates (eyebrow under a tag, extra Zalo notes); a long page scrolls. The "after" toast sits in
   the panel under the gains, never over the headline.
 - **Screenshots:** never a shrunken desktop screen: `m-*` crops from `scripts/landing-screens.mjs` at a

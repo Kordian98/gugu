@@ -37,7 +37,7 @@ describe("mobile story CSS", () => {
     expect(QA_CSS.trim().startsWith("@media (max-width:899px){")).toBe(true);
   });
   it("chip labels are ink, never ink2 (ink2 on chip glass is below AA over dark frames)", () => {
-    for (const sel of [".mj-now small", ".mj-toast small", ".mc-toast small"]) {
+    for (const sel of [".mj-grp .lb", ".mj-toast small", ".mc-toast small"]) {
       const rule = MOBILE_CSS.slice(MOBILE_CSS.indexOf(`${sel}{`)).split("}")[0];
       expect(rule).toContain("color:#221024");
     }

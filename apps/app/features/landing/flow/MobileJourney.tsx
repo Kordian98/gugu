@@ -2,6 +2,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Asset } from "expo-asset";
 import { useTranslation } from "react-i18next";
 
+import { motion } from "@gugu/design-system";
+
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { screen, screenSize, type ScreenName } from "../screens";
@@ -55,25 +57,30 @@ function Still({ k, className }: { k: keyof typeof M; className?: string }) {
   );
 }
 
-/** Chapters of the chapter bar → the story pages they cover (DOM order of `.mj-u`). */
-const CHAPTERS = [
-  { k: "c1", label: "flow.hud.c1" },
-  { k: "c2", label: "flow.hud.c2" },
-  { k: "c3", label: "flow.hud.c3" },
-  { k: "c4", label: "flow.hud.c4" },
+/**
+ * Groups of the story bar (owner, 2026-11-05, Instagram-style): one thin segment per page, grouped into
+ * the salon demo, the client's chat and the assistant's chat; a tap on a group opens its first page.
+ */
+const GROUPS = [
+  { k: "demo", label: "flow.m.demo" },
   { k: "client", label: "views.tab.client" },
   { k: "ai", label: "views.tab.ai" },
 ] as const;
-type Ch = (typeof CHAPTERS)[number]["k"];
+type Ch = (typeof GROUPS)[number]["k"];
 
-/** Salon pages in order; client + AI chats follow (one page per step). */
-const SALON = 12;
+/** Salon demo pages (only pages that show the product working); client + AI chats follow. */
+const SALON = 10;
 const CLIENT0 = SALON;
 const AI0 = SALON + CLIENT_STEPS.length;
 const UNITS = AI0 + AI_STEPS.length;
+const COUNT: Record<Ch, number> = {
+  demo: SALON,
+  client: CLIENT_STEPS.length,
+  ai: AI_STEPS.length,
+};
 
 /** Walks played when their section is reached (once per visit), and the still they end on. */
-const WALK_OF: Record<string, Segment> = { desk: "w1", treat: "w2", office: "w3" };
+const WALK_OF: Record<string, Segment> = { desk: "w1", r1: "w2", month: "w3" };
 /**
  * Scroll the RN Web ScrollView's DOM node: RN Web puts its own `scrollTo({ x, y, animated })` on the node,
  * so call the DOM method.
@@ -85,8 +92,14 @@ const scrollY = (sc: HTMLElement, top: number, smooth: boolean) => {
 };
 /** Intro once per page load (also across a remount, e.g. a locale switch). */
 const played = new Set<Segment>();
+/** The hero → doors → walk-in intro: once per page load (also across a remount). */
+let introState: "todo" | "playing" | "done" = "todo";
 /** Story chrome (chapter bar, center pill) shows only while at least this share of the story is in view. */
 const CHROME_MIN = 0.3;
+/** A scroll or swipe down of this share of the screen at the hero commits to the intro. */
+const INTRO_START = 0.1;
+/** Bottom corner radius of the hero's door window (px), as the static hero draws it. */
+const DOOR_CORNER = 26;
 
 type Facts = {
   k: "r1" | "r2" | "r3";
@@ -212,37 +225,14 @@ function MShot({
   );
 }
 
-/** The copy card; the chevron folds it to its title so the picture is free. */
-function Card({
-  children,
-  head,
-  foldable = true,
-}: {
-  children?: React.ReactNode;
-  head: React.ReactNode;
-  foldable?: boolean;
-}) {
-  const { t } = useTranslation("landing");
-  const [folded, setFolded] = useState(false);
+/** The glass panel: always shows its content (no folding; owner, 2026-11-05). */
+function Card({ children, head }: { children?: React.ReactNode; head: React.ReactNode }) {
   return (
-    <div className={`mj-card${folded ? " folded" : ""}`}>
+    <div className="mj-card">
       <div className="mj-body">
         {head}
         <div className="mj-more">{children}</div>
       </div>
-      {foldable ? (
-        <button
-          type="button"
-          className="mj-fold"
-          aria-expanded={!folded}
-          aria-label={folded ? t("flow.m.unfold") : t("flow.m.fold")}
-          onClick={() => {
-            setFolded(!folded);
-          }}
-        >
-          <i aria-hidden />
-        </button>
-      ) : null}
     </div>
   );
 }
@@ -341,14 +331,15 @@ export function MobileJourney({
       const n = Number(u.dataset["n"] ?? "1");
       for (let k = 0; k < n; k++) els.push(u);
     });
-    const fills = Array.from(el.querySelectorAll<HTMLElement>(".mj-seg b"));
-    const nowName = el.querySelector<HTMLElement>(".mj-now span");
-    const nowCount = el.querySelector<HTMLElement>(".mj-now small");
-    const segs = Array.from(el.querySelectorAll<HTMLButtonElement>(".mj-seg"));
+    /** one thin segment per page (Instagram-style), in page order */
+    const fills = Array.from(el.querySelectorAll<HTMLElement>(".mj-grp i b"));
+    const groups = Array.from(el.querySelectorAll<HTMLButtonElement>(".mj-grp"));
     const sr = el.querySelector<HTMLElement>(".mj-sr");
     const bar = el.querySelector<HTMLElement>(".mj-bar");
 
     // Hero door: the arch shows the first walk frame (same as the stage at time 0 on desktop).
+    /** the arch (hero coordinates) and the media offset that centres the doors in it */
+    const arch = { top: 0, side: 0, bottom: 0, radius: 0, cy: 0 };
     const syncHero = () => {
       if (!hb) return;
       const W = window.innerWidth;
@@ -374,6 +365,7 @@ export function MobileJourney({
       const cy = (top + (H - bottom)) / 2 - H / 2 + H * 0.27;
       if (md) md.style.transform = `translate3d(0,${cy.toFixed(1)}px,0)`;
       if (im && !im.getAttribute("src")) im.src = frameUrl("w1", true, 0);
+      Object.assign(arch, { top, side, bottom, radius, cy });
     };
     syncHero();
 
@@ -390,8 +382,8 @@ export function MobileJourney({
     };
     load("w1");
 
-    const chapterOf = (i: number): Ch => (els[i]?.dataset["ch"] ?? "c1") as Ch;
-    const ranges = CHAPTERS.map((c) => {
+    const chapterOf = (i: number): Ch => (els[i]?.dataset["ch"] ?? "demo") as Ch;
+    const ranges = GROUPS.map((c) => {
       const idx = els.map((u, i) => (u.dataset["ch"] === c.k ? i : -1)).filter((i) => i >= 0);
       return [idx[0] ?? 0, idx[idx.length - 1] ?? 0] as const;
     });
@@ -406,10 +398,15 @@ export function MobileJourney({
       played.add(walking.seg);
       walking.sec.classList.remove("walking");
       walking.sec.classList.add("on");
-      if (walking.seg === "w1") hb?.classList.add("done");
+      if (walking.seg === "w1") {
+        hb?.classList.add("done");
+        finishIntro();
+      }
       walking = null;
     };
     const playWalk = (seg: Segment, sec: HTMLElement) => {
+      // reached page 1 another way (a chapter jump, a long fling): the intro is spent
+      if (seg === "w1" && introState === "todo") introState = "done";
       const p = players.get(seg);
       p?.resize();
       if (!p || played.has(seg) || reduce) {
@@ -479,22 +476,19 @@ export function MobileJourney({
       // preload the next walks a page or two early
       if (n >= 0) load("w2");
       if (n >= 2) load("w3");
-      const ci = CHAPTERS.findIndex((c) => c.k === chapterOf(n));
-      segs.forEach((b, k) => {
+      const ci = GROUPS.findIndex((c) => c.k === chapterOf(n));
+      groups.forEach((b, k) => {
         b.setAttribute("aria-current", k === ci ? "step" : "false");
       });
-      ranges.forEach(([a, b], k) => {
-        const f = fills[k];
-        if (f)
-          f.style.transform = `scaleX(${(n > b ? 1 : n < a ? 0 : (n - a + 1) / (b - a + 1)).toFixed(3)})`;
+      // seen and current pages are filled, the rest empty: how many taps are left is plain to see
+      fills.forEach((f, k) => {
+        f.classList.toggle("on", k <= n);
       });
-      if (nowName) nowName.textContent = t(CHAPTERS[ci]?.label ?? "flow.hud.c1");
-      if (nowCount) nowCount.textContent = t("flow.hud.page", { n: n + 1, total: UNITS });
       if (sr && fromTap)
         sr.textContent = t("flow.hud.pageSr", {
           n: n + 1,
           total: UNITS,
-          chapter: t(CHAPTERS[ci]?.label ?? "flow.hud.c1"),
+          chapter: t(GROUPS[ci]?.label ?? "flow.m.demo"),
         });
     };
     show(0, false);
@@ -505,7 +499,8 @@ export function MobileJourney({
         const vis = es.some((e) => e.isIntersecting);
         setLive(vis);
         placeCenter();
-        if (vis && !shown) {
+        // (not while the intro plays: it shows page 1 itself once the doors are open)
+        if (vis && !shown && introState !== "playing") {
           shown = true;
           show(cur, false);
           setHint((h) => (h === "off" ? "on" : h));
@@ -527,6 +522,7 @@ export function MobileJourney({
       }
     };
     const step = (d: 1 | -1, viaKeys = false) => {
+      if (introState === "playing") return; // no input while the intro plays
       shown = true;
       setHint("done");
       if (d > 0 && cur >= els.length - 1) {
@@ -565,6 +561,7 @@ export function MobileJourney({
         return x > r.left - 8 && x < r.right + 8 && y > r.top - 8 && y < r.bottom + 8;
       });
     const onClick = (e: MouseEvent) => {
+      if (introState === "playing") return;
       const target = e.target as HTMLElement | null;
       if (!target || target.closest(INTERACTIVE) || nearSlider(e.clientX, e.clientY)) return;
       // a tap on a screenshot opens it in the zoom viewer
@@ -683,7 +680,7 @@ export function MobileJourney({
         const visible = Math.max(0, Math.min(r.bottom, sr.bottom) - Math.max(r.top, sr.top));
         // the story is "the main thing on screen" while ≥ 30 % of it (or of the screen) is in view;
         // below that its chrome (chapter bar, center pill) leaves, and comes back on the way in
-        const main = visible >= Math.min(r.height, H) * CHROME_MIN;
+        const main = introState !== "playing" && visible >= Math.min(r.height, H) * CHROME_MIN;
         bar?.classList.toggle("off", !main);
         const show = shown && main && !document.querySelector(".mj-zoom") && visible < H * 0.97;
         if (!show) {
@@ -732,14 +729,130 @@ export function MobileJourney({
     window.addEventListener("resize", onResize);
     void document.fonts.ready.then(onResize);
 
+    // The intro (owner, 2026-11-05; as desktop): the first small scroll or swipe down at the hero
+    // (≥ INTRO_START of the screen), or Start, commits to the whole intro once per visit: the hero copy
+    // steps aside, the page jumps to the identical door window on page 1 (same frame, same place), the
+    // doors grow to the full screen, the walk-in plays, then Front desk page 1. Input is ignored while it
+    // plays (scrolling is locked, which also stops iOS momentum). Reduced motion: straight to page 1.
+    const preventInput = (e: Event) => {
+      if (introState === "playing") e.preventDefault();
+    };
+    const lockInput = (on: boolean) => {
+      if (scroller) scroller.style.overflowY = on ? "hidden" : "";
+      if (on) {
+        window.addEventListener("touchmove", preventInput, { passive: false });
+        window.addEventListener("wheel", preventInput, { passive: false });
+      } else {
+        window.removeEventListener("touchmove", preventInput);
+        window.removeEventListener("wheel", preventInput);
+      }
+    };
+    function finishIntro() {
+      if (introState !== "playing") return;
+      introState = "done";
+      lockInput(false);
+      setHint((h) => (h === "off" ? "on" : h));
+      placeCenter();
+    }
+    let doorsRaf = 0;
+    let doorsT = 0;
+    const page0 = els[0];
+    const bg0 = page0?.querySelector<HTMLElement>(".mj-bg");
+    const cv0 = bg0?.querySelector<HTMLElement>("canvas");
+    const clearDoors = () => {
+      if (bg0) bg0.style.clipPath = "";
+      if (cv0) cv0.style.transform = "";
+    };
+    const enterStory = () => {
+      shown = true;
+      clearDoors();
+      hb?.classList.remove("intro");
+      show(0, false); // plays the walk-in (or shows its last frame with reduced motion)
+      if (reduce) finishIntro();
+    };
+    const commitIntro = () => {
+      if (introState !== "todo" || !scroller || !hb || !page0) return;
+      introState = "playing";
+      lockInput(true);
+      if (reduce) {
+        scrollY(scroller, trackTop(), false);
+        enterStory();
+        return;
+      }
+      hb.classList.add("intro");
+      doorsT = window.setTimeout(() => {
+        // the arch where it is on screen now, then the same window on page 1 after the jump
+        const o = hb.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+        const w1 = players.get("w1");
+        w1?.resize();
+        w1?.set("w1", 0);
+        page0.classList.add("walking");
+        scrollY(scroller, trackTop(), false);
+        const t = Math.max(0, o + arch.top);
+        const b = Math.max(0, arch.bottom - o);
+        const y = o + arch.cy;
+        const frame = (k: number) => {
+          const e = 1 - Math.pow(1 - k, 3);
+          const f = 1 - e;
+          if (bg0)
+            bg0.style.clipPath = `inset(${(t * f).toFixed(1)}px ${(arch.side * f).toFixed(1)}px ${(b * f).toFixed(1)}px ${(arch.side * f).toFixed(1)}px round ${(arch.radius * f).toFixed(1)}px ${(arch.radius * f).toFixed(1)}px ${(DOOR_CORNER * f).toFixed(1)}px ${(DOOR_CORNER * f).toFixed(1)}px)`;
+          if (cv0) cv0.style.transform = `translate3d(0,${(y * f).toFixed(1)}px,0)`;
+        };
+        frame(0);
+        let t0 = 0;
+        const tick = (now: number) => {
+          if (!t0) t0 = now;
+          const k = Math.min(1, (now - t0) / motion.story.doors);
+          frame(k);
+          if (k < 1) doorsRaf = requestAnimationFrame(tick);
+          else enterStory();
+        };
+        doorsRaf = requestAnimationFrame(tick);
+      }, motion.duration.base);
+    };
+    let heroStart = 0;
+    if (scroller && hb)
+      heroStart =
+        hb.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    /** the hero is on screen and the story still below it */
+    const atHero = () =>
+      introState === "todo" &&
+      !!track &&
+      !!hb &&
+      track.getBoundingClientRect().top > 1 &&
+      hb.getBoundingClientRect().bottom > 0;
+    const onIntroScroll = () => {
+      if (
+        atHero() &&
+        scroller &&
+        scroller.scrollTop - heroStart >= window.innerHeight * INTRO_START
+      )
+        commitIntro();
+    };
+    let ty = 0;
+    const onIntroTs = (e: TouchEvent) => {
+      ty = e.touches[0]?.clientY ?? 0;
+    };
+    const onIntroTm = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? ty;
+      if (atHero() && ty - y >= window.innerHeight * INTRO_START) commitIntro();
+    };
+    scroller?.addEventListener("scroll", onIntroScroll, { passive: true });
+    window.addEventListener("touchstart", onIntroTs, { passive: true });
+    window.addEventListener("touchmove", onIntroTm, { passive: true });
+
     firstOf.current = ranges.map(([a]) => a);
     goRef.current = (i: number) => {
+      if (introState === "playing") return;
+      // opening a page directly (a group tap) spends the intro: a later scroll at the hero just scrolls
+      if (introState === "todo") introState = "done";
       shown = true;
       show(i, true);
       if (scroller) scrollY(scroller, trackTop(), false);
     };
     startRef.current = () => {
-      if (scroller) scrollY(scroller, trackTop(), !reduce);
+      if (introState === "todo") commitIntro();
+      else if (scroller) scrollY(scroller, trackTop(), !reduce);
     };
     let devGo = 0;
     if (__DEV__) {
@@ -753,8 +866,13 @@ export function MobileJourney({
       // Simulator, where no script drives Safari: blur and contrast are measured from screenshots)
       const qs = new URLSearchParams(window.location.search);
       const q = qs.get("mj");
-      for (const f of (qs.get("mjqa") ?? "").split(",").filter(Boolean))
-        el.classList.add(`qa-${f}`);
+      const qa = (qs.get("mjqa") ?? "").split(",").filter(Boolean);
+      for (const f of qa) el.classList.add(`qa-${f}`);
+      // ?mjqa=swipe: a smooth 15 % scroll down from the hero, as a swipe would (intro trigger in Safari)
+      if (qa.includes("swipe") && scroller)
+        devGo = window.setTimeout(() => {
+          scrollY(scroller, scroller.scrollTop + window.innerHeight * 0.15, true);
+        }, 2500);
       if (q !== null)
         devGo = window.setTimeout(() => {
           goRef.current(Number(q));
@@ -763,6 +881,17 @@ export function MobileJourney({
 
     return () => {
       window.clearTimeout(devGo);
+      window.clearTimeout(doorsT);
+      cancelAnimationFrame(doorsRaf);
+      if (introState === "playing") {
+        // a remount mid-intro (locale switch): finish it rather than leave the page locked
+        introState = "done";
+        clearDoors();
+      }
+      lockInput(false);
+      scroller?.removeEventListener("scroll", onIntroScroll);
+      window.removeEventListener("touchstart", onIntroTs);
+      window.removeEventListener("touchmove", onIntroTm);
       io.disconnect();
       endWalk();
       cancelAnimationFrame(centerRaf);
@@ -811,27 +940,30 @@ export function MobileJourney({
       <div className="mj-track">
         <div className="mj-barwrap">
           <nav className="mj-bar" aria-label={t("flow.hud.label")} data-notap>
-            <div className="mj-segs">
-              {CHAPTERS.map((c, k) => (
+            {/* Instagram-style: one thin segment per page, in three labelled groups; a tap on a
+                group (its label or its segments, a 44 px target) opens its first page */}
+            <div className="mj-grps">
+              {GROUPS.map((g, k) => (
                 <button
-                  key={c.k}
+                  key={g.k}
                   type="button"
-                  className="mj-seg"
-                  aria-label={t(c.label)}
+                  className="mj-grp"
+                  style={{ flexGrow: COUNT[g.k] }}
                   aria-current={k === 0 ? "step" : "false"}
                   onClick={() => {
                     go(firstOf.current[k] ?? 0);
                   }}
                 >
-                  <i>
-                    <b />
-                  </i>
+                  <span className="lb">{t(g.label)}</span>
+                  <span className="sg" aria-hidden>
+                    {Array.from({ length: COUNT[g.k] }, (_, i) => (
+                      <i key={i}>
+                        <b />
+                      </i>
+                    ))}
+                  </span>
                 </button>
               ))}
-            </div>
-            <div className="mj-now" aria-hidden>
-              <span>{t("flow.hud.c1")}</span>
-              <small>{t("flow.hud.page", { n: 1, total: UNITS })}</small>
             </div>
             {/* keyboard / screen reader: the tap zones as real buttons (visible on focus) */}
             <button
@@ -864,7 +996,7 @@ export function MobileJourney({
         ) : null}
 
         {/* 1 · front desk, before (the walk-in plays here once: the intro) */}
-        <section className="mj-s mj-u" data-ch="c1" data-sec="desk" aria-labelledby="mj-h-desk">
+        <section className="mj-s mj-u" data-ch="demo" data-sec="desk" aria-labelledby="mj-h-desk">
           <div className="mj-bg">
             <canvas data-walk="w1" aria-hidden />
           </div>
@@ -879,7 +1011,7 @@ export function MobileJourney({
             "before" scene to the "after" scene, as on desktop */}
         <section
           className="mj-s mj-u ba"
-          data-ch="c1"
+          data-ch="demo"
           data-sec="after"
           aria-labelledby="mj-h-after"
         >
@@ -926,39 +1058,19 @@ export function MobileJourney({
           <span className="mj-edge" aria-hidden />
         </section>
 
-        {/* 3 · treatment room (walk 2) */}
-        <section className="mj-s mj-u" data-ch="c2" data-sec="treat" aria-labelledby="mj-h-treat">
-          <div className="mj-bg">
-            <canvas data-walk="w2" aria-hidden />
-          </div>
-          <Card
-            head={
-              <>
-                <div className="mj-eye">{t("flow.features.eyebrow")}</div>
-                <h2 className="mj-h" id="mj-h-treat">
-                  {t("flow.features.title")}
-                </h2>
-              </>
-            }
-          >
-            <p className="mj-p">{t("flow.features.facts")}</p>
-          </Card>
-        </section>
-
-        {/* 4–6 · the three facts, each with one real screen */}
+        {/* 3–5 · treatment room: three facts, each with one real screen (walk 2 plays into the first) */}
         {FACTS.map((f) => (
           <section
             key={f.k}
             className="mj-s mj-u plain"
-            data-ch="c2"
+            data-ch="demo"
             data-sec={f.k}
             aria-labelledby={`mj-h-${f.k}`}
           >
             <div className="mj-bg">
-              <Still k="treat" />
+              {f.k === "r1" ? <canvas data-walk="w2" aria-hidden /> : <Still k="treat" />}
             </div>
             <Card
-              foldable={false}
               head={
                 <>
                   <div className="mj-n mj-in">{t(`flow.features.${f.k}n`)}</div>
@@ -990,37 +1102,17 @@ export function MobileJourney({
           </section>
         ))}
 
-        {/* 7 · back office (walk 3) */}
-        <section className="mj-s mj-u" data-ch="c3" data-sec="office" aria-labelledby="mj-h-office">
-          <div className="mj-bg">
-            <canvas data-walk="w3" aria-hidden />
-          </div>
-          <Card
-            head={
-              <>
-                <div className="mj-eye">{t("flow.office.eyebrow")}</div>
-                <h2 className="mj-h" id="mj-h-office">
-                  {t("flow.office.title")}
-                </h2>
-              </>
-            }
-          >
-            <p className="mj-p">{t("flow.office.sub")}</p>
-          </Card>
-        </section>
-
-        {/* 8 · this month (real overview card) */}
+        {/* 6 · back office: this month (real overview card; walk 3 plays into it) */}
         <section
           className="mj-s mj-u plain"
-          data-ch="c3"
+          data-ch="demo"
           data-sec="month"
           aria-labelledby="mj-h-month"
         >
           <div className="mj-bg">
-            <Still k="office" />
+            <canvas data-walk="w3" aria-hidden />
           </div>
           <Card
-            foldable={false}
             head={
               <>
                 <div className="mj-eye mj-in">{t("flow.office.eyebrow")}</div>
@@ -1043,30 +1135,34 @@ export function MobileJourney({
           </Card>
         </section>
 
-        {/* 9 · earnings estimate (big sliders) */}
+        {/* 7 · earnings estimate (big sliders) */}
         <section
           className="mj-s mj-u plain"
-          data-ch="c3"
+          data-ch="demo"
           data-sec="calc"
           aria-label={t("flow.calc.t")}
         >
           <div className="mj-bg">
             <Still k="office" />
           </div>
-          <Card foldable={false} head={null}>
+          <Card head={null}>
             <div className="mj-in">
               <EarningsCard mobile />
             </div>
           </Card>
         </section>
 
-        {/* 10 · Insights */}
-        <section className="mj-s mj-u plain" data-ch="c3" data-sec="ins" aria-labelledby="mj-h-ins">
+        {/* 8 · Insights */}
+        <section
+          className="mj-s mj-u plain"
+          data-ch="demo"
+          data-sec="ins"
+          aria-labelledby="mj-h-ins"
+        >
           <div className="mj-bg">
             <Still k="office" />
           </div>
           <Card
-            foldable={false}
             head={
               <>
                 <div className="mj-eye mj-in">{t("flow.insights.eyebrow")}</div>
@@ -1094,13 +1190,17 @@ export function MobileJourney({
           </Card>
         </section>
 
-        {/* 11 · payroll */}
-        <section className="mj-s mj-u plain" data-ch="c3" data-sec="pay" aria-labelledby="mj-h-pay">
+        {/* 9 · payroll */}
+        <section
+          className="mj-s mj-u plain"
+          data-ch="demo"
+          data-sec="pay"
+          aria-labelledby="mj-h-pay"
+        >
           <div className="mj-bg">
             <Still k="office" />
           </div>
           <Card
-            foldable={false}
             head={
               <>
                 <div className="mj-eye mj-in">{t("flow.payroll.eyebrow")}</div>
@@ -1129,13 +1229,12 @@ export function MobileJourney({
           </Card>
         </section>
 
-        {/* 12 · switching */}
-        <section className="mj-s mj-u plain" data-ch="c4" data-sec="sw" aria-labelledby="mj-h-sw">
+        {/* 10 · switching */}
+        <section className="mj-s mj-u plain" data-ch="demo" data-sec="sw" aria-labelledby="mj-h-sw">
           <div className="mj-bg">
             <Still k="office" />
           </div>
           <Card
-            foldable={false}
             head={
               <>
                 <div className="mj-eye">{t("flow.switch.eyebrow")}</div>
@@ -1203,7 +1302,7 @@ export function MobileJourney({
           </Card>
         </section>
 
-        {/* 13 · the client's perspective (Zalo chat, one page per step) */}
+        {/* 11–15 · the client's perspective (Zalo chat, one page per step) */}
         <section
           className="mc-track mc-client mj-u"
           data-ch="client"
@@ -1221,7 +1320,7 @@ export function MobileJourney({
           />
         </section>
 
-        {/* 14 · the AI assistant (Pro) */}
+        {/* 16–19 · the AI assistant (Pro) */}
         <section
           className="mc-track mc-ai mj-u"
           data-ch="ai"

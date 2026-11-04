@@ -67,6 +67,10 @@ const FEATHER = (dir: string, n: number) =>
 const VEIL_Y = 56;
 const VEIL_X = 22;
 const VEIL_MASK = `${FEATHER("180deg", VEIL_Y)},${FEATHER("90deg", VEIL_X)}`;
+/** Story bar: segment line height, gap between segments and between groups (px). */
+const SEG_H = 3;
+const SEG_GAP = 2;
+const GROUP_GAP = 10;
 /** Halo blur radius around headings on glass (px). */
 const HALO = 14;
 /** Switching: services row height (px; 44 on short phones), list tilt, scan band edges (% of height). */
@@ -99,18 +103,26 @@ export const MOBILE_CSS = `
 
 /* chapter bar: sticky; segments fill page by page; tap a chapter to open it (44 px targets) */
 .mj-barwrap{position:sticky;top:0;height:0;z-index:30}
-.mj-bar{position:absolute;left:max(var(--edge),env(safe-area-inset-left,0px));right:max(var(--edge),env(safe-area-inset-right,0px));top:6px;height:56px;box-sizing:border-box;padding:0 14px;border-radius:${px(radius.md)};${GLASS_CHIP};cursor:default;transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE}}
+.mj-bar{position:absolute;left:max(var(--edge),env(safe-area-inset-left,0px));right:max(var(--edge),env(safe-area-inset-right,0px));top:6px;height:56px;box-sizing:border-box;padding:0 12px;border-radius:${px(radius.md)};${GLASS_CHIP};cursor:default;transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE}}
 /* story chrome leaves once the story is no longer the main thing on screen (< 30 % in view) */
 .mj-bar.off{opacity:0;transform:translate3d(0,-16px,0);pointer-events:none}
 .mj-bar.off:focus-within{opacity:1;transform:none;pointer-events:auto}
 .mj-bar::before{${RIM}}
-.mj-segs{display:flex;gap:4px}
-.mj-seg{position:relative;z-index:1;flex:1 1 0;min-width:0;height:44px;padding:0;border:0;background:none;display:flex;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.mj-seg i{display:block;position:relative;width:100%;height:4px;border-radius:2px;background:${overlay.ink14};overflow:hidden}
-.mj-seg i b{position:absolute;inset:0;border-radius:2px;background:${cssGradient(gradient.glowSoft)};transform-origin:left;transform:scaleX(0)}
-.mj-seg:focus-visible{outline:2px solid ${color.lilac500};outline-offset:-4px;border-radius:6px}
-.mj-now{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:-10px;font-family:${font.uiSemiBold};font-size:${px(ty.caption)};line-height:1.2;color:${color.ink}}
-.mj-now small{font-family:${font.ui};font-size:${px(ty.micro)};color:${color.ink};font-variant-numeric:tabular-nums}
+/* Instagram-style progress: one thin segment per page in three labelled groups (Demo · Client · AI);
+   each group is one 44 px button that opens its first page */
+.mj-grps{display:flex;gap:${px(GROUP_GAP)};height:100%;align-items:center}
+.mj-grp{position:relative;z-index:1;flex:1 1 0;min-width:max-content;height:44px;padding:0;border:0;background:none;display:flex;flex-direction:column;justify-content:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent;text-align:left}
+.mj-grp .lb{font-family:${font.ui};font-size:${px(ty.micro)};line-height:1.2;color:${color.ink};white-space:nowrap}
+.mj-grp[aria-current="step"] .lb{font-family:${font.uiSemiBold}}
+.mj-grp .sg{display:flex;gap:${px(SEG_GAP)};width:100%}
+.mj-grp i{display:block;position:relative;flex:1 1 0;min-width:0;height:${px(SEG_H)};border-radius:${px(SEG_H)};background:${overlay.ink14};overflow:hidden}
+.mj-grp i b{position:absolute;inset:0;background:${cssGradient(gradient.glowSoft)};transform-origin:left;transform:scaleX(0);transition:transform ${BASE} ${EASE}}
+.mj-grp i b.on{transform:none}
+.mj-grp:focus-visible{outline:2px solid ${color.lilac500};outline-offset:2px;border-radius:6px}
+
+/* the intro: the hero copy and the plaque step aside, then the doors grow on page 1 */
+.jr-static.intro .jr-hero{opacity:0;transform:translate3d(-24px,0,0);transition:opacity ${BASE} ${EASE},transform ${BASE} ${EASE}}
+.jr-static.intro .jr-plaque{opacity:0;transition:opacity ${BASE} ${EASE}}
 
 /* a full-screen page */
 .mj-s{position:relative;min-height:100svh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;padding:var(--bar) max(var(--edge),env(safe-area-inset-right,0px)) calc(var(--edge) + env(safe-area-inset-bottom,0px)) max(var(--edge),env(safe-area-inset-left,0px));overflow:hidden;isolation:isolate}
@@ -143,7 +155,6 @@ export const MOBILE_CSS = `
 /* content sits in the optical centre of the panel, so short pages never look half empty */
 .mj-card{justify-content:center}
 .mj-more{display:flex;flex-direction:column;flex:0 0 auto}
-.mj-card.folded{flex:0 0 auto;min-height:0}
 /* text sitting directly on glass is ink / ink2 (AA over any photo) */
 .mj-card .mj-eye,.mj-card .mj-small,.mj-card .mj-stat em,.mj-card .mj-pain{color:${color.ink2}}
 .mj-card .mj-eye::before{content:"";display:inline-block;width:18px;height:2px;margin-right:8px;vertical-align:middle;border-radius:1px;background:${cssGradient(gradient.glowSoft)}}
@@ -151,7 +162,7 @@ export const MOBILE_CSS = `
    only its content (an inner wrapper) moves, never the blurred element itself */
 .mj-s.walking .mj-card{visibility:hidden;-webkit-backdrop-filter:none;backdrop-filter:none;pointer-events:none}
 .mj-s.walking .mj-card>*{opacity:0;transform:translate3d(0,24px,0)}
-.mj-s .mj-card>.mj-body,.mj-s .mj-card>.mj-fold{transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE}}
+.mj-s .mj-card>.mj-body{transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE}}
 .mj-eye{font-family:${font.uiMedium};font-size:${px(ty.micro)};letter-spacing:.22em;text-transform:uppercase;color:${color.eyebrow};margin:0 0 6px}
 .mj-h{font-family:${font.display};font-size:clamp(30px,8.4vw,${px(ty.display)});line-height:1.04;letter-spacing:-.03em;margin:0;text-wrap:balance;white-space:pre-line;color:${color.ink}}
 .mj-h:focus{outline:none}
@@ -160,12 +171,7 @@ export const MOBILE_CSS = `
 .mj-tag{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:${px(radius.sm)};font-family:${font.uiSemiBold};font-size:${px(ty.caption)};margin-bottom:10px}
 .mj-tag.b{background:${color.dangerTint};color:${color.dangerInk}}
 .mj-tag.a{background:${color.lilac100};color:${color.ink2}}
-.mj-fold{position:absolute;top:10px;right:10px;width:44px;height:44px;border:0;border-radius:${px(radius.pill)};background:transparent;color:${color.body};line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.mj-fold i{display:block;width:12px;height:12px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-3px) rotate(45deg);transition:transform ${BASE} ${EASE}}
-.mj-card.folded .mj-fold i{transform:translateY(3px) rotate(-135deg)}
-.mj-card.folded .mj-more{display:none}
-.mj-card .mj-h{padding-right:34px}
-.mj-fold:focus-visible,.mj-go:focus-visible,.mj-zbtn:focus-visible{outline:2px solid ${color.lilac500};outline-offset:2px}
+.mj-go:focus-visible,.mj-zbtn:focus-visible{outline:2px solid ${color.lilac500};outline-offset:2px}
 .mj-go{display:inline-flex;align-items:center;justify-content:center;gap:8px;align-self:flex-start;min-height:48px;padding:0 20px;margin-top:24px;border:0;border-radius:${px(radius.md)};background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:${px(ty.body)};cursor:pointer}
 .mj-go i{font-style:normal}
 
@@ -416,7 +422,8 @@ export const MOBILE_CSS = `
 /* landscape phones: compact; the copy sits on the left, the receptionist (right half) stays free */
 @media (orientation:landscape) and (max-height:520px){
   .mj{--bar:52px}
-  .mj-now{margin-top:-14px}
+  .mj-bar{height:44px;top:4px}
+  .mj-grp{height:40px;gap:4px}
   .mj .jr-static .jr-frame,.mj .jr-plaque{display:none}
   .mj-s{flex-direction:row;align-items:flex-end;justify-content:flex-start;gap:12px;padding:calc(var(--bar) + 4px) max(var(--pad),env(safe-area-inset-right,0px)) 12px max(var(--pad),env(safe-area-inset-left,0px))}
   .mj-s>.mj-card{width:min(420px,46%)}
