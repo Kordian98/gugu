@@ -78,7 +78,7 @@ Each step ends with a **gate**: `pnpm verify` + API integration tests green (own
 | 7 Notifications, privacy & insights | staff bell + team email, Zalo-only customer messages (X26: no customer email), client export/erase, salon export, retention, Insights + metric registry | done; X26 in progress |
 | 8 AI | price-list import (no PII), business assistant (PII firewall, Haiku-first, evals) | import done; assistant built, real-model evals wait for a key (q84 deferred); confirmed write actions (08 B) later |
 | 9 Platform admin & pricing | admin panel, TOTP step-up, 2FA reset, suspension (bot + sends paused), audit retention; X25 pricing (Basic free first year, then 99k VND, no assistant in Basic); analytics + feature flags | admin done; X25 in progress; analytics/flags to do |
-| 10 Payroll, commissions & owner profit | pay settings, commission per completed line, monthly payroll close, owner "This month" net profit (actual vs projected), staff own earnings | in progress |
+| 10 Payroll, commissions & owner profit | pay settings, commission per completed line, monthly payroll close, owner "This month" net profit (actual vs projected), staff own earnings, real employer cost (ADR-0016/0017) | done |
 | 11 GuGu Studio marketing site | photoreal story landing, book-style navigation, pricing copy (X25), SEO basics | landing merged; navigation/pricing pass in progress |
 | 12 Production readiness & launch | AWS Singapore staging + prod, backups/restore drill, email provider (q86), real Zalo pilot (q81), media service, native dev builds + push + stores (q79), performance/a11y, full security review, legal sign-off | to do |
 
