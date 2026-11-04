@@ -8,12 +8,14 @@ const BACK = "‹";
 const SEND = "↑";
 const OA = "OA";
 const GS = "GS";
+const SEP = " · ";
 
 /**
  * A perspective on phones (ADR-0014 mobile): a full-width, native-looking chat (the client's Zalo chat
  * with the salon, or the owner's assistant "Gu"), one story page per step (tap right = next). The
- * benefit of the step sits on top;
- * GuGu Studio toasts show what the salon's system just did. Not a phone inside the phone. Messages of
+ * chat alone carries the story (owner, 2026-11-05): no copy card; the chapter bar names the chapter and
+ * fills step by step, and a visually hidden heading + step text keep it for screen readers. GuGu Studio
+ * toasts show what the salon's system just did. Not a phone inside the phone. Messages of
  * a new step type in one by one; scrolling back shows earlier steps at once; reduced motion shows all.
  */
 export function MobileChat({
@@ -131,31 +133,16 @@ export function MobileChat({
 
   return (
     <div className="mc-pin">
-      <div className="mc-copy">
-        <div className="mj-eye" id={chapterId}>
-          {t(`${ns}.eyebrow`)}
-        </div>
-        <div className="mc-stepc">
-          {steps.map((g) => (
-            <div key={g.k} className="mc-ghost" aria-hidden>
-              <span className="n">{t("flow.hud.page", { n: 1, total: steps.length })}</span>
-              <b>{t(`${ns}.${g.k}.h`)}</b>
-              <p>{t(`${ns}.${g.k}.b`)}</p>
-            </div>
-          ))}
-          {/* re-keyed only for the entrance; the page announcement and the chat log are the live regions */}
-          <div className="mc-live" key={cur?.k}>
-            <span className="n">{t("flow.hud.page", { n: step + 1, total: steps.length })}</span>
-            <b>{t(`${ns}.${cur?.k ?? "s1"}.h`)}</b>
-            <p>{t(`${ns}.${cur?.k ?? "s1"}.b`)}</p>
-          </div>
-        </div>
-        <div className="mc-dots" aria-hidden>
-          {steps.map((s, i) => (
-            <i key={s.k} className={i <= step ? "on" : undefined} />
-          ))}
-        </div>
-        <p className="mc-note">{t(`${ns}.note`)}</p>
+      {/* the chat alone carries the story; screen readers get the chapter and the step's point */}
+      <div className="mj-vh">
+        <h3 id={chapterId}>{t(`${ns}.eyebrow`)}</h3>
+        <p>
+          {t("flow.hud.page", { n: step + 1, total: steps.length })}
+          {SEP}
+          {t(`${ns}.${cur?.k ?? "s1"}.h`)}
+          {SEP}
+          {t(`${ns}.${cur?.k ?? "s1"}.b`)}
+        </p>
       </div>
       <div className="mc-app">
         {top}
@@ -169,6 +156,7 @@ export function MobileChat({
           </div>
         ) : null}
         <div className="mc-log" ref={log} role="log" aria-label={t(`${ns}.who`)}>
+          <p className="mc-sysnote">{t(`${ns}.note`)}</p>
           {kind === "client" ? <div className="mc-day">{t(`${ns}.day`)}</div> : null}
           {all.slice(0, shown).map((m, i) => (
             <div

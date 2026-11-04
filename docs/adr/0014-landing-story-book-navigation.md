@@ -120,12 +120,28 @@ the feel of Instagram stories, which is what ships:
 - **Frames:** portrait walk frames (720×1280) on one canvas per walk; portrait before/after stills cut
   from the 16:9 stills at the walk frames' own crop (x = 60 %, 644×1144, `public/studio/photo/m/`);
   landscape phones use the 16:9 frames and stills. Nothing is shown above 1.15× its pixels.
-- **Liquid glass (owner, 2026-11-05):** each page is laid out like an app screen inside ONE full-screen
-  glass panel under the chapter bar: headline, short text, then a large screenshot, chat or calculator.
-  The photo or walk shows through as a blurred (32 px), saturated (1.8×), tinted mood; faces no longer
-  matter. Rim highlight and inner light; `glass` tokens. Text on glass is ink / ink2 only: AA over any
-  backdrop (tokens.test.ts, worst case glass over black), measured ≥ 8.6:1 for ink2 over the real frames.
-  The chapter bar, toasts, zoom pill and center pill use the same glass. The chevron folds the panel to
+- **Liquid glass (owner, 2026-11-05; made really translucent the same day after the owner's iPhone
+  review):** each page is laid out like an app screen inside ONE inset glass panel, 12 px from the screen
+  edges with safe areas respected (edge-to-edge glass on text pages was tried and the owner preferred the
+  margin): headline, short text, then a large screenshot or calculator. The glass is see-through in the
+  iOS 26 sense (`liquidGlass` tokens): a low white tint (0.34 → 0.22) over `blur(30px) saturate(1.7)
+  brightness(1.06)`, a 1 px specular rim, a gradient refraction border, an inner sheen and a faint bottom
+  shade; the photo or walk shows through as colour and shape. Legibility never comes from panel opacity:
+  the content column sits on a feathered local veil inside the glass, headings get a soft halo, text is
+  ink / ink2 only (panel + veil over black still passes AA, tokens.test.ts; every text line is measured
+  over the real frames, docs/qa/02-glass). The chapter bar, zoom pill, center pill and chat toasts use
+  the same glass, a little denser; at most three blurred layers overlap and blur never animates.
+- **Story chrome:** the chapter bar and the center pill leave (fade + slide) once less than 30 % of the
+  story is in view (free-year band, pricing, cases) and come back when the visitor scrolls into it; a
+  keyboard focus inside the bar brings it back.
+- **Chats (owner, 2026-11-05):** no copy card; the full-screen chat carries the story, the chapter bar
+  names the chapter and fills step by step, the Zalo / assistant header runs under the floating glass
+  bar. Screen readers get a visually hidden heading and the step's point; the "illustrative chat" note
+  is a system line at the top of the log; the client chat keeps its GuGu Studio toasts.
+- **Switching (owner, 2026-11-05):** the phone tells the AI setup in motion, as desktop does: the
+  handwritten price list appears, a scan line sweeps it, it morphs into a clean services list that fills
+  row by row (name, duration, price, toggle on), then "N services created · check and go live". Plays
+  each time the page opens; reduced motion shows the finished list; a tap always turns the page. The chevron folds the panel to
   its title. Content sits centred in the panel; screenshots end on a whole row. Short phones only drop
   duplicates (eyebrow under a tag, extra Zalo notes); a long page scrolls. The "after" toast sits in
   the panel under the gains, never over the headline.

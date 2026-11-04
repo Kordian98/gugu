@@ -22,7 +22,7 @@ const PIN = "●";
 const Z = "Z";
 const SEP = " · ";
 const ARROW_R = "→";
-const ARROW_D = "↓";
+const SPARK = "✦";
 const CENTER = "\u2195";
 const NOTES = ["n1", "n2", "n3", "n4"] as const;
 const BEFORE = ["b1", "b2", "b3", "b4"] as const;
@@ -86,6 +86,8 @@ const scrollY = (sc: HTMLElement, top: number, smooth: boolean) => {
 };
 /** Intro once per page load (also across a remount, e.g. a locale switch). */
 const played = new Set<Segment>();
+/** Story chrome (chapter bar, center pill) shows only while at least this share of the story is in view. */
+const CHROME_MIN = 0.3;
 
 type Facts = {
   k: "r1" | "r2" | "r3";
@@ -225,7 +227,10 @@ function Card({
   const [folded, setFolded] = useState(false);
   return (
     <div className={`mj-card${folded ? " folded" : ""}`}>
-      {head}
+      <div className="mj-body">
+        {head}
+        <div className="mj-more">{children}</div>
+      </div>
       {foldable ? (
         <button
           type="button"
@@ -239,7 +244,6 @@ function Card({
           <i aria-hidden />
         </button>
       ) : null}
-      <div className="mj-more">{children}</div>
     </div>
   );
 }
@@ -343,6 +347,7 @@ export function MobileJourney({
     const nowCount = el.querySelector<HTMLElement>(".mj-now small");
     const segs = Array.from(el.querySelectorAll<HTMLButtonElement>(".mj-seg"));
     const sr = el.querySelector<HTMLElement>(".mj-sr");
+    const bar = el.querySelector<HTMLElement>(".mj-bar");
 
     // Hero door: the arch shows the first walk frame (same as the stage at time 0 on desktop).
     const syncHero = () => {
@@ -677,8 +682,11 @@ export function MobileJourney({
         const sr = scroller.getBoundingClientRect();
         const H = vh();
         const visible = Math.max(0, Math.min(r.bottom, sr.bottom) - Math.max(r.top, sr.top));
-        const show =
-          shown && !document.querySelector(".mj-zoom") && visible > H * 0.12 && visible < H * 0.97;
+        // the story is "the main thing on screen" while ≥ 30 % of it (or of the screen) is in view;
+        // below that its chrome (chapter bar, center pill) leaves, and comes back on the way in
+        const main = visible >= Math.min(r.height, H) * CHROME_MIN;
+        bar?.classList.toggle("off", !main);
+        const show = shown && main && !document.querySelector(".mj-zoom") && visible < H * 0.97;
         if (!show) {
           centerBtn.hidden = true;
           return;
@@ -734,15 +742,28 @@ export function MobileJourney({
     startRef.current = () => {
       if (scroller) scrollY(scroller, trackTop(), !reduce);
     };
-    if (__DEV__)
+    let devGo = 0;
+    if (__DEV__) {
       (window as unknown as { __mj?: unknown }).__mj = {
         go: goRef.current,
         step,
         page: () => cur,
         units: () => els.length,
       };
+      // ?mj=<page> opens that page and ?mjqa=notext,noglass strips text / glass (QA on the iOS
+      // Simulator, where no script drives Safari: blur and contrast are measured from screenshots)
+      const qs = new URLSearchParams(window.location.search);
+      const q = qs.get("mj");
+      for (const f of (qs.get("mjqa") ?? "").split(",").filter(Boolean))
+        el.classList.add(`qa-${f}`);
+      if (q !== null)
+        devGo = window.setTimeout(() => {
+          goRef.current(Number(q));
+        }, 1500);
+    }
 
     return () => {
+      window.clearTimeout(devGo);
       io.disconnect();
       endWalk();
       cancelAnimationFrame(centerRaf);
@@ -1124,26 +1145,52 @@ export function MobileJourney({
               </>
             }
           >
+            {/* AI setup, told on the phone: the handwritten price list, a scan sweep, then the
+                services fill in row by row (name, duration, price, switched on). Plays each time the
+                page opens (`.on`); reduced motion shows the finished list. Decorative: the steps
+                below carry the meaning. */}
             <div className="mj-sw" aria-hidden>
-              <div className="paper">
-                <em>{t("flow.switch.from")}</em>
-                {swList.map((l) => (
-                  <span key={l}>{l}</span>
-                ))}
+              <div className="ai">
+                <i>{SPARK}</i>
+                <b>{t("flow.switch.ai")}</b>
+                <span className="st">
+                  <span className="s1">{t("flow.switch.reading")}</span>
+                  <span className="s2">{t("flow.switch.done")}</span>
+                </span>
+                <span className="prog">
+                  <span />
+                </span>
               </div>
-              <div className="arr">
-                <b>{ARROW_D}</b>
-                {t("flow.switch.ai")}
+              <div className="stage">
+                <div className="paper">
+                  <em>{t("flow.switch.from")}</em>
+                  {swList.map((l) => (
+                    <span key={l}>{l}</span>
+                  ))}
+                  <span className="scan" />
+                </div>
+                <div className="win">
+                  <div className="wh">{t("flow.switch.win")}</div>
+                  {SW_ROWS.map((r, i) => (
+                    <div key={r} className="row" style={{ ["--i" as string]: i }}>
+                      <span className="sk">
+                        <span />
+                        <span />
+                      </span>
+                      <span className="val">
+                        <span className="nm">
+                          <b>{t(`flow.switch.n${r}`)}</b>
+                          <small>{t(`flow.switch.d${r}`)}</small>
+                        </span>
+                        <em>{t(`flow.switch.p${r}`)}</em>
+                        <span className="tog">
+                          <i />
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="svc">
-                {SW_ROWS.map((r, i) => (
-                  <div key={r} className="row" style={{ ["--i" as string]: i }}>
-                    <b>{t(`flow.switch.n${r}`)}</b>
-                    <em>{t(`flow.switch.p${r}`)}</em>
-                  </div>
-                ))}
-              </div>
-              <span className="done">{t("flow.switch.done")}</span>
             </div>
             <ol className="mj-steps">
               {SW_STEPS.map((k, i) => (

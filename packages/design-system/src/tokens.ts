@@ -82,8 +82,20 @@ export const motion = {
   bezier: { out: [0.2, 0.7, 0.2, 1], inOut: [0.45, 0, 0.55, 1] },
   /** RN `Animated.spring` presets. `pop` overshoots slightly: expressive only, never calm mode. */
   spring: { pop: { friction: 5, tension: 160 } },
-  /** Expressive landing story (phones): page fade, before/after wipe, walk-in, first-view hint (ms). */
-  story: { page: 240, toast: 2600, wipe: 1100, walk: 2600, hint: 4200, hintDelay: 600 },
+  /**
+   * Expressive landing story (phones): page fade, before/after wipe, walk-in, first-view hint, and the
+   * switching page's AI setup (price-list scan sweep, then one services row every `row`) (ms).
+   */
+  story: {
+    page: 240,
+    toast: 2600,
+    wipe: 1100,
+    walk: 2600,
+    hint: 4200,
+    hintDelay: 600,
+    scan: 1300,
+    row: 180,
+  },
 } as const;
 
 /**
@@ -121,29 +133,61 @@ export const overlay = {
 } as const;
 
 /**
- * Liquid glass (mobile landing story): a light tint over a strongly blurred, saturated backdrop, a
- * bright refraction edge and an inner light. `tint` is the lightest the panel ever gets over a black
- * backdrop: ink and ink2 text on it pass AA with any photo behind (tokens.test.ts); `body`, `eyebrow`
- * and `lilac700` text must not sit directly on glass. `dark` is the viewer's glass on ink.
+ * Frosted chips (case-study zoom icon, desktop and phones) and the shared refraction edge. `dark` is the
+ * zoom viewer's glass on ink. The phone story uses `liquidGlass` below.
  */
 export const glass = {
-  /** Panel fill, top → bottom (white → paper). */
-  tintTop: "rgba(255,255,255,.84)",
-  tint: "rgba(253,250,247,.78)",
-  /** Small controls and toasts (chapter bar, zoom pill, notifications). */
+  /** Small frosted chip on a screenshot (case studies). */
   chip: "rgba(255,255,255,.80)",
-  /** Notifications over moving content (toasts): nearly opaque, so nothing behind shows through. */
-  solid: "rgba(255,255,255,.95)",
-  /** Refraction edge: bright rim fading out across the panel. */
+  /** Refraction edge: bright rim fading out across the surface. */
   edge: "rgba(255,255,255,.95)",
   edgeSoft: "rgba(255,255,255,.18)",
-  /** Inner light from the top-left. */
-  light: "rgba(255,255,255,.55)",
   dark: "rgba(255,255,255,.16)",
   darkEdge: "rgba(255,255,255,.34)",
-  blur: 32,
   blurChip: 18,
   saturate: 1.8,
+} as const;
+
+/**
+ * Liquid glass (phone landing story, iOS 26 style; owner 2026-11-05): a LOW white tint over a strongly
+ * blurred, saturated, slightly brightened backdrop, so the photo or film behind shows through as colour
+ * and shape. A 1 px specular rim on top, a gradient refraction border, an inner sheen and a faint inner
+ * shade at the bottom give it thickness.
+ *
+ * Legibility never comes from the opacity of the whole panel: text blocks sit on a local, feathered
+ * `veil` inside the glass. Panel + veil over a BLACK backdrop still gives ink / ink2 AA (tokens.test.ts);
+ * the real frames measure far higher (docs/qa/02-glass). Chips (chapter bar, pills, toasts) are a little
+ * denser because their short labels sit directly on them: ink passes AA over black. `body`, `eyebrow`
+ * and `lilac700` text must not sit on bare glass.
+ */
+export const liquidGlass = {
+  /** Panel tint, top → bottom. */
+  panelTop: "rgba(255,255,255,.34)",
+  panelBottom: "rgba(255,255,255,.22)",
+  /** Chips: chapter bar, zoom pill, center pill, toasts. */
+  chipTop: "rgba(255,255,255,.60)",
+  chipBottom: "rgba(255,255,255,.50)",
+  /** Local legibility veil behind text blocks (paper), feathered at its edges. */
+  veil: "rgba(253,250,247,.58)",
+  veilClear: "rgba(253,250,247,0)",
+  /** Wells inside the glass (Zalo pings, gains, service rows). */
+  well: "rgba(253,250,247,.76)",
+  /** Specular rim (1 px inner highlight) and the gradient refraction border. */
+  rim: "rgba(255,255,255,.92)",
+  rimSoft: "rgba(255,255,255,.30)",
+  rimClear: "rgba(255,255,255,0)",
+  /** Outer soft edge that separates the glass from light backdrops. */
+  edge: "rgba(34,16,36,.10)",
+  /** Faint inner shade at the bottom (thickness). */
+  shade: "rgba(34,16,36,.07)",
+  /** Inner sheen from the top-left. */
+  sheen: "rgba(255,255,255,.38)",
+  /** Soft halo around text on glass (legibility at glyph edges only). */
+  halo: "rgba(255,255,255,.55)",
+  blur: 30,
+  blurChip: 22,
+  saturate: 1.7,
+  brightness: 1.06,
 } as const;
 
 /** Elevation for expressive web CSS. */

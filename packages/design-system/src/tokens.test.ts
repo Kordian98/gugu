@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { color, font, glass, gradient, motion, typeScale } from "./tokens";
+import { color, font, gradient, liquidGlass, motion, typeScale } from "./tokens";
 
 const lum = (hex: string) => {
   const [r, g, b] = [1, 3, 5].map((i) => {
@@ -40,25 +40,48 @@ describe("tokens", () => {
     for (const stop of gradient.glowInk)
       expect(contrast(stop, color.canvas)).toBeGreaterThanOrEqual(4.3);
   });
-  it("ink text on liquid glass passes AA even over a black backdrop", () => {
-    // composite of the glass tint (rgba) over black
-    const over = (rgba: string) => {
-      const [r, g, b, a] = (rgba.match(/[\d.]+/g) ?? []).map(Number) as [
-        number,
-        number,
-        number,
-        number,
-      ];
-      const hex = (v: number) =>
-        Math.round(v * a)
-          .toString(16)
-          .padStart(2, "0");
-      return `#${hex(r)}${hex(g)}${hex(b)}`;
+  describe("liquid glass", () => {
+    type Rgba = [number, number, number, number];
+    const parse = (rgba: string) => (rgba.match(/[\d.]+/g) ?? []).map(Number) as Rgba;
+    /** `layers` (rgba strings, bottom → top) composited over an opaque rgb backdrop → hex. */
+    const over = (backdrop: [number, number, number], ...layers: string[]) => {
+      const out = layers
+        .map(parse)
+        .reduce<[number, number, number]>(
+          (acc, [r, g, b, a]) => [
+            r * a + acc[0] * (1 - a),
+            g * a + acc[1] * (1 - a),
+            b * a + acc[2] * (1 - a),
+          ],
+          backdrop,
+        );
+      return `#${out.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
     };
-    for (const tint of [glass.tint, glass.tintTop, glass.chip, glass.solid]) {
-      expect(contrast(color.ink, over(tint))).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(color.ink2, over(tint))).toBeGreaterThanOrEqual(4.5);
-    }
+    const black: [number, number, number] = [0, 0, 0];
+    const g = liquidGlass;
+    it("is visibly translucent (tint alpha 0.2–0.5 on panels, ≤ 0.6 on chips)", () => {
+      for (const t of [g.panelTop, g.panelBottom]) {
+        const a = parse(t)[3];
+        expect(a).toBeGreaterThanOrEqual(0.2);
+        expect(a).toBeLessThanOrEqual(0.5);
+      }
+      for (const t of [g.chipTop, g.chipBottom]) expect(parse(t)[3]).toBeLessThanOrEqual(0.6);
+    });
+    it("text on panel + veil passes AA even over a black backdrop", () => {
+      for (const p of [g.panelTop, g.panelBottom]) {
+        const bg = over(black, p, g.veil);
+        expect(contrast(color.ink, bg)).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(color.ink2, bg)).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+    it("chip labels (ink) pass AA even over a black backdrop", () => {
+      for (const c of [g.chipTop, g.chipBottom])
+        expect(contrast(color.ink, over(black, c))).toBeGreaterThanOrEqual(4.5);
+    });
+    it("text in wells passes AA over black", () => {
+      const bg = over(black, g.panelBottom, g.well);
+      expect(contrast(color.ink2, bg)).toBeGreaterThanOrEqual(4.5);
+    });
   });
   it("gradients have at least 2 stops", () => {
     for (const g of Object.values(gradient)) expect(g.length).toBeGreaterThanOrEqual(2);
