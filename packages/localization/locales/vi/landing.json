@@ -152,33 +152,119 @@
   },
   "pricing": {
     "eyebrow": "Bảng giá",
-    "priceSoon": "Giá sắp công bố",
-    "cta": "Dùng thử miễn phí",
-    "popular": "Phổ biến nhất",
-    "trial": "Gói Basic miễn phí cho mọi salon trong năm đầu tiên, sau đó {{price}}/tháng. Salon mới được dùng thử Pro 14 ngày, rồi tự chuyển về Basic miễn phí. Basic có thiết lập bằng AI từ bảng giá; trợ lý AI có từ gói Pro.",
-    "basic": {
-      "name": "Basic",
-      "tagline": "Đủ mọi thứ để vận hành một salon",
-      "items": "Lịch cả đội và khách hàng\nZalo OA: bot đặt lịch, hộp thư và nhắc lịch\nThiết lập bằng AI từ ảnh bảng giá\nBáo cáo, lương và hoa hồng\nNhân viên không giới hạn"
-    },
-    "pro": {
-      "name": "Pro",
-      "tagline": "AI làm việc cho salon của bạn",
-      "items": "Mọi thứ trong Basic, cộng thêm:\nGu · trợ lý AI cho số liệu của salon\nBáo cáo AI hằng tháng\nHạn mức AI cao hơn\n300 tin nhắn mẫu Zalo mỗi tháng (Basic: 100)"
-    },
-    "ultra": {
-      "name": "Ultra",
-      "tagline": "Cho chuỗi salon và thương hiệu đang phát triển",
-      "items": "Mọi thứ trong Pro, cộng thêm:\nNhiều chi nhánh với báo cáo tổng hợp\nPhân tích nâng cao\nHạn mức AI cao nhất\n1.000 tin nhắn mẫu Zalo mỗi tháng"
-    },
-    "basicFree": "Miễn phí năm đầu",
-    "basicThen": "sau đó {{price}}/tháng",
-    "basicCta": "Bắt đầu miễn phí",
-    "noCard": "Không cần thẻ hay thanh toán khi đăng ký.",
-    "titlePre": "Thêm giờ rảnh, thêm doanh thu. Năm đầu ",
-    "titleGlow": "miễn phí",
+    "titlePre": "Chọn gói trong ",
+    "titleGlow": "3 chạm",
     "titlePost": ".",
-    "proCta": "Dùng thử Pro 14 ngày"
+    "sub": "Trả lời nhanh, xem ngay gói hợp với salon, chi phí và phần bạn có thể tiết kiệm.",
+    "q": {
+      "team": {
+        "label": "Đội ngũ",
+        "full": "Salon của bạn có mấy người?",
+        "solo": "Mình tôi",
+        "small": "2–5 người",
+        "large": "6+ người",
+        "short": {
+          "solo": "Mình tôi",
+          "small": "2–5",
+          "large": "6+"
+        }
+      },
+      "ai": {
+        "label": "Trợ lý AI",
+        "full": "Bạn có muốn trợ lý AI trả lời về số liệu?",
+        "yes": "Có",
+        "no": "Chưa cần"
+      },
+      "multi": {
+        "label": "Cơ sở",
+        "full": "Salon có mấy cơ sở?",
+        "one": "1",
+        "many": "Nhiều"
+      }
+    },
+    "teamPhrase": {
+      "solo": "một mình bạn",
+      "small": "đội 2–5 người",
+      "large": "đội từ 6 người"
+    },
+    "why": {
+      "basic": "Với {{team}} và 1 cơ sở, Basic là đủ; chọn Pro nếu muốn trợ lý AI.",
+      "pro": "Bạn muốn trợ lý AI: Pro có Gu trả lời mọi câu hỏi về số liệu của salon.",
+      "ultra": "Nhiều cơ sở cần Ultra: báo cáo, lương và lịch gộp cho mọi chi nhánh."
+    },
+    "interval": {
+      "label": "Kỳ thanh toán",
+      "month": "Theo tháng",
+      "year": "Theo năm",
+      "yearBadge": "−2 tháng",
+      "optionA11y": "{{label}}, {{badge}}"
+    },
+    "cost": {
+      "firstYear": "Năm đầu",
+      "later": "Từ năm thứ hai",
+      "freeSub": "12 tháng miễn phí",
+      "saveYear": "tiết kiệm {{v}} (−2 tháng)",
+      "orYear": "hoặc {{price}}/năm, rẻ hơn 2 tháng",
+      "unitMonth": "/tháng",
+      "unitYear": "/năm",
+      "afterTrialLabel": "Sau 14 ngày dùng thử"
+    },
+    "save": {
+      "lead": "Bạn tiết kiệm khoảng",
+      "leadNegative": "Phí gói cao hơn phần tiết kiệm khoảng",
+      "amount": "{{v}}",
+      "unit": "mỗi tháng",
+      "sub": "sau khi đã trừ phí gói",
+      "disclaimer": "Ước tính minh hoạ, không phải tiền GuGu trả cho salon; kết quả thực tế sẽ khác.",
+      "hours": "~{{a}} giờ lễ tân + ~{{b}} giờ của chủ salon"
+    },
+    "cta": {
+      "basic": "Bắt đầu miễn phí",
+      "pro": "Dùng thử Pro 14 ngày",
+      "ultra": "Dùng thử Pro 14 ngày",
+      "ultraNote": "Ultra bắt đầu bằng 14 ngày dùng thử Pro."
+    },
+    "noCard": "Không cần thẻ hay thanh toán",
+    "compareLink": "So sánh gói",
+    "howLink": "Cách tính",
+    "close": "Đóng",
+    "compare": {
+      "title": "So sánh gói",
+      "everyPlan": "Gói nào cũng có: Zalo OA và hộp thư, lịch cả đội, lương và hoa hồng, báo cáo, nhân viên không giới hạn. Bắt đầu bằng 14 ngày dùng thử Pro, rồi tự chuyển về Basic miễn phí năm đầu. Không bao giờ tự động trừ tiền.",
+      "pick": "Xem {{plan}}",
+      "picked": "Đang xem"
+    },
+    "plan": {
+      "basic": {
+        "name": "Basic",
+        "price": "Miễn phí năm đầu, sau đó {{price}}/tháng",
+        "items": "Lịch cả đội và khách hàng\nZalo OA: bot đặt lịch, hộp thư, nhắc lịch tự động\nThiết lập bằng AI từ ảnh bảng giá\nBáo cáo, lương và hoa hồng\nNhân viên không giới hạn",
+        "highlight": "Lịch, khách, Zalo OA, lương và báo cáo"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "{{price}}/tháng",
+        "items": "Mọi thứ trong Basic, cộng thêm:\nGu · trợ lý AI trả lời về số liệu của salon\nHạn mức AI cao hơn\n300 tin nhắn mẫu Zalo mỗi tháng (Basic: 100)",
+        "highlight": "Thêm trợ lý AI Gu",
+        "soon": "Báo cáo AI hằng tháng"
+      },
+      "ultra": {
+        "name": "Ultra",
+        "price": "{{price}}/tháng",
+        "items": "Mọi thứ trong Pro, cộng thêm:\nHạn mức AI cao nhất\n1.000 tin nhắn mẫu Zalo mỗi tháng",
+        "highlight": "Nhiều cơ sở, phân tích",
+        "soon": "Nhiều cơ sở với báo cáo tổng hợp\nPhân tích nâng cao"
+      }
+    },
+    "a11y": {
+      "result": "Gợi ý: gói {{plan}}. {{why}} {{cost}}",
+      "costBasic": "Năm đầu {{free}}, từ năm thứ hai {{price}}{{unit}}.",
+      "costPaid": "Sau 14 ngày dùng thử: {{price}}{{unit}}.",
+      "resultPicked": "Đang xem gói {{plan}}. {{why}} {{cost}}"
+    },
+    "soon": "Sắp có",
+    "suggested": "Gợi ý",
+    "planSwitch": "Chọn gói"
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
@@ -514,19 +600,30 @@
     }
   },
   "roi": {
-    "title": "Salon của bạn",
-    "sub": "Chỉnh hai con số để xem gói Basic giúp bạn tiết kiệm bao nhiêu.",
+    "title": "Cách tính",
+    "intro": "Đây là giả định thận trọng, không phải số đo. Bạn có thể chỉnh các con số bên dưới.",
     "weekly": "Lịch hẹn mỗi tuần",
     "perWeek": "{{n}} / tuần",
     "price": "Giá dịch vụ trung bình",
     "less": "Giảm",
     "more": "Tăng",
-    "note": "Ước tính minh hoạ, không phải cam kết: giả định khoảng 3 phút làm việc cho mỗi lịch hẹn (xác nhận, nhắc, đổi lịch), 10% khách không đến và giảm 25% nhờ nhắc lịch (BMJ Open 2016, phòng khám). Kết quả thực tế của salon có thể khác.",
-    "save": "Tiết kiệm mỗi tháng (ước tính)",
-    "saveHours": "~{{n}} giờ",
-    "saveMoney": "giữ lại ~{{v}} doanh thu",
-    "saveSub": "nhờ bớt việc xác nhận, nhắc lịch và ít khách vắng hơn",
-    "saveNote": "Đây là ước tính thời gian bạn tiết kiệm và doanh thu bạn giữ lại nhờ ít khách vắng hơn, không phải tiền GuGu trả cho salon. Kết quả thực tế có thể khác."
+    "stepMonth": "{{weekly}} lịch/tuần × {{weeks}} tuần = ~{{n}} lịch hẹn/tháng",
+    "stepTime": "Lễ tân: × {{min}} phút xác nhận, nhắc, đổi lịch qua Zalo/điện thoại = ~{{h}} giờ",
+    "stepNoShow": "{{rate}} khách vắng × giảm {{cut}} nhờ nhắc lịch tự động = ~{{a}} lịch giữ được",
+    "stepMoney": "× {{price}} = ~{{v}} doanh thu giữ lại",
+    "stepNet": "− phí gói {{cost}}/tháng (năm đầu) = ~{{net}}",
+    "source": "Mức giảm {{cut}} thấp hơn kết quả các nghiên cứu về nhắc lịch trong y tế (BMJ Open 2016; Hasvold & Wootton 2011: khoảng 34%). Chưa tính phần giữ được nhờ không trùng lịch. Đây không phải tiền GuGu trả cho salon.",
+    "stepA11y": "{{action}}: {{label}}",
+    "stepOwner": "Chủ salon: {{staff}} nhân viên × ({{comm}} phút hoa hồng + {{pay}} phút lương) + {{tally}} phút cộng lợi nhuận tháng = ~{{h}} giờ",
+    "stepOwnerSolo": "Chủ salon: {{tally}} phút cộng lợi nhuận tháng (không có lương nhân viên) = ~{{h}} giờ",
+    "sourceOwner": "Thời gian là giả định ở mức thận trọng: khoảng 1 giờ mỗi nhân viên mỗi tháng cho hoa hồng (gom dịch vụ đã làm, áp tỉ lệ, kiểm tra), 20 phút mỗi nhân viên để lập bảng lương, 1 giờ mỗi tháng để cộng lợi nhuận bằng sổ hoặc Excel; với nhiều cơ sở, nhân viên tính trên mọi cơ sở. Số giờ không được tính thành tiền.",
+    "upliftNote": "Đã cộng thêm {{pct}} lịch hẹn: salon cần trợ lý AI thường có nhiều khách hơn (giả định). Bạn có thể chỉnh; số bạn nhập áp dụng cho mọi gói.",
+    "stepAssistant": "Trợ lý Gu: + {{min}} phút chủ salon hỏi Gu thay vì tự tìm trong báo cáo (giả định, tăng theo quy mô đội)",
+    "stepCalls": "Lịch và danh sách khách chung (Ultra): + {{locs}} cơ sở × {{min}} phút mỗi tuần bớt gọi qua lại giữa chi nhánh (giả định)",
+    "stepReports": "Báo cáo gộp (Ultra): + {{locs}} cơ sở × {{min}} phút gom sổ/Excel của từng cơ sở mỗi tháng (giả định)",
+    "stepTotals": "= ~{{desk}} giờ lễ tân + ~{{owner}} giờ của chủ salon mỗi tháng",
+    "locations": "Số cơ sở",
+    "perLocations": "{{n}} cơ sở"
   },
   "views": {
     "label": "Góc nhìn",

@@ -10,6 +10,8 @@ export const color = {
   muted: "#7A6A80",
   white: "#FFFFFF",
   line: "#EEE6E4",
+  /** Control boundaries that must reach 3:1 (WCAG 1.4.11) on white, canvas and tile: chips, steppers. */
+  lineStrong: "#8E7B8A",
   lineSoft: "#EFE8E6",
   tile: "#F7F2EE",
   tileActiveFrom: "#D9C8FD",
@@ -53,6 +55,11 @@ export const gradient = {
   glowUp: ["#6F55C9", "#B58BEA", "#F69BB3", "#F8A27C"],
   /** Two-stop lilac → pink used for big numbers and progress fills (≤ 2 headline words). */
   glowSoft: ["#A68CF6", "#F08DB4"],
+  /**
+   * Deep glow for gradient text that must stay readable: every stop ≥ 4.3:1 on canvas/white, so it
+   * passes AA for large text only (≥ 24 px, or ≥ 18.66 px bold). Never use it for body text.
+   */
+  glowInk: ["#7B5CCB", "#A0529E", "#C04F7E"],
 } as const;
 
 /** CSS linear-gradient from a gradient token. */
@@ -71,6 +78,10 @@ export const motion = {
     /** strong in-out for a before → after wipe */
     wipe: "cubic-bezier(.65,0,.35,1)",
   },
+  /** The same curves as control points, for JS animations (`Easing.bezier(...motion.bezier.out)`). */
+  bezier: { out: [0.2, 0.7, 0.2, 1], inOut: [0.45, 0, 0.55, 1] },
+  /** RN `Animated.spring` presets. `pop` overshoots slightly: expressive only, never calm mode. */
+  spring: { pop: { friction: 5, tension: 160 } },
   /** Expressive landing story (phones): page fade, before/after wipe, walk-in, first-view hint (ms). */
   story: { page: 240, toast: 2600, wipe: 1100, walk: 2600, hint: 4200, hintDelay: 600 },
 } as const;
@@ -121,6 +132,28 @@ export const shadow = {
   glow: "0 0 18px 4px rgba(169,139,235,.75)",
 } as const;
 
+
+/** Opacity tokens. */
+export const opacity = { backdrop: 0.42, disabled: 0.4 } as const;
+
+/** Elevation presets (RN shadow props; react-native-web maps them to box-shadow). Web CSS uses `shadow`. */
+export const elevation = {
+  /** Floating result / feature cards. */
+  card: {
+    shadowColor: color.lilac700,
+    shadowOpacity: 0.14,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 14 },
+  },
+  /** Selected segment, small raised controls. */
+  raised: {
+    shadowColor: color.ink,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+} as const;
+
 /** Font families registered by the app (expo-font keys = family names). */
 export const font = {
   ui: "BeVietnamPro-Regular",
@@ -132,6 +165,9 @@ export const font = {
   script: "PatrickHand-Regular",
   neon: "BarlowCondensed-Regular",
 } as const;
+
+/** Spacing scale (4 px base). Use for gaps and padding instead of ad-hoc numbers. */
+export const space = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 7: 28, 8: 32, 10: 40 } as const;
 
 export const radius = { sm: 12, md: 16, lg: 24, xl: 28, pill: 999 } as const;
 

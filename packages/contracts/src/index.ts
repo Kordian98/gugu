@@ -4,6 +4,7 @@ export * from "./common/ids";
 export * from "./health/health";
 export * from "./subscriptions/entitlements";
 export * from "./subscriptions/start-trial";
+export * from "./subscriptions/plan-prices";
 export * from "./admin/admin";
 export * from "./auth/auth";
 export * from "./auth/admin-mfa";

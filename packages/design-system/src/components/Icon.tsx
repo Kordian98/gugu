@@ -15,6 +15,7 @@ export type IconName =
   | "home"
   | "calendar"
   | "clipboard"
+  | "user"
   | "users"
   | "tag"
   | "team"
@@ -132,6 +133,12 @@ export function Icon({ name, size, color = tokens.ink, strokeWidth = 2, filled =
             {...common}
           />
           <Path d="m3.5 7 8.5 6 8.5-6" {...common} />
+        </>
+      )}
+      {name === "user" && (
+        <>
+          <Circle cx={12} cy={8} r={3.6} {...common} />
+          <Path d="M5 20c.6-3.8 3.4-6 7-6s6.4 2.2 7 6" {...common} />
         </>
       )}
       {name === "users" && (

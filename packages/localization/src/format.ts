@@ -126,3 +126,10 @@ export function formatLocalDate(date: string, locale: AppLocale): string {
 export function formatPercentPoints(points: number, locale: AppLocale): string {
   return `${new Intl.NumberFormat(tag(locale), { maximumFractionDigits: 2 }).format(points)}%`;
 }
+
+/** Plain number 1234.5 → "1.234,5" (vi) / "1,234.5" (en); up to `maxFractionDigits` decimals. */
+export function formatNumber(value: number, locale: AppLocale, maxFractionDigits = 0): string {
+  return new Intl.NumberFormat(tag(locale), { maximumFractionDigits: maxFractionDigits }).format(
+    value,
+  );
+}

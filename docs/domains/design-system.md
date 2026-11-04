@@ -46,7 +46,24 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 - **Phones (≤ 899 px):** `MobileJourney.tsx` + `MobileChat.tsx` + `mobile.css.ts` + `zoom.ts`: Instagram-style stories (tap right / left, free vertical scroll), sticky chapter bar, chats stepped by tap, phone crops with a Zoom viewer (`m-*` in `screens.ts`). Desktop never renders or receives it (ADR 0014 "Mobile").
 - **QA and metrics:** `docs/qa/02-landing-flow/README.md`, `docs/qa/02-landing-mobile/README.md`.
 
+**Tokens added earlier in 02-PRICING-ADVISOR:** `color.lineStrong` (#8E7B8A, ≥ 3:1 on white/canvas/tile for control borders), `gradient.glowInk` (every stop ≥ 4.3:1 on canvas/white: AA for large text only, never body text), `motion.bezier` (JS control points of `motion.ease`), `motion.spring.pop`, `opacity` (backdrop, disabled), `shadow` (card, raised). Contrast asserted in `tokens.test.ts`.
+
 **Tokens added (02-LANDING-FLOW):** `motion` (fast 120 · base 200 · slow 320 · deliberate 500 ms, ease out/inOut), `color.danger`/`dangerInk`/`dangerTint`, `zalo`, `paper`/`paperLine`, `sheet`/`sheetLine`, `gradient.glowSoft` + `cssGradient()`.
+
+## Landing pricing assistant (X27)
+`apps/app/features/landing/Pricing.tsx` + `pricing/` (owner 2026-11-04/05: "a buying assistant, short and fun"; hard one-screen fit).
+- **Questions** (`pricing/Questions.tsx`): three one-tap radio groups, all preselected by `DEFAULT_ANSWERS` (so every step shows its check; no "0 of 3" counter). Desktop: numbered steps on a rail with icon tiles (`pricing/Tiles.tsx`; fill + pop check when selected, hover lift, ≥ 3:1 borders). Phone: compact inline chips (`pricing/Choice.tsx`; short visible team labels keep the full accessible name). Roving tabindex + arrows/Home/End (`pricing/useRoving.ts`).
+- **Recommendation** (`pricing/model.ts`): several locations → Ultra, AI → Pro, else Basic. A "Basic · Pro · Ultra" switch on the card (radio, "Gợi ý" badge on the suggestion) shows any plan with the same inputs without changing the answers. Ultra is priced as its own plan (699,000₫/month, 6,990,000₫/year; owner 2026-11-05); its CTA is the Pro trial with one short line.
+- **Profile defaults** (`profileDefaults`): bookings/week and average price by team size; "Muốn trợ lý AI?" = Có adds 35 % bookings (assumption: such salons have more clients) and 3/4/5 h a month of owner time answered by Gu (counted on plans with the assistant only). "Nhiều cơ sở" asks nothing more: 2 locations by default (editable in "Cách tính"); bookings and staff scale with locations. Ultra-only savings (assumptions): merged reports 2 h per location a month (owner), shared calendar and client list 1 h per location a week fewer branch calls (front desk). Numbers typed in "Cách tính" replace the defaults for every plan.
+- **Savings line:** "Bạn tiết kiệm khoảng X₫ mỗi tháng · sau khi đã trừ phí gói" (revenue kept − plan fee), then one hours line "~N giờ lễ tân + ~M giờ của chủ salon" (tap → "Cách tính" breakdown; hours are never converted into ₫), then the disclaimer. Owner hours: staff × (1 h commissions + 20 min payroll) + 1 h profit tally (+ assistant time).
+- **Cost:** shared list prices (`@gugu/contracts`) and `planCost` (`@gugu/domain`); monthly/yearly segmented control. Basic: first year 0đ + from year two; Pro/Ultra: one "after the 14-day trial" cell.
+- **Honesty:** unbuilt items keep a "Sắp có" tag in the "So sánh gói" sheet only (`pricing/Soon.tsx`); price and savings are shown as for a real plan. Payroll, commissions and Insights are ungated (every plan).
+- **A11y:** one polite live summary (plan or "Đang xem" plan, why, cost); sheets are one labelled dialog, focus on Close, backdrop hidden; the pinned phone CTA sets `scroll-padding-bottom` and scrolls focused controls clear (`pricing/useFocusClearance.ts`, WCAG 2.4.11).
+- **Motion:** count-up numbers, card pop + check on plan change, a brief lilac glow on every answer tap, tile check pop; all off with reduced motion (`pricing/anim.ts`).
+- **Fit (measured, Chromium + WebKit, vi + en, every plan state):** 1440×900 and 1280×800 questions ≤ 687 px and card ≤ 797 px; 390×844 card ends ≥ 12 px above the pinned CTA; 360×640 section ≤ 843 px (under one extra screen).
+- **QA:** screenshots `docs/qa/02-pricing-advisor/`.
+
+**Tokens added (02-PRICING-ADVISOR):** `space` scale (4 px base), `color.lineStrong` (#8E7B8A, ≥ 3:1 on white/canvas/tile), `gradient.glowInk` (≥ 4.3:1; large text only), `motion.bezier`, `motion.spring.pop`, `opacity`, `shadow` (card, raised); `Icon` gains `user`. Contrast asserted in `tokens.test.ts`.
 
 ## Decisions
 - ADR 0014: landing story navigates as a book after scroll-driven doors.

@@ -8,3 +8,4 @@ export * from "./subscriptions/plan-notice";
 export * from "./payroll";
 export * from "./onboarding/starter-services";
 export * from "./onboarding/email-domains";
+export * from "./subscriptions/plan-cost";
