@@ -17,16 +17,16 @@ const PATHS: Record<GlyphName, string> = {
   check: "M4 12l5 5L20 6",
   coins: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M9 15l6-6 M9.5 9.5h.01 M14.5 14.5h.01",
   wallet: "M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H3z M3 7l12-3v3 M16 13h2",
-  export: "M12 4v11 M7 10l5 5 5-5 M5 20h14",
   bed: "M3 18V7 M3 14h18v4 M21 14v-2a3 3 0 0 0-3-3h-7v5 M6.5 11.5h.01",
-  sum: "M17 5H7l5 7-5 7h10",
   chart: "M4 20V4 M4 20h16 M8 16v-4 M12 16V9 M16 16V7",
   moon: "M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z",
-  clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 7v5l3 2",
   away: "M12 8a3 3 0 1 0-6 0 3 3 0 0 0 6 0z M3 20a6 6 0 0 1 12 0 M16 12h6 M19 9l3 3-3 3",
-  note: "M5 4h14v12l-4 4H5z M15 20v-4h4 M8 9h8 M8 13h5",
   list: "M9 6h11 M9 12h11 M9 18h11 M4 6h.01 M4 12h.01 M4 18h.01",
-  person: "M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M4 21a8 8 0 0 1 16 0",
+  bellOff: "M6 16v-5a6 6 0 0 1 9.5-4.9 M18 11v5l2 2H8 M10 21h4 M3 3l18 18",
+  board: "M4 4h16v13H4z M8 21l2-4 M16 21l-2-4 M7 8h4 M7 12h3 M14 8h3 M14 12h3",
+  walkIn: "M10 4a2 2 0 1 0 0 .01 M9 21l2-7 3 3v5 M7 12l3-4 4 2 3 3 M5 21l3-6",
+  insta:
+    "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z M17 7h.01",
 };
 
 export function Glyph({ name }: { name: GlyphName }) {

@@ -70,8 +70,8 @@ export function Flow({
     <div className="fl" ref={root}>
       <style>{FLOW_CSS}</style>
 
-      {/* Phones (≤ 899 px): vertical full-screen sections with scroll snap (ADR-0014 "Mobile"); desktop
-          keeps the book. */}
+      {/* Phones (≤ 899 px): Instagram-style stories in liquid-glass pages (ADR-0014 "Mobile");
+          desktop keeps the book. */}
       {desktop ? (
         <Journey nav={nav} desktop={desktop} width={width} reduce={reduce} />
       ) : (

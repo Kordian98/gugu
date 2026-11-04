@@ -132,6 +132,8 @@ export const glass = {
   tint: "rgba(253,250,247,.78)",
   /** Small controls and toasts (chapter bar, zoom pill, notifications). */
   chip: "rgba(255,255,255,.80)",
+  /** Notifications over moving content (toasts): nearly opaque, so nothing behind shows through. */
+  solid: "rgba(255,255,255,.95)",
   /** Refraction edge: bright rim fading out across the panel. */
   edge: "rgba(255,255,255,.95)",
   edgeSoft: "rgba(255,255,255,.18)",

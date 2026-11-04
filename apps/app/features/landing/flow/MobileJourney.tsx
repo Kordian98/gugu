@@ -12,6 +12,7 @@ import { AI_STEPS, AiViz, CLIENT_STEPS } from "./Perspectives";
 import { EarningsCard } from "./Rooms";
 import { WalkPlayer, frameUrl, type Segment } from "./sequence";
 import { StaticHero } from "./StaticHero";
+import { CUTS } from "./cuts";
 import { scrollParent } from "./timelines";
 import { openZoom } from "./zoom";
 
@@ -106,8 +107,8 @@ const FACTS: readonly Facts[] = [
 ];
 
 /**
- * One real CRM crop taken at a phone viewport (scripts/landing-screens.mjs `m-*`), shown at about 1:1;
- * a tap opens the zoom viewer (pinch / double-tap). `sizes` = the displayed width.
+ * One real CRM crop taken at a phone viewport (scripts/landing-screens.mjs `m-*`), shown at about 1:1
+ * and cut on a whole row; a tap on it (or its Zoom pill) opens the zoom viewer (pinch / double-tap).
  */
 function MShot({
   name,
@@ -130,13 +131,47 @@ function MShot({
   const src2x = Asset.fromModule(screen(locale, name2x)).uri;
   const { w, h: ph } = screenSize(locale, name);
   const srcSet = `${src2x} ${String(Math.round((w * 2) / 3))}w, ${src} ${String(w)}w`;
-  // In a story every tap on the picture turns the page; the zoom is its own button in the caption.
+  const box = useRef<HTMLSpanElement>(null);
+  // The crop ends on a whole row (CUTS): the tallest row boundary that fits max(300 px, h svh).
+  useLayoutEffect(() => {
+    const el = box.current;
+    const cuts = CUTS[locale][name];
+    if (!el) return;
+    let lastW = -1;
+    const fit = () => {
+      // react to width changes only (setting max-height must not re-trigger the observer)
+      if (el.clientWidth === lastW) return;
+      lastW = el.clientWidth;
+      const natural = (el.clientWidth * ph) / w;
+      const svh = h ? Number.parseFloat(h) : 44;
+      const max = Math.max(300, (window.innerHeight * svh) / 100);
+      if (natural <= max) {
+        el.style.maxHeight = "none";
+        return;
+      }
+      const end = [...(cuts ?? [])].reverse().find((c) => c * natural <= max);
+      el.style.maxHeight = `${String(Math.round(end ? end * natural : max))}px`;
+      el.classList.toggle("row", end !== undefined);
+    };
+    fit();
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(fit);
+    });
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [locale, name, ph, w, h]);
+  // A tap on the picture opens the zoom viewer (as its Zoom pill does); pages turn from the text.
   return (
     <figure className="mj-shot mj-in" style={h ? { ["--shot-h" as string]: h } : undefined}>
       <figcaption className="cap">
         <span>{caption}</span>
       </figcaption>
-      <span className="img">
+      <span className="img" ref={box}>
         <img
           src={src}
           srcSet={srcSet}
@@ -237,7 +272,7 @@ function DeskBefore({ onAfter, replica = false }: { onAfter: () => void; replica
       <div className="mj-ping" aria-hidden>
         <span className="z">{Z}</span>
         <span className="n">
-          {NOTES.slice(0, 2).map((k) => (
+          {NOTES.map((k) => (
             <span key={k}>
               <small>
                 {t("flow.pain.zalo")}
@@ -519,9 +554,21 @@ export function MobileJourney({
     // a tap anywhere else on the card turns the page like everywhere else.
     const INTERACTIVE = "button,a,input,select,textarea,label:not(.calc-r),[data-notap],.mj-zoom";
     const fx = el.querySelector<HTMLElement>(".mj-tapfx");
+    /** A slider's box plus 8 px: near-misses on a slider never turn the page. */
+    const nearSlider = (x: number, y: number) =>
+      Array.from(el.querySelectorAll<HTMLElement>(".mj-u.cur .calc-sl")).some((s) => {
+        const r = s.getBoundingClientRect();
+        return x > r.left - 8 && x < r.right + 8 && y > r.top - 8 && y < r.bottom + 8;
+      });
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      if (!target || target.closest(INTERACTIVE)) return;
+      if (!target || target.closest(INTERACTIVE) || nearSlider(e.clientX, e.clientY)) return;
+      // a tap on a screenshot opens it in the zoom viewer
+      const pic = target.closest(".mj-shot .img");
+      if (pic) {
+        pic.querySelector<HTMLButtonElement>(".mj-zbtn2")?.click();
+        return;
+      }
       const back = !target.closest("[data-advance]") && e.clientX < window.innerWidth / 3;
       if (fx && !reduce) {
         fx.className = `mj-tapfx ${back ? "l" : "r"}`;
@@ -543,7 +590,7 @@ export function MobileJourney({
       const dx = t0.clientX - sx;
       const dy = t0.clientY - sy;
       const target = e.target as HTMLElement | null;
-      if (target?.closest(INTERACTIVE)) return;
+      if (target?.closest(INTERACTIVE) || nearSlider(sx, sy)) return;
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6) step(dx < 0 ? 1 : -1);
     };
     // ← / → while the story is on screen
@@ -590,51 +637,36 @@ export function MobileJourney({
     // on <body>, as desktop: above every stacking context of the page
     document.body.append(centerBtn);
     /**
-     * Boxes of what a visitor reads or taps on screen: text lines, controls and pictures (not
-     * backdrops). Collected from a coarse hit grid, then measured exactly.
+     * Boxes of what a visitor reads or taps: a known list (the current story page's text, controls and
+     * pictures, the hero copy, the free-year band and pricing), measured once per settled scroll. A
+     * box still revealing (`.rv` not yet in) is widened by its 40 px travel.
      */
-    const CTRL = "button,a,input,select,textarea,label,img,svg,output,[role='button']";
+    const CONTENT = [
+      ".mj-u.cur :is(h1,h2,h3,p,li,button,a,img,.mj-tag,.mj-eye,.mj-stat,.mj-ping,.mj-gain,.mj-toast,.calc-sl,.calc-out,.calc-year,.mc-msg,.mc-copy,.mc-input)",
+      ".mj-bar",
+      ".jr-static :is(h1,p,button,a,.jr-plaque)",
+      "#fl-free :is(.fl-eye,h2,p,button)",
+      "[data-testid='pricing-section'] :is([dir='auto'],[role='button'],[role='radio'])",
+    ].join(",");
     const contentBoxes = () => {
-      const W = window.innerWidth;
       const H = window.innerHeight;
-      const hits = new Set<Element>();
-      for (let y = 72; y < H; y += 10)
-        for (let x = 4; x < W; x += 12) {
-          const e = document
-            .elementsFromPoint(x, y)
-            .find((n) => n !== centerBtn && !centerBtn.contains(n));
-          // backdrops: page photos and walks, the hero's door scene
-          if (e && !e.closest(".mj-bg,.jr-frame")) hits.add(e);
-        }
       const boxes: DOMRect[] = [];
-      const range = document.createRange();
-      hits.forEach((e) => {
-        const ctl = e.closest(CTRL);
-        if (ctl) {
-          boxes.push(ctl.getBoundingClientRect());
-          return;
-        }
-        e.childNodes.forEach((n) => {
-          if (n.nodeType !== Node.TEXT_NODE || (n.textContent ?? "").trim() === "") return;
-          range.selectNodeContents(n);
-          boxes.push(...Array.from(range.getClientRects()));
-        });
+      document.querySelectorAll<HTMLElement>(CONTENT).forEach((e) => {
+        const r = e.getBoundingClientRect();
+        if (r.width === 0 || r.bottom < 0 || r.top > H) return;
+        const moving = e.closest(".rv:not(.in)") ? 40 : 0;
+        boxes.push(new DOMRect(r.left, r.top - moving, r.width, r.height + 2 * moving));
       });
       return boxes;
     };
     let centerRaf = 0;
     let settle = 0;
-    let settleLate = 0;
     const placeCenter = () => {
       // re-check once scrolling and the reveal transitions underneath have settled
       window.clearTimeout(settle);
-      window.clearTimeout(settleLate);
       settle = window.setTimeout(() => {
         placeNow(true);
-      }, 250);
-      settleLate = window.setTimeout(() => {
-        placeNow(true);
-      }, 1100);
+      }, 400);
       placeNow(false);
     };
     const placeNow = (search: boolean) => {
@@ -715,7 +747,6 @@ export function MobileJourney({
       endWalk();
       cancelAnimationFrame(centerRaf);
       window.clearTimeout(settle);
-      window.clearTimeout(settleLate);
       scroller?.removeEventListener("scroll", placeCenter);
       centerBtn.remove();
       track?.removeEventListener("click", onClick);
@@ -841,13 +872,6 @@ export function MobileJourney({
             <div className="mj-bg">
               <Still k="calm" />
             </div>
-            <div className="mj-toast later" role="status">
-              <i aria-hidden>{CHECK}</i>
-              <span>
-                <small>{t("flow.pain.zalo")}</small>
-                {t("flow.ba.booked")}
-              </span>
-            </div>
             <Card
               head={
                 <>
@@ -869,6 +893,13 @@ export function MobileJourney({
                 ))}
               </div>
               <p className="mj-small">{t("flow.pain.src")}</p>
+              <div className="mj-toast later" role="status">
+                <i aria-hidden>{CHECK}</i>
+                <span>
+                  <small>{t("flow.pain.zalo")}</small>
+                  {t("flow.ba.booked")}
+                </span>
+              </div>
             </Card>
           </div>
           <span className="mj-edge" aria-hidden />
@@ -932,7 +963,7 @@ export function MobileJourney({
                 caption={sh(`flow.features.${f.label}`)}
                 call={sh(`flow.features.${f.call}`)}
                 reduce={reduce}
-                h="36svh"
+                h="42svh"
               />
             </Card>
           </section>
@@ -1037,7 +1068,7 @@ export function MobileJourney({
               name2x="mInsights2x"
               caption={t("flow.insights.shot")}
               reduce={reduce}
-              h="34svh"
+              h="40svh"
             />
           </Card>
         </section>
@@ -1072,7 +1103,7 @@ export function MobileJourney({
               name2x="mPayroll2x"
               caption={t("flow.payroll.shot")}
               reduce={reduce}
-              h="32svh"
+              h="44svh"
             />
           </Card>
         </section>

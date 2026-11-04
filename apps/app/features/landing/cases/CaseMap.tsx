@@ -5,63 +5,77 @@ import { Glyph } from "./Glyph";
 
 type T = (k: string, o?: Record<string, unknown>) => string;
 
-/** The tangle (positions in % of the map, tilt) and its crossing wires (320 × 200 viewBox). */
-const TANGLE = [
-  { x: 22, y: 26, r: -4 },
-  { x: 76, y: 22, r: 3 },
-  { x: 26, y: 76, r: 2 },
-  { x: 74, y: 80, r: -3 },
-] as const;
-/** Crossing wires between the notes, in % of the map: [from, control 1, control 2, to] (x, y). */
-const WIRES = [
-  [22, 26, 56, 85, 41, 10, 74, 80],
-  [76, 22, 38, 40, 62, 95, 26, 76],
-  [22, 26, 47, 50, 53, 0, 76, 22],
-  [26, 76, 53, 45, 50, 105, 74, 80],
-  [22, 26, 6, 55, 38, 50, 26, 76],
-  [76, 22, 94, 50, 62, 60, 74, 80],
-] as const;
-const wire = (w: readonly number[], W: number, H: number) => {
-  const p = (i: number) =>
-    `${(((w[i] ?? 0) * W) / 100).toFixed(1)} ${(((w[i + 1] ?? 0) * H) / 100).toFixed(1)}`;
-  return `M${p(0)} C ${p(2)}, ${p(4)}, ${p(6)}`;
-};
-/** The GuGu Studio flow: four nodes left → right (x in %), arrows between the discs. */
+/** Map box (viewBox = the CSS aspect ratio of `.cx-dia`): taller on phones for 14 px labels. */
+const MAP_W = 320;
+const MAP_H = { d: 180, m: 300 } as const;
+/** The GuGu Studio flow: four nodes left → right (x in %), at `FLOW_Y` of the height. */
 const FLOW_X = [12.5, 37.5, 62.5, 87.5] as const;
+const FLOW_Y = { d: 0.4, m: 0.34 } as const;
+const ARROW = "→";
+const WARN = "!";
+
 const arrow = (i: number, y: number) => {
   const a = ((FLOW_X[i] ?? 0) / 100) * MAP_W + 26;
   const b = ((FLOW_X[i + 1] ?? 0) / 100) * MAP_W - 26;
   return `M${String(a)} ${String(y)} H${String(b)} M${String(b - 5)} ${String(y - 5)} L${String(b)} ${String(y)} L${String(b - 5)} ${String(y + 5)}`;
 };
-/** Map box (viewBox = CSS aspect ratio): wider on desktop; the flow sits at `FLOW_Y` of the height. */
-const MAP_W = 320;
-const MAP_H = { d: 150, m: 200 } as const;
-const FLOW_Y = { d: 0.42, m: 0.4 } as const;
 
-/** Before → after map: the old tangle of tools, then the GuGu Studio flow drawing on. */
+/** A curved wire between two notes: a quadratic bend perpendicular to the line (viewBox px). */
+/** The same clamp as the CSS (`.cx-nodes.b li`): notes, and so the wire ends, stay inside the map. */
+const CLAMP = { d: { x: [19, 81], y: [12, 88] }, m: { x: [21, 79], y: [10, 90] } } as const;
+const clamp = (v: number, [lo, hi]: readonly [number, number]) => Math.min(hi, Math.max(lo, v));
+
+function wire(c: Case, i: number, H: number, mobile: boolean) {
+  const w = c.wires[i];
+  const a = w ? c.before[w.from] : undefined;
+  const b = w ? c.before[w.to] : undefined;
+  if (!w || !a || !b) return { d: "", mid: { x: 0, y: 0 }, bad: false };
+  const k = mobile ? CLAMP.m : CLAMP.d;
+  const ax = (clamp(a.x, k.x) / 100) * MAP_W;
+  const ay = (clamp(a.y, k.y) / 100) * H;
+  const bx = (clamp(b.x, k.x) / 100) * MAP_W;
+  const by = (clamp(b.y, k.y) / 100) * H;
+  const len = Math.max(1, Math.hypot(bx - ax, by - ay));
+  const cx = (ax + bx) / 2 + (-(by - ay) / len) * w.bend;
+  const cy = (ay + by) / 2 + ((bx - ax) / len) * w.bend;
+  // the curve's midpoint (t = 0.5) carries the "!" of a wire that goes wrong
+  const mid = { x: (ax + 2 * cx + bx) / 4, y: (ay + 2 * cy + by) / 4 };
+  const f = (n: number) => n.toFixed(1);
+  return {
+    d: `M${f(ax)} ${f(ay)} Q ${f(cx)} ${f(cy)}, ${f(bx)} ${f(by)}`,
+    mid,
+    bad: w.bad === true,
+  };
+}
+
+/**
+ * Before → after map of ONE salon: its own old way (paper notes joined by crawling wires; the wire
+ * where it goes wrong is solid red with a "!"), then the GuGu Studio flow that resolves each of those
+ * pains, with one line saying how. Manual only (owner, 2026-11-05): it starts on "Trước" and changes
+ * when the visitor picks "Sau" (the toggle or the "Xem sau" button); the flow draws on then.
+ */
 export function CaseMap({
   c,
   after,
   setAfter,
   mobile,
-  mapRef,
 }: {
   c: Case;
   after: boolean;
   setAfter: (v: boolean) => void;
   mobile: boolean;
-  mapRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const { t: typed } = useTranslation("landing");
   const t = typed as unknown as T;
   const H = mobile ? MAP_H.m : MAP_H.d;
   const y = (mobile ? FLOW_Y.m : FLOW_Y.d) * H;
+  const wires = c.wires.map((_, i) => wire(c, i, H, mobile));
   return (
-    <div className={`cx-map${after ? " after" : ""}`} ref={mapRef}>
+    <div className={`cx-map${after ? " after" : ""}`}>
       <div className="cx-mh">
-        <span className="cx-tags" aria-hidden>
-          <span className="cx-tag b">{t("flow.cases.before")}</span>
-          <span className="cx-tag a">{t("flow.cases.afterLong")}</span>
+        <span className="cx-mt">
+          <span className="b">{t(`flow.cases.${c.k}.mapBefore`)}</span>
+          <span className="a">{t("flow.cases.afterLong")}</span>
         </span>
         <div className="cx-tg" role="group" aria-label={t("flow.cases.mapLabel")}>
           <button
@@ -92,9 +106,19 @@ export function CaseMap({
           focusable="false"
         >
           <g className="cx-tangle">
-            {WIRES.map((w) => (
-              <path key={w.join()} d={wire(w, MAP_W, H)} />
+            {wires.map((w) => (
+              <path key={w.d} d={w.d} className={w.bad ? "bad" : undefined} />
             ))}
+            {wires
+              .filter((w) => w.bad)
+              .map((w) => (
+                <g key={`m${w.d}`} className="cx-warn">
+                  <circle cx={w.mid.x} cy={w.mid.y} r={9} />
+                  <text x={w.mid.x} y={w.mid.y + 4} textAnchor="middle">
+                    {WARN}
+                  </text>
+                </g>
+              ))}
           </g>
           <g className="cx-flow">
             {FLOW_X.slice(1).map((x, i) => (
@@ -102,19 +126,23 @@ export function CaseMap({
             ))}
           </g>
         </svg>
-        {/* labels are live text (translatable, AA); only the inactive state is hidden from AT */}
-        <ol className="cx-nodes b" aria-label={t("flow.cases.before")} aria-hidden={after}>
-          {c.before.map((g, i) => (
+        {/* labels are live text (translatable, AA); only the visible side reaches assistive tech */}
+        <ol
+          className="cx-nodes b"
+          aria-label={t(`flow.cases.${c.k}.mapBefore`)}
+          aria-hidden={after}
+        >
+          {c.before.map((n, i) => (
             <li
-              key={g + String(i)}
+              key={n.g + String(i)}
               style={{
-                left: `${String(TANGLE[i]?.x ?? 0)}%`,
-                top: `${String(TANGLE[i]?.y ?? 0)}%`,
-                ["--r" as string]: `${String(TANGLE[i]?.r ?? 0)}deg`,
+                ["--x" as string]: `${String(n.x)}%`,
+                ["--y" as string]: `${String(n.y)}%`,
+                ["--r" as string]: `${String(n.r)}deg`,
                 ["--i" as string]: i,
               }}
             >
-              <Glyph name={g} />
+              <Glyph name={n.g} />
               {t(`flow.cases.${c.k}.b${String(i + 1)}`)}
             </li>
           ))}
@@ -132,6 +160,23 @@ export function CaseMap({
             </li>
           ))}
         </ol>
+      </div>
+      {/* footer: the way into "after" until it is shown, then the line that says how it is solved */}
+      <div className="cx-mf">
+        <p className="cx-fix" aria-hidden={!after}>
+          {t(`flow.cases.${c.k}.fix`)}
+        </p>
+        <button
+          type="button"
+          className="cx-see"
+          hidden={after}
+          onClick={() => {
+            setAfter(true);
+          }}
+        >
+          {t("flow.cases.see")}
+          <i aria-hidden>{ARROW}</i>
+        </button>
       </div>
     </div>
   );

@@ -55,7 +55,7 @@ describe("tokens", () => {
           .padStart(2, "0");
       return `#${hex(r)}${hex(g)}${hex(b)}`;
     };
-    for (const tint of [glass.tint, glass.tintTop, glass.chip]) {
+    for (const tint of [glass.tint, glass.tintTop, glass.chip, glass.solid]) {
       expect(contrast(color.ink, over(tint))).toBeGreaterThanOrEqual(4.5);
       expect(contrast(color.ink2, over(tint))).toBeGreaterThanOrEqual(4.5);
     }

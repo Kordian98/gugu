@@ -99,8 +99,9 @@ First cut (same day): vertical full-screen sections with mandatory scroll snap. 
 the feel of Instagram stories, which is what ships:
 
 - **Tap right = next, tap left (left third) = back**, anywhere on the page except real controls
-  (buttons, links, a slider's own box). The earnings card is not a control: a tap on its text or empty
-  areas turns the page (owner, 2026-11-05). A clear horizontal swipe does the same; ← / → too; hidden
+  (buttons, links, a slider's box plus 8 px). The earnings card is not a control: a tap on its text or
+  empty areas turns the page (owner, 2026-11-05). A tap on a screenshot opens the zoom viewer
+  (design review, 2026-11-05). A clear horizontal swipe does the same; ← / → too; hidden
   Prev / Next buttons appear on keyboard focus and a polite live region announces the page.
 - **Vertical scrolling is ordinary page scrolling.** No snapping, no capture: a page may be taller than
   the screen (payroll on 360×640, landscape) and you read it by scrolling; you can scroll out of the story
@@ -125,10 +126,12 @@ the feel of Instagram stories, which is what ships:
   matter. Rim highlight and inner light; `glass` tokens. Text on glass is ink / ink2 only: AA over any
   backdrop (tokens.test.ts, worst case glass over black), measured ≥ 8.6:1 for ink2 over the real frames.
   The chapter bar, toasts, zoom pill and center pill use the same glass. The chevron folds the panel to
-  its title. Short phones only drop duplicates (eyebrow under a tag, second Zalo note); a long page scrolls.
+  its title. Content sits centred in the panel; screenshots end on a whole row. Short phones only drop
+  duplicates (eyebrow under a tag, extra Zalo notes); a long page scrolls. The "after" toast sits in
+  the panel under the gains, never over the headline.
 - **Screenshots:** never a shrunken desktop screen: `m-*` crops from `scripts/landing-screens.mjs` at a
   phone (390) or small-tablet (600 / 768) viewport at 3×, shown at about 1:1, srcset 2×/3×. A tap on the
-  picture turns the page like everywhere else; the caption's "Zoom" button opens a full-screen viewer
+  picture, or its "Zoom" pill (bottom-right, 12 px hit slop), opens a full-screen viewer
   (pinch 1–4×, drag, double-tap, Close / Esc / backdrop / back gesture; focus returns to the button).
 - **Perspectives:** not a phone inside the phone: a full-width Zalo chat (salon OA header, quick replies)
   with GuGu Studio toasts for what the salon's system just did; the AI chat with phone-sized visuals. The

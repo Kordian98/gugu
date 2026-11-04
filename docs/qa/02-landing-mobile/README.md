@@ -125,4 +125,5 @@ Chromium mobile and WebKit touch × 360×640, 390×844, 430×932 × vi, en: **al
 | Tap on the slider track | no page turn |
 | Tap on the card's empty right area / label row | advances one page |
 | Glass contrast (text hidden; darkest backdrop pixel inside every glass panel of pages 1–12) | ink2 ≥ 8.66:1 (Chromium), ≥ 8.07:1 (WebKit); token test: ink and ink2 pass AA even with glass over black |
+| Design review fixes (2026-11-05) | the toast never overlaps the headline; slider near-miss (+ 8 px) doesn't turn; the payroll crop ends on a whole row; a tap on a screenshot opens zoom; short panels are centred; no long task after a scroll stops with 4× CPU throttling (was ~487 ms) |
 | Horizontal overflow | none |

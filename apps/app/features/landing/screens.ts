@@ -43,6 +43,8 @@ const SCREENS = {
     mCalendar2x: require("../../assets/studio/vi/m-calendar-2x.webp") as number,
     mServices: require("../../assets/studio/vi/m-services.webp") as number,
     mServices2x: require("../../assets/studio/vi/m-services-2x.webp") as number,
+    mResources: require("../../assets/studio/vi/m-resources.webp") as number,
+    mResources2x: require("../../assets/studio/vi/m-resources-2x.webp") as number,
   },
   en: {
     overview: require("../../assets/studio/en/overview.webp") as number,
@@ -80,6 +82,8 @@ const SCREENS = {
     mCalendar2x: require("../../assets/studio/en/m-calendar-2x.webp") as number,
     mServices: require("../../assets/studio/en/m-services.webp") as number,
     mServices2x: require("../../assets/studio/en/m-services-2x.webp") as number,
+    mResources: require("../../assets/studio/en/m-resources.webp") as number,
+    mResources2x: require("../../assets/studio/en/m-resources-2x.webp") as number,
   },
 } as const;
 

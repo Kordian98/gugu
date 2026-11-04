@@ -31,6 +31,7 @@ const BLUR = `blur(${px(glass.blur)}) saturate(${String(glass.saturate)})`;
 const BLUR_CHIP = `blur(${px(glass.blurChip)}) saturate(${String(glass.saturate)})`;
 /** Liquid glass surface: tint, strong blur + saturation, a bright rim and an inner light. */
 const GLASS = `background:linear-gradient(180deg,${glass.tintTop},${glass.tint});-webkit-backdrop-filter:${BLUR};backdrop-filter:${BLUR};box-shadow:inset 0 1px 0 ${glass.edge},inset 0 0 0 1px ${glass.edgeSoft},${shadow.soft}`;
+const GLASS_SOLID = `background:${glass.solid};-webkit-backdrop-filter:blur(${px(glass.blurChip)}) saturate(${String(glass.saturate)});backdrop-filter:blur(${px(glass.blurChip)}) saturate(${String(glass.saturate)});box-shadow:inset 0 1px 0 ${glass.edge},inset 0 0 0 1px ${glass.edgeSoft},${shadow.chip}`;
 const GLASS_CHIP = `background:${glass.chip};-webkit-backdrop-filter:${BLUR_CHIP};backdrop-filter:${BLUR_CHIP};box-shadow:inset 0 1px 0 ${glass.edge},inset 0 0 0 1px ${glass.edgeSoft},${shadow.chip}`;
 /** Refraction-like rim: a 1.5 px ring that is brightest at the top-left and bottom-right corners. */
 const RIM = `content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:linear-gradient(135deg,${glass.edge},${glass.edgeSoft} 30%,${overlay.white0} 55%,${glass.edgeSoft} 78%,${glass.edge});-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none`;
@@ -91,7 +92,9 @@ export const MOBILE_CSS = `
 .mj-card{position:relative;isolation:isolate;flex:1 0 auto;display:flex;flex-direction:column;min-height:calc(100svh - var(--bar) - var(--edge) - env(safe-area-inset-bottom,0px));box-sizing:border-box;border-radius:${px(radius.xl)};padding:24px 20px 20px;${GLASS};transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE}}
 .mj-card::before{${RIM};z-index:1}
 .mj-card::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(120% 55% at 8% 0%,${glass.light},${overlay.white0} 62%);pointer-events:none;z-index:-1}
-.mj-more{display:flex;flex-direction:column;flex:1 0 auto}
+/* content sits in the optical centre of the panel, so short pages never look half empty */
+.mj-card{justify-content:center}
+.mj-more{display:flex;flex-direction:column;flex:0 0 auto}
 .mj-card.folded{flex:0 0 auto;min-height:0}
 /* text sitting directly on glass is ink / ink2 (AA over any photo) */
 .mj-card .mj-eye,.mj-card .mj-small,.mj-card .mj-stat em,.mj-card .mj-pain,.mj-card .mj-sw .arr,.mj-card .mj-sw .done{color:${color.ink2}}
@@ -111,7 +114,7 @@ export const MOBILE_CSS = `
 .mj-card.folded .mj-more{display:none}
 .mj-card .mj-h{padding-right:34px}
 .mj-fold:focus-visible,.mj-go:focus-visible,.mj-zbtn:focus-visible{outline:2px solid ${color.lilac500};outline-offset:2px}
-.mj-go{display:inline-flex;align-items:center;justify-content:center;gap:8px;align-self:flex-start;min-height:48px;padding:0 20px;margin-top:auto;border:0;border-radius:${px(radius.md)};background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:${px(ty.body)};cursor:pointer}
+.mj-go{display:inline-flex;align-items:center;justify-content:center;gap:8px;align-self:flex-start;min-height:48px;padding:0 20px;margin-top:24px;border:0;border-radius:${px(radius.md)};background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:${px(ty.body)};cursor:pointer}
 .mj-go i{font-style:normal}
 
 /* front desk */
@@ -133,26 +136,28 @@ export const MOBILE_CSS = `
 .mj-gain{display:flex;align-items:baseline;gap:10px;padding:8px 12px;border-radius:${px(radius.md)};background:${color.canvas};border:1px solid ${color.lineSoft}}
 .mj-gain b{flex:0 0 auto;min-width:3.2em;white-space:nowrap;font-family:${font.display};font-size:${px(ty.title)};line-height:1;letter-spacing:-.02em;color:${color.ink}}
 .mj-gain span{font-family:${font.ui};font-size:${px(ty.body)};line-height:1.3;color:${color.ink2}}
-.mj-toast{position:absolute;left:calc(var(--edge) + 8px);right:calc(var(--edge) + 8px);top:calc(var(--bar) + 8px);z-index:4;display:flex;gap:10px;align-items:center;box-sizing:border-box;padding:12px 14px 12px 12px;border-radius:${px(radius.md)};${GLASS_CHIP};color:${color.ink};font-family:${font.ui};font-size:${px(ty.body)};line-height:1.35;pointer-events:none}
+.mj-toast{position:relative;display:flex;gap:10px;align-items:center;box-sizing:border-box;margin-top:16px;padding:12px 14px 12px 12px;border-radius:${px(radius.md)};${GLASS_SOLID};color:${color.ink};font-family:${font.ui};font-size:${px(ty.body)};line-height:1.35;pointer-events:none}
 .mj-toast::before{${RIM}}
 .mj-toast i{flex:0 0 auto;width:26px;height:26px;border-radius:${px(radius.pill)};background:${cssGradient(gradient.glowSoft)};color:${color.ink};font-style:normal;font-family:${font.uiSemiBold};font-size:${px(ty.label)};display:flex;align-items:center;justify-content:center}
 .mj-toast small{display:block;font-size:${px(ty.micro)};color:${color.ink2}}
-.mj-s .mj-toast.later{opacity:0;visibility:hidden}
-.mj-s.on .mj-toast.later{animation:mjToast ${ms(ST.toast)} ${EASE} ${ms(ST.wipe + motion.duration.base)} both}
-@keyframes mjToast{0%{opacity:0;visibility:visible;transform:translate3d(0,-14px,0)}10%,85%{opacity:1;visibility:visible;transform:none}100%{opacity:0;visibility:hidden;transform:translate3d(0,-8px,0)}}
+.mj-s .mj-toast.later{opacity:0;transform:translate3d(0,12px,0)}
+.mj-s.on .mj-toast.later{opacity:1;transform:none;transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE};transition-delay:${ms(ST.wipe + motion.duration.base)}}
 
 /* screenshots: one focused crop; the caption's Zoom button opens the viewer */
 .mj-shot{position:relative;margin:18px 0 0;padding:0;border:1px solid ${color.lineSoft};border-radius:${px(radius.md)};background:${color.white};box-shadow:${shadow.soft};overflow:hidden;display:block;width:100%;text-align:left;font:inherit;color:inherit}
 .mj-shot .cap{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 4px 0 12px;min-height:44px;font-family:${font.uiSemiBold};font-size:${px(ty.caption)};line-height:1.3;color:${color.ink};border-bottom:1px solid ${color.lineSoft}}
-.mj-zbtn2{position:absolute;top:8px;right:8px;z-index:2;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border:0;border-radius:${px(radius.pill)};${GLASS_CHIP};font-family:${font.uiSemiBold};font-size:${px(ty.caption)};color:${color.ink};cursor:zoom-in}
+.mj-zbtn2{position:absolute;bottom:8px;right:8px;z-index:2;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border:0;border-radius:${px(radius.pill)};${GLASS_CHIP};font-family:${font.uiSemiBold};font-size:${px(ty.caption)};color:${color.ink};cursor:zoom-in}
 .mj-zbtn2::before{${RIM}}
+.mj-zbtn2::after{content:"";position:absolute;inset:-12px}
+.mj-shot .img{cursor:zoom-in}
+.mj-shot .img.row::after{display:none}
 .mj-zbtn2 i{width:12px;height:12px;border:2px solid currentColor;border-radius:${px(radius.pill)};position:relative}
 .mj-zbtn2 i::after{content:"";position:absolute;right:-5px;bottom:-5px;width:6px;height:2px;background:currentColor;transform:rotate(45deg)}
 .mj-zbtn2:focus-visible{outline:2px solid ${color.lilac700};outline-offset:2px}
 .mj-shot .img{position:relative;display:block;max-height:max(300px,var(--shot-h,44svh));overflow:hidden}
 .mj-shot .img img{display:block;width:100%;height:auto}
 .mj-shot .img::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(180deg,${overlay.white0},${color.white});pointer-events:none}
-.mj-call{position:absolute;left:10px;bottom:10px;z-index:1;display:inline-flex;align-items:center;gap:6px;max-width:calc(100% - 20px);box-sizing:border-box;padding:7px 10px;border-radius:${px(radius.sm)};background:${color.ink};color:${color.white};font-family:${font.uiMedium};font-size:${px(ty.caption)};line-height:1.25;box-shadow:${shadow.chip}}
+.mj-call{position:absolute;left:10px;bottom:10px;z-index:1;display:inline-flex;align-items:center;gap:6px;max-width:calc(100% - 132px);box-sizing:border-box;padding:7px 10px;border-radius:${px(radius.sm)};background:${color.ink};color:${color.white};font-family:${font.uiMedium};font-size:${px(ty.caption)};line-height:1.25;box-shadow:${shadow.chip}}
 .mj-call i{font-style:normal;color:${color.pink300};font-size:9px}
 
 /* facts / office pages on a soft veil */
@@ -182,7 +187,7 @@ export const MOBILE_CSS = `
 .mj .calc-sl input::-moz-range-progress{height:10px;border-radius:5px;background:${color.lilac700}}
 .mj .calc-sl input::-moz-range-thumb{width:30px;height:30px;border-radius:${px(radius.pill)};background:${color.white};border:3px solid ${color.lilac700};box-shadow:${shadow.thumb}}
 /* the value label rides above the thumb and never leaves the card */
-.mj .calc-bub{position:absolute;top:0;left:calc(var(--th) / 2 + (100% - var(--th)) * var(--k));transform:translateX(calc(var(--k) * -100%));padding:5px 10px;border-radius:${px(radius.pill)};background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:${px(ty.caption)};line-height:1.2;white-space:nowrap;font-variant-numeric:tabular-nums;pointer-events:none}
+.mj .calc-bub{position:absolute;top:0;left:calc(var(--th) / 2 + (100% - var(--th)) * var(--k));transform:translateX(calc(var(--k) * -100%));padding:5px 10px;border-radius:${px(radius.pill)};background:${color.ink};color:${color.white};font-family:${font.uiSemiBold};font-size:${px(ty.label)};line-height:1.2;white-space:nowrap;font-variant-numeric:tabular-nums;pointer-events:none}
 .mj .calc-out b{font-size:${px(ty.stat)};background:none;-webkit-background-clip:initial;background-clip:initial;color:${color.ink}}
 .mj .calc-t{font-family:${font.display};font-weight:400;font-size:clamp(28px,8vw,${px(ty.display)});line-height:1.05;letter-spacing:-.03em}
 .mj .calc-out span{font-size:${px(ty.body)}}
@@ -219,6 +224,7 @@ export const MOBILE_CSS = `
 .mc-ai .mc-pin{background:${color.canvas}}
 .mc-copy{position:relative;z-index:2;margin:4px var(--pad) 8px;padding:12px 14px;border-radius:${px(radius.md)};${GLASS_CHIP}}
 .mc-copy .mj-eye{margin-bottom:2px}
+.mc-copy .mj-eye,.mc-copy .n,.mc-copy .mc-note{color:${color.ink2}}
 .mc-stepc{display:grid}
 .mc-stepc>*{grid-area:1/1}
 .mc-ghost{visibility:hidden}
@@ -286,7 +292,7 @@ export const MOBILE_CSS = `
 .mc-privacy{margin:0;padding:0 14px 8px;background:${color.white};font-family:${font.ui};font-size:${px(ty.micro)};line-height:1.4;color:${color.body}}
 .mc-note{margin:6px 0 0;font-family:${font.ui};font-size:${px(ty.micro)};line-height:1.4;color:${color.body}}
 /* GuGu Studio toasts: what the salon's system just did (shown, then gone) */
-.mc-toast{position:absolute;left:12px;right:12px;top:66px;z-index:3;display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:${px(radius.md)};${GLASS_CHIP};color:${color.ink};font-family:${font.ui};font-size:${px(ty.body)};line-height:1.3;box-shadow:${shadow.toast};pointer-events:none;animation:mcToast ${ms(ST.toast)} ${EASE} both}
+.mc-toast{position:absolute;left:12px;right:12px;top:66px;z-index:3;display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:${px(radius.md)};${GLASS_SOLID};color:${color.ink};font-family:${font.ui};font-size:${px(ty.body)};line-height:1.3;box-shadow:${shadow.toast};pointer-events:none;animation:mcToast ${ms(ST.toast)} ${EASE} both}
 .mc-toast i{flex:0 0 auto;width:28px;height:28px;border-radius:9px;background:${cssGradient(gradient.glowSoft)};display:flex;align-items:center;justify-content:center;font-style:normal;font-family:${font.uiSemiBold};font-size:${px(ty.micro)};color:${color.ink}}
 .mc-toast small{display:block;font-size:${px(ty.micro)};color:${color.ink2}}
 .mc-toast::before{${RIM}}
@@ -311,6 +317,7 @@ export const MOBILE_CSS = `
 
 /* short phones (360×640, 375×667): a little tighter; nothing is dropped except duplicates (readable
    first; a long page scrolls) */
+@media (max-height:820px){.mj-ping .n span:nth-child(n+3){display:none}}
 @media (orientation:portrait) and (max-height:700px){
   .mj-h{font-size:clamp(28px,8vw,34px)}
   .mj-card{padding:18px 16px 16px}
@@ -340,7 +347,6 @@ export const MOBILE_CSS = `
   .mj-s.plain>.mj-card{flex:1 1 0;min-width:0;max-width:440px}
   .mj-h{font-size:${px(ty.numeral)}}
   .mj-stat b{font-size:${px(ty.display)}}
-  .mj-toast{top:auto;left:auto;right:var(--pad);bottom:12px;max-width:40%}
   .mc-pin{flex-direction:row}
   .mc-copy{flex:0 0 38%;align-self:flex-start;margin:6px 8px 8px var(--pad)}
   .mc-copy .mc-stepc p,.mc-note{display:none}
@@ -350,7 +356,8 @@ export const MOBILE_CSS = `
   .mj *,.mj *::before,.mj *::after{animation:none!important;transition:none!important}
   .mj-s .mj-in,.mj-s .mj-sw .row{opacity:1;transform:none}
   .mj-scene.a{clip-path:none}
-  .mj-s .mj-toast.later{opacity:1;visibility:visible;position:relative;top:auto;left:auto;right:auto;margin:0 0 8px}
+  .mj-s .mj-toast.later{opacity:1;transform:none}
+  .mj-center{animation:none!important;transition:none!important}
   .mj-edge{display:none}
   /* no fade-out without motion: the toast sits in the flow above the log, never over the messages */
   .mc-toast{position:relative;top:auto;left:auto;right:auto;margin:8px 12px 0;opacity:1}

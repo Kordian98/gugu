@@ -586,24 +586,25 @@
       "after": "After",
       "afterLong": "After: GuGu Studio",
       "mapLabel": "Map before or after",
-      "shotNote": "A real GuGu Studio screen, taken from the demo salon",
-      "assume": "Conservative estimate, worked out exactly as in pricing: {{weekly}} bookings a week, average price {{price}}, {{staff}} staff; 3 minutes per booking, 10% no-shows, reminders cut them by 25%. Every feature here is in the Basic plan.",
       "v": {
         "hours": "≈ {{n}} h",
         "kept": "≈ {{v}}"
       },
       "nail": {
         "type": "Nail salon · 3 technicians",
-        "name": "Hoa Mai Nails",
-        "setup": "Three technicians and one notebook at the desk. Clients message the owner's personal Zalo, and now and then two people write down the same slot for the same chair.",
-        "b1": "Personal Zalo",
-        "b2": "Desk notebook",
-        "b3": "Call-backs",
+        "name": "Bông Gòn Nails",
+        "setup": "Three technicians. Walk-ins, Zalo messages and a paper notebook at the desk; now and then two clients get the same slot for the same chair.",
+        "mapBefore": "The old way: walk-ins, Zalo, a notebook",
+        "b1": "Walk-ins",
+        "b2": "Zalo messages",
+        "b3": "Desk notebook",
         "b4": "Double-booked chair",
-        "a1": "Salon's Zalo OA",
-        "a2": "Clients pick a slot",
-        "a3": "Chair held",
-        "a4": "Auto reminders",
+        "b5": "Call-backs",
+        "a1": "Zalo OA booking",
+        "a2": "Walk-ins in the calendar",
+        "a3": "Chair and UV lamp held",
+        "a4": "24 h reminder",
+        "fix": "Messages and walk-ins land in one calendar; every slot holds its technician, chair and UV lamp, so nothing is booked twice.",
         "o1": {
           "s": "a month no longer spent messaging back and forth and copying into the notebook.",
           "f": "Zalo OA booking · team calendar"
@@ -613,25 +614,33 @@
           "f": "Zalo reminders 24 h and 2 h before"
         },
         "o3": {
-          "s": "a month the owner no longer spends adding up three technicians' commission and the profit.",
+          "s": "a month the owner no longer spends on commission, payroll for three technicians and the month's profit.",
           "f": "Pay & commissions · This month"
         },
-        "shot": "Calendar by technician"
+        "shot": "Calendar by technician · upcoming appointments · Zalo OA (illustration)",
+        "z": {
+          "msg": "Any slot for gel nails tomorrow at 10?",
+          "reply": "Yes: 10:00 with Mai. I'll hold it for you.",
+          "done": "Booked · reminder sent"
+        }
       },
       "hair": {
         "type": "Hair salon · 5 people",
         "name": "Lúa Hair",
-        "setup": "Five people on base pay plus commission per service. At month end the owner spends an evening with Excel and a calculator, then answers every message asking about pay.",
-        "b1": "Month-end Excel",
-        "b2": "Calculator",
-        "b3": "Pay questions",
-        "b4": "Booking notebook",
-        "a1": "Service done",
-        "a2": "Commission worked out",
-        "a3": "Monthly payroll",
-        "a4": "Excel, month closed",
+        "setup": "Five people. Clients message each stylist's personal Zalo, the shared calendar is a wall calendar, and at month end the owner works out commission in Excel.",
+        "mapBefore": "The old way: personal Zalo, a wall calendar, Excel",
+        "b1": "Stylist's personal Zalo",
+        "b2": "Wall calendar",
+        "b3": "Commission in Excel",
+        "b4": "Calculator",
+        "b5": "Pay questions, mistakes",
+        "a1": "Clients pick a stylist",
+        "a2": "Service done",
+        "a3": "Commission worked out",
+        "a4": "Payroll, Excel export",
+        "fix": "Every booking belongs to a stylist; a finished service adds its commission to payroll, so month end is one click.",
         "o1": {
-          "s": "a month the owner no longer spends on commission and payroll for five people.",
+          "s": "a month the owner no longer spends on commission, payroll for five people and the month's profit.",
           "f": "Pay & commissions · Excel export"
         },
         "o2": {
@@ -642,46 +651,52 @@
           "s": "revenue kept each month with about {{n}} fewer no-shows.",
           "f": "Automatic reminders"
         },
-        "shot": "Monthly payroll: commission already worked out"
+        "shot": "Calendar by stylist · monthly payroll · commission per person"
       },
       "spa": {
         "type": "Spa · 4 beds",
-        "name": "White Lotus Spa",
-        "setup": "Four beds, clients book by phone, everything goes into a notebook. This month's profit is only known once the books are added up at month end.",
+        "name": "Sen Đá Spa",
+        "setup": "Four beds. Clients book by phone, rooms are tracked on a paper board, and every night the owner adds up the day's revenue in a notebook.",
+        "mapBefore": "The old way: phone calls, a room board, a notebook",
         "b1": "Phone calls",
-        "b2": "Notebook",
+        "b2": "Paper room board",
         "b3": "Double-booked bed",
-        "b4": "Month-end sums",
+        "b4": "Notebook",
+        "b5": "Adding up at midnight",
         "a1": "Clients book",
-        "a2": "Bed held",
-        "a3": "Visit completed",
-        "a4": "This month",
+        "a2": "Bed and room held",
+        "a3": "No double bookings",
+        "a4": "This month: profit",
+        "fix": "Every treatment holds its own bed and room; revenue and estimated profit are always in This month, no adding up.",
         "o1": {
           "s": "revenue kept each month: about {{n}} fewer treatments left empty.",
           "f": "Zalo reminders 24 h and 2 h before"
         },
         "o2": {
-          "s": "a month without adding up the books: revenue and estimated profit are always there.",
-          "f": "Overview · This month"
+          "s": "a month no longer spent on commission, payroll for four therapists and the month's profit.",
+          "f": "Pay & commissions · This month"
         },
         "o3": {
           "s": "less time on the phone each month: clients book and reschedule right in Zalo.",
           "f": "Zalo OA booking · bed holds"
         },
-        "shot": "This month: revenue so far, upcoming and estimated profit"
+        "shot": "Rooms & devices · This month"
       },
       "lash": {
         "type": "Lashes & brows · 2 people",
         "name": "Nắng Lash & Brow",
-        "setup": "Two people whose hands are always busy. Clients ask for a slot at 11 pm, the reply goes out the next morning, and some have booked elsewhere by then.",
-        "b1": "11 pm messages",
-        "b2": "Late replies",
-        "b3": "Clients go elsewhere",
-        "b4": "Loose notes",
+        "setup": "Two people. Clients message on Instagram and Zalo, bookings go in a notebook, nobody has time to send reminders, so every week someone does not show up.",
+        "mapBefore": "The old way: Instagram, Zalo, a notebook",
+        "b1": "Instagram messages",
+        "b2": "Zalo messages",
+        "b3": "Notebook",
+        "b4": "Forgotten reminders",
+        "b5": "No-shows",
         "a1": "Zalo OA bot",
-        "a2": "Real free slots",
-        "a3": "One list",
-        "a4": "A person, one tap away",
+        "a2": "One list",
+        "a3": "24 h and 2 h reminders",
+        "a4": "Client confirms",
+        "fix": "Clients book through the Zalo OA bot, even at midnight; every booking sits in one list and reminders go out on their own, so clients just tap \"I'll be there\".",
         "o1": {
           "s": "a month no longer spent answering booking messages, midnight ones included.",
           "f": "Zalo OA booking bot · Zalo inbox"
@@ -691,10 +706,31 @@
           "f": "Automatic reminders"
         },
         "o3": {
-          "s": "a month no longer spent working out pay for two and the month's profit.",
+          "s": "a month no longer spent on commission, payroll for two and the month's profit.",
           "f": "Pay & commissions · This month"
         },
-        "shot": "Appointments: every booking in one list"
+        "shot": "Zalo OA (illustration) · appointment list",
+        "z": {
+          "msg": "Any lash slot left tonight?",
+          "reply": "Tomorrow 9:30 is free. Tap to hold it.",
+          "done": "Booked at 23:05 · reminder 24 h before"
+        }
+      },
+      "see": "See it with GuGu Studio",
+      "zaloOa": "OA",
+      "zaloTag": "Illustration of the salon's Zalo OA",
+      "shotNote": "Real GuGu Studio screenshots (demo salon); the Zalo card is an illustration.",
+      "assume": "Conservative estimate, worked out exactly as in pricing: {{weekly}} bookings a week, average price {{price}}, {{staff}} staff; {{minutes}} minutes of confirming and reminding per booking, {{noShow}} no-shows, reminders cut them by {{cut}}; the owner spends {{commission}} minutes on commission and {{payroll}} minutes on payroll per staff member, plus {{profit}} minutes on the month's profit. Every feature here is in the Basic plan.",
+      "alt": {
+        "calendarCrop": "Calendar by team member",
+        "mCalendar": "Calendar by team member",
+        "upcoming": "Upcoming confirmed appointments",
+        "payrollMonth": "Monthly payroll: to pay, base pay and commission",
+        "mPayroll": "Monthly payroll: to pay, still expected, real cost",
+        "payrollPerson": "One stylist's commission and pay this month",
+        "mResources": "Shared rooms, beds and devices",
+        "mMonth": "This month: revenue so far, upcoming and estimated profit",
+        "mAppointments": "The day's appointment list"
       }
     }
   },

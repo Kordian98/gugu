@@ -1,58 +1,21 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 
-import { formatNumber, formatVND } from "@gugu/localization";
+import { formatNumber, formatPercentPoints, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { CASES_CSS, MAP_HOLD_MS } from "./cases.css";
+import { ASSUMPTIONS } from "../pricing/model";
+import { CASES_CSS } from "./cases.css";
 import { CASES, caseEstimate, metricValue, type Case, type Metric } from "./data";
 import { CaseMap } from "./CaseMap";
-import { Shot } from "./Shot";
+import { Stack } from "./Stack";
 
 type T = (k: string, o?: Record<string, unknown>) => string;
 
 const PREV = "‹";
 const NEXT = "›";
 const INFO = "i";
-
-/**
- * Plays the map when the story is shown and on screen: the tangle for a moment, then the flow.
- * Replays on every story switch; reduced motion shows the flow at once.
- */
-function useMapPlayer(active: boolean, reduce: boolean, root: React.RefObject<HTMLElement | null>) {
-  const [after, setAfter] = useState(reduce);
-  useEffect(() => {
-    if (!active) return;
-    const el = root.current;
-    let timer = 0;
-    if (reduce || !el) {
-      timer = window.setTimeout(() => {
-        setAfter(true);
-      }, 0);
-      return () => {
-        window.clearTimeout(timer);
-      };
-    }
-    const io = new IntersectionObserver(
-      (es) => {
-        if (!es.some((x) => x.isIntersecting)) return;
-        io.disconnect();
-        setAfter(false);
-        timer = window.setTimeout(() => {
-          setAfter(true);
-        }, MAP_HOLD_MS);
-      },
-      { threshold: 0.6 },
-    );
-    io.observe(el);
-    return () => {
-      io.disconnect();
-      window.clearTimeout(timer);
-    };
-  }, [active, reduce, root]);
-  return [after, setAfter] as const;
-}
 
 function Outcome({ c, m, i }: { c: Case; m: Metric; i: number }) {
   const { t: typed } = useTranslation("landing");
@@ -94,9 +57,10 @@ function Story({
   const { t: typed } = useTranslation("landing");
   const t = typed as unknown as T;
   const locale = useLocale();
-  const map = useRef<HTMLDivElement>(null);
-  const [after, setAfter] = useMapPlayer(active, reduce, map);
-  const hidden = !mobile && !active;
+  // manual only: "Trước" first, "Sau" when the visitor asks for it (owner, 2026-11-05)
+  const [after, setAfter] = useState(false);
+  // desktop: inactive panels; phones: the slides off screen once the snap has settled
+  const hidden = !active;
   return (
     <article
       id={`cx-${c.k}`}
@@ -113,16 +77,16 @@ function Story({
           }
         : { role: "tabpanel", "aria-labelledby": `cx-tab-${c.k}` })}
       aria-hidden={hidden}
-      // inactive desktop panels are out of the tab order and the accessibility tree
+      // hidden panels and off-screen slides are out of the tab order and the accessibility tree
       {...(hidden ? { inert: true } : {})}
     >
       <div className="cx-text">
         <span className="cx-type">{t(`flow.cases.${c.k}.type`)}</span>
         <h3 className="cx-name">{t(`flow.cases.${c.k}.name`)}</h3>
         <p className="cx-setup">{t(`flow.cases.${c.k}.setup`)}</p>
-        <CaseMap c={c} after={after} setAfter={setAfter} mobile={mobile} mapRef={map} />
+        <CaseMap c={c} after={after} setAfter={setAfter} mobile={mobile} />
       </div>
-      <Shot c={c} mobile={mobile} />
+      <Stack c={c} active={active} mobile={mobile} reduce={reduce} />
       <ul className="cx-outs">
         {c.outcomes.map((m, k) => (
           <Outcome key={m} c={c} m={m} i={k} />
@@ -133,6 +97,12 @@ function Story({
           weekly: formatNumber(c.weekly, locale),
           price: formatVND(c.price, locale),
           staff: formatNumber(c.staff, locale),
+          minutes: formatNumber(ASSUMPTIONS.minutesPerBooking, locale),
+          noShow: formatPercentPoints(ASSUMPTIONS.noShowRate * 100, locale),
+          cut: formatPercentPoints(ASSUMPTIONS.reminderCut * 100, locale),
+          commission: formatNumber(ASSUMPTIONS.commissionMinutesPerStaff, locale),
+          payroll: formatNumber(ASSUMPTIONS.payrollMinutesPerStaff, locale),
+          profit: formatNumber(ASSUMPTIONS.profitTallyMinutes, locale),
         })}
       </p>
     </article>
@@ -140,12 +110,12 @@ function Story({
 }
 
 /**
- * Case studies (owner, 2026-11-04), in place of the business-type tiles, after pricing: four
- * ILLUSTRATIVE salons (fictional names, hypothetical figures, labelled as such; no photos of people
- * presented as customers, no quotes). Each: the old way, a before → after map, three outcomes naming
- * the feature behind each (numbers from the pricing model's `estimate()`), one real CRM crop of the demo
- * salon. Desktop: tabs (← → Home End). Phones: a swipe carousel, one story per screen, with pills and a
- * pager. Web only (DOM + CSS); native keeps the business tiles.
+ * Case studies (owner, 2026-11-04/05), after pricing: four ILLUSTRATIVE salons (invented names,
+ * hypothetical figures, labelled as such; no photos of people presented as customers, no quotes).
+ * Each: its old way, its own before → after map (manual), three outcomes naming the feature behind
+ * each (numbers from the pricing model's `estimate()`), and a stack of real CRM screens of exactly
+ * those features. Desktop: tabs (← → Home End). Phones: a swipe carousel, one story per screen, with
+ * pills and a pager. Web only (DOM + CSS); native keeps the business tiles.
  */
 export function CaseStudies({ reduce, desktop }: { reduce: boolean; desktop: boolean }) {
   const { t: typed } = useTranslation("landing");
@@ -211,14 +181,16 @@ export function CaseStudies({ reduce, desktop }: { reduce: boolean; desktop: boo
     slideTo(to);
     tabs.current[to]?.focus();
   };
-  // phones: the carousel position picks the story once a swipe settles
+  // phones: the carousel position picks the story once a swipe has settled on a snap point
   const raf = useRef(0);
   const onScroll = () => {
     cancelAnimationFrame(raf.current);
     raf.current = requestAnimationFrame(() => {
       const el = panels.current;
       if (!el || !mobile) return;
-      const i = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
+      const w = Math.max(1, el.clientWidth);
+      const i = Math.round(el.scrollLeft / w);
+      if (Math.abs(el.scrollLeft - i * w) > 2) return;
       if (i !== cur && i >= 0 && i < CASES.length) setCur(i);
     });
   };
