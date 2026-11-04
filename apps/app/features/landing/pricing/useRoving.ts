@@ -7,7 +7,7 @@ const STEP: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -
 
 /**
  * Roving tabindex for a radio group (WAI-ARIA APG): only the checked option is in the tab order;
- * arrow keys move the selection and the focus. Web keyboard only; native ignores the props.
+ * arrow keys (and Home/End) move the selection and the focus. Web keyboard only; native ignores the props.
  * Spread the result of `props(i)` on option `i`.
  */
 export function useRoving<T extends string>(
@@ -23,10 +23,18 @@ export function useRoving<T extends string>(
       },
       tabIndex: values[i] === value ? 0 : -1,
       onKeyDown: (e: KeyEvent) => {
+        const last = values.length - 1;
         const d = STEP[e.key];
-        if (d === undefined) return;
+        const n =
+          e.key === "Home"
+            ? 0
+            : e.key === "End"
+              ? last
+              : d === undefined
+                ? -1
+                : (i + d + values.length) % values.length;
+        if (n < 0) return;
         e.preventDefault();
-        const n = (i + d + values.length) % values.length;
         const next = values[n];
         if (next === undefined) return;
         onChange(next);

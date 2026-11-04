@@ -3,16 +3,12 @@ import { Animated, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { PUBLIC_PLANS, type BillingInterval, type PublicPlanCode } from "@gugu/contracts";
-import { PLAN_MONTHLY_PRICE_VND, planPriceVnd } from "@gugu/contracts";
 import { Icon, Text, color, radius, shadow } from "@gugu/design-system";
-import { formatVND } from "@gugu/localization";
-
-import { useLocale } from "@/services/i18n/useLocale";
 
 import { Segmented } from "./Choice";
 import type { Advice } from "./model";
 import { LinkChip, OtherPlan } from "./links";
-import { CostRow, Savings, usePop } from "./parts";
+import { CostRow, Savings, usePop, useSummary } from "./parts";
 
 /** Visually hidden but read by screen readers. */
 const SR_ONLY = {
@@ -54,21 +50,8 @@ export function ResultCard({
   const { t } = useTranslation("landing");
   const { plan } = advice;
   const { scale, check } = usePop(plan, reduce);
-  const locale = useLocale();
   const name = t(`pricing.plan.${plan}.name`);
-  const unit = t(interval === "month" ? "pricing.cost.unitMonth" : "pricing.cost.unitYear");
-  const price = formatVND(
-    interval === "month" ? PLAN_MONTHLY_PRICE_VND[plan] : planPriceVnd(plan, "year"),
-    locale,
-  );
-  const summary = t("pricing.a11y.result", {
-    plan: name,
-    why,
-    cost: t(plan === "basic" ? "pricing.a11y.costBasic" : "pricing.a11y.costPaid", {
-      price,
-      unit,
-    }),
-  });
+  const summary = useSummary(advice, interval, name, why);
   const links = (
     <>
       <LinkChip
@@ -85,8 +68,8 @@ export function ResultCard({
       testID="pricing-result"
       style={{
         transform: [{ scale }],
-        gap: desktop ? 12 : 10,
-        padding: desktop ? 24 : 14,
+        gap: desktop ? 12 : 8,
+        padding: desktop ? 24 : 12,
         borderRadius: desktop ? radius.xl : radius.lg,
         backgroundColor: color.white,
         borderWidth: 1,

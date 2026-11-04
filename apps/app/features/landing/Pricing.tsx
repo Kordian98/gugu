@@ -106,6 +106,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
         options={TEAMS.map((v) => ({
           value: v,
           label: desktop ? t(`pricing.q.team.${v}`) : t(`pricing.q.team.short.${v}`),
+          a11yLabel: t(`pricing.q.team.${v}`),
         }))}
       />
       <ChoiceRow

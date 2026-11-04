@@ -55,7 +55,10 @@ export const gradient = {
   glowUp: ["#6F55C9", "#B58BEA", "#F69BB3", "#F8A27C"],
   /** Two-stop lilac → pink used for big numbers and progress fills (≤ 2 headline words). */
   glowSoft: ["#A68CF6", "#F08DB4"],
-  /** Deep glow for gradient text that must stay readable (every stop ≥ 4.3:1 on canvas/white). */
+  /**
+   * Deep glow for gradient text that must stay readable: every stop ≥ 4.3:1 on canvas/white, so it
+   * passes AA for large text only (≥ 24 px, or ≥ 18.66 px bold). Never use it for body text.
+   */
   glowInk: ["#7B5CCB", "#A0529E", "#C04F7E"],
 } as const;
 
@@ -83,14 +86,14 @@ export const opacity = { backdrop: 0.42, disabled: 0.4 } as const;
 export const shadow = {
   /** Floating result / feature cards. */
   card: {
-    shadowColor: "#7B5CCB",
+    shadowColor: color.lilac700,
     shadowOpacity: 0.14,
     shadowRadius: 30,
     shadowOffset: { width: 0, height: 14 },
   },
   /** Selected segment, small raised controls. */
   raised: {
-    shadowColor: "#221024",
+    shadowColor: color.ink,
     shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },

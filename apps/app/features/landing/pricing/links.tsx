@@ -47,7 +47,7 @@ export function OtherPlan({
       </View>
       <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
         <View style={{ flexShrink: 1 }}>
-          <Text size={13} lineHeight={18} color={color.body} numberOfLines={1}>
+          <Text size={13} lineHeight={18} color={color.body} numberOfLines={2}>
             {t(`pricing.plan.${plan}.highlight`)}
           </Text>
         </View>

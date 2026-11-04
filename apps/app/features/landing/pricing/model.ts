@@ -66,8 +66,18 @@ export function estimate(weekly: number, price: number): Estimate {
   };
 }
 
+/**
+ * The plan a visitor actually starts on and pays for. Ultra's multi-location features are not built
+ * yet (q106), so an Ultra recommendation starts on Pro and is billed as Pro until they ship.
+ */
+export function billedPlan(plan: PublicPlanCode): PublicPlanCode {
+  return plan === "ultra" ? "pro" : plan;
+}
+
 export type Advice = {
   plan: PublicPlanCode;
+  /** What is billed today (`billedPlan`); `cost` is for this plan. */
+  billed: PublicPlanCode;
   estimate: Estimate;
   cost: ReturnType<typeof planCost>;
   /** Revenue kept minus the plan's monthly cost in the first year (may be negative). */
@@ -83,9 +93,11 @@ export function advise(
   price: number,
 ): Advice {
   const e = estimate(weekly, price);
-  const cost = planCost(plan, interval);
+  const billed = billedPlan(plan);
+  const cost = planCost(billed, interval);
   return {
     plan,
+    billed,
     estimate: e,
     cost,
     netFirstYearPerMonthVnd: e.keptVnd - cost.firstYearPerMonthVnd,

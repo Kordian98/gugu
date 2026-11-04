@@ -209,7 +209,8 @@
       "orYear": "hoặc {{price}}/năm, rẻ hơn 2 tháng",
       "unitMonth": "/tháng",
       "unitYear": "/năm",
-      "afterTrialLabel": "Sau 14 ngày dùng thử"
+      "afterTrialLabel": "Sau 14 ngày dùng thử",
+      "ultraLater": "Ultra từ {{price}}/tháng khi đủ tính năng nhiều cơ sở"
     },
     "save": {
       "label": "Ước tính mỗi tháng, sau phí gói",
@@ -253,14 +254,15 @@
         "name": "Ultra",
         "price": "{{price}}/tháng",
         "items": "Mọi thứ trong Pro, cộng thêm:\nHạn mức AI cao nhất\n1.000 tin nhắn mẫu Zalo mỗi tháng",
-        "highlight": "Nhiều cơ sở, phân tích nâng cao",
+        "highlight": "Nhiều cơ sở, phân tích",
         "soon": "Nhiều cơ sở với báo cáo tổng hợp\nPhân tích nâng cao"
       }
     },
     "a11y": {
       "result": "Gợi ý: gói {{plan}}. {{why}} {{cost}}",
-      "costBasic": "Năm đầu 0đ, từ năm thứ hai {{price}}{{unit}}.",
-      "costPaid": "Sau 14 ngày dùng thử: {{price}}{{unit}}."
+      "costBasic": "Năm đầu {{free}}, từ năm thứ hai {{price}}{{unit}}.",
+      "costPaid": "Sau 14 ngày dùng thử: {{price}}{{unit}}.",
+      "costUltra": "Sau 14 ngày dùng thử, bạn dùng Pro: {{price}}{{unit}}. {{ultra}}."
     },
     "others": "Gói khác",
     "soon": "Sắp có"

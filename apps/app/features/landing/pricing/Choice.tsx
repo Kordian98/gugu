@@ -5,7 +5,12 @@ import { MIN_TOUCH, Text, checkableA11y, color, radius, shadow } from "@gugu/des
 
 import { useRoving } from "./useRoving";
 
-export type ChoiceOption<T extends string> = { value: T; label: string };
+export type ChoiceOption<T extends string> = {
+  value: T;
+  label: string;
+  /** Full accessible name when the visible label is shortened (e.g. "2–5" → "2–5 người"). */
+  a11yLabel?: string;
+};
 
 /**
  * One quick question: a short visible label and big one-tap chips (radio group, roving tabindex +
@@ -46,7 +51,7 @@ export function ChoiceRow<T extends string>({
         gap: 10,
       }}
     >
-      <View style={inline ? { width: 64 } : undefined}>
+      <View style={inline ? { width: 76 } : undefined}>
         <Text role="uiSemiBold" size={inline ? 13 : 15} color={color.ink2}>
           {label}
         </Text>
@@ -56,6 +61,7 @@ export function ChoiceRow<T extends string>({
           <Chip
             key={o.value}
             label={o.label}
+            a11yLabel={o.a11yLabel ?? o.label}
             selected={o.value === value}
             onPress={() => {
               onChange(o.value);
@@ -72,6 +78,7 @@ export function ChoiceRow<T extends string>({
 
 function Chip({
   label,
+  a11yLabel,
   selected,
   onPress,
   grow,
@@ -79,6 +86,7 @@ function Chip({
   roving,
 }: {
   label: string;
+  a11yLabel: string;
   selected: boolean;
   onPress: () => void;
   grow: boolean;
@@ -89,7 +97,7 @@ function Chip({
     <Pressable
       {...roving}
       {...checkableA11y("radio", selected)}
-      accessibilityLabel={label}
+      accessibilityLabel={a11yLabel}
       onPress={onPress}
       style={(state): ViewStyle => {
         const hovered = (state as { hovered?: boolean }).hovered === true;

@@ -28,4 +28,12 @@ describe("pricing assistant model", () => {
     expect(pro.cost.firstYearVnd).toBe(2_990_000);
     expect(pro.netFirstYearPerMonthVnd).toBe(2_273_000 - 249_167);
   });
+
+  it("Ultra starts on Pro and is costed as Pro until multi-location ships (q106)", () => {
+    const ultra = advise("ultra", "month", 70, 300_000);
+    expect(ultra.plan).toBe("ultra");
+    expect(ultra.billed).toBe("pro");
+    expect(ultra.cost.laterPeriodVnd).toBe(299_000);
+    expect(ultra.netFirstYearPerMonthVnd).toBe(2_273_000 - 299_000);
+  });
 });

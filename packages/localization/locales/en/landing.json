@@ -209,7 +209,8 @@
       "orYear": "or {{price}}/year, 2 months free",
       "unitMonth": "/month",
       "unitYear": "/year",
-      "afterTrialLabel": "After the 14-day trial"
+      "afterTrialLabel": "After the 14-day trial",
+      "ultraLater": "Ultra from {{price}}/month once multi-location is available"
     },
     "save": {
       "label": "Estimate per month, after the plan",
@@ -253,14 +254,15 @@
         "name": "Ultra",
         "price": "{{price}}/month",
         "items": "Everything in Pro, plus:\nHighest AI limit\n1,000 Zalo template messages a month",
-        "highlight": "Several locations, advanced analytics",
+        "highlight": "Multi-location, analytics",
         "soon": "Several locations with combined reporting\nAdvanced analytics"
       }
     },
     "a11y": {
       "result": "Suggested: {{plan}}. {{why}} {{cost}}",
-      "costBasic": "First year 0đ, from year two {{price}}{{unit}}.",
-      "costPaid": "After the 14-day trial: {{price}}{{unit}}."
+      "costBasic": "First year {{free}}, from year two {{price}}{{unit}}.",
+      "costPaid": "After the 14-day trial: {{price}}{{unit}}.",
+      "costUltra": "After the 14-day trial you are on Pro: {{price}}{{unit}}. {{ultra}}."
     },
     "others": "Other plans",
     "soon": "Coming soon"

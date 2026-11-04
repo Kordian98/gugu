@@ -31,6 +31,7 @@ describe("tokens", () => {
   it("lineStrong reaches 3:1 on white (non-text contrast)", () => {
     expect(contrast(color.lineStrong, color.white)).toBeGreaterThanOrEqual(3);
     expect(contrast(color.lineStrong, color.canvas)).toBeGreaterThanOrEqual(3);
+    expect(contrast(color.lineStrong, color.tile)).toBeGreaterThanOrEqual(3);
   });
   it("glowInk stops stay readable on canvas", () => {
     for (const stop of gradient.glowInk)
