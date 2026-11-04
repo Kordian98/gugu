@@ -153,11 +153,58 @@ const vnd = (locale: string, n: number) =>
   }).format(Math.round(n / 1000) * 1000);
 
 /**
+ * A range input. Phones (`mobile`): wrapped with a filled track (`--k`, 0–1) and a value bubble above the
+ * thumb (mobile.css.ts); only this input's box is excluded from the story's tap-to-advance. Desktop:
+ * the plain input (unchanged).
+ */
+function Range({
+  mobile,
+  min,
+  max,
+  step,
+  value,
+  text,
+  onValue,
+}: {
+  mobile: boolean;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  text: string;
+  onValue: (v: number) => void;
+}) {
+  const input = (
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      {...(mobile ? { "aria-valuetext": text, "data-slider": true } : {})}
+      onChange={(e) => {
+        onValue(Number(e.target.value));
+      }}
+    />
+  );
+  if (!mobile) return input;
+  const k = (value - min) / (max - min);
+  return (
+    <span className="calc-sl" style={{ ["--k" as string]: k.toFixed(4) }}>
+      {input}
+      <output className="calc-bub" aria-hidden>
+        {text}
+      </output>
+    </span>
+  );
+}
+
+/**
  * Interactive, clearly illustrative estimate of revenue recovered from fewer no-shows:
  * bookings/week × 10% no-show × 25% fewer with reminders (BMJ Open 2016) × price × 4.33 weeks.
  * The result counts up smoothly on change (rAF tween on text only).
  */
-export function EarningsCard() {
+export function EarningsCard({ mobile = false }: { mobile?: boolean }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const [price, setPrice] = useState(350000);
@@ -192,15 +239,14 @@ export function EarningsCard() {
           {t("flow.calc.price")}
           <b>{vnd(locale, price)}</b>
         </span>
-        <input
-          type="range"
+        <Range
+          mobile={mobile}
           min={100000}
           max={1500000}
           step={50000}
           value={price}
-          onChange={(e) => {
-            setPrice(Number(e.target.value));
-          }}
+          text={vnd(locale, price)}
+          onValue={setPrice}
         />
       </label>
       <label className="calc-r">
@@ -210,15 +256,14 @@ export function EarningsCard() {
             {String(weekly)} {t("flow.calc.perWeek")}
           </b>
         </span>
-        <input
-          type="range"
+        <Range
+          mobile={mobile}
           min={20}
           max={300}
           step={10}
           value={weekly}
-          onChange={(e) => {
-            setWeekly(Number(e.target.value));
-          }}
+          text={`${String(weekly)} ${t("flow.calc.perWeek")}`}
+          onValue={setWeekly}
         />
       </label>
       <div className="calc-out">

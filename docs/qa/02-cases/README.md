@@ -45,3 +45,12 @@ The Zalo inbox capture (`zalo.webp`) is an empty "Chưa kết nối" state, so N
 
 - Desktop: `chromium-vi-1440-c{0..3}.webp` (after), `chromium-vi-1440-c0-before.webp`, `chromium-en-1280-c1.webp`, `webkit-en-1280-c2-before.webp`, `webkit-vi-1440-c3.webp`.
 - Phones: `chromium-vi-390-c0-before.webp`, `chromium-vi-390-c0.webp`, `*-390-c*-shot.webp` (phone crops), `chromium-en-360-c3*.webp`, `webkit-vi-360-c3.webp`, `webkit-en-360-c2-before.webp`.
+
+## Mobile fixes (owner, 2026-11-05)
+
+These are the liquid glass, full-screen before → after, center pill and calculator changes. Details and the full check table are in `docs/qa/02-landing-mobile/README.md` → "Liquid glass". `mfix.mjs` passes on all 12 configurations: Chromium mobile and WebKit touch × 360, 390, 430 × vi, en. The desktop stays identical (same 192-image diff). The stories behaviour test matches main, step for step, at 390 and 360 in WebKit and at 390 in Chromium.
+
+- Glass pages: `m-glass-chromium-vi-390-p{00,01,03,07,08,09,10,11}.webp`, `m-glass-webkit-en-360-p{00,01,05,08,10}.webp` (reduced motion, so final states).
+- Before → after mid-wipe and end: `m-chromium-vi-390-wipe-mid.webp`, `m-chromium-vi-390-wipe-end.webp`, `m-webkit-en-430-wipe-mid.webp`.
+- Calculator after a real drag: `m-chromium-vi-390-calc.webp`, `m-chromium-en-360-calc.webp`, `m-webkit-en-430-calc.webp`.
+- Center pill, story half below / half above: `m-chromium-vi-390-center-{below,above}.webp`, `m-webkit-vi-360-center-above.webp`.

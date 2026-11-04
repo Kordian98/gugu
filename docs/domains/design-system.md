@@ -45,6 +45,7 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 - **Section order (owner, 2026-11-04):** story → "GuGu Studio Basic" free-year band (`#fl-free`) → pricing (the buying assistant, `#pricing`) → case studies (`#fl-cases`) → final CTA → footer. The business-type tiles (`flow.biz`, `.bz`) are gone from web; native still shows `Businesses`.
 - **Stage height** = scroller `clientHeight` via `--sv` (no vh/svh/dvh mismatch inside the RN Web ScrollView).
 - **Phones (≤ 899 px):** `MobileJourney.tsx` + `MobileChat.tsx` + `mobile.css.ts` + `zoom.ts`: Instagram-style stories (tap right / left, free vertical scroll), sticky chapter bar, chats stepped by tap, phone crops with a Zoom viewer (`m-*` in `screens.ts`). Desktop never renders or receives it (ADR 0014 "Mobile").
+- **Phones, liquid glass (owner, 2026-11-05):** every page is one full-screen glass panel (headline → text → large screenshot), the photo is blurred mood behind it; chapter bar, toasts, zoom pill and the new mobile "Căn giữa câu chuyện" pill share the glass. Before → after wipes the whole screen (two complete scenes, `.mj-scene`). Calculator: big slider (filled track, value bubble); only the slider box is excluded from tap-to-advance. QA: `docs/qa/02-landing-mobile/README.md` → "Liquid glass".
 - **QA and metrics:** `docs/qa/02-landing-flow/README.md`, `docs/qa/02-landing-mobile/README.md`.
 
 **Tokens added earlier in 02-PRICING-ADVISOR:** `color.lineStrong` (#8E7B8A, ≥ 3:1 on white/canvas/tile for control borders), `gradient.glowInk` (every stop ≥ 4.3:1 on canvas/white: AA for large text only, never body text), `motion.bezier` (JS control points of `motion.ease`), `motion.spring.pop`, `opacity` (backdrop, disabled), `shadow` (card, raised). Contrast asserted in `tokens.test.ts`.
@@ -74,6 +75,8 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 - **Motion:** count-up numbers, card pop + check on plan change, a brief lilac glow on every answer tap, tile check pop; all off with reduced motion (`pricing/anim.ts`).
 - **Fit (measured, Chromium + WebKit, vi + en, every plan state):** 1440×900 and 1280×800 questions ≤ 687 px and card ≤ 797 px; 390×844 card ends ≥ 12 px above the pinned CTA; 360×640 section ≤ 843 px (under one extra screen).
 - **QA:** screenshots `docs/qa/02-pricing-advisor/`.
+
+**Tokens added (02-LANDING-CASES):** `glass` (tintTop, tint, chip, edge, edgeSoft, light, dark, darkEdge, blur 32, blurChip 18, saturate 1.8). ink and ink2 on the glass tint composited over black pass AA (`tokens.test.ts`); body, eyebrow and lilac700 text must not sit directly on glass.
 
 **Tokens added (02-PRICING-ADVISOR):** `space` scale (4 px base), `color.lineStrong` (#8E7B8A, ≥ 3:1 on white/canvas/tile), `gradient.glowInk` (≥ 4.3:1; large text only), `motion.bezier`, `motion.spring.pop`, `opacity`, `shadow` (card, raised); `Icon` gains `user`. Contrast asserted in `tokens.test.ts`.
 
