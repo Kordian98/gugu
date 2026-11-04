@@ -190,7 +190,7 @@
     "why": {
       "basic": "With {{team}} and one location, Basic is enough; pick Pro if you want the AI assistant.",
       "pro": "You want an AI assistant: Pro adds Gu, which answers questions about your salon's numbers.",
-      "ultra": "Multi-location is coming to Ultra; for now you start with Pro."
+      "ultra": "Several locations need Ultra: combined reports, payroll and calendar for every branch."
     },
     "interval": {
       "label": "Billing",
@@ -203,13 +203,11 @@
       "firstYear": "First year",
       "later": "From year two",
       "freeSub": "12 months free",
-      "perMonth": "{{price}}/month",
       "saveYear": "save {{v}} (2 months free)",
       "orYear": "or {{price}}/year, 2 months free",
       "unitMonth": "/month",
       "unitYear": "/year",
-      "afterTrialLabel": "After the 14-day trial",
-      "ultraLater": "Ultra: {{price}}/month once multi-location ships"
+      "afterTrialLabel": "After the 14-day trial"
     },
     "save": {
       "lead": "You save about",
@@ -224,7 +222,7 @@
       "basic": "Start free",
       "pro": "Try Pro free for 14 days",
       "ultra": "Try Pro free for 14 days",
-      "ultraNote": "No separate Ultra trial yet; you start with Pro."
+      "ultraNote": "Ultra starts with the 14-day Pro trial."
     },
     "noCard": "No card or payment needed",
     "compareLink": "Compare plans",
@@ -262,7 +260,6 @@
       "result": "Suggested: {{plan}}. {{why}} {{cost}}",
       "costBasic": "First year {{free}}, from year two {{price}}{{unit}}.",
       "costPaid": "After the 14-day trial: {{price}}{{unit}}.",
-      "costUltra": "After the 14-day trial you are on Pro: {{price}}{{unit}}. {{ultra}}.",
       "resultPicked": "Showing {{plan}}. {{why}} {{cost}}"
     },
     "soon": "Coming soon",
@@ -589,7 +586,7 @@
   },
   "roi": {
     "title": "How we calculate",
-    "intro": "These are cautious assumptions, not measurements. You can change the first two numbers.",
+    "intro": "These are cautious assumptions, not measurements. You can change the numbers below.",
     "weekly": "Bookings per week",
     "perWeek": "{{n}} / week",
     "price": "Average service price",
@@ -604,9 +601,14 @@
     "stepA11y": "{{action}}: {{label}}",
     "stepOwner": "Owner: {{staff}} staff × ({{comm}} min commissions + {{pay}} min payroll) + {{tally}} min monthly profit tally = ~{{h}} hours",
     "stepOwnerSolo": "Owner: {{tally}} min monthly profit tally (no staff payroll) = ~{{h}} hours",
-    "sourceOwner": "Owner time is an assumption: about 1 hour per staff member a month for commissions (collecting completed services, applying rates, checking), 20 min per staff member to assemble payroll, and 1 hour a month to add up profit in a notebook or Excel. Hours are not converted into money.",
+    "sourceOwner": "Times are cautious assumptions: about 1 hour per staff member a month for commissions (collecting completed services, applying rates, checking), 20 min per staff member to assemble payroll, 1 hour a month to add up profit in a notebook or Excel; with several locations, staff count across all of them. Hours are not converted into money.",
     "upliftNote": "Includes {{pct}} more bookings: salons that want the AI assistant usually have more clients (assumption). You can change it; your number applies to every plan.",
-    "stepAssistant": "Gu assistant (Pro): + {{min}} min of owner questions answered by Gu instead of digging through reports (assumption, grows with team size) = ~{{h}} owner hours in total"
+    "stepAssistant": "Gu assistant: + {{min}} min of owner questions answered by Gu instead of digging through reports (assumption, grows with team size)",
+    "stepCalls": "Shared calendar and client list (Ultra): + {{locs}} locations × {{min}} min a week of fewer calls between branches (assumption)",
+    "stepReports": "Combined reports (Ultra): + {{locs}} locations × {{min}} min a month merging each location's notebook/Excel (assumption)",
+    "stepTotals": "= ~{{desk}} front-desk hours + ~{{owner}} owner hours a month",
+    "locations": "Locations",
+    "perLocations": "{{n}} locations"
   },
   "views": {
     "label": "Perspectives",

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Platform, View, type ViewStyle } from "react-native";
 import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "react-native-reanimated";
@@ -42,21 +42,19 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
   const [picked, setPicked] = useState<PublicPlanCode | null>(null);
   const [weekly, setWeekly] = useState<number | null>(null);
   const [price, setPrice] = useState<number | null>(null);
+  const [locations, setLocations] = useState<number | null>(null);
   const [sheet, setSheet] = useState<"compare" | "how" | null>(null);
   const [barHeight, setBarHeight] = useState(0);
   const [taps, setTaps] = useState(0);
   useFocusClearance("pricing-section", desktop ? 0 : barHeight);
 
-  const profile = profileDefaults(answers);
+  const profile = profileDefaults(answers, locations ?? undefined);
   const w = weekly ?? profile.weekly;
   const p = price ?? profile.price;
   const recommended = recommend(answers);
   const plan = picked ?? recommended;
-  const { staff, assistantMinutes } = profile;
-  const advice = useMemo(
-    () => advise(plan, interval, w, p, staff, assistantMinutes),
-    [plan, interval, w, p, staff, assistantMinutes],
-  );
+  const inputs = { ...profile, weekly: w, price: p };
+  const advice = advise(plan, interval, inputs);
 
   const answer = (patch: Partial<Answers>) => {
     setAnswers((a) => ({ ...a, ...patch }));
@@ -88,8 +86,8 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
       <Text size={12.5} color={color.ink2}>
         {t("pricing.noCard")}
       </Text>
-      {/* Phone: the why line right above already says Ultra starts on Pro. */}
-      {plan === "ultra" && desktop ? (
+      {/* No separate Ultra trial: say so in one short line. */}
+      {plan === "ultra" ? (
         <Text size={12} lineHeight={16} color={color.body} style={{ textAlign: "center" }}>
           {t("pricing.cta.ultraNote")}
         </Text>
@@ -226,8 +224,11 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
           setWeekly={setWeekly}
           setPrice={setPrice}
           advice={advice}
-          staff={staff}
-          assistantMinutes={assistantMinutes}
+          profile={inputs}
+          setLocations={(n) => {
+            setLocations(n);
+            setWeekly(null);
+          }}
           uplifted={profile.uplift && weekly === null}
         />
       </Sheet>

@@ -190,7 +190,7 @@
     "why": {
       "basic": "Với {{team}} và 1 cơ sở, Basic là đủ; chọn Pro nếu muốn trợ lý AI.",
       "pro": "Bạn muốn trợ lý AI: Pro có Gu trả lời mọi câu hỏi về số liệu của salon.",
-      "ultra": "Nhiều cơ sở sắp có trong Ultra; hiện bạn bắt đầu với Pro."
+      "ultra": "Nhiều cơ sở cần Ultra: báo cáo, lương và lịch gộp cho mọi chi nhánh."
     },
     "interval": {
       "label": "Kỳ thanh toán",
@@ -203,13 +203,11 @@
       "firstYear": "Năm đầu",
       "later": "Từ năm thứ hai",
       "freeSub": "12 tháng miễn phí",
-      "perMonth": "{{price}}/tháng",
       "saveYear": "tiết kiệm {{v}} (−2 tháng)",
       "orYear": "hoặc {{price}}/năm, rẻ hơn 2 tháng",
       "unitMonth": "/tháng",
       "unitYear": "/năm",
-      "afterTrialLabel": "Sau 14 ngày dùng thử",
-      "ultraLater": "Ultra từ {{price}}/tháng khi đủ tính năng nhiều cơ sở"
+      "afterTrialLabel": "Sau 14 ngày dùng thử"
     },
     "save": {
       "lead": "Bạn tiết kiệm khoảng",
@@ -224,7 +222,7 @@
       "basic": "Bắt đầu miễn phí",
       "pro": "Dùng thử Pro 14 ngày",
       "ultra": "Dùng thử Pro 14 ngày",
-      "ultraNote": "Ultra chưa có dùng thử riêng; bạn bắt đầu với Pro."
+      "ultraNote": "Ultra bắt đầu bằng 14 ngày dùng thử Pro."
     },
     "noCard": "Không cần thẻ hay thanh toán",
     "compareLink": "So sánh gói",
@@ -262,7 +260,6 @@
       "result": "Gợi ý: gói {{plan}}. {{why}} {{cost}}",
       "costBasic": "Năm đầu {{free}}, từ năm thứ hai {{price}}{{unit}}.",
       "costPaid": "Sau 14 ngày dùng thử: {{price}}{{unit}}.",
-      "costUltra": "Sau 14 ngày dùng thử, bạn dùng Pro: {{price}}{{unit}}. {{ultra}}.",
       "resultPicked": "Đang xem gói {{plan}}. {{why}} {{cost}}"
     },
     "soon": "Sắp có",
@@ -589,7 +586,7 @@
   },
   "roi": {
     "title": "Cách tính",
-    "intro": "Đây là giả định thận trọng, không phải số đo. Bạn có thể chỉnh hai con số đầu.",
+    "intro": "Đây là giả định thận trọng, không phải số đo. Bạn có thể chỉnh các con số bên dưới.",
     "weekly": "Lịch hẹn mỗi tuần",
     "perWeek": "{{n}} / tuần",
     "price": "Giá dịch vụ trung bình",
@@ -604,9 +601,14 @@
     "stepA11y": "{{action}}: {{label}}",
     "stepOwner": "Chủ salon: {{staff}} nhân viên × ({{comm}} phút hoa hồng + {{pay}} phút lương) + {{tally}} phút cộng lợi nhuận tháng = ~{{h}} giờ",
     "stepOwnerSolo": "Chủ salon: {{tally}} phút cộng lợi nhuận tháng (không có lương nhân viên) = ~{{h}} giờ",
-    "sourceOwner": "Thời gian của chủ salon là giả định: khoảng 1 giờ mỗi nhân viên mỗi tháng cho hoa hồng (gom dịch vụ đã làm, áp tỉ lệ, kiểm tra), 20 phút mỗi nhân viên để lập bảng lương, và 1 giờ mỗi tháng để cộng lợi nhuận bằng sổ hoặc Excel. Số giờ không được tính thành tiền.",
+    "sourceOwner": "Thời gian là giả định ở mức thận trọng: khoảng 1 giờ mỗi nhân viên mỗi tháng cho hoa hồng (gom dịch vụ đã làm, áp tỉ lệ, kiểm tra), 20 phút mỗi nhân viên để lập bảng lương, 1 giờ mỗi tháng để cộng lợi nhuận bằng sổ hoặc Excel; với nhiều cơ sở, nhân viên tính trên mọi cơ sở. Số giờ không được tính thành tiền.",
     "upliftNote": "Đã cộng thêm {{pct}} lịch hẹn: salon cần trợ lý AI thường có nhiều khách hơn (giả định). Bạn có thể chỉnh; số bạn nhập áp dụng cho mọi gói.",
-    "stepAssistant": "Trợ lý Gu (Pro): + {{min}} phút chủ salon hỏi Gu thay vì tự tìm trong báo cáo (giả định, tăng theo quy mô đội) = tổng ~{{h}} giờ của chủ salon"
+    "stepAssistant": "Trợ lý Gu: + {{min}} phút chủ salon hỏi Gu thay vì tự tìm trong báo cáo (giả định, tăng theo quy mô đội)",
+    "stepCalls": "Lịch và danh sách khách chung (Ultra): + {{locs}} cơ sở × {{min}} phút mỗi tuần bớt gọi qua lại giữa chi nhánh (giả định)",
+    "stepReports": "Báo cáo gộp (Ultra): + {{locs}} cơ sở × {{min}} phút gom sổ/Excel của từng cơ sở mỗi tháng (giả định)",
+    "stepTotals": "= ~{{desk}} giờ lễ tân + ~{{owner}} giờ của chủ salon mỗi tháng",
+    "locations": "Số cơ sở",
+    "perLocations": "{{n}} cơ sở"
   },
   "views": {
     "label": "Góc nhìn",

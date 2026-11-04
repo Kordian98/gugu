@@ -6,7 +6,14 @@ import { formatNumber, formatPercentPoints, formatVND } from "@gugu/localization
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { ASSUMPTIONS, LIMITS, PRO_VOLUME_UPLIFT, ownerMinutes, type Advice } from "./pricing/model";
+import {
+  ASSUMPTIONS,
+  LIMITS,
+  PRO_VOLUME_UPLIFT,
+  ownerMinutes,
+  type Advice,
+  type Profile,
+} from "./pricing/model";
 
 const MINUS = "−";
 const PLUS = "+";
@@ -21,63 +28,62 @@ export function RoiCalculator({
   price,
   setWeekly,
   setPrice,
+  setLocations,
   advice,
-  staff,
-  assistantMinutes,
+  profile,
   uplifted,
 }: {
   weekly: number;
   price: number;
   setWeekly: (v: number) => void;
   setPrice: (v: number) => void;
+  setLocations: (v: number) => void;
   advice: Advice;
-  /** Staff count assumed from the team answer (0 = just me). */
-  staff: number;
-  /** Owner minutes the assistant saves ("Muốn trợ lý AI?" = Có); counted on Pro only. */
-  assistantMinutes: number;
+  /** The inputs every plan uses (team / locations defaults, or the visitor's numbers). */
+  profile: Profile;
   /** The bookings default includes the "wants the assistant" volume uplift (not edited). */
   uplifted: boolean;
 }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const vnd = (v: number) => formatVND(v, locale);
+  const n = (v: number, d = 0) => formatNumber(v, locale, d);
   const e = advice.estimate;
-  const assistant = advice.billed === "pro" ? assistantMinutes : 0;
+  const a = ASSUMPTIONS;
+  const locs = advice.countedLocations;
+  const staff = profile.staff;
+  const deskBase = Math.round((e.bookingsPerMonth * a.minutesPerBooking) / 60);
   const ownerBase = Math.max(1, Math.round(ownerMinutes(staff) / 60));
   const steps = [
     t("roi.stepMonth", {
-      weekly: formatNumber(weekly, locale),
-      weeks: formatNumber(ASSUMPTIONS.weeksPerMonth, locale, 2),
-      n: formatNumber(e.bookingsPerMonth, locale),
+      weekly: n(weekly),
+      weeks: n(a.weeksPerMonth, 2),
+      n: n(e.bookingsPerMonth),
     }),
-    t("roi.stepTime", {
-      min: formatNumber(ASSUMPTIONS.minutesPerBooking, locale),
-      h: formatNumber(e.hours, locale),
-    }),
+    t("roi.stepTime", { min: n(a.minutesPerBooking), h: n(deskBase) }),
+    ...(locs > 1
+      ? [t("roi.stepCalls", { locs: n(locs), min: n(a.branchCallMinutesPerLocationWeek) })]
+      : []),
     staff > 0
       ? t("roi.stepOwner", {
-          staff: formatNumber(staff, locale),
-          comm: formatNumber(ASSUMPTIONS.commissionMinutesPerStaff, locale),
-          pay: formatNumber(ASSUMPTIONS.payrollMinutesPerStaff, locale),
-          tally: formatNumber(ASSUMPTIONS.profitTallyMinutes, locale),
-          h: formatNumber(ownerBase, locale),
+          staff: n(staff),
+          comm: n(a.commissionMinutesPerStaff),
+          pay: n(a.payrollMinutesPerStaff),
+          tally: n(a.profitTallyMinutes),
+          h: n(ownerBase),
         })
-      : t("roi.stepOwnerSolo", {
-          tally: formatNumber(ASSUMPTIONS.profitTallyMinutes, locale),
-          h: formatNumber(ownerBase, locale),
-        }),
-    ...(assistant > 0
-      ? [
-          t("roi.stepAssistant", {
-            min: formatNumber(assistant, locale),
-            h: formatNumber(e.ownerHours, locale),
-          }),
-        ]
+      : t("roi.stepOwnerSolo", { tally: n(a.profitTallyMinutes), h: n(ownerBase) }),
+    ...(locs > 1
+      ? [t("roi.stepReports", { locs: n(locs), min: n(a.reportMergeMinutesPerLocation) })]
       : []),
+    ...(advice.countedAssistantMinutes > 0
+      ? [t("roi.stepAssistant", { min: n(advice.countedAssistantMinutes) })]
+      : []),
+    t("roi.stepTotals", { desk: n(e.hours), owner: n(e.ownerHours) }),
     t("roi.stepNoShow", {
-      rate: formatPercentPoints(ASSUMPTIONS.noShowRate * 100, locale),
-      cut: formatPercentPoints(ASSUMPTIONS.reminderCut * 100, locale),
-      a: formatNumber(e.noShowsAvoided, locale, 1),
+      rate: formatPercentPoints(a.noShowRate * 100, locale),
+      cut: formatPercentPoints(a.reminderCut * 100, locale),
+      a: n(e.noShowsAvoided, 1),
     }),
     t("roi.stepMoney", { price: vnd(price), v: vnd(e.keptVnd) }),
     t("roi.stepNet", {
@@ -105,6 +111,15 @@ export function RoiCalculator({
           onChange={setWeekly}
           {...LIMITS.weekly}
         />
+        {profile.locations > 1 ? (
+          <Stepper
+            label={t("roi.locations")}
+            value={profile.locations}
+            shown={t("roi.perLocations", { n: formatNumber(profile.locations, locale) })}
+            onChange={setLocations}
+            {...LIMITS.locations}
+          />
+        ) : null}
         <Stepper
           label={t("roi.price")}
           value={price}

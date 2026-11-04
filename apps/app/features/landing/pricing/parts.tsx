@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { PLAN_MONTHLY_PRICE_VND, type BillingInterval, planPriceVnd } from "@gugu/contracts";
+import { type BillingInterval, planPriceVnd } from "@gugu/contracts";
 import { Icon, MIN_TOUCH, Text, color, radius, space } from "@gugu/design-system";
 import { yearlySavingVnd } from "@gugu/domain";
 import { formatNumber, formatVND } from "@gugu/localization";
@@ -115,9 +115,9 @@ export function CostRow({
   const unit = t(interval === "month" ? "pricing.cost.unitMonth" : "pricing.cost.unitYear");
   const yearlyLine =
     interval === "year"
-      ? t("pricing.cost.saveYear", { v: formatVND(yearlySavingVnd(advice.billed), locale) })
+      ? t("pricing.cost.saveYear", { v: formatVND(yearlySavingVnd(plan), locale) })
       : t("pricing.cost.orYear", {
-          price: formatVND(planPriceVnd(advice.billed, "year"), locale),
+          price: formatVND(planPriceVnd(plan, "year"), locale),
         });
   const later = (testID: string) => (
     <>
@@ -132,13 +132,6 @@ export function CostRow({
     return (
       <CostCell label={t("pricing.cost.afterTrialLabel")} desktop={desktop}>
         {later(TEST_ID.first)}
-        {plan === "ultra" ? (
-          <Text size={12} lineHeight={16} color={color.ink2}>
-            {t("pricing.cost.ultraLater", {
-              price: formatVND(PLAN_MONTHLY_PRICE_VND.ultra, locale),
-            })}
-          </Text>
-        ) : null}
       </CostCell>
     );
   }
@@ -249,7 +242,7 @@ export function Savings({
   );
 }
 
-/** Screen-reader summary of the answer: plan, why and what is billed (Ultra starts on Pro). */
+/** Screen-reader summary of the answer: plan, why and what it costs. */
 export function useSummary(
   advice: Advice,
   interval: BillingInterval,
@@ -260,15 +253,10 @@ export function useSummary(
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const unit = t(interval === "month" ? "pricing.cost.unitMonth" : "pricing.cost.unitYear");
-  const price = formatVND(planPriceVnd(advice.billed, interval), locale);
-  const ultra = t("pricing.cost.ultraLater", {
-    price: formatVND(PLAN_MONTHLY_PRICE_VND.ultra, locale),
-  });
+  const price = formatVND(planPriceVnd(advice.plan, interval), locale);
   const cost =
     advice.plan === "basic"
       ? t("pricing.a11y.costBasic", { free: formatVND(0, locale), price, unit })
-      : advice.plan === "ultra"
-        ? t("pricing.a11y.costUltra", { price, unit, ultra })
-        : t("pricing.a11y.costPaid", { price, unit });
+      : t("pricing.a11y.costPaid", { price, unit });
   return t(picked ? "pricing.a11y.resultPicked" : "pricing.a11y.result", { plan: name, why, cost });
 }
