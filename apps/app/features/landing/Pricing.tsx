@@ -1,156 +1,242 @@
-import { View } from "react-native";
+import { useMemo, useState } from "react";
+import { Platform, View, type ViewStyle } from "react-native";
 import { useTranslation } from "react-i18next";
+import { useReducedMotion } from "react-native-reanimated";
 
-import { Button, Icon, Text, color } from "@gugu/design-system";
-import { formatVND } from "@gugu/localization";
+import type { BillingInterval, PublicPlanCode } from "@gugu/contracts";
+import { Button, Text, color } from "@gugu/design-system";
 
-import { useLocale } from "@/services/i18n/useLocale";
-
-import { BASIC_MONTHLY_VND } from "./plans";
-import { RoiBenefit, RoiInputs, useRoi } from "./RoiCalculator";
-
+import { RoiCalculator } from "./RoiCalculator";
 import { Container, SectionHead } from "./Section";
+import { ChoiceRow } from "./pricing/Choice";
+import { Compare } from "./pricing/Compare";
+import {
+  DEFAULT_ANSWERS,
+  TEAM_DEFAULTS,
+  TEAMS,
+  advise,
+  recommend,
+  type Answers,
+} from "./pricing/model";
+import { ResultCard } from "./pricing/ResultCard";
+import { Sheet } from "./pricing/Sheet";
 import type { LandingNavActions } from "./useLandingNav";
 
-const PLANS = ["basic", "pro", "ultra"] as const;
+/** Web only: keeps the phone CTA pinned to the bottom while the section is on screen. */
+const STICKY_BOTTOM = (Platform.OS === "web"
+  ? { position: "sticky", bottom: 0 }
+  : {}) as unknown as ViewStyle;
 
-/** Basic / Pro / Ultra (X17, q75, X25): Basic free for the first year then 99,000 VND/month; Pro/Ultra prices TBA. */
+/**
+ * Pricing as a buying assistant (X27, owner 2026-11-04): three one-tap questions → the recommended
+ * plan with a one-line why, this-year and later cost (monthly/yearly), an illustrative monthly
+ * saving and the matching CTA. Defaults answer at once; every tap updates the result live.
+ * Desktop: questions | result. Phone: one screen, CTA pinned at the bottom, comparison and
+ * "Cách tính" in bottom sheets. Prices: @gugu/contracts (same numbers as `plan_prices`).
+ */
 export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boolean }) {
   const { t } = useTranslation("landing");
-  const locale = useLocale();
-  const price = formatVND(BASIC_MONTHLY_VND, locale);
-  const roi = useRoi();
+  const reduce = useReducedMotion();
+  const desktop = !stacked;
+  const [answers, setAnswers] = useState<Answers>(DEFAULT_ANSWERS);
+  const [interval, setInterval] = useState<BillingInterval>("month");
+  const [picked, setPicked] = useState<PublicPlanCode | null>(null);
+  const [weekly, setWeekly] = useState<number | null>(null);
+  const [price, setPrice] = useState<number | null>(null);
+  const [sheet, setSheet] = useState<"compare" | "how" | null>(null);
+
+  const defaults = TEAM_DEFAULTS[answers.team];
+  const w = weekly ?? defaults.weekly;
+  const p = price ?? defaults.price;
+  const recommended = recommend(answers);
+  const plan = picked ?? recommended;
+  const advice = useMemo(() => advise(plan, interval, w, p), [plan, interval, w, p]);
+
+  const answer = (patch: Partial<Answers>) => {
+    setAnswers((a) => ({ ...a, ...patch }));
+    setPicked(null);
+  };
+  const why =
+    plan === recommended
+      ? t(`pricing.why.${plan}`, { team: t(`pricing.teamPhrase.${answers.team}`) })
+      : t(`pricing.plan.${plan}.highlight`);
+
+  const cta = (
+    <View style={{ gap: 6, alignItems: "center" }}>
+      <Button
+        label={t(`pricing.cta.${plan}`)}
+        onPress={nav.trial}
+        height={52}
+        fontSize={16}
+        trailingArrow
+        style={{ alignSelf: "stretch" }}
+      />
+      <Text size={12.5} color={color.ink2}>
+        {t("pricing.noCard")}
+      </Text>
+    </View>
+  );
+
+  const questions = (
+    <View style={{ gap: desktop ? 20 : 6 }} testID="pricing-questions">
+      <ChoiceRow
+        testID="pricing-q-team"
+        inline={!desktop}
+        label={t("pricing.q.team.label")}
+        question={t("pricing.q.team.full")}
+        value={answers.team}
+        onChange={(team) => {
+          answer({ team });
+          setWeekly(null);
+          setPrice(null);
+        }}
+        options={TEAMS.map((v) => ({ value: v, label: t(`pricing.q.team.${v}`) }))}
+      />
+      <ChoiceRow
+        testID="pricing-q-ai"
+        inline={!desktop}
+        label={t("pricing.q.ai.label")}
+        question={t("pricing.q.ai.full")}
+        value={answers.ai ? "yes" : "no"}
+        onChange={(v) => {
+          answer({ ai: v === "yes" });
+        }}
+        options={[
+          { value: "yes", label: t("pricing.q.ai.yes") },
+          { value: "no", label: t("pricing.q.ai.no") },
+        ]}
+      />
+      <ChoiceRow
+        testID="pricing-q-multi"
+        inline={!desktop}
+        label={t("pricing.q.multi.label")}
+        question={t("pricing.q.multi.full")}
+        value={answers.multi ? "many" : "one"}
+        onChange={(v) => {
+          answer({ multi: v === "many" });
+        }}
+        options={[
+          { value: "one", label: t("pricing.q.multi.one") },
+          { value: "many", label: t("pricing.q.multi.many") },
+        ]}
+      />
+    </View>
+  );
+
+  const card = (
+    <ResultCard
+      advice={advice}
+      why={why}
+      interval={interval}
+      onInterval={setInterval}
+      reduce={reduce}
+      desktop={desktop}
+      onCompare={() => {
+        setSheet("compare");
+      }}
+      onHow={() => {
+        setSheet("how");
+      }}
+      onPick={setPicked}
+      cta={cta}
+    />
+  );
+
   return (
-    <Container className="gap-10 py-20">
-      <View className="gap-6 min-[900px]:flex-row min-[900px]:items-end min-[900px]:justify-between">
-        <SectionHead
-          eyebrow={t("pricing.eyebrow")}
-          title={t("pricing.titlePre")}
-          glow={{ words: t("pricing.titleGlow"), after: t("pricing.titlePost") }}
-        />
-      </View>
-      {/* "Your salon": two numbers drive the savings estimate on the Basic card, above its CTA. */}
-      <RoiInputs roi={roi} stacked={stacked} />
-      <View className={stacked ? "gap-5" : "flex-row gap-5"}>
-        {PLANS.map((plan) => {
-          const pro = plan === "pro";
-          return (
-            <View
-              key={plan}
-              className="flex-1 gap-5 rounded-[30px] p-8"
-              style={{
-                backgroundColor: pro ? color.plum950 : color.white,
-                borderWidth: 1,
-                borderColor: pro ? color.plum950 : color.lineSoft,
-              }}
-            >
-              <View className="flex-row items-center justify-between">
-                <Text role="display" size={36} lineHeight={40} color={pro ? "#FBF1F6" : color.ink}>
-                  {t(`pricing.${plan}.name`)}
-                </Text>
-                {pro ? (
-                  <View
-                    className="rounded-full px-3 py-1"
-                    style={{ backgroundColor: color.pink300 }}
-                  >
-                    <Text role="uiSemiBold" size={12} color={color.plum950}>
-                      {t("pricing.popular")}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text size={15.5} color={pro ? "#E2D2DC" : color.body}>
-                {t(`pricing.${plan}.tagline`)}
+    <View testID="pricing-section">
+      <Container className={desktop ? "py-10" : "pt-5"}>
+        {desktop ? (
+          <View style={{ flexDirection: "row", gap: 56, alignItems: "center" }}>
+            <View style={{ flex: 1, gap: 28, maxWidth: 520 }}>
+              <SectionHead
+                eyebrow={t("pricing.eyebrow")}
+                title={t("pricing.titlePre")}
+                glow={{ words: t("pricing.titleGlow"), after: t("pricing.titlePost") }}
+              />
+              <Text size={17} lineHeight={26} color={color.body}>
+                {t("pricing.sub")}
               </Text>
-              <View className="gap-1">
-                {plan === "basic" ? (
-                  <>
-                    {/* X25: Basic is free for the first year, then 99,000 VND/month. */}
-                    <Text role="display" size={30} lineHeight={34} color={color.ink}>
-                      {t("pricing.basicFree")}
-                    </Text>
-                    <Text role="uiSemiBold" size={14.5} color={color.ink2}>
-                      {t("pricing.basicThen", { price })}
-                    </Text>
-                    <Text size={13.5} color={color.ink2}>
-                      {t("pricing.noCard")}
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text role="uiSemiBold" size={22} color={pro ? "#FBF1F6" : color.ink}>
-                      {t("pricing.priceSoon")}
-                    </Text>
-                  </>
-                )}
-              </View>
-              {/* Benefit + CTA directly under the price: what this plan gives back, then buy. */}
-              {plan === "basic" ? <RoiBenefit roi={roi} /> : null}
-              <View className="gap-2">
-                <Button
-                  label={t(
-                    plan === "basic"
-                      ? "pricing.basicCta"
-                      : plan === "pro"
-                        ? "pricing.proCta"
-                        : "pricing.cta",
-                  )}
-                  onPress={nav.trial}
-                  height={54}
-                  fontSize={16}
-                  trailingArrow
-                  {...(pro
-                    ? { style: { backgroundColor: color.pink300 }, labelColor: color.plum950 }
-                    : {})}
-                />
-              </View>
-              <View className="gap-3">
-                {t(`pricing.${plan}.items`)
-                  .split("\n")
-                  .map((item) =>
-                    item.endsWith(":") ? (
-                      <Text
-                        key={item}
-                        role="uiSemiBold"
-                        size={14.5}
-                        color={pro ? color.white : color.ink}
-                      >
-                        {item}
-                      </Text>
-                    ) : (
-                      <View key={item} className="flex-row items-start gap-3">
-                        <View
-                          className="mt-0.5 h-5 w-5 items-center justify-center rounded-full"
-                          style={{ backgroundColor: pro ? color.pink300 : color.lilac100 }}
-                        >
-                          <Icon
-                            name="check"
-                            size={12}
-                            color={pro ? color.plum950 : color.lilac700}
-                            strokeWidth={2.6}
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <Text size={15} lineHeight={22} color={pro ? "#F3E6EE" : color.ink2}>
-                            {item}
-                          </Text>
-                        </View>
-                      </View>
-                    ),
-                  )}
+              {questions}
+            </View>
+            <View style={{ flex: 1.1 }}>{card}</View>
+          </View>
+        ) : (
+          <View style={{ gap: 12 }}>
+            <View style={{ gap: 4 }}>
+              <Text role="eyebrow" size={12}>
+                {t("pricing.eyebrow")}
+              </Text>
+              <View accessibilityRole="header">
+                <Text role="display" size={32} lineHeight={36} color={color.ink}>
+                  {t("pricing.titlePre")}
+                  {t("pricing.titleGlow")}
+                  {t("pricing.titlePost")}
+                </Text>
               </View>
             </View>
-          );
-        })}
-      </View>
-      <View className="gap-2" style={{ maxWidth: 860 }}>
-        <Text size={14.5} lineHeight={22} color={color.ink2}>
-          {t("pricing.trial", { price })}
-        </Text>
-        <Text size={12.5} lineHeight={19} color={color.ink2}>
-          {t("roi.note")}
-        </Text>
-      </View>
-    </Container>
+            {questions}
+            {card}
+          </View>
+        )}
+      </Container>
+      {desktop ? null : (
+        <View
+          testID="pricing-cta-bar"
+          style={[
+            {
+              zIndex: 5,
+              marginTop: 12,
+              paddingHorizontal: 16,
+              paddingTop: 10,
+              paddingBottom: 12,
+              backgroundColor: color.canvas,
+              borderTopWidth: 1,
+              borderTopColor: color.lineSoft,
+            },
+            STICKY_BOTTOM,
+          ]}
+        >
+          {cta}
+        </View>
+      )}
+      <Sheet
+        testID="pricing-compare-sheet"
+        open={sheet === "compare"}
+        onClose={() => {
+          setSheet(null);
+        }}
+        title={t("pricing.compare.title")}
+        closeLabel={t("pricing.close")}
+        desktop={desktop}
+        reduce={reduce}
+      >
+        <Compare
+          shown={plan}
+          onPick={(pl) => {
+            setPicked(pl === recommended ? null : pl);
+            setSheet(null);
+          }}
+        />
+      </Sheet>
+      <Sheet
+        testID="pricing-how-sheet"
+        open={sheet === "how"}
+        onClose={() => {
+          setSheet(null);
+        }}
+        title={t("roi.title")}
+        closeLabel={t("pricing.close")}
+        desktop={desktop}
+        reduce={reduce}
+      >
+        <RoiCalculator
+          weekly={w}
+          price={p}
+          setWeekly={setWeekly}
+          setPrice={setPrice}
+          advice={advice}
+        />
+      </Sheet>
+    </View>
   );
 }

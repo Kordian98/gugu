@@ -152,33 +152,108 @@
   },
   "pricing": {
     "eyebrow": "Bảng giá",
-    "priceSoon": "Giá sắp công bố",
-    "cta": "Dùng thử miễn phí",
-    "popular": "Phổ biến nhất",
-    "trial": "Gói Basic miễn phí cho mọi salon trong năm đầu tiên, sau đó {{price}}/tháng. Salon mới được dùng thử Pro 14 ngày, rồi tự chuyển về Basic miễn phí. Basic có thiết lập bằng AI từ bảng giá; trợ lý AI có từ gói Pro.",
-    "basic": {
-      "name": "Basic",
-      "tagline": "Đủ mọi thứ để vận hành một salon",
-      "items": "Lịch cả đội và khách hàng\nZalo OA: bot đặt lịch, hộp thư và nhắc lịch\nThiết lập bằng AI từ ảnh bảng giá\nBáo cáo, lương và hoa hồng\nNhân viên không giới hạn"
-    },
-    "pro": {
-      "name": "Pro",
-      "tagline": "AI làm việc cho salon của bạn",
-      "items": "Mọi thứ trong Basic, cộng thêm:\nGu · trợ lý AI cho số liệu của salon\nBáo cáo AI hằng tháng\nHạn mức AI cao hơn\n300 tin nhắn mẫu Zalo mỗi tháng (Basic: 100)"
-    },
-    "ultra": {
-      "name": "Ultra",
-      "tagline": "Cho chuỗi salon và thương hiệu đang phát triển",
-      "items": "Mọi thứ trong Pro, cộng thêm:\nNhiều chi nhánh với báo cáo tổng hợp\nPhân tích nâng cao\nHạn mức AI cao nhất\n1.000 tin nhắn mẫu Zalo mỗi tháng"
-    },
-    "basicFree": "Miễn phí năm đầu",
-    "basicThen": "sau đó {{price}}/tháng",
-    "basicCta": "Bắt đầu miễn phí",
-    "noCard": "Không cần thẻ hay thanh toán khi đăng ký.",
-    "titlePre": "Thêm giờ rảnh, thêm doanh thu. Năm đầu ",
-    "titleGlow": "miễn phí",
+    "titlePre": "Chọn gói trong ",
+    "titleGlow": "3 chạm",
     "titlePost": ".",
-    "proCta": "Dùng thử Pro 14 ngày"
+    "sub": "Trả lời nhanh, xem ngay gói hợp với salon, chi phí và phần bạn có thể tiết kiệm.",
+    "questions": "Về salon của bạn",
+    "q": {
+      "team": {
+        "label": "Đội ngũ",
+        "full": "Salon của bạn có bao nhiêu người?",
+        "solo": "Mình tôi",
+        "small": "2–5 người",
+        "large": "6+ người"
+      },
+      "ai": {
+        "label": "Trợ lý AI",
+        "full": "Bạn có muốn trợ lý AI trả lời về số liệu của salon không?",
+        "yes": "Có",
+        "no": "Chưa cần"
+      },
+      "multi": {
+        "label": "Cơ sở",
+        "full": "Salon của bạn có mấy cơ sở?",
+        "one": "1",
+        "many": "Nhiều"
+      }
+    },
+    "teamPhrase": {
+      "solo": "một mình bạn",
+      "small": "đội 2–5 người",
+      "large": "đội từ 6 người"
+    },
+    "forYou": "Hợp với bạn",
+    "why": {
+      "basic": "Với {{team}} và 1 cơ sở, Basic là đủ; chọn Pro nếu muốn trợ lý AI.",
+      "pro": "Bạn muốn trợ lý AI: Pro có Gu trả lời về số liệu và báo cáo AI mỗi tháng.",
+      "ultra": "Có nhiều cơ sở thì cần Ultra, với báo cáo tổng hợp mọi chi nhánh."
+    },
+    "interval": {
+      "label": "Kỳ thanh toán",
+      "month": "Theo tháng",
+      "year": "Theo năm",
+      "yearBadge": "−2 tháng"
+    },
+    "cost": {
+      "firstYear": "Năm đầu",
+      "later": "Từ năm thứ hai",
+      "freeSub": "12 tháng miễn phí",
+      "perMonth": "{{price}}/tháng",
+      "saveYear": "tiết kiệm {{v}} (−2 tháng)",
+      "orYear": "hoặc {{price}}/năm, rẻ hơn 2 tháng",
+      "unitMonth": "/tháng",
+      "unitYear": "/năm",
+      "afterTrialLabel": "Sau 14 ngày dùng thử"
+    },
+    "save": {
+      "label": "Ước tính mỗi tháng, sau phí gói",
+      "line": "~{{h}} giờ rảnh + ~{{v}} doanh thu giữ lại",
+      "disclaimer": "Ước tính minh hoạ, không phải tiền GuGu trả cho salon. Kết quả thực tế sẽ khác.",
+      "big": "~{{v}}",
+      "bigNegative": "−{{v}}"
+    },
+    "cta": {
+      "basic": "Bắt đầu miễn phí",
+      "pro": "Dùng thử Pro 14 ngày",
+      "ultra": "Dùng thử Pro 14 ngày"
+    },
+    "noCard": "Không cần thẻ hay thanh toán",
+    "compareLink": "So sánh gói",
+    "howLink": "Cách tính",
+    "close": "Đóng",
+    "compare": {
+      "title": "So sánh gói",
+      "everyPlan": "Gói nào cũng có: Zalo OA và hộp thư, lịch cả đội, lương và hoa hồng, báo cáo, nhân viên không giới hạn. Bắt đầu bằng 14 ngày dùng thử Pro, rồi tự chuyển về Basic miễn phí năm đầu. Không bao giờ tự động trừ tiền.",
+      "pick": "Xem {{plan}}",
+      "picked": "Đang xem"
+    },
+    "plan": {
+      "basic": {
+        "name": "Basic",
+        "price": "Miễn phí năm đầu, sau đó {{price}}/tháng",
+        "items": "Lịch cả đội và khách hàng\nZalo OA: bot đặt lịch, hộp thư, nhắc lịch tự động\nThiết lập bằng AI từ ảnh bảng giá\nBáo cáo, lương và hoa hồng\nNhân viên không giới hạn",
+        "highlight": "Lịch, khách, Zalo OA, lương và báo cáo",
+        "short": "Miễn phí năm đầu"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "{{price}}/tháng",
+        "items": "Mọi thứ trong Basic, cộng thêm:\nGu · trợ lý AI trả lời về số liệu của salon\nBáo cáo AI hằng tháng\nHạn mức AI cao hơn\n300 tin nhắn mẫu Zalo mỗi tháng (Basic: 100)",
+        "highlight": "Thêm trợ lý AI Gu, báo cáo AI"
+      },
+      "ultra": {
+        "name": "Ultra",
+        "price": "{{price}}/tháng",
+        "items": "Mọi thứ trong Pro, cộng thêm:\nNhiều cơ sở với báo cáo tổng hợp\nPhân tích nâng cao\nHạn mức AI cao nhất\n1.000 tin nhắn mẫu Zalo mỗi tháng",
+        "highlight": "Thêm nhiều cơ sở, phân tích nâng cao"
+      }
+    },
+    "a11y": {
+      "result": "Gợi ý: gói {{plan}}. {{why}}",
+      "resultBar": "Xem gợi ý: gói {{plan}}"
+    },
+    "others": "Gói khác"
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
@@ -487,19 +562,19 @@
     }
   },
   "roi": {
-    "title": "Salon của bạn",
-    "sub": "Chỉnh hai con số để xem gói Basic giúp bạn tiết kiệm bao nhiêu.",
+    "title": "Cách tính",
+    "intro": "Đây là giả định thận trọng, không phải số đo. Bạn có thể chỉnh hai con số đầu.",
     "weekly": "Lịch hẹn mỗi tuần",
     "perWeek": "{{n}} / tuần",
     "price": "Giá dịch vụ trung bình",
     "less": "Giảm",
     "more": "Tăng",
-    "note": "Ước tính minh hoạ, không phải cam kết: giả định khoảng 3 phút làm việc cho mỗi lịch hẹn (xác nhận, nhắc, đổi lịch), 10% khách không đến và giảm 25% nhờ nhắc lịch (BMJ Open 2016, phòng khám). Kết quả thực tế của salon có thể khác.",
-    "save": "Tiết kiệm mỗi tháng (ước tính)",
-    "saveHours": "~{{n}} giờ",
-    "saveMoney": "giữ lại ~{{v}} doanh thu",
-    "saveSub": "nhờ bớt việc xác nhận, nhắc lịch và ít khách vắng hơn",
-    "saveNote": "Đây là ước tính thời gian bạn tiết kiệm và doanh thu bạn giữ lại nhờ ít khách vắng hơn, không phải tiền GuGu trả cho salon. Kết quả thực tế có thể khác."
+    "stepMonth": "{{weekly}} lịch/tuần × {{weeks}} tuần = ~{{n}} lịch hẹn/tháng",
+    "stepTime": "× {{min}} phút xác nhận, nhắc, đổi lịch qua Zalo/điện thoại = ~{{h}} giờ",
+    "stepNoShow": "{{rate}} khách vắng × giảm {{cut}} nhờ nhắc lịch tự động = ~{{a}} lịch giữ được",
+    "stepMoney": "× {{price}} = ~{{v}} doanh thu giữ lại",
+    "stepNet": "− phí gói {{cost}}/tháng (năm đầu) = ~{{net}}",
+    "source": "Mức giảm {{cut}} thấp hơn kết quả các nghiên cứu về nhắc lịch trong y tế (BMJ Open 2016; Hasvold & Wootton 2011: khoảng 34%). Chưa tính phần giữ được nhờ không trùng lịch. Đây không phải tiền GuGu trả cho salon."
   },
   "views": {
     "label": "Góc nhìn",

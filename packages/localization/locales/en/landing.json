@@ -152,33 +152,108 @@
   },
   "pricing": {
     "eyebrow": "Pricing",
-    "priceSoon": "Price coming soon",
-    "cta": "Start free trial",
-    "popular": "Most popular",
-    "trial": "Basic is free for every salon for the first year, then {{price}}/month. New salons get a 14-day Pro trial first, then move to free Basic automatically. Basic includes AI setup from your price list; the AI assistant starts at Pro.",
-    "basic": {
-      "name": "Basic",
-      "tagline": "Everything to run one salon",
-      "items": "Team calendar and clients\nZalo OA: booking bot, inbox and reminders\nAI setup from a photo of your price list\nInsights, payroll and commissions\nUnlimited team members"
-    },
-    "pro": {
-      "name": "Pro",
-      "tagline": "AI that works for your salon",
-      "items": "Everything in Basic, plus:\nGu, the AI assistant for your salon's figures\nMonthly AI business review\nHigher AI usage limit\n300 Zalo template messages a month (Basic: 100)"
-    },
-    "ultra": {
-      "name": "Ultra",
-      "tagline": "For chains and growing brands",
-      "items": "Everything in Pro, plus:\nMultiple locations with combined reporting\nAdvanced analytics\nHighest AI usage limit\n1,000 Zalo template messages a month"
-    },
-    "basicFree": "Free for the first year",
-    "basicThen": "then {{price}}/month",
-    "basicCta": "Start free",
-    "noCard": "No card or payment needed to start.",
-    "titlePre": "More free hours, more revenue. Year one is ",
-    "titleGlow": "free",
+    "titlePre": "Find your plan in ",
+    "titleGlow": "3 taps",
     "titlePost": ".",
-    "proCta": "Try Pro free for 14 days"
+    "sub": "Answer quickly and see the plan that fits your salon, what it costs and what you could save.",
+    "questions": "About your salon",
+    "q": {
+      "team": {
+        "label": "Team",
+        "full": "How many people work at your salon?",
+        "solo": "Just me",
+        "small": "2–5",
+        "large": "6+"
+      },
+      "ai": {
+        "label": "AI assistant",
+        "full": "Do you want an AI assistant that answers questions about your numbers?",
+        "yes": "Yes",
+        "no": "Not now"
+      },
+      "multi": {
+        "label": "Locations",
+        "full": "How many locations does your salon have?",
+        "one": "1",
+        "many": "Several"
+      }
+    },
+    "teamPhrase": {
+      "solo": "just you",
+      "small": "a team of 2–5",
+      "large": "a team of 6 or more"
+    },
+    "forYou": "Your fit",
+    "why": {
+      "basic": "With {{team}} and one location, Basic is enough; pick Pro if you want the AI assistant.",
+      "pro": "You want an AI assistant: Pro adds Gu for your numbers and a monthly AI review.",
+      "ultra": "Several locations need Ultra, with combined reporting across every branch."
+    },
+    "interval": {
+      "label": "Billing",
+      "month": "Monthly",
+      "year": "Yearly",
+      "yearBadge": "2 months free"
+    },
+    "cost": {
+      "firstYear": "First year",
+      "later": "From year two",
+      "freeSub": "12 months free",
+      "perMonth": "{{price}}/month",
+      "saveYear": "save {{v}} (2 months free)",
+      "orYear": "or {{price}}/year, 2 months free",
+      "unitMonth": "/month",
+      "unitYear": "/year",
+      "afterTrialLabel": "After the 14-day trial"
+    },
+    "save": {
+      "label": "Estimate per month, after the plan",
+      "line": "~{{h}} hours freed + ~{{v}} revenue kept",
+      "disclaimer": "An illustrative estimate, not money GuGu pays your salon. Real results will differ.",
+      "big": "~{{v}}",
+      "bigNegative": "−{{v}}"
+    },
+    "cta": {
+      "basic": "Start free",
+      "pro": "Try Pro free for 14 days",
+      "ultra": "Try Pro free for 14 days"
+    },
+    "noCard": "No card or payment needed",
+    "compareLink": "Compare plans",
+    "howLink": "How we estimate",
+    "close": "Close",
+    "compare": {
+      "title": "Compare plans",
+      "everyPlan": "Every plan has: Zalo OA and the inbox, the team calendar, payroll and commissions, reports, unlimited staff. You start with a 14-day Pro trial, then move to Basic, free for the first year. Nothing is ever charged automatically.",
+      "pick": "See {{plan}}",
+      "picked": "Showing"
+    },
+    "plan": {
+      "basic": {
+        "name": "Basic",
+        "price": "Free for the first year, then {{price}}/month",
+        "items": "Team calendar and clients\nZalo OA: booking bot, inbox, automatic reminders\nAI setup from a photo of your price list\nReports, payroll and commissions\nUnlimited staff",
+        "highlight": "Calendar, clients, Zalo OA, payroll and reports",
+        "short": "Free first year"
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "{{price}}/month",
+        "items": "Everything in Basic, plus:\nGu · AI assistant for your salon's numbers\nMonthly AI review\nHigher AI limit\n300 Zalo template messages a month (Basic: 100)",
+        "highlight": "Adds the Gu AI assistant"
+      },
+      "ultra": {
+        "name": "Ultra",
+        "price": "{{price}}/month",
+        "items": "Everything in Pro, plus:\nSeveral locations with combined reporting\nAdvanced analytics\nHighest AI limit\n1,000 Zalo template messages a month",
+        "highlight": "Adds several locations"
+      }
+    },
+    "a11y": {
+      "result": "Suggested: {{plan}}. {{why}}",
+      "resultBar": "See the suggestion: {{plan}}"
+    },
+    "others": "Other plans"
   },
   "cta": {
     "title": "Ready to glow? Your first year of Basic is free.",
@@ -487,19 +562,19 @@
     }
   },
   "roi": {
-    "title": "Your salon",
-    "sub": "Set two numbers to see what Basic saves you.",
+    "title": "How we estimate",
+    "intro": "These are cautious assumptions, not measurements. You can change the first two numbers.",
     "weekly": "Bookings per week",
     "perWeek": "{{n}} / week",
     "price": "Average service price",
-    "less": "Decrease",
-    "more": "Increase",
-    "note": "Illustrative estimate, not a promise: assumes about 3 minutes of admin per booking (confirming, reminding, rescheduling), 10% no-shows and 25% fewer with reminders (BMJ Open 2016, clinics). Your salon's results may differ.",
-    "save": "You save every month (estimate)",
-    "saveHours": "~{{n}} h",
-    "saveMoney": "keep ~{{v}} in revenue",
-    "saveSub": "less confirming and reminding, fewer no-shows",
-    "saveNote": "An estimate of time you save and revenue you keep through fewer no-shows; not money paid to your salon. Actual results may differ."
+    "less": "Less",
+    "more": "More",
+    "stepMonth": "{{weekly}} bookings/week × {{weeks}} weeks = ~{{n}} bookings/month",
+    "stepTime": "× {{min}} min of confirming, reminding and rebooking by Zalo/phone = ~{{h}} hours",
+    "stepNoShow": "{{rate}} no-shows × {{cut}} fewer with automatic reminders = ~{{a}} bookings kept",
+    "stepMoney": "× {{price}} = ~{{v}} revenue kept",
+    "stepNet": "− plan {{cost}}/month (first year) = ~{{net}}",
+    "source": "The {{cut}} cut is below what healthcare reminder studies report (BMJ Open 2016; Hasvold & Wootton 2011: about 34%). Fewer double bookings are not counted. This is not money GuGu pays your salon."
   },
   "views": {
     "label": "Perspectives",
