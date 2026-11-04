@@ -199,7 +199,9 @@ All pages are reachable forward and backward by Next/Prev, keys, swipes and the 
 - New tokens: `motion`, `danger*`, `zalo`, `paper*`, `sheet*`, `gradient.glowSoft` + `cssGradient`. Raw hex in the landing feature dropped from 108 on main to 48.
 - Insights and payroll figures go through `Intl` / `formatVND`. 99,000 VND comes from one constant via `{{price}}`. The Basic card CTA says "Bắt đầu miễn phí".
 
-## Copy changes needing vi review (`i18n:vi-review`)
+## vi copy: approved (owner's side, 2026-11-04)
+
+The vi copy below was reviewed and approved by the owner's side; the `i18n:vi-review` markers in earlier commit messages are resolved. For the record, the keys that changed:
 
 - **`flow.hud`:** `c2` (Phòng làm → Phòng dịch vụ), `c4` (Chuyển từ sổ/app cũ), `finish` (Kết thúc hành trình), `prev`, `page`, `hintKeys`, `hintTouch`.
 - **`flow.features`:** `chip` (14:00 → 10:00, to match the visible booking), `callAppt`, `callSvc`. The `r4*` keys were removed (three facts only).

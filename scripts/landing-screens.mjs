@@ -69,9 +69,9 @@ const crm = (loc) =>
  * srcset) or nothing (full screen, resized to 2400 px wide). `tab` clicks a tab label first.
  */
 const SHOTS = (t) => [
-  // Scrolled to the team timeline: the "Tháng này" card above it would show the demo salon's month
-  // estimate, which is not ours to pick for marketing.
-  { name: "overview", route: "business", scrollY: 470, region: [248, 335, 1192, 565] },
+  // KPI row, the "Tháng này" profit card and the team timeline (below the trial banner). Run
+  // scripts/landing-demo-busier.mjs first so the demo month is realistically busy (owner, round 4).
+  { name: "overview", route: "business", region: [248, 236, 1192, 664] },
   { name: "timeline", route: "business", card: t.timeline.title },
   { name: "upcoming", route: "business", card: t.upcoming.title },
   { name: "kpis", route: "business", card: t.kpi.revenueToday, row: t.kpi.occupancy },
