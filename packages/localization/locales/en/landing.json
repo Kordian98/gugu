@@ -156,14 +156,18 @@
     "titleGlow": "3 taps",
     "titlePost": ".",
     "sub": "Answer quickly and see the plan that fits your salon, what it costs and what you could save.",
-    "questions": "About your salon",
     "q": {
       "team": {
         "label": "Team",
         "full": "How many people work at your salon?",
         "solo": "Just me",
         "small": "2–5",
-        "large": "6+"
+        "large": "6+",
+        "short": {
+          "solo": "Just me",
+          "small": "2–5",
+          "large": "6+"
+        }
       },
       "ai": {
         "label": "AI assistant",
@@ -186,14 +190,15 @@
     "forYou": "Your fit",
     "why": {
       "basic": "With {{team}} and one location, Basic is enough; pick Pro if you want the AI assistant.",
-      "pro": "You want an AI assistant: Pro adds Gu for your numbers and a monthly AI review.",
-      "ultra": "Several locations need Ultra, with combined reporting across every branch."
+      "pro": "You want an AI assistant: Pro adds Gu, which answers questions about your salon's numbers.",
+      "ultra": "Multi-location is coming to Ultra; for now you start with Pro."
     },
     "interval": {
       "label": "Billing",
       "month": "Monthly",
       "year": "Yearly",
-      "yearBadge": "2 months free"
+      "yearBadge": "2 months free",
+      "optionA11y": "{{label}}, {{badge}}"
     },
     "cost": {
       "firstYear": "First year",
@@ -216,7 +221,8 @@
     "cta": {
       "basic": "Start free",
       "pro": "Try Pro free for 14 days",
-      "ultra": "Try Pro free for 14 days"
+      "ultra": "Try Pro free for 14 days",
+      "ultraNote": "No separate Ultra trial yet; you start with Pro."
     },
     "noCard": "No card or payment needed",
     "compareLink": "Compare plans",
@@ -239,21 +245,25 @@
       "pro": {
         "name": "Pro",
         "price": "{{price}}/month",
-        "items": "Everything in Basic, plus:\nGu · AI assistant for your salon's numbers\nMonthly AI review\nHigher AI limit\n300 Zalo template messages a month (Basic: 100)",
-        "highlight": "Adds the Gu AI assistant"
+        "items": "Everything in Basic, plus:\nGu · AI assistant for your salon's numbers\nHigher AI limit\n300 Zalo template messages a month (Basic: 100)",
+        "highlight": "Adds the Gu AI assistant",
+        "soon": "Monthly AI review"
       },
       "ultra": {
         "name": "Ultra",
         "price": "{{price}}/month",
-        "items": "Everything in Pro, plus:\nSeveral locations with combined reporting\nAdvanced analytics\nHighest AI limit\n1,000 Zalo template messages a month",
-        "highlight": "Adds several locations"
+        "items": "Everything in Pro, plus:\nHighest AI limit\n1,000 Zalo template messages a month",
+        "highlight": "Several locations, advanced analytics",
+        "soon": "Several locations with combined reporting\nAdvanced analytics"
       }
     },
     "a11y": {
-      "result": "Suggested: {{plan}}. {{why}}",
-      "resultBar": "See the suggestion: {{plan}}"
+      "result": "Suggested: {{plan}}. {{why}} {{cost}}",
+      "costBasic": "First year 0đ, from year two {{price}}{{unit}}.",
+      "costPaid": "After the 14-day trial: {{price}}{{unit}}."
     },
-    "others": "Other plans"
+    "others": "Other plans",
+    "soon": "Coming soon"
   },
   "cta": {
     "title": "Ready to glow? Your first year of Basic is free.",
@@ -586,7 +596,8 @@
     "stepNoShow": "{{rate}} no-shows × {{cut}} fewer with automatic reminders = ~{{a}} bookings kept",
     "stepMoney": "× {{price}} = ~{{v}} revenue kept",
     "stepNet": "− plan {{cost}}/month (first year) = ~{{net}}",
-    "source": "The {{cut}} cut is below what healthcare reminder studies report (BMJ Open 2016; Hasvold & Wootton 2011: about 34%). Fewer double bookings are not counted. This is not money GuGu pays your salon."
+    "source": "The {{cut}} cut is below what healthcare reminder studies report (BMJ Open 2016; Hasvold & Wootton 2011: about 34%). Fewer double bookings are not counted. This is not money GuGu pays your salon.",
+    "stepA11y": "{{action}}: {{label}}"
   },
   "views": {
     "label": "Perspectives",

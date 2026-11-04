@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { MIN_TOUCH, Text, color, radius } from "@gugu/design-system";
+import { MIN_TOUCH, Text, color, opacity, radius } from "@gugu/design-system";
 import { formatNumber, formatPercentPoints, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -35,11 +35,14 @@ export function RoiCalculator({
   const e = advice.estimate;
   const steps = [
     t("roi.stepMonth", {
-      weekly,
+      weekly: formatNumber(weekly, locale),
       weeks: formatNumber(ASSUMPTIONS.weeksPerMonth, locale, 2),
       n: formatNumber(e.bookingsPerMonth, locale),
     }),
-    t("roi.stepTime", { min: ASSUMPTIONS.minutesPerBooking, h: formatNumber(e.hours, locale) }),
+    t("roi.stepTime", {
+      min: formatNumber(ASSUMPTIONS.minutesPerBooking, locale),
+      h: formatNumber(e.hours, locale),
+    }),
     t("roi.stepNoShow", {
       rate: formatPercentPoints(ASSUMPTIONS.noShowRate * 100, locale),
       cut: formatPercentPoints(ASSUMPTIONS.reminderCut * 100, locale),
@@ -60,7 +63,7 @@ export function RoiCalculator({
         <Stepper
           label={t("roi.weekly")}
           value={weekly}
-          shown={t("roi.perWeek", { n: weekly })}
+          shown={t("roi.perWeek", { n: formatNumber(weekly, locale) })}
           onChange={setWeekly}
           {...LIMITS.weekly}
         />
@@ -94,7 +97,7 @@ export function RoiCalculator({
                 justifyContent: "center",
               }}
             >
-              <Text role="uiSemiBold" size={12} color={color.lilac700}>
+              <Text role="uiSemiBold" size={12} color={color.ink2}>
                 {i + 1}
               </Text>
             </View>
@@ -134,7 +137,7 @@ function Stepper({
   const btn = (txt: string, a11y: string, d: number, disabled: boolean) => (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${a11y}: ${label}`}
+      accessibilityLabel={t("roi.stepA11y", { action: a11y, label })}
       accessibilityState={{ disabled }}
       aria-disabled={disabled}
       disabled={disabled}
@@ -148,15 +151,17 @@ function Stepper({
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
-        borderColor: (state as { hovered?: boolean }).hovered ? color.lilac500 : color.line,
+        borderColor: (state as { hovered?: boolean }).hovered ? color.lilac700 : color.lineStrong,
         backgroundColor: color.white,
-        opacity: disabled ? 0.4 : 1,
+        opacity: disabled ? opacity.disabled : 1,
         transform: [{ scale: state.pressed ? 0.94 : 1 }],
       })}
     >
-      <Text role="uiSemiBold" size={18} color={color.ink}>
-        {txt}
-      </Text>
+      <View aria-hidden importantForAccessibility="no-hide-descendants">
+        <Text role="uiSemiBold" size={18} color={color.ink}>
+          {txt}
+        </Text>
+      </View>
     </Pressable>
   );
   return (

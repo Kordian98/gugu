@@ -1,11 +1,15 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 
-import { Icon, IconButton, Text, color, radius } from "@gugu/design-system";
+import { Icon, MIN_TOUCH, Text, color, opacity, radius } from "@gugu/design-system";
+
+type Focusable = { focus?: () => void } | null;
 
 /**
- * Bottom sheet on phones, centred dialog on desktop ("So sánh gói", "Cách tính"). RN `Modal` traps
- * focus and closes on Escape / back. Reduced motion → no slide.
+ * Bottom sheet on phones, centred dialog on desktop ("So sánh gói", "Cách tính"). One labelled
+ * dialog: react-native-web's `Modal` is the `role="dialog"` element (it traps focus and closes on
+ * Escape); the label is passed to it. Focus starts on the close button. The backdrop closes on tap
+ * but is hidden from assistive tech and the tab order. Reduced motion → no slide.
  */
 export function Sheet({
   open,
@@ -26,12 +30,18 @@ export function Sheet({
   children: ReactNode;
   testID?: string;
 }) {
+  const close = useRef<Focusable>(null);
+  const dialogLabel = { "aria-label": title } as object;
   return (
     <Modal
+      {...dialogLabel}
       visible={open}
       transparent
       animationType={reduce ? "none" : desktop ? "fade" : "slide"}
       onRequestClose={onClose}
+      onShow={() => {
+        close.current?.focus?.();
+      }}
     >
       <View
         style={{
@@ -41,7 +51,9 @@ export function Sheet({
         }}
       >
         <Pressable
-          accessibilityLabel={closeLabel}
+          aria-hidden
+          focusable={false}
+          importantForAccessibility="no-hide-descendants"
           onPress={onClose}
           style={{
             position: "absolute",
@@ -50,14 +62,11 @@ export function Sheet({
             right: 0,
             bottom: 0,
             backgroundColor: color.ink,
-            opacity: 0.42,
+            opacity: opacity.backdrop,
           }}
         />
         <View
           testID={testID}
-          role="dialog"
-          aria-modal
-          aria-label={title}
           accessibilityViewIsModal
           style={{
             width: "100%",
@@ -68,38 +77,46 @@ export function Sheet({
             borderTopRightRadius: radius.xl,
             borderBottomLeftRadius: desktop ? radius.xl : 0,
             borderBottomRightRadius: desktop ? radius.xl : 0,
-            paddingTop: 10,
+            paddingTop: 12,
           }}
         >
-          {desktop ? null : (
-            <View
-              style={{
-                alignSelf: "center",
-                width: 40,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: color.line,
-              }}
-            />
-          )}
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
               paddingHorizontal: 20,
-              paddingTop: 8,
+              paddingTop: 4,
               paddingBottom: 6,
             }}
           >
             <View accessibilityRole="header" style={{ flex: 1 }}>
-              <Text role="display" size={28} lineHeight={34} color={color.ink}>
+              <Text role="display" size={28} lineHeight={36} color={color.ink}>
                 {title}
               </Text>
             </View>
-            <IconButton size={44} onPress={onClose} accessibilityLabel={closeLabel}>
+            <Pressable
+              ref={(el) => {
+                close.current = el;
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={closeLabel}
+              onPress={onClose}
+              style={(state) => ({
+                width: MIN_TOUCH,
+                height: MIN_TOUCH,
+                borderRadius: radius.pill,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: color.white,
+                borderWidth: 1,
+                borderColor: (state as { hovered?: boolean }).hovered
+                  ? color.lilac700
+                  : color.lineStrong,
+              })}
+            >
               <Icon name="close" size={18} color={color.ink} />
-            </IconButton>
+            </Pressable>
           </View>
           <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28, gap: 14 }}>
             {children}

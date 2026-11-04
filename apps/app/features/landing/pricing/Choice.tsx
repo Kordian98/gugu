@@ -1,12 +1,16 @@
 import { Pressable, View, type ViewStyle } from "react-native";
+import { useTranslation } from "react-i18next";
 
-import { MIN_TOUCH, Text, checkableA11y, color, radius } from "@gugu/design-system";
+import { MIN_TOUCH, Text, checkableA11y, color, radius, shadow } from "@gugu/design-system";
+
+import { useRoving } from "./useRoving";
 
 export type ChoiceOption<T extends string> = { value: T; label: string };
 
 /**
- * One quick question: a short visible label and big one-tap chips (radio group). The full question
- * is the group's accessible name. `inline` puts the label on the chips' line (compact mobile).
+ * One quick question: a short visible label and big one-tap chips (radio group, roving tabindex +
+ * arrow keys). The full question is the group's accessible name. `inline` puts the label on the
+ * chips' line (compact phone layout).
  */
 export function ChoiceRow<T extends string>({
   label,
@@ -25,6 +29,11 @@ export function ChoiceRow<T extends string>({
   inline: boolean;
   testID?: string;
 }) {
+  const roving = useRoving(
+    options.map((o) => o.value),
+    value,
+    onChange,
+  );
   return (
     <View
       testID={testID}
@@ -37,13 +46,13 @@ export function ChoiceRow<T extends string>({
         gap: 10,
       }}
     >
-      <View style={inline ? { width: 68 } : undefined}>
-        <Text role="uiSemiBold" size={inline ? 13.5 : 15} color={color.ink2}>
+      <View style={inline ? { width: 64 } : undefined}>
+        <Text role="uiSemiBold" size={inline ? 13 : 15} color={color.ink2}>
           {label}
         </Text>
       </View>
       <View style={{ flex: inline ? 1 : undefined, flexDirection: "row", gap: 8 }}>
-        {options.map((o) => (
+        {options.map((o, i) => (
           <Chip
             key={o.value}
             label={o.label}
@@ -53,6 +62,7 @@ export function ChoiceRow<T extends string>({
             }}
             grow={inline}
             big={!inline}
+            roving={roving(i)}
           />
         ))}
       </View>
@@ -66,15 +76,18 @@ function Chip({
   onPress,
   grow,
   big,
+  roving,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
   grow: boolean;
   big: boolean;
+  roving: object;
 }) {
   return (
     <Pressable
+      {...roving}
       {...checkableA11y("radio", selected)}
       accessibilityLabel={label}
       onPress={onPress}
@@ -90,7 +103,7 @@ function Chip({
           justifyContent: "center",
           backgroundColor: selected ? color.ink : hovered ? color.lilac100 : color.white,
           borderWidth: 1.5,
-          borderColor: selected ? color.ink : hovered ? color.lilac500 : color.line,
+          borderColor: selected ? color.ink : hovered ? color.lilac700 : color.lineStrong,
           transform: [{ scale: state.pressed ? 0.96 : 1 }],
         };
       }}
@@ -124,6 +137,12 @@ export function Segmented<T extends string>({
   badge?: Partial<Record<T, string>>;
   testID?: string;
 }) {
+  const { t } = useTranslation("landing");
+  const roving = useRoving(
+    options.map((o) => o.value),
+    value,
+    onChange,
+  );
   return (
     <View
       testID={testID}
@@ -136,35 +155,33 @@ export function Segmented<T extends string>({
         borderRadius: radius.pill,
         backgroundColor: color.tile,
         borderWidth: 1,
-        borderColor: color.lineSoft,
+        borderColor: color.lineStrong,
         alignSelf: "flex-start",
       }}
     >
-      {options.map((o) => {
+      {options.map((o, i) => {
         const on = o.value === value;
         const b = badge?.[o.value];
         return (
           <Pressable
             key={o.value}
+            {...roving(i)}
             {...checkableA11y("radio", on)}
-            accessibilityLabel={b ? `${o.label}, ${b}` : o.label}
+            accessibilityLabel={
+              b ? t("pricing.interval.optionA11y", { label: o.label, badge: b }) : o.label
+            }
             onPress={() => {
               onChange(o.value);
             }}
-            style={(state): ViewStyle => {
-              return {
-                minHeight: MIN_TOUCH,
-                paddingHorizontal: 14,
-                borderRadius: radius.pill,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                backgroundColor: on ? color.white : "transparent",
-                shadowColor: color.ink,
-                shadowOpacity: on ? 0.1 : 0,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 2 },
-              };
+            style={{
+              minHeight: MIN_TOUCH,
+              paddingHorizontal: 14,
+              borderRadius: radius.pill,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              backgroundColor: on ? color.white : "transparent",
+              ...(on ? shadow.raised : {}),
             }}
           >
             <Text role="uiSemiBold" size={13.5} color={on ? color.ink : color.body}>

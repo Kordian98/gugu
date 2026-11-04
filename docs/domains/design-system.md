@@ -45,6 +45,8 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 - **Stage height** = scroller `clientHeight` via `--sv` (no vh/svh/dvh mismatch inside the RN Web ScrollView).
 - **QA and metrics:** `docs/qa/02-landing-flow/README.md`.
 
+**Tokens added (02-PRICING-ADVISOR):** `color.lineStrong` (#8E7B8A, ≥ 3:1 on white/canvas/tile for control borders), `gradient.glowInk` (every stop ≥ 4.3:1 on canvas, for gradient text that must be readable), `motion.bezier` (JS control points of `motion.ease`), `motion.spring.pop`, `opacity` (backdrop, disabled), `shadow` (card, raised). Contrast asserted in `tokens.test.ts`.
+
 **Tokens added (02-LANDING-FLOW):** `motion` (fast 120 · base 200 · slow 320 · deliberate 500 ms, ease out/inOut), `color.danger`/`dangerInk`/`dangerTint`, `zalo`, `paper`/`paperLine`, `sheet`/`sheetLine`, `gradient.glowSoft` + `cssGradient()`.
 
 ## Landing pricing assistant (X27)
@@ -55,6 +57,8 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 - **Estimate:** net per month = revenue kept − plan cost per month, plus hours freed; labelled as an illustrative estimate, not money GuGu pays. Assumptions (4.33 weeks, 3 min per booking, 10 % no-shows, 25 % fewer with reminders) are shown step by step in the "Cách tính" sheet (`RoiCalculator.tsx`).
 - **Layout:** desktop questions | result, fits 1280×800; phone fits 390×844 after snapping (CTA pinned with CSS sticky, section is a scroll-snap point), 360×640 within one scroll. Sheets: RN `Modal` (bottom sheet on phones, dialog on desktop).
 - **Motion:** numbers count up (`useCountUp`, `motion.duration.deliberate`, ease-out), result card pops and the check draws in on plan change (`usePop`); all off with reduced motion.
+- **Honesty (q106 pending):** Pro's monthly AI review and Ultra's multi-location / combined reporting / advanced analytics are in the catalogue but not built, so they carry a "Sắp có" tag (`pricing/Soon.tsx`) and `why.ultra` says multi-location is coming. Ultra's CTA is the Pro trial, with a one-line note (no separate Ultra trial). Payroll, commissions and Insights are ungated (every plan).
+- **A11y:** radio groups use a roving tabindex with arrow keys (`pricing/useRoving.ts`); one polite live summary (plan, why, cost); sheets are one labelled dialog with focus on Close and a backdrop hidden from AT; the pinned phone CTA sets `scroll-padding-bottom` on the scroller and scrolls focused controls clear of it (`pricing/useFocusClearance.ts`, WCAG 2.4.11). The savings number is ink (the sparkle is decorative).
 - **QA:** screenshots `docs/qa/02-pricing-advisor/` (Chromium + WebKit, 1440/1280/390/360, vi/en, `flow-*` = interactions and sheets).
 
 ## Decisions

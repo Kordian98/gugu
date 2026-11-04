@@ -27,7 +27,7 @@ export function SectionHead({
   center?: boolean;
   onDark?: boolean;
   /** Up to two words of the title in the brand gradient (rendered after `title`), plus trailing text. */
-  glow?: { words: string; after?: string };
+  glow?: { words: string; after?: string; colors?: readonly string[] };
 }) {
   return (
     <View className={`gap-3 ${center ? "items-center" : ""}`}>
@@ -45,7 +45,7 @@ export function SectionHead({
           {title}
           {glow ? (
             <GradientText
-              colors={gradient.glowHere}
+              colors={glow.colors ?? gradient.glowHere}
               style={{ fontFamily: font.display, fontSize: 48, lineHeight: 56 }}
             >
               {glow.words}

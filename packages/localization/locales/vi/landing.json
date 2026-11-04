@@ -156,14 +156,18 @@
     "titleGlow": "3 chạm",
     "titlePost": ".",
     "sub": "Trả lời nhanh, xem ngay gói hợp với salon, chi phí và phần bạn có thể tiết kiệm.",
-    "questions": "Về salon của bạn",
     "q": {
       "team": {
         "label": "Đội ngũ",
         "full": "Salon của bạn có bao nhiêu người?",
         "solo": "Mình tôi",
         "small": "2–5 người",
-        "large": "6+ người"
+        "large": "6+ người",
+        "short": {
+          "solo": "Mình tôi",
+          "small": "2–5",
+          "large": "6+"
+        }
       },
       "ai": {
         "label": "Trợ lý AI",
@@ -186,14 +190,15 @@
     "forYou": "Hợp với bạn",
     "why": {
       "basic": "Với {{team}} và 1 cơ sở, Basic là đủ; chọn Pro nếu muốn trợ lý AI.",
-      "pro": "Bạn muốn trợ lý AI: Pro có Gu trả lời về số liệu và báo cáo AI mỗi tháng.",
-      "ultra": "Có nhiều cơ sở thì cần Ultra, với báo cáo tổng hợp mọi chi nhánh."
+      "pro": "Bạn muốn trợ lý AI: Pro có Gu trả lời mọi câu hỏi về số liệu của salon.",
+      "ultra": "Nhiều cơ sở sắp có trong Ultra; hiện bạn bắt đầu với Pro."
     },
     "interval": {
       "label": "Kỳ thanh toán",
       "month": "Theo tháng",
       "year": "Theo năm",
-      "yearBadge": "−2 tháng"
+      "yearBadge": "−2 tháng",
+      "optionA11y": "{{label}}, {{badge}}"
     },
     "cost": {
       "firstYear": "Năm đầu",
@@ -216,7 +221,8 @@
     "cta": {
       "basic": "Bắt đầu miễn phí",
       "pro": "Dùng thử Pro 14 ngày",
-      "ultra": "Dùng thử Pro 14 ngày"
+      "ultra": "Dùng thử Pro 14 ngày",
+      "ultraNote": "Ultra chưa có dùng thử riêng; bạn bắt đầu với Pro."
     },
     "noCard": "Không cần thẻ hay thanh toán",
     "compareLink": "So sánh gói",
@@ -239,21 +245,25 @@
       "pro": {
         "name": "Pro",
         "price": "{{price}}/tháng",
-        "items": "Mọi thứ trong Basic, cộng thêm:\nGu · trợ lý AI trả lời về số liệu của salon\nBáo cáo AI hằng tháng\nHạn mức AI cao hơn\n300 tin nhắn mẫu Zalo mỗi tháng (Basic: 100)",
-        "highlight": "Thêm trợ lý AI Gu, báo cáo AI"
+        "items": "Mọi thứ trong Basic, cộng thêm:\nGu · trợ lý AI trả lời về số liệu của salon\nHạn mức AI cao hơn\n300 tin nhắn mẫu Zalo mỗi tháng (Basic: 100)",
+        "highlight": "Thêm trợ lý AI Gu",
+        "soon": "Báo cáo AI hằng tháng"
       },
       "ultra": {
         "name": "Ultra",
         "price": "{{price}}/tháng",
-        "items": "Mọi thứ trong Pro, cộng thêm:\nNhiều cơ sở với báo cáo tổng hợp\nPhân tích nâng cao\nHạn mức AI cao nhất\n1.000 tin nhắn mẫu Zalo mỗi tháng",
-        "highlight": "Thêm nhiều cơ sở, phân tích nâng cao"
+        "items": "Mọi thứ trong Pro, cộng thêm:\nHạn mức AI cao nhất\n1.000 tin nhắn mẫu Zalo mỗi tháng",
+        "highlight": "Nhiều cơ sở, phân tích nâng cao",
+        "soon": "Nhiều cơ sở với báo cáo tổng hợp\nPhân tích nâng cao"
       }
     },
     "a11y": {
-      "result": "Gợi ý: gói {{plan}}. {{why}}",
-      "resultBar": "Xem gợi ý: gói {{plan}}"
+      "result": "Gợi ý: gói {{plan}}. {{why}} {{cost}}",
+      "costBasic": "Năm đầu 0đ, từ năm thứ hai {{price}}{{unit}}.",
+      "costPaid": "Sau 14 ngày dùng thử: {{price}}{{unit}}."
     },
-    "others": "Gói khác"
+    "others": "Gói khác",
+    "soon": "Sắp có"
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
@@ -586,7 +596,8 @@
     "stepNoShow": "{{rate}} khách vắng × giảm {{cut}} nhờ nhắc lịch tự động = ~{{a}} lịch giữ được",
     "stepMoney": "× {{price}} = ~{{v}} doanh thu giữ lại",
     "stepNet": "− phí gói {{cost}}/tháng (năm đầu) = ~{{net}}",
-    "source": "Mức giảm {{cut}} thấp hơn kết quả các nghiên cứu về nhắc lịch trong y tế (BMJ Open 2016; Hasvold & Wootton 2011: khoảng 34%). Chưa tính phần giữ được nhờ không trùng lịch. Đây không phải tiền GuGu trả cho salon."
+    "source": "Mức giảm {{cut}} thấp hơn kết quả các nghiên cứu về nhắc lịch trong y tế (BMJ Open 2016; Hasvold & Wootton 2011: khoảng 34%). Chưa tính phần giữ được nhờ không trùng lịch. Đây không phải tiền GuGu trả cho salon.",
+    "stepA11y": "{{action}}: {{label}}"
   },
   "views": {
     "label": "Góc nhìn",

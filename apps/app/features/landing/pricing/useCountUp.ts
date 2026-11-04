@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { Easing } from "react-native";
 
 import { motion } from "@gugu/design-system";
 
+const [x1, y1, x2, y2] = motion.bezier.out;
+const EASE_OUT = Easing.bezier(x1, y1, x2, y2);
+
 /**
- * Number that glides to its new value (ease-out over `motion.duration.deliberate`) whenever the
+ * Number that glides to its new value (`motion.bezier.out` over `motion.duration.deliberate`) whenever the
  * target changes; jumps straight there with reduced motion. Whole numbers only (VND, hours).
  */
 export function useCountUp(target: number, reduce: boolean): number {
@@ -23,7 +27,7 @@ export function useCountUp(target: number, reduce: boolean): number {
     const duration = motion.duration.deliberate;
     const tick = () => {
       const p = Math.min(1, (Date.now() - t0) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
+      const eased = EASE_OUT(p);
       const v = Math.round(start + (target - start) * eased);
       from.current = v;
       setShown(v);

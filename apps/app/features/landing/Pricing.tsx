@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "react-native-reanimated";
 
 import type { BillingInterval, PublicPlanCode } from "@gugu/contracts";
-import { Button, Text, color } from "@gugu/design-system";
+import { Button, GradientText, Text, color, font, gradient } from "@gugu/design-system";
 
 import { RoiCalculator } from "./RoiCalculator";
 import { Container, SectionHead } from "./Section";
@@ -20,6 +20,7 @@ import {
 } from "./pricing/model";
 import { ResultCard } from "./pricing/ResultCard";
 import { Sheet } from "./pricing/Sheet";
+import { useFocusClearance } from "./pricing/useFocusClearance";
 import type { LandingNavActions } from "./useLandingNav";
 
 /** Web, phone: the section is a snap point of the mobile story's proximity snapping. */
@@ -49,6 +50,8 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
   const [weekly, setWeekly] = useState<number | null>(null);
   const [price, setPrice] = useState<number | null>(null);
   const [sheet, setSheet] = useState<"compare" | "how" | null>(null);
+  const [barHeight, setBarHeight] = useState(0);
+  useFocusClearance("pricing-section", desktop ? 0 : barHeight);
 
   const defaults = TEAM_DEFAULTS[answers.team];
   const w = weekly ?? defaults.weekly;
@@ -79,6 +82,11 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
       <Text size={12.5} color={color.ink2}>
         {t("pricing.noCard")}
       </Text>
+      {plan === "ultra" ? (
+        <Text size={12} lineHeight={16} color={color.body} style={{ textAlign: "center" }}>
+          {t("pricing.cta.ultraNote")}
+        </Text>
+      ) : null}
     </View>
   );
 
@@ -95,7 +103,10 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
           setWeekly(null);
           setPrice(null);
         }}
-        options={TEAMS.map((v) => ({ value: v, label: t(`pricing.q.team.${v}`) }))}
+        options={TEAMS.map((v) => ({
+          value: v,
+          label: desktop ? t(`pricing.q.team.${v}`) : t(`pricing.q.team.short.${v}`),
+        }))}
       />
       <ChoiceRow
         testID="pricing-q-ai"
@@ -156,7 +167,11 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
               <SectionHead
                 eyebrow={t("pricing.eyebrow")}
                 title={t("pricing.titlePre")}
-                glow={{ words: t("pricing.titleGlow"), after: t("pricing.titlePost") }}
+                glow={{
+                  words: t("pricing.titleGlow"),
+                  after: t("pricing.titlePost"),
+                  colors: gradient.glowInk,
+                }}
               />
               <Text size={17} lineHeight={26} color={color.body}>
                 {t("pricing.sub")}
@@ -172,9 +187,14 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
                 {t("pricing.eyebrow")}
               </Text>
               <View accessibilityRole="header">
-                <Text role="display" size={32} lineHeight={36} color={color.ink}>
+                <Text role="display" size={32} lineHeight={42} color={color.ink}>
                   {t("pricing.titlePre")}
-                  {t("pricing.titleGlow")}
+                  <GradientText
+                    colors={gradient.glowInk}
+                    style={{ fontFamily: font.display, fontSize: 32, lineHeight: 42 }}
+                  >
+                    {t("pricing.titleGlow")}
+                  </GradientText>
                   {t("pricing.titlePost")}
                 </Text>
               </View>
@@ -186,7 +206,10 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
       </Container>
       {desktop ? null : (
         <View
-          testID="pricing-cta-bar"
+          testID="pricing-section-cta-bar"
+          onLayout={(e) => {
+            setBarHeight(Math.ceil(e.nativeEvent.layout.height));
+          }}
           style={[
             {
               zIndex: 5,

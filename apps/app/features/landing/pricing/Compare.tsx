@@ -7,6 +7,8 @@ import { formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
+import { Soon } from "./Soon";
+
 /** "So sánh gói": all three plans with their real entitlements (plan catalogue) and list price. */
 export function Compare({
   shown,
@@ -64,8 +66,8 @@ export function Compare({
                   backgroundColor: on ? color.lilac100 : color.white,
                   borderWidth: 1,
                   borderColor: (state as { hovered?: boolean }).hovered
-                    ? color.lilac500
-                    : color.line,
+                    ? color.lilac700
+                    : color.lineStrong,
                 })}
               >
                 {on ? (
@@ -99,6 +101,24 @@ export function Compare({
                     </View>
                   ),
                 )}
+              {plan === "basic"
+                ? null
+                : t(`pricing.plan.${plan}.soon`)
+                    .split("\n")
+                    .map((item) => (
+                      <View
+                        key={item}
+                        style={{ flexDirection: "row", gap: 8, alignItems: "center" }}
+                      >
+                        <View style={{ width: 13 }} />
+                        <View style={{ flexShrink: 1 }}>
+                          <Text size={14} lineHeight={20} color={color.body}>
+                            {item}
+                          </Text>
+                        </View>
+                        <Soon />
+                      </View>
+                    ))}
             </View>
           </View>
         );

@@ -7,6 +7,8 @@ import { formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
+import { Soon } from "./Soon";
+
 /** Compact "other plan" row (desktop result card) and the pill links that open the sheets. */
 export function OtherPlan({
   plan,
@@ -34,7 +36,7 @@ export function OtherPlan({
         paddingVertical: 8,
         borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: (state as { hovered?: boolean }).hovered ? color.lilac500 : color.lineSoft,
+        borderColor: (state as { hovered?: boolean }).hovered ? color.lilac700 : color.lineStrong,
         backgroundColor: color.white,
       })}
     >
@@ -43,10 +45,13 @@ export function OtherPlan({
           {name}
         </Text>
       </View>
-      <View style={{ flex: 1 }}>
-        <Text size={13} lineHeight={18} color={color.body} numberOfLines={1}>
-          {t(`pricing.plan.${plan}.highlight`)}
-        </Text>
+      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <View style={{ flexShrink: 1 }}>
+          <Text size={13} lineHeight={18} color={color.body} numberOfLines={1}>
+            {t(`pricing.plan.${plan}.highlight`)}
+          </Text>
+        </View>
+        {plan === "ultra" ? <Soon /> : null}
       </View>
       <Text role="uiSemiBold" size={13} color={color.ink2}>
         {plan === "basic"
@@ -83,7 +88,7 @@ export function LinkChip({
           alignItems: "center",
           gap: 6,
           borderWidth: 1,
-          borderColor: hovered ? color.lilac500 : color.line,
+          borderColor: hovered ? color.lilac700 : color.lineStrong,
           backgroundColor: hovered ? color.lilac100 : color.white,
         };
       }}

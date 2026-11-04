@@ -3,9 +3,9 @@ import { Animated, Platform, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { type BillingInterval, planPriceVnd } from "@gugu/contracts";
-import { GradientText, Text, color, font, gradient, motion, radius } from "@gugu/design-system";
+import { Icon, Text, color, motion, radius } from "@gugu/design-system";
 import { yearlySavingVnd } from "@gugu/domain";
-import { formatVND } from "@gugu/localization";
+import { formatNumber, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
@@ -31,8 +31,7 @@ export function usePop(trigger: string, reduce: boolean) {
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
-        friction: 5,
-        tension: 160,
+        ...motion.spring.pop,
         useNativeDriver: NATIVE_DRIVER,
       }),
       Animated.timing(check, {
@@ -208,15 +207,16 @@ export function Savings({
       <Text role="uiSemiBold" size={12} color={color.ink2}>
         {t("pricing.save.label")}
       </Text>
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 2 }}>
-        <GradientText
-          colors={gradient.glowSoft}
-          style={{ fontFamily: font.display, fontSize: big, lineHeight: big * 1.15 }}
-        >
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
+        {/* Decorative accent; the number itself is ink (contrast). */}
+        <View aria-hidden importantForAccessibility="no-hide-descendants">
+          <Icon name="sparkles" size={big * 0.6} color={color.lilac700} />
+        </View>
+        <Text role="display" size={big} lineHeight={big * 1.15} color={color.ink}>
           {t(net >= 0 ? "pricing.save.big" : "pricing.save.bigNegative", {
             v: formatVND(netShown, locale),
           })}
-        </GradientText>
+        </Text>
         <Text role="uiSemiBold" size={14} color={color.ink2}>
           {t("pricing.cost.unitMonth")}
         </Text>
@@ -228,7 +228,7 @@ export function Savings({
         lineHeight={desktop ? 21 : 18}
         color={color.ink}
       >
-        {t("pricing.save.line", { h: hours, v: formatVND(kept, locale) })}
+        {t("pricing.save.line", { h: formatNumber(hours, locale), v: formatVND(kept, locale) })}
       </Text>
       <Text size={11.5} lineHeight={15} color={color.ink2}>
         {t("pricing.save.disclaimer")}

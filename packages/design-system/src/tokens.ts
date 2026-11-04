@@ -10,6 +10,8 @@ export const color = {
   muted: "#7A6A80",
   white: "#FFFFFF",
   line: "#EEE6E4",
+  /** Control boundaries that must reach 3:1 (WCAG 1.4.11) on white, canvas and tile: chips, steppers. */
+  lineStrong: "#8E7B8A",
   lineSoft: "#EFE8E6",
   tile: "#F7F2EE",
   tileActiveFrom: "#D9C8FD",
@@ -53,6 +55,8 @@ export const gradient = {
   glowUp: ["#6F55C9", "#B58BEA", "#F69BB3", "#F8A27C"],
   /** Two-stop lilac → pink used for big numbers and progress fills (≤ 2 headline words). */
   glowSoft: ["#A68CF6", "#F08DB4"],
+  /** Deep glow for gradient text that must stay readable (every stop ≥ 4.3:1 on canvas/white). */
+  glowInk: ["#7B5CCB", "#A0529E", "#C04F7E"],
 } as const;
 
 /** CSS linear-gradient from a gradient token. */
@@ -66,6 +70,31 @@ export const cssGradient = (stops: readonly string[], angle = "90deg") =>
 export const motion = {
   duration: { fast: 120, base: 200, slow: 320, deliberate: 500 },
   ease: { out: "cubic-bezier(.2,.7,.2,1)", inOut: "cubic-bezier(.45,0,.55,1)" },
+  /** The same curves as control points, for JS animations (`Easing.bezier(...motion.bezier.out)`). */
+  bezier: { out: [0.2, 0.7, 0.2, 1], inOut: [0.45, 0, 0.55, 1] },
+  /** RN `Animated.spring` presets. `pop` overshoots slightly: expressive only, never calm mode. */
+  spring: { pop: { friction: 5, tension: 160 } },
+} as const;
+
+/** Opacity tokens. */
+export const opacity = { backdrop: 0.42, disabled: 0.4 } as const;
+
+/** Elevation presets (RN shadow props; react-native-web maps them to box-shadow). */
+export const shadow = {
+  /** Floating result / feature cards. */
+  card: {
+    shadowColor: "#7B5CCB",
+    shadowOpacity: 0.14,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 14 },
+  },
+  /** Selected segment, small raised controls. */
+  raised: {
+    shadowColor: "#221024",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
 } as const;
 
 /** Font families registered by the app (expo-font keys = family names). */

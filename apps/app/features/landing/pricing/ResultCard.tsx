@@ -3,12 +3,25 @@ import { Animated, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { PUBLIC_PLANS, type BillingInterval, type PublicPlanCode } from "@gugu/contracts";
-import { Icon, Text, color, radius } from "@gugu/design-system";
+import { PLAN_MONTHLY_PRICE_VND, planPriceVnd } from "@gugu/contracts";
+import { Icon, Text, color, radius, shadow } from "@gugu/design-system";
+import { formatVND } from "@gugu/localization";
+
+import { useLocale } from "@/services/i18n/useLocale";
 
 import { Segmented } from "./Choice";
 import type { Advice } from "./model";
 import { LinkChip, OtherPlan } from "./links";
 import { CostRow, Savings, usePop } from "./parts";
+
+/** Visually hidden but read by screen readers. */
+const SR_ONLY = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  overflow: "hidden",
+  opacity: 0,
+} as const;
 
 /**
  * The live answer: recommended plan + one-line why, this year / later cost with the monthly-yearly
@@ -41,7 +54,21 @@ export function ResultCard({
   const { t } = useTranslation("landing");
   const { plan } = advice;
   const { scale, check } = usePop(plan, reduce);
+  const locale = useLocale();
   const name = t(`pricing.plan.${plan}.name`);
+  const unit = t(interval === "month" ? "pricing.cost.unitMonth" : "pricing.cost.unitYear");
+  const price = formatVND(
+    interval === "month" ? PLAN_MONTHLY_PRICE_VND[plan] : planPriceVnd(plan, "year"),
+    locale,
+  );
+  const summary = t("pricing.a11y.result", {
+    plan: name,
+    why,
+    cost: t(plan === "basic" ? "pricing.a11y.costBasic" : "pricing.a11y.costPaid", {
+      price,
+      unit,
+    }),
+  });
   const links = (
     <>
       <LinkChip
@@ -64,20 +91,20 @@ export function ResultCard({
         backgroundColor: color.white,
         borderWidth: 1,
         borderColor: color.lineSoft,
-        shadowColor: color.lilac700,
-        shadowOpacity: 0.14,
-        shadowRadius: 30,
-        shadowOffset: { width: 0, height: 14 },
+        ...shadow.card,
       }}
     >
-      {/* Plan + why: announced politely when the answer changes. */}
-      <View accessibilityLiveRegion="polite" aria-live="polite" style={{ gap: desktop ? 8 : 4 }}>
+      {/* Screen readers: one polite summary (plan, why, cost) whenever the answer changes. */}
+      <View accessibilityLiveRegion="polite" aria-live="polite" style={SR_ONLY}>
+        <Text size={12}>{summary}</Text>
+      </View>
+      <View style={{ gap: desktop ? 8 : 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Animated.View
             style={{
               width: desktop ? 34 : 28,
               height: desktop ? 34 : 28,
-              borderRadius: 999,
+              borderRadius: radius.pill,
               backgroundColor: color.ink,
               alignItems: "center",
               justifyContent: "center",
