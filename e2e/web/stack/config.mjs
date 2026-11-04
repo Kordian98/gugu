@@ -73,7 +73,8 @@ export function backendEnv() {
     APPLE_CLIENT_IDS: "",
     ZALO_LOGIN_ENABLED: "false",
     // Every seeded and test account shares the e2e mail domain; the per-domain signup brake
-    // (ADR-0018) would otherwise stop the seed.
+    // (ADR-0018) and the per-source share of the global cap would otherwise stop the seed.
     QUICK_START_DOMAIN_DAILY_LIMIT: "1000",
+    QUICK_START_SOURCE_SHARE_PCT: "100",
   };
 }

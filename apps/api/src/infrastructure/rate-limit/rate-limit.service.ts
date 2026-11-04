@@ -24,8 +24,11 @@ export class RateLimitService {
     return count >= rule.limit;
   }
 
-  /** Counts one hit; throws 429 `common.rate_limited` once the window's limit is exceeded. */
-  async consume(rule: RateLimitRule, subject: string): Promise<void> {
+  /**
+   * Counts one hit; throws 429 `common.rate_limited` once the window's limit is exceeded. Returns
+   * the window's count including this hit (for near-limit alerts).
+   */
+  async consume(rule: RateLimitRule, subject: string): Promise<number> {
     const key = `rl:${rule.name}:${subject}`;
     const results = await this.redis.client
       .multi()
@@ -38,6 +41,7 @@ export class RateLimitService {
         detail: `retry within ${String(rule.windowSeconds)}s`,
       });
     }
+    return count;
   }
 
   /**

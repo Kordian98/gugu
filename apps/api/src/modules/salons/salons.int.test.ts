@@ -1,4 +1,4 @@
-// Integration against the local stack: salon registration, tenant guard, generated cross-tenant
+// Integration against the local stack: the retired registration route, tenant guard, generated cross-tenant
 // suite (spec 05 AC6), immediate revocation (AC9), staff scoping (AC8).
 import type { INestApplication } from "@nestjs/common";
 import { DiscoveryService, MetadataScanner, Reflector } from "@nestjs/core";
@@ -11,9 +11,7 @@ import {
   categoryListSchema,
   locationListSchema,
   problemSchema,
-  salonRegistrationResultSchema,
   salonSummarySchema,
-  type SalonRegistrationInput,
 } from "@gugu/contracts";
 import {
   addSalonMember,
@@ -38,8 +36,7 @@ describe("salons & tenancy (integration)", () => {
   let ownerA: string;
   let ref: { categoryId: string; provinceId: string; wardId: string };
 
-  // IP-keyed rate limits (salons.register.ip: 10/h, and this file makes 10 registrations; the
-  // magic-link IP caps) count per /24, and every local run comes from 127.0.0.1: concurrent runs in
+  // IP-keyed rate limits (the magic-link IP caps) count per /24, and every local run comes from 127.0.0.1: concurrent runs in
   // other worktrees used to push this file over the limit. Each run, and each retry below, sends
   // its own client /24 instead (X-Forwarded-For, trusted from loopback for this app only).
   const clientIp = () =>
@@ -68,14 +65,13 @@ describe("salons & tenancy (integration)", () => {
     else process.env["TRUST_PROXY"] = trustProxy;
   });
 
-  const registration = (patch: Partial<SalonRegistrationInput> = {}): SalonRegistrationInput => ({
+  const registration = () => ({
     businessName: "Lotus Nail Quận 1",
     phone: "0912 345 678",
     streetAddress: "12 Lê Lợi",
     locationsHint: "1",
     locale: "vi",
     ...ref,
-    ...patch,
   });
 
   it("public reference data: categories and the province → ward stub", async () => {
@@ -87,46 +83,26 @@ describe("salons & tenancy (integration)", () => {
     expect(locationListSchema.parse(wards.body).items.length).toBeGreaterThan(0);
   });
 
-  it("signed-in registration: owner at once, trial started, audited", async () => {
-    const res = await request(http(app))
-      .post("/api/v1/salons/registrations")
-      .set("x-forwarded-for", runIp)
-      .set("authorization", ownerA)
-      .send(registration())
-      .expect(201);
-    const result = salonRegistrationResultSchema.parse(res.body);
-    expect(result).toMatchObject({ status: "draft", magicLinkStatus: "not_required" });
-    expect(result.salonSlug).toMatch(/^lotus-nail-quan-1-[0-9a-f]{6}$/);
-
-    const salon = await prisma.salon.findUniqueOrThrow({
-      where: { id: result.salonId },
-      include: { members: true, location: true, subscriptions: true },
+  it("POST /salons/registrations is removed: 404 for anonymous, members and admins; nothing created", async () => {
+    // Signup parity (security review of the reg-flow merge): quick start is the only
+    // salon-creating route, so every signup passes SignupGuard (ADR-0018).
+    const admin = await prisma.user.create({
+      data: {
+        email: testEmail("reg-admin"),
+        emailVerifiedAt: new Date(),
+        platformRole: "support_admin",
+        profile: { create: {} },
+      },
     });
-    expect(salon.phoneE164).toBe("+84912345678");
-    expect(salon.members).toMatchObject([
-      { userId: a.ownerUserId, role: "owner", status: "active" },
-    ]);
-    expect(salon.subscriptions).toMatchObject([{ status: "trialing" }]);
-    const audit = await prisma.auditLog.findFirst({
-      where: { action: "salon.registered", salonId: result.salonId },
-    });
-    expect(audit?.actorId).toBe(a.ownerUserId);
-
-    const summary = await request(http(app))
-      .get(`/api/v1/salons/${result.salonId}`)
-      .set("authorization", ownerA)
-      .expect(200);
-    expect(salonSummarySchema.parse(summary.body).myRole).toBe("owner");
-  });
-
-  it("anonymous registration is retired (ADR-0018): 401, nothing created", async () => {
     const before = await prisma.salon.count();
-    const res = await request(http(app))
-      .post("/api/v1/salons/registrations")
-      .set("x-forwarded-for", runIp)
-      .send({ ...registration(), email: testEmail("anon") })
-      .expect(401);
-    expect(problemSchema.parse(res.body).status).toBe(401);
+    for (const auth of [null, ownerA, await bearerFor(app, admin.id)]) {
+      const req = request(http(app))
+        .post("/api/v1/salons/registrations")
+        .set("x-forwarded-for", runIp);
+      if (auth) req.set("authorization", auth);
+      const res = await req.send(registration());
+      expect(res.status).toBe(404);
+    }
     expect(await prisma.salon.count()).toBe(before);
   });
 
@@ -195,20 +171,27 @@ describe("salons & tenancy (integration)", () => {
     ).toBe(1);
   });
 
-  it("rejects bad phone numbers and unknown locations", async () => {
+  it("salon profile rejects bad phone numbers and unknown locations", async () => {
+    const profile = (patch: Record<string, unknown>) => ({
+      name: "Salon A",
+      phone: "0912 345 678",
+      description: null,
+      streetAddress: "12 Lê Lợi",
+      provinceId: ref.provinceId,
+      wardId: ref.wardId,
+      ...patch,
+    });
     const phone = await request(http(app))
-      .post("/api/v1/salons/registrations")
-      .set("x-forwarded-for", runIp)
+      .patch(`/api/v1/salons/${a.salonId}/settings/profile`)
       .set("authorization", ownerA)
-      .send(registration({ phone: "12345678" }))
+      .send(profile({ phone: "12345678" }))
       .expect(400);
     expect(problemSchema.parse(phone.body).code).toBe("salon.invalid_phone");
     const ward = await prisma.location.findFirstOrThrow({ where: { code: "stub-01-ba-dinh" } });
     const loc = await request(http(app))
-      .post("/api/v1/salons/registrations")
-      .set("x-forwarded-for", runIp)
+      .patch(`/api/v1/salons/${a.salonId}/settings/profile`)
       .set("authorization", ownerA)
-      .send(registration({ wardId: ward.id }))
+      .send(profile({ wardId: ward.id }))
       .expect(400);
     expect(problemSchema.parse(loc.body).code).toBe("salon.unknown_location");
   });

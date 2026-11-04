@@ -62,8 +62,7 @@ Migration `20261102122228_add_subscription_salon_fks` adds `salon_id → salons(
 | `GET /api/v1/me` | authenticated | User, memberships, web `csrfToken` |
 | `GET /api/v1/me/pending-salons`, `POST …/:salonId/confirm`, `POST …/:salonId/decline` | authenticated | Explicit confirm/decline of salons registered with my email (audited `salon.owner_verified` / `salon.owner_declined`) |
 | `GET /api/v1/public/categories`, `/public/locations` | public | Reference data for registration |
-| `POST /api/v1/salons/registrations` | authenticated | Signed-in only since ADR-0018 (the anonymous, pending-until-emailed-link variant is retired): owner at once, 14-day trial in the same transaction |
-| `POST /api/v1/salons/quick-start` | authenticated | Email-only signup (ADR-0018): first salon, unnamed draft, idempotent; refuses admins, disposable domains and emails with team invitations (unless `ignoreInvitations`); per user/IP/domain limits + global daily cap |
+| `POST /api/v1/salons/quick-start` | authenticated | Email-only signup (ADR-0018): first salon, unnamed draft, idempotent; the only salon-creating route (`POST /salons/registrations` removed). `SignupGuard` refuses admins, disposable domains and emails with team invitations (unless `ignoreInvitations`); per user, IP /24 (hourly + daily), registrable domain (eTLD+1) limits, each capped at a share of the global daily cap; near-cap error log |
 | `GET /api/v1/me/invitations`, `POST /api/v1/me/invitations/:id/accept` | authenticated | Email-bound team invitations of the signed-in user (q102) |
 | `GET/PATCH /api/v1/salons/:salonId`, `GET …/members` | `salon.read` / `salon.profile.write` / `members.read` | Minimal workspace read models |
 | `GET /api/v1/salons/:salonId/entitlements` | `subscription.read` | Topic 12, guarded by the membership guard |
@@ -172,7 +171,7 @@ Without `--with-totp`, sign in at `/vi/sign-in` (Mailpit), open `/vi/admin/secur
 - `apps/api/src/modules/privacy/`: `application/{client-data,client-privacy.service,salon-export.service,retention.service}.ts`, `domain/render-export.ts`, `http/privacy.controller.ts`; worker `apps/api/src/jobs/privacy.processor.ts`.
 - `apps/api/scripts/{seed-platform-admin,totp-code}.mjs`: local admin + TOTP.
 - `apps/app/features/admin/{SecurityScreen,AdminTeamSection,StepUpPrompt,MfaBanner}.tsx`; `apps/app/features/salon-crm/pages/customers/ClientPrivacySection.tsx`, `pages/settings/PrivacySection.tsx`, `data/privacy.ts`; `apps/app/services/files/share.ts`; strings in `privacy` and `admin` namespaces.
-- `apps/api/src/modules/salons/`: registration, reference data, salon read models.
+- `apps/api/src/modules/salons/`: quick-start signup (`application/signup-guard.ts`: the one gate for salon-creating signups, eTLD+1 via `tldts`), reference data, salon read models.
 - `apps/api/src/infrastructure/{mail,rate-limit}/`: SMTP transport, Valkey fixed-window limiter.
 - `apps/app/services/auth/`: `apiFetch`, `AuthProvider`, token stores (`token-store.native.ts` = SecureStore; web keeps only the CSRF token in memory).
 - `apps/app/features/auth/`: sign-in, verify and the email-only signup (`SignInScreen mode="signUp"` on `/business/join`, ADR-0018; the old salon form `features/salon-join/` was removed).

@@ -2,10 +2,10 @@ import { z } from "zod";
 import { localeSchema, uuidV7Schema } from "../common/ids";
 
 /**
- * Salon registration (`POST /api/v1/salons/registrations`), signed-in callers only since ADR-0018:
- * creates an organisation + a salon with full details; the caller becomes owner at once
- * (`magicLinkStatus: "not_required"`). The anonymous variant (pending until an emailed link) is
- * retired; older pending salons are still confirmed through `/me/pending-salons`.
+ * Salon signup contracts. The only salon-creating route is `POST /api/v1/salons/quick-start`
+ * (ADR-0018); `POST /salons/registrations` was removed (anonymous variant first, then the
+ * signed-in one, so every signup passes the same `SignupGuard`). Older pending salons are still
+ * confirmed through `/me/pending-salons`.
  */
 
 export const SALON_ERRORS = {
@@ -23,29 +23,6 @@ export const SALON_ERRORS = {
   /** The salon has no name yet; it is the first, mandatory setup step (q103). */
   nameRequired: "salon.name_required",
 } as const;
-
-export const salonRegistrationInputSchema = z.object({
-  businessName: z.string().trim().min(2).max(120),
-  categoryId: uuidV7Schema,
-  /** Vietnamese number in any common format; normalised to E.164 by the API. */
-  phone: z.string().trim().min(8).max(20),
-  provinceId: uuidV7Schema,
-  wardId: uuidV7Schema,
-  streetAddress: z.string().trim().min(3).max(200),
-  locationsHint: z.enum(["1", "2+"]),
-  locale: localeSchema,
-});
-export type SalonRegistrationInput = z.infer<typeof salonRegistrationInputSchema>;
-
-export const salonRegistrationResultSchema = z.object({
-  salonId: uuidV7Schema,
-  salonSlug: z.string(),
-  organisationId: uuidV7Schema,
-  status: z.enum(["draft", "active"]),
-  /** `rate_limited`: email limit hit — the owner signs in later with that email and confirms the salon explicitly (`/me/pending-salons`). */
-  magicLinkStatus: z.enum(["not_required", "sent", "rate_limited"]),
-});
-export type SalonRegistrationResult = z.infer<typeof salonRegistrationResultSchema>;
 
 export const localizedNameSchema = z.object({ vi: z.string(), en: z.string() });
 
