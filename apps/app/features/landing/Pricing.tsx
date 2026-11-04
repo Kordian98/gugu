@@ -22,6 +22,11 @@ import { ResultCard } from "./pricing/ResultCard";
 import { Sheet } from "./pricing/Sheet";
 import type { LandingNavActions } from "./useLandingNav";
 
+/** Web, phone: the section is a snap point of the mobile story's proximity snapping. */
+const SNAP_START = (Platform.OS === "web"
+  ? { scrollSnapAlign: "start" }
+  : {}) as unknown as ViewStyle;
+
 /** Web only: keeps the phone CTA pinned to the bottom while the section is on screen. */
 const STICKY_BOTTOM = (Platform.OS === "web"
   ? { position: "sticky", bottom: 0 }
@@ -143,7 +148,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
   );
 
   return (
-    <View testID="pricing-section">
+    <View testID="pricing-section" style={desktop ? undefined : SNAP_START}>
       <Container className={desktop ? "py-10" : "pt-5"}>
         {desktop ? (
           <View style={{ flexDirection: "row", gap: 56, alignItems: "center" }}>

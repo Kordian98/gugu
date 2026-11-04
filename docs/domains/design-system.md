@@ -47,5 +47,15 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 
 **Tokens added (02-LANDING-FLOW):** `motion` (fast 120 · base 200 · slow 320 · deliberate 500 ms, ease out/inOut), `color.danger`/`dangerInk`/`dangerTint`, `zalo`, `paper`/`paperLine`, `sheet`/`sheetLine`, `gradient.glowSoft` + `cssGradient()`.
 
+## Landing pricing assistant (X27)
+`apps/app/features/landing/Pricing.tsx` + `pricing/` (owner 2026-11-04: "a buying assistant, short and fun").
+- **Questions:** three one-tap radio chip rows (`pricing/Choice.tsx`, `checkableA11y("radio")`, 44 px): team (just me / 2–5 / 6+), AI assistant (yes / not now), locations (1 / several). Defaults answer at once (Basic). Bookings per week and average price default from the team size (`TEAM_DEFAULTS`) and can be changed in "Cách tính".
+- **Recommendation** (`pricing/model.ts`): several locations → Ultra (`salon.max_locations`), AI → Pro (`ai.agent.enabled`), else Basic. One-line why. Other plans: compact rows on desktop, "So sánh gói" bottom sheet everywhere.
+- **Cost:** shared list prices from `@gugu/contracts` (`PLAN_MONTHLY_PRICE_VND`) and `planCost` from `@gugu/domain`; monthly/yearly segmented control (yearly = 10 × monthly). Basic: first year 0đ + from year two; Pro/Ultra: one "after the 14-day trial" cell.
+- **Estimate:** net per month = revenue kept − plan cost per month, plus hours freed; labelled as an illustrative estimate, not money GuGu pays. Assumptions (4.33 weeks, 3 min per booking, 10 % no-shows, 25 % fewer with reminders) are shown step by step in the "Cách tính" sheet (`RoiCalculator.tsx`).
+- **Layout:** desktop questions | result, fits 1280×800; phone fits 390×844 after snapping (CTA pinned with CSS sticky, section is a scroll-snap point), 360×640 within one scroll. Sheets: RN `Modal` (bottom sheet on phones, dialog on desktop).
+- **Motion:** numbers count up (`useCountUp`, `motion.duration.deliberate`, ease-out), result card pops and the check draws in on plan change (`usePop`); all off with reduced motion.
+- **QA:** screenshots `docs/qa/02-pricing-advisor/` (Chromium + WebKit, 1440/1280/390/360, vi/en, `flow-*` = interactions and sheets).
+
 ## Decisions
 - ADR 0014: landing story navigates as a book after scroll-driven doors.
