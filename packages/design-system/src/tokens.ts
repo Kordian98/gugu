@@ -184,6 +184,12 @@ export const liquidGlass = {
   sheen: "rgba(255,255,255,.38)",
   /** Soft halo around text on glass (legibility at glyph edges only). */
   halo: "rgba(255,255,255,.55)",
+  /**
+   * Near-solid fallbacks: no backdrop-filter support, `prefers-reduced-transparency: reduce` or
+   * `prefers-contrast: more`.
+   */
+  solidPanel: "rgba(253,250,247,.92)",
+  solidChip: "rgba(255,255,255,.94)",
   blur: 30,
   blurChip: 22,
   saturate: 1.7,

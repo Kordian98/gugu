@@ -7,7 +7,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { screen, screenSize, type ScreenName } from "../screens";
 import type { LandingNavActions } from "../useLandingNav";
 import { MobileChat } from "./MobileChat";
-import { MOBILE_CSS, WALK_MS } from "./mobile.css";
+import { MOBILE_CSS, QA_CSS, SW_ROWS, WALK_MS } from "./mobile.css";
 import { AI_STEPS, AiViz, CLIENT_STEPS } from "./Perspectives";
 import { EarningsCard } from "./Rooms";
 import { WalkPlayer, frameUrl, type Segment } from "./sequence";
@@ -30,7 +30,6 @@ const GAINS = ["g1", "g2", "g3"] as const;
 const INS = ["i1", "i3", "i5"] as const;
 const PAY = ["p1", "p3", "p5"] as const;
 const SW_STEPS = ["st1", "st2", "st3", "st4"] as const;
-const SW_ROWS = ["1", "2", "3", "4"] as const;
 
 /** Portrait stills (aligned with the walk frames; ≤ 1.15× of their pixels on any phone). */
 const M = {
@@ -647,7 +646,7 @@ export function MobileJourney({
      * box still revealing (`.rv` not yet in) is widened by its 40 px travel.
      */
     const CONTENT = [
-      ".mj-u.cur :is(h1,h2,h3,p,li,button,a,img,.mj-tag,.mj-eye,.mj-stat,.mj-ping,.mj-gain,.mj-toast,.calc-sl,.calc-out,.calc-year,.mc-msg,.mc-copy,.mc-input)",
+      ".mj-u.cur :is(h1,h2,h3,p,li,button,a,img,.mj-tag,.mj-eye,.mj-stat,.mj-ping,.mj-gain,.mj-toast,.calc-sl,.calc-out,.calc-year,.mc-msg,.mc-input)",
       ".mj-bar",
       ".jr-static :is(h1,p,button,a,.jr-plaque)",
       "#fl-free :is(.fl-eye,h2,p,button)",
@@ -799,6 +798,7 @@ export function MobileJourney({
   return (
     <div className="mj" ref={root}>
       <style>{MOBILE_CSS}</style>
+      {__DEV__ ? <style>{QA_CSS}</style> : null}
       <StaticHero
         nav={nav}
         desktop={false}
@@ -1170,7 +1170,7 @@ export function MobileJourney({
                   <span className="scan" />
                 </div>
                 <div className="win">
-                  <div className="wh">{t("flow.switch.win")}</div>
+                  <span className="wh">{t("flow.switch.win")}</span>
                   {SW_ROWS.map((r, i) => (
                     <div key={r} className="row" style={{ ["--i" as string]: i }}>
                       <span className="sk">

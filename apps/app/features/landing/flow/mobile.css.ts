@@ -31,12 +31,14 @@ const SLOW = `${String(motion.duration.slow)}ms`;
 const BASE = `${String(motion.duration.base)}ms`;
 const ST = motion.story;
 const D = motion.duration;
+/** The services filled in on the switching page (flow.switch.n1…, d…, p…). */
+export const SW_ROWS = ["1", "2", "3", "4"] as const;
 /** Switching page timeline (ms): paper in → scan sweep → paper morphs into the list → rows → done. */
 const SW = (() => {
   const scan = D.slow + D.fast;
   const morph = scan + ST.scan;
   const row0 = morph + D.base;
-  return { scan, morph, row0, done: row0 + 4 * ST.row + D.base };
+  return { scan, morph, row0, done: row0 + SW_ROWS.length * ST.row + D.base };
 })();
 const pct = (t: number, total: number) => `${((t / total) * 100).toFixed(1)}%`;
 const ms = (n: number) => `${String(n)}ms`;
@@ -54,12 +56,24 @@ const GLASS = `background:radial-gradient(120% 60% at 0% 0%,${LG.sheen},${LG.rim
 const GLASS_CHIP = `background:linear-gradient(180deg,${LG.chipTop},${LG.chipBottom});${BACKDROP(FILTER_CHIP)};box-shadow:${RIMS},${shadow.chip}`;
 /** Glass on glass (the toast inside a panel): tint and rims only; the panel under it already blurs. */
 const GLASS_INNER = `background:linear-gradient(180deg,${LG.chipTop},${LG.chipBottom});box-shadow:${RIMS},${shadow.hair}`;
+/** Near-solid glass for the fallbacks (no backdrop-filter, reduced transparency, more contrast). */
+const SOLID = `.mj-card{background:${LG.solidPanel}}.mj-body::before{display:none}.mj-bar,.mj-zbtn2,.mj-center,.mj-toast,.mc-toast{background:${LG.solidChip}}`;
 /** Refraction border: a 1.5 px gradient ring, brightest at the top-left and bottom-right corners. */
 const RIM = `content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:linear-gradient(135deg,${LG.rim},${LG.rimSoft} 30%,${LG.rimClear} 55%,${LG.rimSoft} 78%,${LG.rim});-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none`;
 /** A soft, eased fade of `n` px on both ends (mask for feathering the text veil). */
 const FEATHER = (dir: string, n: number) =>
   `linear-gradient(${dir},transparent,rgba(0,0,0,.25) ${px(n * 0.3)},rgba(0,0,0,.7) ${px(n * 0.65)},#000 ${px(n)},#000 calc(100% - ${px(n)}),rgba(0,0,0,.7) calc(100% - ${px(n * 0.65)}),rgba(0,0,0,.25) calc(100% - ${px(n * 0.3)}),transparent)`;
-const VEIL_MASK = `${FEATHER("180deg", 56)},${FEATHER("90deg", 22)}`;
+/** The veil reaches this far past the content column (px), fading over the whole distance. */
+const VEIL_Y = 56;
+const VEIL_X = 22;
+const VEIL_MASK = `${FEATHER("180deg", VEIL_Y)},${FEATHER("90deg", VEIL_X)}`;
+/** Halo blur radius around headings on glass (px). */
+const HALO = 14;
+/** Switching: services row height (px; 44 on short phones), list tilt, scan band edges (% of height). */
+const SW_ROW_H = 50;
+const SW_ROW_H_SHORT = 44;
+const SW_TILT = "-1.5deg";
+const SW_TILT_IN = "-3deg";
 export const MOBILE_CSS = `
 @media (max-width:899px){
 .mj{--bar:68px;--pad:16px;--edge:12px;position:relative;color:${color.ink}}
@@ -96,7 +110,7 @@ export const MOBILE_CSS = `
 .mj-seg i b{position:absolute;inset:0;border-radius:2px;background:${cssGradient(gradient.glowSoft)};transform-origin:left;transform:scaleX(0)}
 .mj-seg:focus-visible{outline:2px solid ${color.lilac500};outline-offset:-4px;border-radius:6px}
 .mj-now{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:-10px;font-family:${font.uiSemiBold};font-size:${px(ty.caption)};line-height:1.2;color:${color.ink}}
-.mj-now small{font-family:${font.ui};font-size:${px(ty.micro)};color:${color.ink2};font-variant-numeric:tabular-nums}
+.mj-now small{font-family:${font.ui};font-size:${px(ty.micro)};color:${color.ink};font-variant-numeric:tabular-nums}
 
 /* a full-screen page */
 .mj-s{position:relative;min-height:100svh;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-start;padding:var(--bar) max(var(--edge),env(safe-area-inset-right,0px)) calc(var(--edge) + env(safe-area-inset-bottom,0px)) max(var(--edge),env(safe-area-inset-left,0px));overflow:hidden;isolation:isolate}
@@ -118,15 +132,14 @@ export const MOBILE_CSS = `
 
 /* the copy card */
 /* the liquid-glass panel: the whole screen under the chapter bar; content flows from the top */
-.mj-card{position:relative;isolation:isolate;flex:1 0 auto;display:flex;flex-direction:column;min-height:calc(100svh - var(--bar) - var(--edge) - env(safe-area-inset-bottom,0px));box-sizing:border-box;border-radius:${px(radius.xl)};padding:24px 20px 20px;${GLASS};transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE}}
+.mj-card{position:relative;isolation:isolate;flex:1 0 auto;display:flex;flex-direction:column;min-height:calc(100svh - var(--bar) - var(--edge) - env(safe-area-inset-bottom,0px));box-sizing:border-box;border-radius:${px(radius.xl)};padding:24px 20px 20px;${GLASS}}
 .mj-card::before{${RIM};z-index:1}
 /* the content column; its feathered veil (a brighter, denser spot of the same glass) carries the text */
 .mj-body{position:relative;display:flex;flex-direction:column}
-.mj-body::before{content:"";position:absolute;inset:-56px -22px;z-index:-1;background:${LG.veil};-webkit-mask:${VEIL_MASK};-webkit-mask-composite:source-in;mask:${VEIL_MASK};mask-composite:intersect;pointer-events:none}
+.mj-body::before{content:"";position:absolute;inset:${px(-VEIL_Y)} ${px(-VEIL_X)};z-index:-1;background:${LG.veil};-webkit-mask:${VEIL_MASK};-webkit-mask-composite:source-in;mask:${VEIL_MASK};mask-composite:intersect;pointer-events:none}
 /* the panel clips the veil's feather to its own glass */
 .mj-card{overflow:hidden}
-.mj-card .mj-h,.mj-card .mj-k,.mj-card .mj-n{text-shadow:0 0 14px ${LG.halo}}
-}
+.mj-card .mj-h,.mj-card .mj-k,.mj-card .mj-n{text-shadow:0 0 ${px(HALO)} ${LG.halo}}
 /* content sits in the optical centre of the panel, so short pages never look half empty */
 .mj-card{justify-content:center}
 .mj-more{display:flex;flex-direction:column;flex:0 0 auto}
@@ -134,7 +147,11 @@ export const MOBILE_CSS = `
 /* text sitting directly on glass is ink / ink2 (AA over any photo) */
 .mj-card .mj-eye,.mj-card .mj-small,.mj-card .mj-stat em,.mj-card .mj-pain{color:${color.ink2}}
 .mj-card .mj-eye::before{content:"";display:inline-block;width:18px;height:2px;margin-right:8px;vertical-align:middle;border-radius:1px;background:${cssGradient(gradient.glowSoft)}}
-.mj-s.walking .mj-card,.mj-s.walking .mj-toast{opacity:0;transform:translate3d(0,24px,0);pointer-events:none}
+/* while a walk plays the panel is off (no 30 px blur recomputed over the moving canvas every frame);
+   only its content (an inner wrapper) moves, never the blurred element itself */
+.mj-s.walking .mj-card{visibility:hidden;-webkit-backdrop-filter:none;backdrop-filter:none;pointer-events:none}
+.mj-s.walking .mj-card>*{opacity:0;transform:translate3d(0,24px,0)}
+.mj-s .mj-card>.mj-body,.mj-s .mj-card>.mj-fold{transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE}}
 .mj-eye{font-family:${font.uiMedium};font-size:${px(ty.micro)};letter-spacing:.22em;text-transform:uppercase;color:${color.eyebrow};margin:0 0 6px}
 .mj-h{font-family:${font.display};font-size:clamp(30px,8.4vw,${px(ty.display)});line-height:1.04;letter-spacing:-.03em;margin:0;text-wrap:balance;white-space:pre-line;color:${color.ink}}
 .mj-h:focus{outline:none}
@@ -174,7 +191,7 @@ export const MOBILE_CSS = `
 .mj-toast{position:relative;display:flex;gap:10px;align-items:center;box-sizing:border-box;margin-top:16px;padding:12px 14px 12px 12px;border-radius:${px(radius.md)};${GLASS_INNER};color:${color.ink};font-family:${font.ui};font-size:${px(ty.body)};line-height:1.35;pointer-events:none}
 .mj-toast::before{${RIM}}
 .mj-toast i{flex:0 0 auto;width:26px;height:26px;border-radius:${px(radius.pill)};background:${cssGradient(gradient.glowSoft)};color:${color.ink};font-style:normal;font-family:${font.uiSemiBold};font-size:${px(ty.label)};display:flex;align-items:center;justify-content:center}
-.mj-toast small{display:block;font-size:${px(ty.micro)};color:${color.ink2}}
+.mj-toast small{display:block;font-size:${px(ty.micro)};color:${color.ink}}
 .mj-s .mj-toast.later{opacity:0;transform:translate3d(0,12px,0)}
 .mj-s.on .mj-toast.later{opacity:1;transform:none;transition:opacity ${SLOW} ${EASE},transform ${SLOW} ${EASE};transition-delay:${ms(ST.wipe + motion.duration.base)}}
 
@@ -244,13 +261,13 @@ export const MOBILE_CSS = `
 .mj-sw .prog span{display:block;height:100%;background:${cssGradient(gradient.glowSoft)};transform-origin:left}
 .mj-sw .stage{display:grid}
 .mj-sw .stage>*{grid-area:1/1}
-.mj-sw .paper{position:relative;align-self:start;display:flex;flex-direction:column;padding:12px 16px 14px;border-radius:${px(radius.sm)};background:${color.paper};border:1px solid ${color.paperLine};box-shadow:${shadow.soft};overflow:hidden;font-family:${font.script};font-size:${px(ty.lead)};line-height:1.5;color:${color.ink2};transform:rotate(-1.5deg);opacity:0;visibility:hidden}
+.mj-sw .paper{position:relative;align-self:start;display:flex;flex-direction:column;padding:12px 16px 14px;border-radius:${px(radius.sm)};background:${color.paper};border:1px solid ${color.paperLine};box-shadow:${shadow.soft};overflow:hidden;font-family:${font.script};font-size:${px(ty.lead)};line-height:1.5;color:${color.ink2};transform:rotate(${SW_TILT});opacity:0;visibility:hidden}
 .mj-sw .paper em{font-style:normal;font-family:${font.uiMedium};font-size:${px(ty.caption)};color:${color.ink2};margin-bottom:2px}
 .mj-sw .scan{position:absolute;inset:0;opacity:0;background:linear-gradient(180deg,${overlay.white0} 40%,${color.lilac300} 49%,${color.lilac500} 50%,${color.lilac300} 51%,${overlay.white0} 60%);pointer-events:none}
 .mj-sw .win{border-radius:${px(radius.md)};background:${color.white};box-shadow:${shadow.soft};overflow:hidden}
-.mj-sw .wh{padding:8px 12px;border-bottom:1px solid ${color.lineSoft};background:${color.canvas};font-family:${font.uiSemiBold};font-size:${px(ty.caption)};color:${color.ink}}
-.mj-sw .row{position:relative;height:50px;border-bottom:1px solid ${color.lineSoft}}
-.mj-sw .row:last-child{border-bottom:0}
+.mj-sw .wh{display:block;padding:8px 12px;border-bottom:1px solid ${color.lineSoft};background:${color.canvas};font-family:${font.uiSemiBold};font-size:${px(ty.caption)};color:${color.ink}}
+.mj-sw .row{position:relative;height:${px(SW_ROW_H)};border-bottom:1px solid ${color.lineSoft}}
+.mj-sw .row:last-of-type{border-bottom:0}
 .mj-sw .sk,.mj-sw .val{position:absolute;inset:0;display:flex;align-items:center;gap:10px;padding:0 12px}
 .mj-sw .sk{opacity:0}
 .mj-sw .sk span{display:block;height:10px;border-radius:5px;background:${color.lineSoft}}
@@ -275,7 +292,7 @@ export const MOBILE_CSS = `
   .mj-s.on .mj-sw .s2{animation:mjSwFade ${BASE} ${EASE} ${ms(SW.done)} both}
   .mj-s.on .mj-sw .prog span{animation:mjSwProg ${ms(SW.done - SW.scan)} ${motion.ease.inOut} ${ms(SW.scan)} both}
 }
-@keyframes mjSwPaper{0%{opacity:0;visibility:visible;transform:translate3d(0,14px,0) rotate(-3deg)}${pct(D.slow, SW.morph + D.slow)}{opacity:1;transform:rotate(-1.5deg)}${pct(SW.morph, SW.morph + D.slow)}{opacity:1;visibility:visible;transform:rotate(-1.5deg)}100%{opacity:0;visibility:hidden;transform:translate3d(0,-10px,0) scale(.94) rotate(0)}}
+@keyframes mjSwPaper{0%{opacity:0;visibility:visible;transform:translate3d(0,14px,0) rotate(${SW_TILT_IN})}${pct(D.slow, SW.morph + D.slow)}{opacity:1;transform:rotate(${SW_TILT})}${pct(SW.morph, SW.morph + D.slow)}{opacity:1;visibility:visible;transform:rotate(${SW_TILT})}100%{opacity:0;visibility:hidden;transform:translate3d(0,-10px,0) scale(.94) rotate(0)}}
 @keyframes mjSwScan{0%{opacity:0;transform:translate3d(0,-50%,0)}10%,90%{opacity:1}100%{opacity:0;transform:translate3d(0,50%,0)}}
 @keyframes mjSwWin{from{opacity:0;transform:translate3d(0,12px,0) scale(.98)}to{opacity:1;transform:none}}
 @keyframes mjSwSk{from{opacity:1}to{opacity:0}}
@@ -355,7 +372,7 @@ export const MOBILE_CSS = `
 /* GuGu Studio toasts: what the salon's system just did (shown, then gone) */
 .mc-toast{position:absolute;left:12px;right:12px;top:calc(var(--bar) + 70px + env(safe-area-inset-top,0px));z-index:3;display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:${px(radius.md)};${GLASS_CHIP};color:${color.ink};font-family:${font.ui};font-size:${px(ty.body)};line-height:1.3;pointer-events:none;animation:mcToast ${ms(ST.toast)} ${EASE} both}
 .mc-toast i{flex:0 0 auto;width:28px;height:28px;border-radius:9px;background:${cssGradient(gradient.glowSoft)};display:flex;align-items:center;justify-content:center;font-style:normal;font-family:${font.uiSemiBold};font-size:${px(ty.micro)};color:${color.ink}}
-.mc-toast small{display:block;font-size:${px(ty.micro)};color:${color.ink2}}
+.mc-toast small{display:block;font-size:${px(ty.micro)};color:${color.ink}}
 .mc-toast::before{${RIM}}
 @keyframes mcToast{0%{opacity:0;transform:translate3d(0,-14px,0)}10%,85%{opacity:1;transform:none}100%{opacity:0;transform:translate3d(0,-8px,0);visibility:hidden}}
 
@@ -366,11 +383,6 @@ export const MOBILE_CSS = `
 .mj-center i{font-style:normal}
 .mj-center:focus-visible{outline:2px solid ${color.lilac700};outline-offset:3px}
 @keyframes mjCenter{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
-
-/* dev QA only (?mjqa=…, set by MobileJourney in __DEV__): measure the backdrop under text / without glass */
-.mj.qa-notext *{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}
-.mj.qa-noglass *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-.mj.qa-noglass .mj-card,.mj.qa-noglass .mj-card *{visibility:hidden!important}
 
 /* tap-to-zoom viewer (appended to <body>) */
 .mj-zoom{position:fixed;inset:0;z-index:1000;background:${overlay.ink95};display:flex;flex-direction:column;opacity:0;transition:opacity ${BASE} ${EASE};touch-action:none}
@@ -396,8 +408,9 @@ export const MOBILE_CSS = `
   .mj-gain{padding:6px 10px}
   .mj-sw{gap:8px;margin-top:10px}
   .mj-sw .ai{padding:8px 12px 10px}
-  .mj-sw .row{height:44px}
-  .mj-sw .row:nth-child(5){display:none}
+  .mj-sw .row{height:${px(SW_ROW_H_SHORT)}}
+  .mj-sw .row:nth-of-type(n+4){display:none}
+  .mj-sw .row:nth-of-type(3){border-bottom:0}
   .mj-steps{margin-top:10px;gap:6px}
 }
 /* landscape phones: compact; the copy sits on the left, the receptionist (right half) stays free */
@@ -417,6 +430,10 @@ export const MOBILE_CSS = `
   .mj-h{font-size:${px(ty.numeral)}}
   .mj-stat b{font-size:${px(ty.display)}}
 }
+/* no backdrop-filter, reduced transparency or more contrast: the glass turns near-solid */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){${SOLID}}
+@media (prefers-reduced-transparency:reduce){${SOLID}}
+@media (prefers-contrast:more){${SOLID}}
 @media (prefers-reduced-motion:reduce){
   .mj *,.mj *::before,.mj *::after{animation:none!important;transition:none!important}
   .mj-s .mj-in{opacity:1;transform:none}
@@ -431,6 +448,17 @@ export const MOBILE_CSS = `
   .mj-taphint{opacity:1}
   .mj-zoom{transition:none}
 }
+}
+`;
+
+/** Dev-only QA hooks (?mjqa=notext,noglass; injected by MobileJourney in __DEV__ only). */
+export const QA_CSS = `
+@media (max-width:899px){
+/* dev QA only (?mjqa=…, set by MobileJourney in __DEV__): measure the backdrop under text / without glass */
+.mj.qa-notext *{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}
+.mj.qa-noglass *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.mj.qa-noglass .mj-card,.mj.qa-noglass .mj-card *{visibility:hidden!important}
+
 }
 `;
 

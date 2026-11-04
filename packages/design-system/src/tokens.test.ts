@@ -78,6 +78,18 @@ describe("tokens", () => {
       for (const c of [g.chipTop, g.chipBottom])
         expect(contrast(color.ink, over(black, c))).toBeGreaterThanOrEqual(4.5);
     });
+    it("chip text must be ink: ink2 on a chip over black is below AA", () => {
+      // mobile.css.ts sets every chip label (bar counter, toast captions) in ink for this reason
+      expect(contrast(color.ink2, over(black, g.chipBottom))).toBeLessThan(4.5);
+    });
+    it("near-solid fallbacks (no backdrop-filter, reduced transparency, more contrast)", () => {
+      for (const t of [g.solidPanel, g.solidChip]) {
+        const a = parse(t)[3];
+        expect(a).toBeGreaterThanOrEqual(0.8);
+        expect(a).toBeLessThanOrEqual(0.95);
+        expect(contrast(color.ink2, over(black, t))).toBeGreaterThanOrEqual(7);
+      }
+    });
     it("text in wells passes AA over black", () => {
       const bg = over(black, g.panelBottom, g.well);
       expect(contrast(color.ink2, bg)).toBeGreaterThanOrEqual(4.5);

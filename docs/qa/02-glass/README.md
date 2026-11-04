@@ -165,6 +165,46 @@ Chromium mobile (CDP touch) and Playwright WebKit (touch), 360×640, 390×844 an
 The old whole-panel "darkest pixel" contrast check no longer applies, because bare translucent glass is
 meant to show dark parts of the photo. The per-line measurement above replaces it.
 
+## Design review fixes (review of `ee82cbe`)
+
+- **A stray `}`** closed `@media (max-width:899px)` early, leaving about 300 mobile rules outside the
+  query. Desktop never showed them, because the sheet is injected only by the phone component, but it
+  was wrong. Removed. `flow/mobile.css.test.ts` now asserts that the brace depth of `MOBILE_CSS` and
+  `QA_CSS` first returns to 0 at the media query's own closing brace, and that nothing follows it.
+- **Chip text:** `.mj-now small` (the "9 / 21" counter), `.mj-toast small` and `.mc-toast small` are now
+  ink. `tokens.test.ts` records why: ink2 on `chipBottom` over black is below AA. A CSS test asserts the
+  three selectors use ink.
+- **Fallbacks:** under `@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:
+  blur(1px)))`, `@media (prefers-reduced-transparency:reduce)` and `@media (prefers-contrast:more)`, the
+  panel becomes near-solid paper (`solidPanel` .92) without the veil, and the chips become near-solid
+  white (`solidChip` .94). Checked with Playwright `contrast: "more"`: the panel background is
+  rgba(253,250,247,.92) and no gradient is applied.
+- **Walks:** while `.walking` is on, the panel is `visibility: hidden` with no backdrop filter, so a 30 px
+  blur is never recomputed over the moving canvas. The entrance animates the panel's inner wrapper
+  (`.mj-body`, `.mj-fold`), not the blurred element. Checked: mid-walk the panel is hidden with
+  `backdrop-filter: none`; after the walk the blur is back and the content is at opacity 1.
+- **Nits:**
+  - the stale `.mc-copy` selector is removed from the center pill's content list;
+  - the switching rows use `nth-of-type`, and the last visible row has no bottom border (row 3 on
+    short phones);
+  - `SW.done` derives from `SW_ROWS.length` (`SW_ROWS` now lives in `mobile.css.ts`);
+  - the QA CSS is a separate `QA_CSS`, injected only in `__DEV__`;
+  - the veil, halo and switching values are named constants.
+- **Not changed:** the chapter bar, center pill and chat toasts still fade with opacity and transform
+  on the blurred element itself. They are small chips (56 px or less) and the fades run only on enter
+  and exit. Moving the fade to an inner wrapper would leave an empty glass capsule on screen.
+
+**Re-check after the fixes:**
+
+| Check | Result |
+|---|---|
+| Contrast, every text line (21 pages × 360 / 390 / 430 × vi / en) | Chromium: 2,977 lines, 0 below AA. Playwright WebKit: 2,978 lines, 0 below AA. |
+| Text on see-through glass | Chromium min 7.07:1; WebKit min 6.01:1 |
+| Chapter bar | Chromium ≥ 8.65:1 (the counter is now ink); WebKit ≥ 6.01:1 (the counter ≥ 7.44:1) |
+| Chrome, chats, switching tap and replay, overflow | all pass in every config |
+| Desktop diff against the original reference | 6 of 192 images differ, each by 0–3 px, all in the Next button (noise) |
+| `pnpm verify` | green |
+
 ## Dev-only QA hooks
 
 `?mj=<page>` opens a story page, and `?mjqa=notext,noglass` strips text or glass. Both work only in
