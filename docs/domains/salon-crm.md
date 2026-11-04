@@ -204,9 +204,9 @@ Owner request 2026-11-04: an email is enough to start; then a guided, delightful
 - Motion: progress ring, check pop, Lilac Glow confetti, haptics on native (`expo-haptics`); nothing animates with reduced motion. Tokens only, light and dark.
 
 ### Endpoints
-- `POST salons/quick-start` (authenticated; `{ locale, ignoreInvitations? }` → `{ salonId, created }`; 403 `salon.quick_start_not_allowed` (admins), 409 `salon.invitation_pending` / `salon.pending_confirmation`, 422 `salon.email_not_allowed`, 429 (user, IP, domain, global cap)).
+- `POST salons/quick-start` (authenticated; `{ locale, ignoreInvitations? }` → `{ salonId, created }`; 403 `salon.quick_start_not_allowed` (admins), 409 `salon.invitation_pending` / `salon.pending_confirmation`, 422 `salon.email_not_allowed`, 429 (user, IP /24, registrable domain, per-source share of the global cap, global cap)).
 - `GET me/invitations`, `POST me/invitations/:invitationId/accept` (authenticated; team module; email-bound invitations only).
-- `POST salons/registrations` is signed-in only (anonymous variant retired).
+- `POST salons/registrations` is removed (ADR-0018): quick start is the only salon-creating route; all signup refusals and limits are in `SignupGuard`.
 - `PATCH salons/:id/onboarding/business` (`salon.profile.write`; `{ name, businessType }`).
 - `POST salons/:id/onboarding/progress` (`salon.settings.write`; `{ step, event: viewed|completed|skipped|left, method? }` → `SetupState`).
 - `POST salons/:id/onboarding/dismiss-card` (`salon.settings.write`).
@@ -221,6 +221,7 @@ Table `analytics_events` (pseudonymous, no direct identifiers: ids/enums/counts;
 | Path | Purpose |
 |---|---|
 | `apps/api/src/modules/salons/application/quick-start-salon.command.ts` | Lazy draft salon with smart defaults, idempotent per user |
+| `apps/api/src/modules/salons/application/signup-guard.ts` | The one signup gate: admin/disposable/invitation refusals, eTLD+1 domain key, per-source sub-caps, near-cap alert |
 | `apps/api/src/modules/salon-settings/application/setup.service.ts`, `http/setup.controller.ts`, `domain/setup.ts` | Wizard progress, business step, card; pure `setupRemaining` |
 | `apps/api/src/modules/salon-crm/application/starter-services.service.ts`, `http/starter-services.controller.ts` | Template services through the catalogue (in salon-crm so salon-settings never imports catalog: no module cycle) |
 | `apps/api/src/modules/analytics/` | Minimal analytics store (X14) |

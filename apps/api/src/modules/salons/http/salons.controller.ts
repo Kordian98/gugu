@@ -14,10 +14,6 @@ import {
   salonQuickStartInputSchema,
   type SalonQuickStartResult,
   salonQuickStartResultSchema,
-  type SalonRegistrationInput,
-  salonRegistrationInputSchema,
-  type SalonRegistrationResult,
-  salonRegistrationResultSchema,
   salonSummarySchema,
   type SalonSummary,
   type UpdateSalonProfileInput,
@@ -32,7 +28,6 @@ import {
 } from "../../../common/guards/principal";
 import { requestMeta } from "../../auth/auth.facade";
 import { QuickStartSalonCommand } from "../application/quick-start-salon.command";
-import { RegisterSalonCommand } from "../application/register-salon.command";
 import { SalonQueries } from "../application/salon.queries";
 import { UpdateSalonProfileCommand } from "../application/update-salon-profile.command";
 
@@ -40,7 +35,6 @@ import { UpdateSalonProfileCommand } from "../application/update-salon-profile.c
 @Controller()
 export class SalonsController {
   constructor(
-    private readonly register: RegisterSalonCommand,
     private readonly queries: SalonQueries,
     private readonly updateProfile: UpdateSalonProfileCommand,
     private readonly quickStart: QuickStartSalonCommand,
@@ -66,29 +60,6 @@ export class SalonsController {
   @ApiResponse({ status: 200, description: "Locations.", standardSchema: locationListSchema })
   async locations(@Query({ schema: locationListQuerySchema }) query: LocationListQuery) {
     return { items: await this.queries.locations(query) };
-  }
-
-  @Post("salons/registrations")
-  @Authenticated()
-  @HttpCode(201)
-  @ApiOperation({
-    operationId: "salons.register",
-    summary:
-      "Signed-in only: create an organisation and a salon with full details; the caller becomes owner (scripted setups; the app uses quick-start).",
-  })
-  @ApiResponse({
-    status: 201,
-    description: "Registered.",
-    standardSchema: salonRegistrationResultSchema,
-  })
-  @ApiResponse({ status: 400, description: "Invalid input.", standardSchema: problemSchema })
-  @ApiResponse({ status: 429, description: "Rate limited.", standardSchema: problemSchema })
-  async registerSalon(
-    @Body({ schema: salonRegistrationInputSchema }) body: SalonRegistrationInput,
-    @CurrentUser() user: UserPrincipal,
-    @Req() req: Request,
-  ): Promise<SalonRegistrationResult> {
-    return this.register.execute(body, user, requestMeta(req));
   }
 
   @Post("salons/quick-start")

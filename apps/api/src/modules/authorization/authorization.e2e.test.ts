@@ -44,7 +44,7 @@ describe("default deny (spec 05 AC14)", () => {
         "/api/v1/auth/magic-link/verify",
         "/api/v1/auth/refresh",
         "/api/v1/me",
-        "/api/v1/salons/registrations",
+        "/api/v1/salons/quick-start",
         "/api/v1/salons/{salonId}",
       ]),
     );

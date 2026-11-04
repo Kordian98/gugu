@@ -61,15 +61,20 @@ const cats = (await call("/public/categories")).items;
 const prov = (await call("/public/locations?level=province")).items[0];
 const ward = (await call(`/public/locations?level=ward&parentId=${prov.id}`)).items[0];
 const cat = (slug) => cats.find((c) => c.slug === slug)?.id ?? null;
-const { salonId: S } = await call("/salons/registrations", "POST", {
-  businessName: "Lotus Nail & Spa Quận 1",
-  categoryId: cat("nails") ?? cats[0].id,
+// The app's own signup path (ADR-0018): quick start (SignupGuard), the mandatory name step, then
+// the full profile. `POST /salons/registrations` no longer exists.
+const { salonId: S } = await call("/salons/quick-start", "POST", { locale: "vi" });
+await call(`/salons/${S}/onboarding/business`, "PATCH", {
+  name: "Lotus Nail & Spa Quận 1",
+  businessType: "nails",
+});
+await call(`/salons/${S}/settings/profile`, "PATCH", {
+  name: "Lotus Nail & Spa Quận 1",
   phone: "0912 345 678",
+  description: null,
+  streetAddress: "12 Lê Lợi",
   provinceId: prov.id,
   wardId: ward.id,
-  streetAddress: "12 Lê Lợi",
-  locationsHint: "1",
-  locale: "vi",
 });
 await call(`/salons/${S}/settings/opening-hours`, "PATCH", {
   days: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({

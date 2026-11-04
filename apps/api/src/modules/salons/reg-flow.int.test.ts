@@ -659,6 +659,8 @@ describe("email-only signup abuse brakes (integration, own app with low limits)"
   const saved = {
     domain: process.env["QUICK_START_DOMAIN_DAILY_LIMIT"],
     cap: process.env["QUICK_START_DAILY_CAP"],
+    share: process.env["QUICK_START_SOURCE_SHARE_PCT"],
+    ipDaily: process.env["QUICK_START_IP_DAILY_LIMIT"],
     proxy: process.env["TRUST_PROXY"],
   };
   const restore = (k: string, v: string | undefined) => {
@@ -669,8 +671,12 @@ describe("email-only signup abuse brakes (integration, own app with low limits)"
   beforeAll(async () => {
     process.env["LOG_LEVEL"] = "silent";
     process.env["TRUST_PROXY"] = "loopback";
+    // Global cap 8, source share 25 % → no registrable domain (gmail.com too) and no IP /24 may
+    // take more than 2 of it; non-major domains stop at 1.
     process.env["QUICK_START_DOMAIN_DAILY_LIMIT"] = "1";
-    process.env["QUICK_START_DAILY_CAP"] = "3";
+    process.env["QUICK_START_DAILY_CAP"] = "8";
+    process.env["QUICK_START_SOURCE_SHARE_PCT"] = "25";
+    process.env["QUICK_START_IP_DAILY_LIMIT"] = "40";
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = configureHttpApp(moduleRef.createNestApplication());
     await app.init();
@@ -681,31 +687,55 @@ describe("email-only signup abuse brakes (integration, own app with low limits)"
     await app.close();
     restore("QUICK_START_DOMAIN_DAILY_LIMIT", saved.domain);
     restore("QUICK_START_DAILY_CAP", saved.cap);
+    restore("QUICK_START_SOURCE_SHARE_PCT", saved.share);
+    restore("QUICK_START_IP_DAILY_LIMIT", saved.ipDaily);
     restore("TRUST_PROXY", saved.proxy);
   });
 
   const userWith = (email: string) =>
     prisma.user.create({ data: { email, emailVerifiedAt: new Date(), profile: { create: {} } } });
-  const start = async (email: string) =>
+  const randomIp = () =>
+    `10.${String(Math.floor(Math.random() * 256))}.${String(Math.floor(Math.random() * 256))}.3`;
+  const start = async (email: string, ip = randomIp()) =>
     request(http(app))
       .post("/api/v1/salons/quick-start")
-      .set(
-        "x-forwarded-for",
-        `10.${String(Math.floor(Math.random() * 256))}.${String(Math.floor(Math.random() * 256))}.3`,
-      )
+      .set("x-forwarded-for", ip)
       .set("authorization", await bearerFor(app, (await userWith(email)).id))
       .send({});
+  const tag = Date.now().toString(36);
+  const expect429 = (res: request.Response) => {
+    expect(res.status).toBe(429);
+    expect(problemSchema.parse(res.body).code).toBe("common.rate_limited");
+  };
 
-  it("throttles per email domain (big providers exempt) and stops at the global daily cap", async () => {
-    const tag = Date.now().toString(36);
+  it("subdomains share their registrable domain's bucket (eTLD+1)", async () => {
     const domain = `brake-${tag}.test`;
-    expect((await start(`a.${tag}@${domain}`)).status).toBe(200);
-    const second = await start(`b.${tag}@${domain}`);
-    expect(second.status).toBe(429);
-    expect(problemSchema.parse(second.body).code).toBe("common.rate_limited");
-    // gmail.com has no per-domain limit; the global cap (3) counts every created salon.
+    expect((await start(`a.${tag}@x.${domain}`)).status).toBe(200);
+    expect429(await start(`b.${tag}@y.${domain}`));
+    expect429(await start(`c.${tag}@deep.z.${domain}`));
+    expect429(await start(`d.${tag}@${domain}`));
+  });
+
+  it(".com.vn: shop.com.vn and mail.shop.com.vn share a bucket; com.vn itself is not one bucket", async () => {
+    expect((await start(`a.${tag}@shop-${tag}.com.vn`)).status).toBe(200);
+    expect429(await start(`b.${tag}@mail.shop-${tag}.com.vn`));
+    expect((await start(`c.${tag}@other-${tag}.com.vn`)).status).toBe(200);
+  });
+
+  it("one source cannot exhaust the global cap: gmail.com and one IP /24 each get a share", async () => {
+    // gmail.com has no per-domain limit, but only the source share (2 of 8).
     expect((await start(`c.${tag}@gmail.com`)).status).toBe(200);
     expect((await start(`d.${tag}@gmail.com`)).status).toBe(200);
-    expect((await start(`e.${tag}@gmail.com`)).status).toBe(429);
+    expect429(await start(`e.${tag}@gmail.com`));
+    // One /24 with fresh domains each time: the IP share (2 of 8) stops it.
+    const ip = randomIp();
+    expect((await start(`f.${tag}@ip1-${tag}.test`, ip)).status).toBe(200);
+    expect((await start(`g.${tag}@ip2-${tag}.test`, ip.replace(/\.3$/, ".77"))).status).toBe(200);
+    expect429(await start(`h.${tag}@ip3-${tag}.test`, ip));
+    // Global so far: 1 + 2 + 2 + 2 = 7. Refused attempts never counted, so others still get in.
+    expect((await start(`i.${tag}@fresh-${tag}.test`)).status).toBe(200);
+    // Now the global cap (8) stops everyone.
+    expect429(await start(`j.${tag}@later-${tag}.test`));
+    expect(await prisma.salon.count({ where: { owner: { email: { contains: tag } } } })).toBe(8);
   });
 });

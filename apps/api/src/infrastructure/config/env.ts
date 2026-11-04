@@ -52,8 +52,18 @@ export const envSchema = z
      * trial farming, ADR-0018). Hitting it logs an error so someone looks.
      */
     QUICK_START_DAILY_CAP: z.coerce.number().int().min(1).default(500),
-    /** Salons per email domain per 24 h (large consumer providers exempt). E2E raises it. */
+    /**
+     * Salons per registrable email domain (eTLD+1, so `a.x.com` and `b.x.com` share one bucket)
+     * per 24 h; large consumer providers only get the source share below. E2E raises it.
+     */
     QUICK_START_DOMAIN_DAILY_LIMIT: z.coerce.number().int().min(1).default(20),
+    /** Salons per client IP /24 (IPv6 /48) per 24 h, on top of the hourly IP limit. */
+    QUICK_START_IP_DAILY_LIMIT: z.coerce.number().int().min(1).default(40),
+    /**
+     * No single source (one registrable email domain, including gmail.com, or one IP /24) may use
+     * more than this share of `QUICK_START_DAILY_CAP`, so one source cannot exhaust the global cap.
+     */
+    QUICK_START_SOURCE_SHARE_PCT: z.coerce.number().int().min(1).max(100).default(25),
     /**
      * Per-user limits on the platform admin API (`/api/v1/admin/*`), per minute: all requests and
      * writes only. Integration tests raise them (vitest.integration.config.ts).
