@@ -6,7 +6,7 @@ import { formatNumber, formatPercentPoints, formatVND } from "@gugu/localization
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { ASSUMPTIONS, LIMITS, type Advice } from "./pricing/model";
+import { ASSUMPTIONS, LIMITS, PRO_VOLUME_UPLIFT, ownerMinutes, type Advice } from "./pricing/model";
 
 const MINUS = "−";
 const PLUS = "+";
@@ -22,17 +22,28 @@ export function RoiCalculator({
   setWeekly,
   setPrice,
   advice,
+  staff,
+  assistantMinutes,
+  uplifted,
 }: {
   weekly: number;
   price: number;
   setWeekly: (v: number) => void;
   setPrice: (v: number) => void;
   advice: Advice;
+  /** Staff count assumed from the team answer (0 = just me). */
+  staff: number;
+  /** Owner minutes the assistant saves ("Muốn trợ lý AI?" = Có); counted on Pro only. */
+  assistantMinutes: number;
+  /** The bookings default includes the "wants the assistant" volume uplift (not edited). */
+  uplifted: boolean;
 }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const vnd = (v: number) => formatVND(v, locale);
   const e = advice.estimate;
+  const assistant = advice.billed === "pro" ? assistantMinutes : 0;
+  const ownerBase = Math.max(1, Math.round(ownerMinutes(staff) / 60));
   const steps = [
     t("roi.stepMonth", {
       weekly: formatNumber(weekly, locale),
@@ -43,6 +54,26 @@ export function RoiCalculator({
       min: formatNumber(ASSUMPTIONS.minutesPerBooking, locale),
       h: formatNumber(e.hours, locale),
     }),
+    staff > 0
+      ? t("roi.stepOwner", {
+          staff: formatNumber(staff, locale),
+          comm: formatNumber(ASSUMPTIONS.commissionMinutesPerStaff, locale),
+          pay: formatNumber(ASSUMPTIONS.payrollMinutesPerStaff, locale),
+          tally: formatNumber(ASSUMPTIONS.profitTallyMinutes, locale),
+          h: formatNumber(ownerBase, locale),
+        })
+      : t("roi.stepOwnerSolo", {
+          tally: formatNumber(ASSUMPTIONS.profitTallyMinutes, locale),
+          h: formatNumber(ownerBase, locale),
+        }),
+    ...(assistant > 0
+      ? [
+          t("roi.stepAssistant", {
+            min: formatNumber(assistant, locale),
+            h: formatNumber(e.ownerHours, locale),
+          }),
+        ]
+      : []),
     t("roi.stepNoShow", {
       rate: formatPercentPoints(ASSUMPTIONS.noShowRate * 100, locale),
       cut: formatPercentPoints(ASSUMPTIONS.reminderCut * 100, locale),
@@ -59,6 +90,13 @@ export function RoiCalculator({
       <Text size={14} lineHeight={21} color={color.body}>
         {t("roi.intro")}
       </Text>
+      {uplifted ? (
+        <Text size={13} lineHeight={19} color={color.ink2}>
+          {t("roi.upliftNote", {
+            pct: formatPercentPoints(PRO_VOLUME_UPLIFT * 100, locale),
+          })}
+        </Text>
+      ) : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 18 }}>
         <Stepper
           label={t("roi.weekly")}
@@ -109,6 +147,9 @@ export function RoiCalculator({
           </View>
         ))}
       </View>
+      <Text size={12.5} lineHeight={19} color={color.body}>
+        {t("roi.sourceOwner")}
+      </Text>
       <Text size={12.5} lineHeight={19} color={color.body}>
         {t("roi.source", { cut: formatPercentPoints(ASSUMPTIONS.reminderCut * 100, locale) })}
       </Text>

@@ -159,7 +159,7 @@
     "q": {
       "team": {
         "label": "Đội ngũ",
-        "full": "Salon của bạn có bao nhiêu người?",
+        "full": "Salon của bạn có mấy người?",
         "solo": "Mình tôi",
         "small": "2–5 người",
         "large": "6+ người",
@@ -171,13 +171,13 @@
       },
       "ai": {
         "label": "Trợ lý AI",
-        "full": "Bạn có muốn trợ lý AI trả lời về số liệu của salon không?",
+        "full": "Bạn có muốn trợ lý AI trả lời về số liệu?",
         "yes": "Có",
         "no": "Chưa cần"
       },
       "multi": {
         "label": "Cơ sở",
-        "full": "Salon của bạn có mấy cơ sở?",
+        "full": "Salon có mấy cơ sở?",
         "one": "1",
         "many": "Nhiều"
       }
@@ -187,7 +187,6 @@
       "small": "đội 2–5 người",
       "large": "đội từ 6 người"
     },
-    "forYou": "Hợp với bạn",
     "why": {
       "basic": "Với {{team}} và 1 cơ sở, Basic là đủ; chọn Pro nếu muốn trợ lý AI.",
       "pro": "Bạn muốn trợ lý AI: Pro có Gu trả lời mọi câu hỏi về số liệu của salon.",
@@ -213,11 +212,13 @@
       "ultraLater": "Ultra từ {{price}}/tháng khi đủ tính năng nhiều cơ sở"
     },
     "save": {
-      "label": "Ước tính mỗi tháng, sau phí gói",
-      "line": "~{{h}} giờ rảnh + ~{{v}} doanh thu giữ lại",
-      "disclaimer": "Ước tính minh hoạ, không phải tiền GuGu trả cho salon. Kết quả thực tế sẽ khác.",
-      "big": "~{{v}}",
-      "bigNegative": "−{{v}}"
+      "lead": "Bạn tiết kiệm khoảng",
+      "leadNegative": "Phí gói cao hơn phần tiết kiệm khoảng",
+      "amount": "{{v}}",
+      "unit": "mỗi tháng",
+      "sub": "sau khi đã trừ phí gói",
+      "disclaimer": "Ước tính minh hoạ, không phải tiền GuGu trả cho salon; kết quả thực tế sẽ khác.",
+      "hours": "~{{a}} giờ lễ tân + ~{{b}} giờ của chủ salon"
     },
     "cta": {
       "basic": "Bắt đầu miễn phí",
@@ -240,8 +241,7 @@
         "name": "Basic",
         "price": "Miễn phí năm đầu, sau đó {{price}}/tháng",
         "items": "Lịch cả đội và khách hàng\nZalo OA: bot đặt lịch, hộp thư, nhắc lịch tự động\nThiết lập bằng AI từ ảnh bảng giá\nBáo cáo, lương và hoa hồng\nNhân viên không giới hạn",
-        "highlight": "Lịch, khách, Zalo OA, lương và báo cáo",
-        "short": "Miễn phí năm đầu"
+        "highlight": "Lịch, khách, Zalo OA, lương và báo cáo"
       },
       "pro": {
         "name": "Pro",
@@ -262,10 +262,12 @@
       "result": "Gợi ý: gói {{plan}}. {{why}} {{cost}}",
       "costBasic": "Năm đầu {{free}}, từ năm thứ hai {{price}}{{unit}}.",
       "costPaid": "Sau 14 ngày dùng thử: {{price}}{{unit}}.",
-      "costUltra": "Sau 14 ngày dùng thử, bạn dùng Pro: {{price}}{{unit}}. {{ultra}}."
+      "costUltra": "Sau 14 ngày dùng thử, bạn dùng Pro: {{price}}{{unit}}. {{ultra}}.",
+      "resultPicked": "Đang xem gói {{plan}}. {{why}} {{cost}}"
     },
-    "others": "Gói khác",
-    "soon": "Sắp có"
+    "soon": "Sắp có",
+    "suggested": "Gợi ý",
+    "planSwitch": "Chọn gói"
   },
   "cta": {
     "title": "Sẵn sàng toả sáng? Năm đầu miễn phí với gói Basic.",
@@ -594,12 +596,17 @@
     "less": "Giảm",
     "more": "Tăng",
     "stepMonth": "{{weekly}} lịch/tuần × {{weeks}} tuần = ~{{n}} lịch hẹn/tháng",
-    "stepTime": "× {{min}} phút xác nhận, nhắc, đổi lịch qua Zalo/điện thoại = ~{{h}} giờ",
+    "stepTime": "Lễ tân: × {{min}} phút xác nhận, nhắc, đổi lịch qua Zalo/điện thoại = ~{{h}} giờ",
     "stepNoShow": "{{rate}} khách vắng × giảm {{cut}} nhờ nhắc lịch tự động = ~{{a}} lịch giữ được",
     "stepMoney": "× {{price}} = ~{{v}} doanh thu giữ lại",
     "stepNet": "− phí gói {{cost}}/tháng (năm đầu) = ~{{net}}",
     "source": "Mức giảm {{cut}} thấp hơn kết quả các nghiên cứu về nhắc lịch trong y tế (BMJ Open 2016; Hasvold & Wootton 2011: khoảng 34%). Chưa tính phần giữ được nhờ không trùng lịch. Đây không phải tiền GuGu trả cho salon.",
-    "stepA11y": "{{action}}: {{label}}"
+    "stepA11y": "{{action}}: {{label}}",
+    "stepOwner": "Chủ salon: {{staff}} nhân viên × ({{comm}} phút hoa hồng + {{pay}} phút lương) + {{tally}} phút cộng lợi nhuận tháng = ~{{h}} giờ",
+    "stepOwnerSolo": "Chủ salon: {{tally}} phút cộng lợi nhuận tháng (không có lương nhân viên) = ~{{h}} giờ",
+    "sourceOwner": "Thời gian của chủ salon là giả định: khoảng 1 giờ mỗi nhân viên mỗi tháng cho hoa hồng (gom dịch vụ đã làm, áp tỉ lệ, kiểm tra), 20 phút mỗi nhân viên để lập bảng lương, và 1 giờ mỗi tháng để cộng lợi nhuận bằng sổ hoặc Excel. Số giờ không được tính thành tiền.",
+    "upliftNote": "Đã cộng thêm {{pct}} lịch hẹn: salon cần trợ lý AI thường có nhiều khách hơn (giả định). Bạn có thể chỉnh; số bạn nhập áp dụng cho mọi gói.",
+    "stepAssistant": "Trợ lý Gu (Pro): + {{min}} phút chủ salon hỏi Gu thay vì tự tìm trong báo cáo (giả định, tăng theo quy mô đội) = tổng ~{{h}} giờ của chủ salon"
   },
   "views": {
     "label": "Góc nhìn",

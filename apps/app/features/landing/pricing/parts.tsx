@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Animated, Platform, View } from "react-native";
+import type { ReactNode } from "react";
+import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { PLAN_MONTHLY_PRICE_VND, type BillingInterval, planPriceVnd } from "@gugu/contracts";
-import { Icon, Text, color, motion, radius } from "@gugu/design-system";
+import { Icon, MIN_TOUCH, Text, color, radius, space } from "@gugu/design-system";
 import { yearlySavingVnd } from "@gugu/domain";
 import { formatNumber, formatVND } from "@gugu/localization";
 
@@ -13,37 +13,7 @@ import type { Advice } from "./model";
 import { useCountUp } from "./useCountUp";
 
 /** Small building blocks of the pricing result card. */
-const NATIVE_DRIVER = Platform.OS !== "web";
 const TEST_ID = { first: "pricing-first-year", later: "pricing-later" } as const;
-
-/** Pop + check draw-in whenever `trigger` changes (skipped with reduced motion). */
-export function usePop(trigger: string, reduce: boolean) {
-  const [scale] = useState(() => new Animated.Value(1));
-  const [check] = useState(() => new Animated.Value(1));
-  const first = useRef(true);
-  useEffect(() => {
-    if (first.current || reduce) {
-      first.current = false;
-      return;
-    }
-    scale.setValue(0.965);
-    check.setValue(0);
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 1,
-        ...motion.spring.pop,
-        useNativeDriver: NATIVE_DRIVER,
-      }),
-      Animated.timing(check, {
-        toValue: 1,
-        duration: motion.duration.slow,
-        delay: motion.duration.fast,
-        useNativeDriver: NATIVE_DRIVER,
-      }),
-    ]).start();
-  }, [trigger, reduce, scale, check]);
-  return { scale, check };
-}
 
 export function Money({
   v,
@@ -187,59 +157,92 @@ export function CostRow({
   );
 }
 
-/** Net monthly value (big, glides on change) + one line of what it is made of + disclaimer. */
+/**
+ * "Bạn tiết kiệm khoảng X₫ mỗi tháng" (revenue kept − plan fee), "sau khi đã trừ phí gói", then the
+ * hours split by who saves them (front desk + owner, one line, tap for the breakdown; never
+ * converted into đ) and the disclaimer.
+ */
 export function Savings({
   advice,
   reduce,
   desktop,
+  onHow,
 }: {
   advice: Advice;
   reduce: boolean;
   desktop: boolean;
+  /** Opens "Cách tính" with the hours breakdown. */
+  onHow: () => void;
 }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const net = advice.netFirstYearPerMonthVnd;
   const netShown = useCountUp(Math.abs(net), reduce);
   const hours = useCountUp(advice.estimate.hours, reduce);
-  const kept = useCountUp(advice.estimate.keptVnd, reduce);
-  const big = desktop ? 30 : 26;
+  const owner = useCountUp(advice.estimate.ownerHours, reduce);
+  const big = desktop ? 32 : 26;
   return (
     <View
       style={{
-        gap: 2,
-        padding: desktop ? 14 : 12,
+        gap: space[1],
+        padding: desktop ? space[5] : space[3],
         borderRadius: radius.md,
         backgroundColor: color.lilac100,
       }}
     >
-      <Text role="uiSemiBold" size={12} color={color.ink2}>
-        {t("pricing.save.label")}
+      <Text role="uiSemiBold" size={desktop ? 15 : 13.5} color={color.ink2}>
+        {t(net >= 0 ? "pricing.save.lead" : "pricing.save.leadNegative")}
       </Text>
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
-        {/* Decorative accent; the number itself is ink (contrast). */}
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
         <View aria-hidden importantForAccessibility="no-hide-descendants">
-          <Icon name="sparkles" size={big * 0.6} color={color.lilac700} />
+          <Icon name="sparkles" size={big * 0.55} color={color.lilac700} />
         </View>
-        <Text role="display" size={big} lineHeight={big * 1.15} color={color.ink}>
-          {t(net >= 0 ? "pricing.save.big" : "pricing.save.bigNegative", {
-            v: formatVND(netShown, locale),
-          })}
+        <Text
+          testID="pricing-save-amount"
+          role="display"
+          size={big}
+          lineHeight={big * 1.15}
+          color={color.ink}
+        >
+          {t("pricing.save.amount", { v: formatVND(netShown, locale) })}
         </Text>
-        <Text role="uiSemiBold" size={14} color={color.ink2}>
-          {t("pricing.cost.unitMonth")}
+        <Text role="uiSemiBold" size={desktop ? 16 : 14} color={color.ink}>
+          {t("pricing.save.unit")}
         </Text>
       </View>
-      <Text
-        testID="pricing-save"
-        role="uiSemiBold"
-        size={desktop ? 14.5 : 13}
-        lineHeight={desktop ? 21 : 18}
-        color={color.ink}
-      >
-        {t("pricing.save.line", { h: formatNumber(hours, locale), v: formatVND(kept, locale) })}
+      <Text size={12.5} lineHeight={17} color={color.ink2}>
+        {t("pricing.save.sub")}
       </Text>
-      <Text size={11.5} lineHeight={15} color={color.ink2}>
+      {/* Hours, split by who saves them; tap for the breakdown ("Cách tính"). */}
+      <Pressable
+        testID="pricing-save"
+        accessibilityRole="button"
+        accessibilityHint={t("pricing.howLink")}
+        onPress={onHow}
+        style={(state) => ({
+          alignSelf: "flex-start",
+          minHeight: MIN_TOUCH,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space[2],
+          marginVertical: -space[2],
+          opacity: state.pressed ? 0.7 : 1,
+        })}
+      >
+        <View aria-hidden importantForAccessibility="no-hide-descendants">
+          <Icon name="clock" size={14} color={color.lilac700} />
+        </View>
+        <Text role="uiSemiBold" size={13} lineHeight={18} color={color.ink}>
+          {t("pricing.save.hours", {
+            a: formatNumber(hours, locale),
+            b: formatNumber(owner, locale),
+          })}
+        </Text>
+        <View aria-hidden importantForAccessibility="no-hide-descendants">
+          <Icon name="info" size={14} color={color.ink2} />
+        </View>
+      </Pressable>
+      <Text size={11.5} lineHeight={15} color={color.ink2} style={{ marginTop: space[2] }}>
         {t("pricing.save.disclaimer")}
       </Text>
     </View>
@@ -247,7 +250,13 @@ export function Savings({
 }
 
 /** Screen-reader summary of the answer: plan, why and what is billed (Ultra starts on Pro). */
-export function useSummary(advice: Advice, interval: BillingInterval, name: string, why: string) {
+export function useSummary(
+  advice: Advice,
+  interval: BillingInterval,
+  name: string,
+  why: string,
+  picked: boolean,
+) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
   const unit = t(interval === "month" ? "pricing.cost.unitMonth" : "pricing.cost.unitYear");
@@ -261,5 +270,5 @@ export function useSummary(advice: Advice, interval: BillingInterval, name: stri
       : advice.plan === "ultra"
         ? t("pricing.a11y.costUltra", { price, unit, ultra })
         : t("pricing.a11y.costPaid", { price, unit });
-  return t("pricing.a11y.result", { plan: name, why, cost });
+  return t(picked ? "pricing.a11y.resultPicked" : "pricing.a11y.result", { plan: name, why, cost });
 }

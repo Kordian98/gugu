@@ -3,12 +3,13 @@ import { Animated, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { PUBLIC_PLANS, type BillingInterval, type PublicPlanCode } from "@gugu/contracts";
-import { Icon, Text, color, radius, shadow } from "@gugu/design-system";
+import { Icon, Text, color, radius, shadow, space } from "@gugu/design-system";
 
 import { Segmented } from "./Choice";
 import type { Advice } from "./model";
-import { LinkChip, OtherPlan } from "./links";
-import { CostRow, Savings, usePop, useSummary } from "./parts";
+import { LinkChip } from "./links";
+import { usePop, usePulse } from "./anim";
+import { CostRow, Savings, useSummary } from "./parts";
 
 /** Visually hidden but read by screen readers. */
 const SR_ONLY = {
@@ -33,8 +34,10 @@ export function ResultCard({
   desktop,
   onCompare,
   onHow,
-  onPick,
   cta,
+  pulse,
+  recommended,
+  onPick,
 }: {
   advice: Advice;
   why: string;
@@ -44,14 +47,20 @@ export function ResultCard({
   desktop: boolean;
   onCompare: () => void;
   onHow: () => void;
-  onPick: (p: PublicPlanCode) => void;
   cta: ReactNode;
+  /** Changes on every answer tap: the card glows briefly so it visibly reacts to the questions. */
+  pulse: number;
+  /** The plan the answers suggest (marked "Gợi ý" in the switch). */
+  recommended: PublicPlanCode;
+  /** Shows another plan with the same inputs; the answers stay as they are. */
+  onPick: (p: PublicPlanCode) => void;
 }) {
   const { t } = useTranslation("landing");
   const { plan } = advice;
   const { scale, check } = usePop(plan, reduce);
+  const glow = usePulse(pulse, reduce);
   const name = t(`pricing.plan.${plan}.name`);
-  const summary = useSummary(advice, interval, name, why);
+  const summary = useSummary(advice, interval, name, why, plan !== recommended);
   const links = (
     <>
       <LinkChip
@@ -68,8 +77,8 @@ export function ResultCard({
       testID="pricing-result"
       style={{
         transform: [{ scale }],
-        gap: desktop ? 12 : 8,
-        padding: desktop ? 24 : 12,
+        gap: desktop ? space[5] : space[2],
+        padding: desktop ? space[8] : space[3],
         borderRadius: desktop ? radius.xl : radius.lg,
         backgroundColor: color.white,
         borderWidth: 1,
@@ -77,13 +86,30 @@ export function ResultCard({
         ...shadow.card,
       }}
     >
+      <Animated.View
+        aria-hidden
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: -5,
+          left: -5,
+          right: -5,
+          bottom: -5,
+          borderRadius: (desktop ? radius.xl : radius.lg) + 5,
+          borderWidth: 2,
+          borderColor: color.lilac500,
+          opacity: glow,
+        }}
+      />
       {/* Screen readers: one polite summary (plan, why, cost) whenever the answer changes. */}
       <View accessibilityLiveRegion="polite" aria-live="polite" style={SR_ONLY}>
         <Text size={12}>{summary}</Text>
       </View>
-      <View style={{ gap: desktop ? 8 : 4 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View style={{ gap: desktop ? space[2] : space[1] }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
           <Animated.View
+            aria-hidden
+            importantForAccessibility="no-hide-descendants"
             style={{
               width: desktop ? 34 : 28,
               height: desktop ? 34 : 28,
@@ -105,32 +131,33 @@ export function ResultCard({
           >
             <Icon name="check" size={desktop ? 18 : 15} color={color.white} strokeWidth={2.8} />
           </Animated.View>
-          <Text
-            testID="pricing-plan"
-            role="display"
-            size={desktop ? 40 : 32}
-            lineHeight={desktop ? 44 : 36}
-            color={color.ink}
-          >
-            {name}
-          </Text>
-          <View
-            style={{
-              borderRadius: radius.pill,
-              paddingHorizontal: 10,
-              paddingVertical: 3,
-              backgroundColor: color.pink300,
-            }}
-          >
-            <Text role="uiSemiBold" size={12} color={color.plum950}>
-              {t("pricing.forYou")}
-            </Text>
-          </View>
+          {desktop ? (
+            <View style={{ flex: 1 }}>
+              <Text
+                testID="pricing-plan"
+                role="display"
+                size={40}
+                lineHeight={44}
+                color={color.ink}
+              >
+                {name}
+              </Text>
+            </View>
+          ) : null}
+          {/* Plan switch: always shows that three plans exist; the suggestion is marked. */}
+          <Segmented
+            testID="pricing-plan-switch"
+            label={t("pricing.planSwitch")}
+            value={plan}
+            onChange={onPick}
+            options={PUBLIC_PLANS.map((p) => ({ value: p, label: t(`pricing.plan.${p}.name`) }))}
+            badge={{ [recommended]: t("pricing.suggested") }}
+          />
         </View>
         <Text
           testID="pricing-why"
-          size={desktop ? 15 : 13.5}
-          lineHeight={desktop ? 21 : 19}
+          size={desktop ? 15 : 13}
+          lineHeight={desktop ? 21 : 18}
           color={color.body}
         >
           {why}
@@ -150,27 +177,17 @@ export function ResultCard({
       />
 
       <CostRow advice={advice} interval={interval} reduce={reduce} desktop={desktop} />
-      <Savings advice={advice} reduce={reduce} desktop={desktop} />
+      {/* Hairline between what it costs and what it saves. */}
+      {desktop ? <View style={{ height: 1, backgroundColor: color.lineSoft }} /> : null}
+      <Savings advice={advice} reduce={reduce} desktop={desktop} onHow={onHow} />
 
       {desktop ? (
         <>
           {cta}
-          <View style={{ gap: 8 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <View style={{ flex: 1 }}>
-                <Text role="eyebrow" size={11.5}>
-                  {t("pricing.others")}
-                </Text>
-              </View>
-              {links}
-            </View>
-            {PUBLIC_PLANS.filter((p) => p !== plan).map((p) => (
-              <OtherPlan key={p} plan={p} onPick={onPick} />
-            ))}
-          </View>
+          <View style={{ flexDirection: "row", gap: space[2] }}>{links}</View>
         </>
       ) : (
-        <View style={{ flexDirection: "row", gap: 8 }}>{links}</View>
+        <View style={{ flexDirection: "row", gap: space[2] }}>{links}</View>
       )}
     </Animated.View>
   );

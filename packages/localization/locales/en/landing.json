@@ -171,13 +171,13 @@
       },
       "ai": {
         "label": "AI assistant",
-        "full": "Do you want an AI assistant that answers questions about your numbers?",
+        "full": "Want an AI assistant that answers questions about your numbers?",
         "yes": "Yes",
         "no": "Not now"
       },
       "multi": {
         "label": "Locations",
-        "full": "How many locations does your salon have?",
+        "full": "How many locations do you have?",
         "one": "1",
         "many": "Several"
       }
@@ -187,7 +187,6 @@
       "small": "a team of 2–5",
       "large": "a team of 6 or more"
     },
-    "forYou": "Your fit",
     "why": {
       "basic": "With {{team}} and one location, Basic is enough; pick Pro if you want the AI assistant.",
       "pro": "You want an AI assistant: Pro adds Gu, which answers questions about your salon's numbers.",
@@ -210,14 +209,16 @@
       "unitMonth": "/month",
       "unitYear": "/year",
       "afterTrialLabel": "After the 14-day trial",
-      "ultraLater": "Ultra from {{price}}/month once multi-location is available"
+      "ultraLater": "Ultra: {{price}}/month once multi-location ships"
     },
     "save": {
-      "label": "Estimate per month, after the plan",
-      "line": "~{{h}} hours freed + ~{{v}} revenue kept",
-      "disclaimer": "An illustrative estimate, not money GuGu pays your salon. Real results will differ.",
-      "big": "~{{v}}",
-      "bigNegative": "−{{v}}"
+      "lead": "You save about",
+      "leadNegative": "The plan costs more than it saves, by about",
+      "amount": "{{v}}",
+      "unit": "a month",
+      "sub": "after the plan fee",
+      "disclaimer": "An illustrative estimate, not money GuGu pays your salon; real results will differ.",
+      "hours": "~{{a}} front-desk hours + ~{{b}} owner hours"
     },
     "cta": {
       "basic": "Start free",
@@ -227,7 +228,7 @@
     },
     "noCard": "No card or payment needed",
     "compareLink": "Compare plans",
-    "howLink": "How we estimate",
+    "howLink": "How we calculate",
     "close": "Close",
     "compare": {
       "title": "Compare plans",
@@ -240,8 +241,7 @@
         "name": "Basic",
         "price": "Free for the first year, then {{price}}/month",
         "items": "Team calendar and clients\nZalo OA: booking bot, inbox, automatic reminders\nAI setup from a photo of your price list\nReports, payroll and commissions\nUnlimited staff",
-        "highlight": "Calendar, clients, Zalo OA, payroll and reports",
-        "short": "Free first year"
+        "highlight": "Calendar, clients, Zalo OA, payroll and reports"
       },
       "pro": {
         "name": "Pro",
@@ -262,10 +262,12 @@
       "result": "Suggested: {{plan}}. {{why}} {{cost}}",
       "costBasic": "First year {{free}}, from year two {{price}}{{unit}}.",
       "costPaid": "After the 14-day trial: {{price}}{{unit}}.",
-      "costUltra": "After the 14-day trial you are on Pro: {{price}}{{unit}}. {{ultra}}."
+      "costUltra": "After the 14-day trial you are on Pro: {{price}}{{unit}}. {{ultra}}.",
+      "resultPicked": "Showing {{plan}}. {{why}} {{cost}}"
     },
-    "others": "Other plans",
-    "soon": "Coming soon"
+    "soon": "Coming soon",
+    "suggested": "Suggested",
+    "planSwitch": "Choose a plan"
   },
   "cta": {
     "title": "Ready to glow? Your first year of Basic is free.",
@@ -586,7 +588,7 @@
     }
   },
   "roi": {
-    "title": "How we estimate",
+    "title": "How we calculate",
     "intro": "These are cautious assumptions, not measurements. You can change the first two numbers.",
     "weekly": "Bookings per week",
     "perWeek": "{{n}} / week",
@@ -594,12 +596,17 @@
     "less": "Less",
     "more": "More",
     "stepMonth": "{{weekly}} bookings/week × {{weeks}} weeks = ~{{n}} bookings/month",
-    "stepTime": "× {{min}} min of confirming, reminding and rebooking by Zalo/phone = ~{{h}} hours",
+    "stepTime": "Front desk: × {{min}} min of confirming, reminding and rebooking by Zalo/phone = ~{{h}} hours",
     "stepNoShow": "{{rate}} no-shows × {{cut}} fewer with automatic reminders = ~{{a}} bookings kept",
     "stepMoney": "× {{price}} = ~{{v}} revenue kept",
     "stepNet": "− plan {{cost}}/month (first year) = ~{{net}}",
     "source": "The {{cut}} cut is below what healthcare reminder studies report (BMJ Open 2016; Hasvold & Wootton 2011: about 34%). Fewer double bookings are not counted. This is not money GuGu pays your salon.",
-    "stepA11y": "{{action}}: {{label}}"
+    "stepA11y": "{{action}}: {{label}}",
+    "stepOwner": "Owner: {{staff}} staff × ({{comm}} min commissions + {{pay}} min payroll) + {{tally}} min monthly profit tally = ~{{h}} hours",
+    "stepOwnerSolo": "Owner: {{tally}} min monthly profit tally (no staff payroll) = ~{{h}} hours",
+    "sourceOwner": "Owner time is an assumption: about 1 hour per staff member a month for commissions (collecting completed services, applying rates, checking), 20 min per staff member to assemble payroll, and 1 hour a month to add up profit in a notebook or Excel. Hours are not converted into money.",
+    "upliftNote": "Includes {{pct}} more bookings: salons that want the AI assistant usually have more clients (assumption). You can change it; your number applies to every plan.",
+    "stepAssistant": "Gu assistant (Pro): + {{min}} min of owner questions answered by Gu instead of digging through reports (assumption, grows with team size) = ~{{h}} owner hours in total"
   },
   "views": {
     "label": "Perspectives",

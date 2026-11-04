@@ -112,6 +112,9 @@ export const font = {
   neon: "BarlowCondensed-Regular",
 } as const;
 
+/** Spacing scale (4 px base). Use for gaps and padding instead of ad-hoc numbers. */
+export const space = { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 7: 28, 8: 32, 10: 40 } as const;
+
 export const radius = { sm: 12, md: 16, lg: 24, xl: 28, pill: 999 } as const;
 
 export const breakpoint = { desktop: 900 } as const;

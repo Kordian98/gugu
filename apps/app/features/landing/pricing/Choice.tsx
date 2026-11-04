@@ -159,7 +159,7 @@ export function Segmented<T extends string>({
       accessibilityLabel={label}
       style={{
         flexDirection: "row",
-        padding: 3,
+        padding: 2,
         borderRadius: radius.pill,
         backgroundColor: color.tile,
         borderWidth: 1,

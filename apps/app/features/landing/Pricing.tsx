@@ -4,20 +4,13 @@ import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "react-native-reanimated";
 
 import type { BillingInterval, PublicPlanCode } from "@gugu/contracts";
-import { Button, GradientText, Text, color, font, gradient } from "@gugu/design-system";
+import { Button, GradientText, Text, color, font, gradient, space } from "@gugu/design-system";
 
 import { RoiCalculator } from "./RoiCalculator";
 import { Container, SectionHead } from "./Section";
-import { ChoiceRow } from "./pricing/Choice";
 import { Compare } from "./pricing/Compare";
-import {
-  DEFAULT_ANSWERS,
-  TEAM_DEFAULTS,
-  TEAMS,
-  advise,
-  recommend,
-  type Answers,
-} from "./pricing/model";
+import { Questions } from "./pricing/Questions";
+import { DEFAULT_ANSWERS, advise, profileDefaults, recommend, type Answers } from "./pricing/model";
 import { ResultCard } from "./pricing/ResultCard";
 import { Sheet } from "./pricing/Sheet";
 import { useFocusClearance } from "./pricing/useFocusClearance";
@@ -51,21 +44,34 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
   const [price, setPrice] = useState<number | null>(null);
   const [sheet, setSheet] = useState<"compare" | "how" | null>(null);
   const [barHeight, setBarHeight] = useState(0);
+  const [taps, setTaps] = useState(0);
   useFocusClearance("pricing-section", desktop ? 0 : barHeight);
 
-  const defaults = TEAM_DEFAULTS[answers.team];
-  const w = weekly ?? defaults.weekly;
-  const p = price ?? defaults.price;
+  const profile = profileDefaults(answers);
+  const w = weekly ?? profile.weekly;
+  const p = price ?? profile.price;
   const recommended = recommend(answers);
   const plan = picked ?? recommended;
-  const advice = useMemo(() => advise(plan, interval, w, p), [plan, interval, w, p]);
+  const { staff, assistantMinutes } = profile;
+  const advice = useMemo(
+    () => advise(plan, interval, w, p, staff, assistantMinutes),
+    [plan, interval, w, p, staff, assistantMinutes],
+  );
 
   const answer = (patch: Partial<Answers>) => {
     setAnswers((a) => ({ ...a, ...patch }));
     setPicked(null);
+    setTaps((n) => n + 1);
+    // A new team size brings new defaults; numbers the visitor typed in "Cách tính" are kept
+    // otherwise and apply to every plan.
+    if (patch.team) {
+      setWeekly(null);
+      setPrice(null);
+    }
   };
+  // A picked plan explains itself; Ultra always says multi-location is coming (honest, q106).
   const why =
-    plan === recommended
+    plan === recommended || plan === "ultra"
       ? t(`pricing.why.${plan}`, { team: t(`pricing.teamPhrase.${answers.team}`) })
       : t(`pricing.plan.${plan}.highlight`);
 
@@ -82,7 +88,8 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
       <Text size={12.5} color={color.ink2}>
         {t("pricing.noCard")}
       </Text>
-      {plan === "ultra" ? (
+      {/* Phone: the why line right above already says Ultra starts on Pro. */}
+      {plan === "ultra" && desktop ? (
         <Text size={12} lineHeight={16} color={color.body} style={{ textAlign: "center" }}>
           {t("pricing.cta.ultraNote")}
         </Text>
@@ -91,53 +98,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
   );
 
   const questions = (
-    <View style={{ gap: desktop ? 20 : 6 }} testID="pricing-questions">
-      <ChoiceRow
-        testID="pricing-q-team"
-        inline={!desktop}
-        label={t("pricing.q.team.label")}
-        question={t("pricing.q.team.full")}
-        value={answers.team}
-        onChange={(team) => {
-          answer({ team });
-          setWeekly(null);
-          setPrice(null);
-        }}
-        options={TEAMS.map((v) => ({
-          value: v,
-          label: desktop ? t(`pricing.q.team.${v}`) : t(`pricing.q.team.short.${v}`),
-          a11yLabel: t(`pricing.q.team.${v}`),
-        }))}
-      />
-      <ChoiceRow
-        testID="pricing-q-ai"
-        inline={!desktop}
-        label={t("pricing.q.ai.label")}
-        question={t("pricing.q.ai.full")}
-        value={answers.ai ? "yes" : "no"}
-        onChange={(v) => {
-          answer({ ai: v === "yes" });
-        }}
-        options={[
-          { value: "yes", label: t("pricing.q.ai.yes") },
-          { value: "no", label: t("pricing.q.ai.no") },
-        ]}
-      />
-      <ChoiceRow
-        testID="pricing-q-multi"
-        inline={!desktop}
-        label={t("pricing.q.multi.label")}
-        question={t("pricing.q.multi.full")}
-        value={answers.multi ? "many" : "one"}
-        onChange={(v) => {
-          answer({ multi: v === "many" });
-        }}
-        options={[
-          { value: "one", label: t("pricing.q.multi.one") },
-          { value: "many", label: t("pricing.q.multi.many") },
-        ]}
-      />
-    </View>
+    <Questions answers={answers} onAnswer={answer} desktop={desktop} reduce={reduce} />
   );
 
   const card = (
@@ -154,17 +115,21 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
       onHow={() => {
         setSheet("how");
       }}
-      onPick={setPicked}
       cta={cta}
+      pulse={taps}
+      recommended={recommended}
+      onPick={(pl) => {
+        setPicked(pl === recommended ? null : pl);
+      }}
     />
   );
 
   return (
     <View testID="pricing-section" style={desktop ? undefined : SNAP_START}>
-      <Container className={desktop ? "py-10" : "pt-5"}>
+      <Container className={desktop ? "py-10" : "pt-4"}>
         {desktop ? (
-          <View style={{ flexDirection: "row", gap: 56, alignItems: "center" }}>
-            <View style={{ flex: 1, gap: 28, maxWidth: 520 }}>
+          <View style={{ flexDirection: "row", gap: space[10] + space[4], alignItems: "center" }}>
+            <View style={{ flex: 1, gap: space[6], maxWidth: 540 }}>
               <SectionHead
                 eyebrow={t("pricing.eyebrow")}
                 title={t("pricing.titlePre")}
@@ -174,7 +139,7 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
                   colors: gradient.glowInk,
                 }}
               />
-              <Text size={17} lineHeight={26} color={color.body}>
+              <Text size={16.5} lineHeight={25} color={color.body}>
                 {t("pricing.sub")}
               </Text>
               {questions}
@@ -183,16 +148,13 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
           </View>
         ) : (
           <View style={{ gap: 12 }}>
-            <View style={{ gap: 4 }}>
-              <Text role="eyebrow" size={12}>
-                {t("pricing.eyebrow")}
-              </Text>
+            <View>
               <View accessibilityRole="header">
-                <Text role="display" size={32} lineHeight={42} color={color.ink}>
+                <Text role="display" size={32} lineHeight={38} color={color.ink}>
                   {t("pricing.titlePre")}
                   <GradientText
                     colors={gradient.glowInk}
-                    style={{ fontFamily: font.display, fontSize: 32, lineHeight: 42 }}
+                    style={{ fontFamily: font.display, fontSize: 32, lineHeight: 38 }}
                   >
                     {t("pricing.titleGlow")}
                   </GradientText>
@@ -264,6 +226,9 @@ export function Pricing({ nav, stacked }: { nav: LandingNavActions; stacked: boo
           setWeekly={setWeekly}
           setPrice={setPrice}
           advice={advice}
+          staff={staff}
+          assistantMinutes={assistantMinutes}
+          uplifted={profile.uplift && weekly === null}
         />
       </Sheet>
     </View>
