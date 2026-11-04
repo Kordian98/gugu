@@ -42,6 +42,7 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 - **Pages:** front desk before · after · treatment room ×3 (one fact + one cropped CRM screen + a callout each) · office · Insights · pay & commissions (payroll, ADR-0016) · switching (old system → GuGu Studio, 1.6× slower).
 - **Perspectives:** `Perspectives.tsx` + `ChatStory.tsx`: client (Zalo OA booking) and AI assistant (Pro) as scripted stepped chats in the same stage, switched by tabs, the hero plaque and the last salon page.
 - **After the story:** `FreeYear` band (X25: Basic free for the first year, then 99,000 VND/month), where Finish and Skip land.
+- **Section order (owner, 2026-11-04):** story → "GuGu Studio Basic" free-year band (`#fl-free`) → pricing (the buying assistant, `#pricing`) → case studies (`#fl-cases`) → final CTA → footer. The business-type tiles (`flow.biz`, `.bz`) are gone from web; native still shows `Businesses`.
 - **Stage height** = scroller `clientHeight` via `--sv` (no vh/svh/dvh mismatch inside the RN Web ScrollView).
 - **Phones (≤ 899 px):** `MobileJourney.tsx` + `MobileChat.tsx` + `mobile.css.ts` + `zoom.ts`: Instagram-style stories (tap right / left, free vertical scroll), sticky chapter bar, chats stepped by tap, phone crops with a Zoom viewer (`m-*` in `screens.ts`). Desktop never renders or receives it (ADR 0014 "Mobile").
 - **QA and metrics:** `docs/qa/02-landing-flow/README.md`, `docs/qa/02-landing-mobile/README.md`.
@@ -49,6 +50,17 @@ References received (ref-01). Produced with AI tools on fal.ai (no 3D artist). C
 **Tokens added earlier in 02-PRICING-ADVISOR:** `color.lineStrong` (#8E7B8A, ≥ 3:1 on white/canvas/tile for control borders), `gradient.glowInk` (every stop ≥ 4.3:1 on canvas/white: AA for large text only, never body text), `motion.bezier` (JS control points of `motion.ease`), `motion.spring.pop`, `opacity` (backdrop, disabled), `shadow` (card, raised). Contrast asserted in `tokens.test.ts`.
 
 **Tokens added (02-LANDING-FLOW):** `motion` (fast 120 · base 200 · slow 320 · deliberate 500 ms, ease out/inOut), `color.danger`/`dangerInk`/`dangerTint`, `zalo`, `paper`/`paperLine`, `sheet`/`sheetLine`, `gradient.glowSoft` + `cssGradient()`.
+
+## Landing case studies
+`apps/app/features/landing/cases/` (owner, 2026-11-04), after pricing, in place of the business-type tiles. Web only (`CaseStudies.web.tsx`); `CaseStudies.tsx` keeps the native business tiles.
+- **Four illustrative salons** (`data.ts`): Hoa Mai Nails (3 technicians, notebook + personal Zalo), Lúa Hair (5 people, month-end Excel payroll), White Lotus Spa (4 beds, phone + notebook, profit only at month end), Nắng Lash & Brow (2 people, 11 pm messages). Fictional names; no photos of people; no quotes. A visible label "Ví dụ minh hoạ — tên và số liệu là giả định" / "Illustrative examples: names and figures are hypothetical"; every screenshot says it is a real GuGu Studio screen of the demo salon.
+- **Numbers:** three outcomes per salon, each `estimate()` from `pricing/model.ts` with the salon's bookings/week, average price and staff (Basic: front-desk hours, owner hours, revenue kept), so they always match the buying assistant (`data.test.ts`). The inputs and assumptions are printed under the outcomes. Every feature named is in Basic.
+- **Map** (`CaseMap.tsx`, `Glyph.tsx`): "trước → sau": four tilted paper notes joined by crawling dashed wires (the old tangle) give way to four GuGu Studio nodes that pop in one by one while arrows draw on. Plays when the map is 60 % on screen and on every story switch (`MAP_HOLD_MS` on the tangle first); a Trước/Sau toggle (44 px) replays either state. Labels are live HTML text; the inactive side is `aria-hidden`.
+- **Screens** (`Shot.tsx`): desktop shows the 3× desktop crop zoomed into its top-left (`zoom`, `box` per case, `sizes` follows the zoom; never upscaled); phones show the `m-*` phone crop at about 1:1. Calendar, payroll, "Tháng này" and appointments (the Zalo inbox capture is an empty "not connected" state, so it is not used).
+- **Interaction:** desktop = tabs (`role=tablist`, ← → Home End, roving tabindex), all panels in one grid cell so a switch never moves the page; inactive panels are `inert`. Phones = a scroll-snap carousel (one story per screen, pills + ‹ n / 4 › pager, polite counter, the track height follows the current story, `overflow-y: hidden` so vertical page scrolling is never captured).
+- **Motion:** `motion.duration` / `motion.ease` only; reduced motion shows the final map with no movement, carousel jumps without smooth scrolling.
+- **Contrast (AA):** eyebrow on canvas 5.08, body on canvas 8.09, dangerInk on dangerTint 5.57, ink2 on paper 13.8, lilac300 on ink 10.3; tab borders `lineStrong` (3.92:1).
+- **QA:** `docs/qa/02-cases/README.md`.
 
 ## Landing pricing assistant (X27)
 `apps/app/features/landing/Pricing.tsx` + `pricing/` (owner 2026-11-04/05: "a buying assistant, short and fun"; hard one-screen fit).

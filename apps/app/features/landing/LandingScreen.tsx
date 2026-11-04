@@ -7,6 +7,7 @@ import { color } from "@gugu/design-system";
 import { useViewport } from "@/services/viewport/useViewport";
 
 import { Businesses } from "./Businesses";
+import { CaseStudies } from "./cases/CaseStudies";
 import { Features } from "./Features";
 import { FinalCta } from "./FinalCta";
 import { Footer } from "./Footer";
@@ -19,10 +20,11 @@ import { StudioHero } from "./StudioHero";
 import { useLandingNav } from "./useLandingNav";
 
 /**
- * GuGu Studio landing (X22/X23): hero, then on web a photoreal scroll-scrubbed walk through one salon
- * (street → front desk pain → calm → treatment area features → back office → business types → switching;
- * a book of page turns after the scroll-driven doors), plans, final CTA. Light only (X18). Native → static
- * chapters + features + business types; reduced motion → the book with crossfades.
+ * GuGu Studio landing (X22/X23): hero, then on web a photoreal walk through one salon as a book (street →
+ * front desk pain → calm → treatment area features → back office → switching; phones: stories), the X25
+ * "GuGu Studio Basic" free-year band, pricing (the buying assistant) right below it, the illustrative case
+ * studies, final CTA, footer (owner, 2026-11-04). Light only (X18). Native → static chapters + features +
+ * business types; reduced motion → the book with crossfades.
  */
 export function LandingScreen() {
   // Plain ScrollView: no per-frame JS scroll handler. The web story pins with CSS sticky inside it.
@@ -66,6 +68,11 @@ export function LandingScreen() {
       <Anchor id="pricing" onY={nav.onAnchorY}>
         <Pricing nav={nav} stacked={w < 1000} />
       </Anchor>
+      {flow ? (
+        <Anchor id="cases" onY={nav.onAnchorY}>
+          <CaseStudies reduce={reduce} desktop={desktop} />
+        </Anchor>
+      ) : null}
       <FinalCta nav={nav} />
       <Footer nav={nav} />
     </ScrollView>

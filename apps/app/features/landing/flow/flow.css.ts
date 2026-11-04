@@ -3,7 +3,7 @@ import { color, cssGradient, font, gradient, motion } from "@gugu/design-system"
 /**
  * v4 flow: a photoreal walk through one salon (scroll-scrubbed frame sequences, CSS sticky + GSAP scrub),
  * the front-desk pain → calm transformation over full-bleed photography, a before/after split, features
- * revealed where they happen, the back office, business types and switching. Only transform/opacity
+ * revealed where they happen, the back office and switching. Only transform/opacity
  * animate; frames and photos are never drawn above ~1.15× their native pixels.
  */
 export const FLOW_CSS = `
@@ -731,23 +731,6 @@ export const FLOW_CSS = `
 }
 
 /* businesses */
-.bz{padding:clamp(72px,10vh,140px) var(--g);max-width:1440px;margin:0 auto;box-sizing:border-box}
-.bz-head{margin-bottom:clamp(24px,4vh,40px)}
-.bz-head .fl-h{max-width:24ch}
-.bz-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.bz-tile{position:relative;min-height:clamp(250px,30vh,320px);border-radius:26px;overflow:hidden;background:${color.tile};display:flex;align-items:flex-end}
-.bz-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s ${motion.ease.out}}
-.bz-tile:hover img{transform:scale(1.04)}
-.bz-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,10,20,.05) 15%,rgba(20,10,20,.8))}
-.bz-body{position:relative;z-index:1;padding:22px 22px 20px;color:${color.white}}
-.bz-type{display:inline-block;font-family:${font.uiSemiBold};font-size:12.5px;letter-spacing:.04em;padding:5px 10px;border-radius:99px;background:rgba(255,255,255,.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.bz-what{margin:6px 0 0;font-family:${font.uiSemiBold};font-size:16px;line-height:1.35}
-.bz-how{display:flex;gap:7px;align-items:flex-start;margin:8px 0 0;font-family:${font.ui};font-size:13.5px;line-height:1.4;opacity:.92}
-.bz-how i{font-style:normal;color:${color.pink300}}
-.bz-say{margin:12px 0 0;font-family:${font.uiMedium};font-size:clamp(15px,1.15vw,17px);line-height:1.5;color:${color.white};max-width:34ch;text-wrap:pretty}
-.bz-note{margin:16px 0 0;font-family:${font.ui};font-size:12px;color:${color.ink2}}
-@media (max-width:1099px){.bz-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:599px){.bz-grid{grid-template-columns:1fr;gap:12px}.bz-tile{min-height:220px}}
 
 /* assistant + switch */
 .tc{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,5vw,80px);align-items:center}

@@ -9,6 +9,7 @@ import manifest from "../../assets/studio/manifest.json";
 const SCREENS = {
   vi: {
     overview: require("../../assets/studio/vi/overview.webp") as number,
+    overview2x: require("../../assets/studio/vi/overview-2x.webp") as number,
     timeline: require("../../assets/studio/vi/timeline.webp") as number,
     upcoming: require("../../assets/studio/vi/upcoming.webp") as number,
     kpis: require("../../assets/studio/vi/kpis.webp") as number,
@@ -45,6 +46,7 @@ const SCREENS = {
   },
   en: {
     overview: require("../../assets/studio/en/overview.webp") as number,
+    overview2x: require("../../assets/studio/en/overview-2x.webp") as number,
     timeline: require("../../assets/studio/en/timeline.webp") as number,
     upcoming: require("../../assets/studio/en/upcoming.webp") as number,
     kpis: require("../../assets/studio/en/kpis.webp") as number,

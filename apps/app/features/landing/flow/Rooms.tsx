@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { screen, screenSize, type ScreenName } from "../screens";
-import { PHOTO } from "./media";
 
 const SW_STEPS = ["st1", "st2", "st3", "st4"] as const;
 const SW_CELLS = Array.from({ length: 15 }, (_, i) => `c${String(i)}`);
@@ -16,7 +15,6 @@ const CROSS = "\u2715";
 const CHECK = "\u2713";
 const SEP = " \u00B7 ";
 const PIN = "\u25CF";
-const BIZ = ["nails", "hair", "barber", "spa", "lash", "brow"] as const;
 
 function useShot() {
   const locale = useLocale();
@@ -367,41 +365,5 @@ export function SwitchPanel() {
         </div>
       </div>
     </div>
-  );
-}
-
-/**
- * Business types as ONE benefit view (owner): per business, one big illustrative result and the feature
- * that delivers it ("saved X thanks to Y"), over the photoreal scene. No swiping.
- */
-export function Businesses() {
-  const { t } = useTranslation("landing");
-  return (
-    <section className="bz" id="fl-biz">
-      <div className="bz-head">
-        <div className="fl-eye rv">{t("flow.biz.eyebrow")}</div>
-        <h2 className="fl-h rv">
-          {t("flow.biz.titlePre")}
-          <span className="fy-glow">{t("flow.biz.titleGlow")}</span>
-          {t("flow.biz.titlePost")}
-        </h2>
-      </div>
-      <div className="bz-grid">
-        {BIZ.map((k, i) => (
-          <article
-            key={k}
-            className="bz-tile rv"
-            style={{ ["--d" as string]: `${String(i * 70)}ms` }}
-          >
-            <img src={PHOTO[k]} alt="" loading="lazy" decoding="async" />
-            <div className="bz-body">
-              <span className="bz-type">{t(`flow.biz.${k}.t`)}</span>
-              <p className="bz-say">{t(`flow.biz.${k}.s`)}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-      <p className="bz-note">{t("flow.biz.note")}</p>
-    </section>
   );
 }
