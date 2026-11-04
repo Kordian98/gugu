@@ -11,8 +11,8 @@ const GS = "GS";
 
 /**
  * A perspective on phones (ADR-0014 mobile): a full-width, native-looking chat (the client's Zalo chat
- * with the salon, or the owner's assistant "Gu"), advanced by scrolling: the track is `steps` screens
- * tall, the chat is pinned, and every snap point is one step. The benefit of the step sits on top;
+ * with the salon, or the owner's assistant "Gu"), one story page per step (tap right = next). The
+ * benefit of the step sits on top;
  * GuGu Studio toasts show what the salon's system just did. Not a phone inside the phone. Messages of
  * a new step type in one by one; scrolling back shows earlier steps at once; reduced motion shows all.
  */
@@ -29,7 +29,7 @@ export function MobileChat({
   ns: string;
   kind: "client" | "ai";
   steps: readonly ChatStep[];
-  /** the step on screen (from the snap point in view) */
+  /** the step on screen (the story page) */
   step: number;
   /** the chat is on screen (messages type in only then) */
   live: boolean;
@@ -143,7 +143,8 @@ export function MobileChat({
               <p>{t(`${ns}.${g.k}.b`)}</p>
             </div>
           ))}
-          <div className="mc-live" key={cur?.k} aria-live="polite">
+          {/* re-keyed only for the entrance; the page announcement and the chat log are the live regions */}
+          <div className="mc-live" key={cur?.k}>
             <span className="n">{t("flow.hud.page", { n: step + 1, total: steps.length })}</span>
             <b>{t(`${ns}.${cur?.k ?? "s1"}.h`)}</b>
             <p>{t(`${ns}.${cur?.k ?? "s1"}.b`)}</p>
@@ -167,7 +168,7 @@ export function MobileChat({
             </span>
           </div>
         ) : null}
-        <div className="mc-log" ref={log}>
+        <div className="mc-log" ref={log} role="log" aria-label={t(`${ns}.who`)}>
           {kind === "client" ? <div className="mc-day">{t(`${ns}.day`)}</div> : null}
           {all.slice(0, shown).map((m, i) => (
             <div
@@ -181,6 +182,7 @@ export function MobileChat({
               ) : null}
               <div className="mc-col">
                 <div className="mc-bub">
+                  <span className="mj-vh">{t(`flow.m.from.${kind}.${m.from}`)}</span>
                   {t(`${ns}.${m.k}`)}
                   {m.viz && viz ? <div className="mc-viz">{viz(m.viz)}</div> : null}
                 </div>
@@ -191,7 +193,8 @@ export function MobileChat({
                   </span>
                 ) : null}
                 {m.buttons ? (
-                  <div className="mc-btns" aria-hidden>
+                  // quick replies: a tap anywhere on them is "next" (never the back zone)
+                  <div className="mc-btns" aria-hidden data-advance>
                     {m.buttons.map((b) => (
                       <span key={b}>{t(`${ns}.${b}`)}</span>
                     ))}
@@ -219,7 +222,6 @@ export function MobileChat({
             </div>
           ) : null}
         </div>
-        {live && step === 0 ? <div className="mc-hint">{t("flow.m.tapNext")}</div> : null}
         <div className="mc-input" aria-hidden>
           <span className="f">{t(`${ns}.input`)}</span>
           <span className="s">{SEND}</span>

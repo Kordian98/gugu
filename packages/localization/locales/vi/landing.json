@@ -378,7 +378,7 @@
       "r3n": "≈10 phút",
       "r3p": "Giá và thời lượng chỉ nằm trong đầu một người",
       "r3g": "Dịch vụ, tuỳ chọn, dịch vụ thêm và khoảng giá, thiết lập từ ảnh chụp bảng giá.",
-      "facts": "Salon demo, tuần này: 40 lịch hẹn · 7 dịch vụ · 4 nhân viên, trong một lịch",
+      "facts": "Salon demo, tuần này: 104 lịch hẹn · 7 dịch vụ · 4 nhân viên, trong một lịch",
       "eg": "Các vấn đề là ví dụ minh hoạ.",
       "shotCal": "Lịch · giữ ghế & thiết bị",
       "shotSvc": "Dịch vụ · tuỳ chọn & khoảng giá",
@@ -486,6 +486,20 @@
       "shotPerson": "Từng người · hoa hồng theo dịch vụ"
     },
     "m": {
+      "from": {
+        "client": {
+          "me": "Khách: ",
+          "them": "Salon: ",
+          "staff": "Nhân viên: ",
+          "sys": "Thông báo: "
+        },
+        "ai": {
+          "me": "Chủ salon: ",
+          "them": "Gu: ",
+          "staff": "Nhân viên: ",
+          "sys": "Thông báo: "
+        }
+      },
       "tapNext": "Chạm bên phải để xem tiếp",
       "tapBack": "Chạm bên trái để quay lại",
       "zoom": "Phóng to",
@@ -638,7 +652,7 @@
       },
       "s2": {
         "h": "Biết ai đang kín lịch, ai còn trống",
-        "b": "Tỷ lệ lấp đầy tính theo giờ làm thật của từng người, đã trừ giờ nghỉ."
+        "b": "Số lịch hẹn của từng người trong tuần, lấy thẳng từ lịch của salon."
       },
       "s3": {
         "h": "Doanh thu: ước tính và đã ghi nhận",
@@ -649,29 +663,29 @@
         "b": "Gu chỉ thấy tổng lương của cả đội, không bao giờ thấy lương hay hoa hồng của từng người, và không thấy dữ liệu của khách."
       },
       "m1": "Tuần này salon có bao nhiêu lịch hẹn?",
-      "m2": "Tuần này có 64 lịch hẹn. Thứ Bảy đông nhất với 18 lịch.",
+      "m2": "Tuần này có 104 lịch hẹn. Thứ Năm, thứ Sáu và thứ Bảy đông nhất, mỗi ngày 22 lịch.",
       "src1": "Số lịch hẹn",
       "m3": "Ai đang kín lịch nhất?",
-      "m4": "Mai đang kín lịch nhất. Tuấn còn trống nhiều nhất vào chiều thứ Ba và thứ Tư.",
+      "m4": "Tuấn kín lịch nhất với 31 lịch hẹn. Linh còn nhiều chỗ trống nhất (23 lịch).",
       "src2": "Công suất",
       "m5": "Doanh thu tháng này thế nào?",
       "m6": "Doanh thu ước tính từ lịch hẹn đã hoàn thành, và số salon đã ghi nhận tại quầy:",
       "src3": "Doanh thu",
       "m7": "Tháng này lãi ước tính bao nhiêu?",
-      "m8": "Lãi ròng ước tính tháng này là 12.400.000đ, biên 19%:",
+      "m8": "Lãi ròng ước tính tháng này là 17.766.144đ, biên 15%:",
       "src4": "Lãi tháng này",
       "plan": "Pro",
       "thinking": "Gu đang xem số liệu…",
       "privacy": "Gu chỉ thấy số liệu kinh doanh, không thấy tên, số điện thoại hay ghi chú của khách.",
       "viz": {
         "k1": "Lịch hẹn",
-        "k1n": "64",
+        "k1n": "104",
         "k2": "Hoàn thành",
-        "k2n": "52",
+        "k2n": "15",
         "k3": "Vắng",
-        "k3n": "4",
+        "k3n": "2",
         "k4": "Sắp tới",
-        "k4n": "8",
+        "k4n": "86",
         "d1": "T2",
         "d2": "T3",
         "d3": "T4",
@@ -679,9 +693,9 @@
         "d5": "T6",
         "d6": "T7",
         "d7": "CN",
-        "p1": "Mai",
-        "p2": "Linh",
-        "p3": "Tuấn",
+        "p1": "Tuấn",
+        "p2": "Mai",
+        "p3": "Hà",
         "r1": "Ước tính",
         "r1tag": "Từ lịch hẹn",
         "r2": "Đã ghi nhận",
@@ -690,7 +704,9 @@
         "w2": "Chi phí dịch vụ",
         "w3": "Lương cả đội",
         "w4": "Chi phí khác",
-        "w5": "Lãi ròng"
+        "w5": "Lãi ròng",
+        "p4": "Linh",
+        "unit": "{{n}} lịch"
       }
     }
   }

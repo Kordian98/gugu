@@ -20,6 +20,7 @@ const CROSS = "✕";
 const PIN = "●";
 const Z = "Z";
 const SEP = " · ";
+const ARROW_R = "→";
 const ARROW_D = "↓";
 const NOTES = ["n1", "n2", "n3", "n4"] as const;
 const BEFORE = ["b1", "b2", "b3", "b4"] as const;
@@ -53,7 +54,7 @@ function Still({ k, className }: { k: keyof typeof M; className?: string }) {
   );
 }
 
-/** Chapters of the chapter bar → the snap units they cover (DOM order of `.mj-u`). */
+/** Chapters of the chapter bar → the story pages they cover (DOM order of `.mj-u`). */
 const CHAPTERS = [
   { k: "c1", label: "flow.hud.c1" },
   { k: "c2", label: "flow.hud.c2" },
@@ -64,7 +65,7 @@ const CHAPTERS = [
 ] as const;
 type Ch = (typeof CHAPTERS)[number]["k"];
 
-/** Salon sections in order; client + AI chats follow (one snap unit per step). */
+/** Salon pages in order; client + AI chats follow (one page per step). */
 const SALON = 12;
 const CLIENT0 = SALON;
 const AI0 = SALON + CLIENT_STEPS.length;
@@ -208,11 +209,12 @@ function Card({
 }
 
 /**
- * The story on phones (≤ 899 px; ADR-0014 "Mobile"): vertical full-screen sections with CSS scroll snap
- * instead of the desktop book. The hero, then front desk (the walk-in plays once as the intro), the
- * before → after reveal, the treatment room and its three facts, the office (overview, earnings, Insights,
- * payroll), switching, then the client's and the AI's perspectives as scroll-advanced chats. A slim
- * chapter bar on top fills with scroll; a tap on a chapter goes there. Desktop never renders this.
+ * The story on phones (≤ 899 px; ADR-0014 "Mobile") as Instagram-style stories: only the current page
+ * is in the layout; tap right = next, tap left = back (also swipe, ← / →); vertical scrolling is ordinary
+ * page scrolling. Pages: front desk (the walk-in plays once as the intro), the before → after reveal, the
+ * treatment room and its three facts, the office (overview, earnings, Insights, payroll), switching, then
+ * the client's and the AI's chats, one page per step. A sticky chapter bar fills page by page; a tap on a
+ * chapter opens it. Desktop never renders this.
  */
 export function MobileJourney({
   nav,
@@ -230,7 +232,11 @@ export function MobileJourney({
   const heroBlock = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const [live, setLive] = useState(false);
+  /** first-view tap hint: shown when the story first appears, gone after the first page turn */
+  const [hint, setHint] = useState<"off" | "on" | "done">("off");
   const goRef = useRef<(i: number) => void>(() => undefined);
+  /** first page of each chapter (from the DOM, set by the controller) */
+  const firstOf = useRef<number[]>([]);
   const stepRef = useRef<(d: 1 | -1) => void>(() => undefined);
   const startRef = useRef<() => void>(() => undefined);
 
@@ -412,6 +418,7 @@ export function MobileJourney({
         if (vis && !shown) {
           shown = true;
           show(cur, false);
+          setHint((h) => (h === "off" ? "on" : h));
         }
       },
       { root: scroller, threshold: 0.55 },
@@ -420,8 +427,18 @@ export function MobileJourney({
 
     // Next / back. Past the last page the story ends: scroll on to the free-year band; before the first,
     // back up to the hero.
-    const step = (d: 1 | -1) => {
+    // Keyboard / screen-reader turns move focus to the new page's heading (taps do not).
+    const focusHeading = () => {
+      const u = els[cur];
+      const h = u?.querySelector<HTMLElement>("h2,h3,[id^='mj-h-']");
+      if (h) {
+        h.setAttribute("tabindex", "-1");
+        h.focus({ preventScroll: true });
+      }
+    };
+    const step = (d: 1 | -1, viaKeys = false) => {
       shown = true;
+      setHint("done");
       if (d > 0 && cur >= els.length - 1) {
         const f = document.getElementById("fl-free");
         if (scroller && f)
@@ -439,16 +456,20 @@ export function MobileJourney({
         return;
       }
       show(cur + d, true);
+      if (viaKeys) focusHeading();
     };
-    stepRef.current = step;
+    stepRef.current = (d: 1 | -1) => {
+      step(d, true);
+    };
     // Tap zones: left third = back, the rest = next (as Instagram stories). Controls inside the page
-    // (buttons, sliders, screenshots, links) keep their own taps; a scroll never counts as a tap.
-    const INTERACTIVE = "button,a,input,label,select,textarea,.calc,[data-notap]";
+    // (buttons, links, sliders, the earnings card, the chapter bar) keep their own taps; a chat's quick
+    // replies always mean "next"; a scroll never counts as a tap.
+    const INTERACTIVE = "button,a,input,label,select,textarea,.calc,[data-notap],.mj-zoom";
     const fx = el.querySelector<HTMLElement>(".mj-tapfx");
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target || target.closest(INTERACTIVE)) return;
-      const back = e.clientX < window.innerWidth / 3;
+      const back = !target.closest("[data-advance]") && e.clientX < window.innerWidth / 3;
       if (fx && !reduce) {
         fx.className = `mj-tapfx ${back ? "l" : "r"}`;
         fx.getBoundingClientRect(); // restart the flash animation
@@ -469,7 +490,7 @@ export function MobileJourney({
       const dx = t0.clientX - sx;
       const dy = t0.clientY - sy;
       const target = e.target as HTMLElement | null;
-      if (target?.closest("input,.mj-zoom")) return;
+      if (target?.closest(INTERACTIVE)) return;
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6) step(dx < 0 ? 1 : -1);
     };
     // ← / → while the story is on screen
@@ -477,15 +498,15 @@ export function MobileJourney({
       const tg = e.target as HTMLElement | null;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tg?.tagName ?? "") || e.altKey || e.metaKey || e.ctrlKey)
         return;
-      if (!track) return;
+      if (!track || document.querySelector(".mj-zoom")) return;
       const r = track.getBoundingClientRect();
       if (r.bottom < vh() * 0.4 || r.top > vh() * 0.6) return;
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        step(1);
+        step(1, true);
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        step(-1);
+        step(-1, true);
       }
     };
     track?.addEventListener("click", onClick);
@@ -502,6 +523,7 @@ export function MobileJourney({
     window.addEventListener("resize", onResize);
     void document.fonts.ready.then(onResize);
 
+    firstOf.current = ranges.map(([a]) => a);
     goRef.current = (i: number) => {
       shown = true;
       show(i, true);
@@ -561,7 +583,7 @@ export function MobileJourney({
       />
       <div className="mj-track">
         <div className="mj-barwrap">
-          <nav className="mj-bar" aria-label={t("flow.hud.label")}>
+          <nav className="mj-bar" aria-label={t("flow.hud.label")} data-notap>
             <div className="mj-segs">
               {CHAPTERS.map((c, k) => (
                 <button
@@ -571,8 +593,7 @@ export function MobileJourney({
                   aria-label={t(c.label)}
                   aria-current={k === 0 ? "step" : "false"}
                   onClick={() => {
-                    const first = [0, 2, 6, 11, CLIENT0, AI0][k] ?? 0;
-                    go(first);
+                    go(firstOf.current[k] ?? 0);
                   }}
                 >
                   <i>
@@ -608,7 +629,7 @@ export function MobileJourney({
           </nav>
         </div>
         <span className="mj-tapfx" aria-hidden />
-        {page === 0 && !played.has("w1") ? (
+        {hint === "on" ? (
           <div className="mj-taphint" aria-hidden>
             <span>{t("flow.m.tapBack")}</span>
             <span>{t("flow.m.tapNext")}</span>
@@ -666,7 +687,7 @@ export function MobileJourney({
               }}
             >
               {t("flow.hud.after")}
-              <i aria-hidden>{ARROW_D}</i>
+              <i aria-hidden>{ARROW_R}</i>
             </button>
           </Card>
         </section>
@@ -937,6 +958,7 @@ export function MobileJourney({
           >
             <div className="mj-sw" aria-hidden>
               <div className="paper">
+                <em>{t("flow.switch.from")}</em>
                 {swList.map((l) => (
                   <span key={l}>{l}</span>
                 ))}
@@ -966,7 +988,7 @@ export function MobileJourney({
           </Card>
         </section>
 
-        {/* 13 · the client's perspective (Zalo chat, one snap per step) */}
+        {/* 13 · the client's perspective (Zalo chat, one page per step) */}
         <section
           className="mc-track mc-client mj-u"
           data-ch="client"

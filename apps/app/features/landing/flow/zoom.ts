@@ -45,6 +45,13 @@ export function openZoom(
   root.append(bar, stage);
   // Styled by mobile.css.ts (a global <style> rendered by MobileJourney).
   document.body.append(root);
+  // everything else is inert while the viewer is open
+  const others = Array.from(document.body.children).filter(
+    (n): n is HTMLElement => n instanceof HTMLElement && n !== root && !n.inert,
+  );
+  others.forEach((n) => {
+    n.inert = true;
+  });
 
   let s = 1;
   let x = 0;
@@ -144,6 +151,8 @@ export function openZoom(
     zoomAt(e.clientX, e.clientY, s * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
   };
   const onKey = (e: KeyboardEvent) => {
+    // the story underneath never sees keys while the viewer is open
+    e.stopImmediatePropagation();
     if (e.key === "Escape") {
       e.preventDefault();
       done();
@@ -165,7 +174,7 @@ export function openZoom(
   close.addEventListener("click", () => {
     done();
   });
-  window.addEventListener("keydown", onKey);
+  window.addEventListener("keydown", onKey, true);
   history.pushState({ mjZoom: true }, "");
   window.addEventListener("popstate", onPop);
 
@@ -173,9 +182,12 @@ export function openZoom(
   function finish(popHistory: boolean) {
     if (closed) return;
     closed = true;
-    window.removeEventListener("keydown", onKey);
+    window.removeEventListener("keydown", onKey, true);
     window.removeEventListener("popstate", onPop);
     if (popHistory && (history.state as { mjZoom?: boolean } | null)?.mjZoom) history.back();
+    others.forEach((n) => {
+      n.inert = false;
+    });
     root.classList.remove("open");
     window.setTimeout(
       () => {
@@ -183,7 +195,13 @@ export function openZoom(
       },
       reduce ? 0 : 200,
     );
-    from?.focus({ preventScroll: true });
+    // back to the button that opened it, or (if that page is gone) the current page's heading
+    const back =
+      from && from.offsetParent !== null
+        ? from
+        : document.querySelector<HTMLElement>(".mj-u.cur h2, .mj-u.cur h3");
+    if (back && back !== from) back.setAttribute("tabindex", "-1");
+    back?.focus({ preventScroll: true });
   }
   function done() {
     finish(true);

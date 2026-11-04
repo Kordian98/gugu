@@ -133,7 +133,8 @@ the feel of Instagram stories, which is what ships:
 ## Consequences
 
 - No gesture is swallowed except the remainder of a flick at the dock, which is intended.
-- Touch: on a docked page a vertical swipe turns a page. On mobile you leave the story through "Finish
+- Touch (desktop-size touch screens): on a docked page only a horizontal swipe turns a page. Phones use the
+  stories model above (tap right / left; vertical scrolling is never captured). Previously you left the story through "Finish
   journey", "Skip", a swipe up on the last page, or a swipe down on Front desk page 1 (up to the hero).
 - One page sequence (`PAGES` in `timelines.ts`) is the single source for HUD, counter, keys and swipes.
 - The nav (top of the page) scrolls away the moment the intro jumps to the stage.

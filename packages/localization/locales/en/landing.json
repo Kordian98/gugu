@@ -378,7 +378,7 @@
       "r3n": "≈10 min",
       "r3p": "Prices and durations live in one person's head",
       "r3g": "Services, options, add-ons and price ranges, set up from a photo of your price list.",
-      "facts": "Demo salon, this week: 40 bookings · 7 services · 4 team members, in one calendar",
+      "facts": "Demo salon, this week: 104 bookings · 7 services · 4 team members, in one calendar",
       "eg": "Pains are illustrative examples.",
       "shotCal": "Calendar · chairs & devices reserved",
       "shotSvc": "Services · options & price ranges",
@@ -486,6 +486,20 @@
       "shotPerson": "Per person · commission by service"
     },
     "m": {
+      "from": {
+        "client": {
+          "me": "Client: ",
+          "them": "Salon: ",
+          "staff": "Staff: ",
+          "sys": "Notice: "
+        },
+        "ai": {
+          "me": "Owner: ",
+          "them": "Gu: ",
+          "staff": "Staff: ",
+          "sys": "Notice: "
+        }
+      },
       "tapNext": "Tap right for next",
       "tapBack": "Tap left to go back",
       "zoom": "Zoom",
@@ -638,7 +652,7 @@
       },
       "s2": {
         "h": "See who is fully booked and who has gaps",
-        "b": "Utilization uses each person's real working hours, after breaks."
+        "b": "Each person's bookings this week, straight from the salon's calendar."
       },
       "s3": {
         "h": "Revenue: estimated and recorded",
@@ -649,29 +663,29 @@
         "b": "Gu sees the team's pay total only, never one person's salary or commission, and never client data."
       },
       "m1": "How many bookings did we have this week?",
-      "m2": "64 bookings this week. Saturday was busiest with 18.",
+      "m2": "104 bookings this week. Thursday, Friday and Saturday are busiest, 22 each.",
       "src1": "Bookings",
       "m3": "Who is the most booked?",
-      "m4": "Mai is the most booked. Tuấn has the most free time on Tuesday and Wednesday afternoons.",
+      "m4": "Tuấn is the most booked with 31 appointments. Linh has the most free time (23).",
       "src2": "Capacity",
       "m5": "How is revenue this month?",
       "m6": "Estimated revenue from completed bookings, and what the salon recorded at the desk:",
       "src3": "Revenue",
       "m7": "What's this month's estimated profit?",
-      "m8": "This month's estimated net profit is 12,400,000đ, a 19% margin:",
+      "m8": "This month's estimated net profit is 17,766,144đ, a 15% margin:",
       "src4": "This month's profit",
       "plan": "Pro",
       "thinking": "Gu is checking the figures…",
       "privacy": "Gu sees business figures only, never clients' names, phone numbers or notes.",
       "viz": {
         "k1": "Bookings",
-        "k1n": "64",
+        "k1n": "104",
         "k2": "Completed",
-        "k2n": "52",
+        "k2n": "15",
         "k3": "No-shows",
-        "k3n": "4",
+        "k3n": "2",
         "k4": "Upcoming",
-        "k4n": "8",
+        "k4n": "86",
         "d1": "Mon",
         "d2": "Tue",
         "d3": "Wed",
@@ -679,9 +693,9 @@
         "d5": "Fri",
         "d6": "Sat",
         "d7": "Sun",
-        "p1": "Mai",
-        "p2": "Linh",
-        "p3": "Tuấn",
+        "p1": "Tuấn",
+        "p2": "Mai",
+        "p3": "Hà",
         "r1": "Estimated",
         "r1tag": "From bookings",
         "r2": "Recorded",
@@ -690,7 +704,9 @@
         "w2": "Service costs",
         "w3": "Team pay",
         "w4": "Other costs",
-        "w5": "Net profit"
+        "w5": "Net profit",
+        "p4": "Linh",
+        "unit": "{{n}} appts"
       }
     }
   }

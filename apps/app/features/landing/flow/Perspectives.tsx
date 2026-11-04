@@ -96,22 +96,28 @@ export const AI_STEPS: readonly ChatStep[] = [
   },
 ];
 
-/** Illustrative figures behind the assistant's answers (formatted per locale). */
-const WEEK = [9, 8, 10, 7, 12, 18, 0] as const;
+/**
+ * The assistant's figures = the demo salon's real numbers at the screenshot capture (one capture for every
+ * number on the landing: insights week 2–8 Nov, profit view of November), formatted per locale.
+ */
+const WEEK = [11, 6, 21, 22, 22, 22, 0] as const;
 const DAYS = ["d1", "d2", "d3", "d4", "d5", "d6", "d7"] as const;
+/** Bookings per person this week. */
 const UTIL = [
-  { k: "p1", v: 0.92 },
-  { k: "p2", v: 0.78 },
-  { k: "p3", v: 0.61 },
+  { k: "p1", v: 31 },
+  { k: "p2", v: 28 },
+  { k: "p3", v: 24 },
+  { k: "p4", v: 23 },
 ] as const;
-const REV = { estimated: 64_150_000, recorded: 10_904_000 } as const;
+const UTIL_MAX = 31;
+const REV = { estimated: 4_590_000, recorded: 300_000 } as const;
 const PROFIT = [
-  { k: "w1", v: 64_390_000 },
-  { k: "w2", v: -9_905_000 },
-  { k: "w3", v: -26_952_000 },
-  { k: "w4", v: -15_133_000 },
+  { k: "w1", v: 117_788_712 },
+  { k: "w2", v: -19_079_732 },
+  { k: "w3", v: -54_142_836 },
+  { k: "w4", v: -26_800_000 },
 ] as const;
-const NET = 12_400_000;
+const NET = 17_766_144;
 const KPI_KEYS = ["k1", "k2", "k3", "k4"] as const;
 /** Waterfall bars (start + width as a share of revenue), computed once. */
 const FALL = PROFIT.reduce<{ k: string; v: number; start: number; run: number }[]>((acc, s) => {
@@ -157,9 +163,9 @@ export function AiViz({ k }: { k: string }) {
           <div key={u.k} className="av-row">
             <span>{t(`views.ai.viz.${u.k}`)}</span>
             <span className="av-bar">
-              <i style={{ width: pct(u.v) }} />
+              <i style={{ width: pct(u.v / UTIL_MAX) }} />
             </span>
-            <b>{pct(u.v)}</b>
+            <b>{t("views.ai.viz.unit", { n: u.v })}</b>
           </div>
         ))}
       </div>
