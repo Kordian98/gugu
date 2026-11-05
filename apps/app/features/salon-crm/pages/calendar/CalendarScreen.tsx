@@ -177,7 +177,11 @@ export function CalendarScreen() {
   const shown = open ?? linked;
 
   return (
-    <ScrollView ref={scroll} contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      ref={scroll}
+      contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}
+    >
       <PageHeader title={t("pages.calendar.title")} workspace={ws} />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Pressable

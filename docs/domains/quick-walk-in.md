@@ -1,0 +1,15 @@
+# Quick walk-in
+
+Today exposes a direct walk-in action to members with `bookings.write`. The normal path is **Today → service → confirm** (three taps); when exactly one service/variant choice is available it is preselected (two taps). It asks for no client contact details and opens no keyboard.
+
+`apps/app/features/salon-crm/pages/calendar/QuickWalkInSheet.tsx` loads active services and queries the existing availability API for the current **salon-local date only**. The first backend slot is shown with its assigned team member, time and catalogue service-price estimate before confirmation. Active variants are separate explicit choices; a fixed variant price replaces the service's price range. The service DTO does not expose per-staff price overrides, so the displayed estimate is not a final staff-specific quote. Saved booking snapshots remain authoritative.
+
+The optional expanded controls allow another staff member or server-provided time on the same day. If no slot is available, the sheet explains that today is unavailable and offers the calendar. It MUST NOT generate slots, advance to tomorrow, apply rule overrides, or create an optimistic appointment. Closed hours, missing staff/resources and read failures remain visible.
+
+Creation uses the existing idempotent `useCreateBooking` hook with `source: walk_in`, `customer: null`, no extra services and no rule overrides. The API returns a confirmed booking; this flow does not add a check-in transition. While saving, confirmation, choice changes and dismissal are disabled. A conflict preserves the service, refetches slots and asks the user to review the new proposal before another explicit confirmation. A proposal older than 30 seconds or already in the past is refreshed before any write, and native foregrounding refreshes it too.
+
+The shared CRM `Sheet` owns keyboard avoidance, safe areas and the fixed footer. Quick walk-in never stacks it with another modal; the successful booking replaces the creation sheet with booking details.
+
+Verification lives in `quick-walk-in.test.ts` (variant-price semantics, stale proposals and no date rollover) and `e2e/web/tests/quick-walk-in.spec.ts` (vi/en, 360 px, real availability and writes, tap budgets, real competing-booking conflict, pending lock and closed-today state). The E2E fixture uses a parameterized update of only its own salon's timezone in the isolated test database to place that salon at local noon: the HTTP API has neither a test clock nor a timezone editor. This prevents host midnight from invalidating a today-only journey; all booking decisions and writes still pass through the real API.
+
+On 2026-11-05, the final exported web app passed all four quick-walk-in journeys (vi/en × Chromium/WebKit, 360 × 780) in 18 seconds. They also prove availability failure/retry and a Vietnamese name fallback when an English service translation is empty. Five helper unit tests pass. Saved screenshots in `docs/qa/07-mobile-feel/screenshots/*-quick-walk-in-*.png` capture the completed modal animation; these browser results do not substitute for the separate native simulator report.

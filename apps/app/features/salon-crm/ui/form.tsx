@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
 import {
+  Keyboard,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -9,6 +10,8 @@ import {
   View,
   type KeyboardTypeOptions,
 } from "react-native";
+import { useTranslation } from "react-i18next";
+import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -18,6 +21,7 @@ import {
   font,
   Icon,
   MIN_TOUCH,
+  space,
   Text,
   touchSlop,
   typeScale,
@@ -25,6 +29,7 @@ import {
 } from "@gugu/design-system";
 
 import { useBreakpoint } from "../shell/useBreakpoint";
+import { useSheetKeyboard } from "./useSheetKeyboard";
 
 /** Label + control + hint/error (calm forms, 07 §3.11). */
 export function Field({
@@ -99,6 +104,15 @@ export function Input({
       placeholderTextColor={c.muted}
       keyboardType={keyboardType}
       multiline={multiline}
+      returnKeyType={multiline ? "default" : "done"}
+      submitBehavior={multiline ? "newline" : "blurAndSubmit"}
+      onSubmitEditing={
+        multiline
+          ? undefined
+          : () => {
+              Keyboard.dismiss();
+            }
+      }
       maxLength={maxLength}
       editable={editable}
       style={{
@@ -457,17 +471,26 @@ export function Sheet({
   dismissDisabled?: boolean | undefined;
 }) {
   const { c } = useCalm();
+  const { t } = useTranslation("crm");
   const bp = useBreakpoint();
   const insets = useSafeAreaInsets();
   const mobile = bp === "mobile";
+  const reduceMotion = useReducedMotion();
+  const { keyboardVisible, headerGesture } = useSheetKeyboard();
+  const requestClose = () => {
+    // Back/backdrop first gives the user their full editor back after entering text.
+    if (Platform.OS !== "web" && (keyboardVisible || Keyboard.isVisible())) {
+      Keyboard.dismiss();
+    } else if (!dismissDisabled) {
+      onClose();
+    }
+  };
   return (
     <Modal
       visible={open}
       transparent
-      animationType="fade"
-      onRequestClose={() => {
-        if (!dismissDisabled) onClose();
-      }}
+      animationType={reduceMotion ? "none" : "fade"}
+      onRequestClose={requestClose}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -479,7 +502,7 @@ export function Sheet({
           accessibilityLabel={closeLabel ?? title}
           disabled={dismissDisabled}
           accessibilityState={{ disabled: dismissDisabled }}
-          onPress={onClose}
+          onPress={requestClose}
           style={{
             position: "absolute",
             top: 0,
@@ -490,13 +513,14 @@ export function Sheet({
           }}
         />
         <View
+          testID="crm-sheet"
           style={{
             backgroundColor: c.canvas,
             width: mobile ? "100%" : 520,
             maxWidth: "100%",
-            marginTop: mobile ? 48 : 0,
-            alignSelf: mobile ? "flex-end" : "stretch",
-            height: mobile ? "92%" : "100%",
+            marginTop: mobile ? Math.max(insets.top, space[4]) : 0,
+            alignSelf: "stretch",
+            minHeight: 0,
             borderTopLeftRadius: mobile ? 24 : 0,
             borderTopRightRadius: mobile ? 24 : 0,
             borderLeftWidth: mobile ? 0 : 1,
@@ -504,6 +528,8 @@ export function Sheet({
           }}
         >
           <View
+            {...headerGesture.panHandlers}
+            testID="crm-sheet-header"
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -535,21 +561,55 @@ export function Sheet({
             </Pressable>
           </View>
           <ScrollView
-            contentContainerStyle={{ padding: 20, gap: 16 }}
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              padding: 20,
+              paddingBottom: 20 + (!footer && !keyboardVisible ? insets.bottom : 0),
+              gap: 16,
+            }}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
           >
             {children}
           </ScrollView>
+          {keyboardVisible ? (
+            <Pressable
+              testID="crm-sheet-hide-keyboard"
+              accessibilityRole="button"
+              accessibilityLabel={t("common.hideKeyboard")}
+              onPress={() => {
+                Keyboard.dismiss();
+              }}
+              style={{
+                minHeight: MIN_TOUCH,
+                paddingHorizontal: space[4],
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: space[2],
+                borderTopWidth: 1,
+                borderTopColor: c.line,
+                backgroundColor: c.surface,
+              }}
+            >
+              <Text size={typeScale.body} color={c.body}>
+                {t("common.hideKeyboard")}
+              </Text>
+              <Icon name="chevronDown" size={20} color={c.body} />
+            </Pressable>
+          ) : null}
           {footer ? (
             <View
+              testID="crm-sheet-footer"
               style={{
                 flexDirection: "row",
                 flexWrap: "wrap",
                 justifyContent: "flex-end",
                 gap: 10,
                 padding: 16,
-                paddingBottom: 16 + insets.bottom,
+                // KeyboardAvoidingView owns the keyboard inset; the home inset is only needed
+                // when the footer is against the bottom edge of the screen.
+                paddingBottom: 16 + (keyboardVisible ? 0 : insets.bottom),
                 borderTopWidth: 1,
                 borderTopColor: c.line,
                 backgroundColor: c.surface,
@@ -609,11 +669,12 @@ export function ConfirmDialog({
   testID?: string | undefined;
 }) {
   const { c } = useCalm();
+  const reduceMotion = useReducedMotion();
   return (
     <Modal
       visible={open}
       transparent
-      animationType="fade"
+      animationType={reduceMotion ? "none" : "fade"}
       onRequestClose={() => {
         if (!busy) onCancel();
       }}

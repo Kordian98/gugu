@@ -219,7 +219,8 @@
     "edit": "Edit",
     "done": "Done",
     "back": "Back",
-    "retry": "Try again"
+    "retry": "Try again",
+    "hideKeyboard": "Hide keyboard"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -1560,5 +1561,21 @@
       "team": "Add someone to take appointments",
       "zalo": "Connect Zalo OA"
     }
+  },
+  "quickWalkIn": {
+    "title": "Walk-in",
+    "intro": "Choose a service. The earliest free time today appears below.",
+    "chooseService": "Choose a service",
+    "options": "Change time or team member",
+    "noSlotsToday": "No suitable times left today. Choose another day in the calendar.",
+    "openCalendar": "Open calendar",
+    "noServices": "No active services yet.",
+    "todayAt": "Today, {{time}}",
+    "duration": "{{minutes}} min",
+    "price": "Service price estimate: {{price}}",
+    "assigned": "Team member: {{name}}",
+    "selectHint": "Choose a service to see today’s free times.",
+    "refreshed": "Availability was checked again. Review the new time before confirming.",
+    "priceRange": "{{min}}–{{max}}"
   }
 }

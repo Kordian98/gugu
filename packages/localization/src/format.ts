@@ -133,3 +133,12 @@ export function formatNumber(value: number, locale: AppLocale, maxFractionDigits
     value,
   );
 }
+
+/** Short calendar weekday, in the same salon timezone as the day it labels. */
+export function formatWeekdayShort(
+  date: Date,
+  locale: AppLocale,
+  timeZone = DEFAULT_SALON_TIMEZONE,
+): string {
+  return new Intl.DateTimeFormat(tag(locale), { weekday: "short", timeZone }).format(date);
+}

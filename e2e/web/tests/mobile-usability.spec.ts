@@ -58,7 +58,34 @@ test("phone service names, editor choices and calendar controls remain usable in
     await expect(category).toHaveAttribute("aria-expanded", "false");
     await expect(category).toBeFocused();
     await expect(input).toBeVisible();
+    // A compact phone and a short viewport must keep Save reachable while the body scrolls.
+    // This checks layout only; a real OS keyboard is covered separately on native.
+    for (const viewport of [
+      { width: 320, height: 568 },
+      { width: 390, height: 420 },
+    ]) {
+      await page.setViewportSize(viewport);
+      const sheet = await page.getByTestId("crm-sheet").boundingBox();
+      const footer = await page.getByTestId("crm-sheet-footer").boundingBox();
+      if (!sheet || !footer) throw new Error("Editor or footer is missing");
+      expect(sheet.y).toBeGreaterThanOrEqual(0);
+      expect(sheet.y + sheet.height).toBeLessThanOrEqual(viewport.height + 1);
+      expect(footer.y + footer.height).toBeLessThanOrEqual(viewport.height + 1);
+      expect(footer.x + footer.width).toBeLessThanOrEqual(viewport.width + 1);
+      await expect(input).toHaveValue(SEED.services.gel[locale]);
+    }
+    await page.setViewportSize({ width: 360, height: 780 });
     await tap(page.getByRole("button", { name: t(locale, "crm:common.cancel"), exact: true }));
+    await page.goto(`/${locale}/business`);
+    const weekDays = page.locator('[data-testid^="crm-week-day-"]');
+    await expect(weekDays).toHaveCount(7);
+    const targetDay = weekDays.first();
+    await touchTarget(targetDay);
+    const date = (await targetDay.getAttribute("data-testid"))?.replace("crm-week-day-", "");
+    if (!date) throw new Error("Week day has no date");
+    await tap(targetDay);
+    await expect(page).toHaveURL(new RegExp(`/business/calendar\\?date=${date}$`));
+    await expect(page.getByTestId("crm-calendar-date")).toBeVisible();
     await page.goto(`/${locale}/business/calendar`);
     await touchTarget(
       page.getByRole("button", { name: t(locale, "crm:timeline.prevDay"), exact: true }),

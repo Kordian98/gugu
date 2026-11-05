@@ -1,0 +1,59 @@
+# Precondition: signed into an isolated test salon, English Services screen.
+# Edits the fixture service named Gel polish; never run against a live salon.
+appId: vn.gugu.app.dev
+---
+- tapOn: "Edit Gel polish"
+- scrollUntilVisible:
+    element:
+      id: crm-service-price
+    direction: DOWN
+- tapOn:
+    id: crm-service-price
+- eraseText
+- inputText: "285000"
+- assertVisible:
+    id: crm-sheet-hide-keyboard
+- assertVisible:
+    id: crm-service-save
+- takeScreenshot: ios-number-keyboard
+- tapOn:
+    id: crm-sheet-hide-keyboard
+- assertNotVisible:
+    id: crm-sheet-hide-keyboard
+- assertVisible:
+    id: crm-service-price
+    text: "285000"
+- tapOn:
+    id: crm-service-price
+- assertVisible:
+    id: crm-sheet-hide-keyboard
+- swipe:
+    start: "45%,11%"
+    end: "45%,18%"
+    duration: 500
+- assertNotVisible:
+    id: crm-sheet-hide-keyboard
+- assertVisible:
+    id: crm-service-price
+    text: "285000"
+- assertVisible:
+    id: crm-sheet
+- takeScreenshot: ios-draft-after-keyboard-drag
+- tapOn:
+    id: crm-service-price
+- assertVisible:
+    id: crm-sheet-hide-keyboard
+- tapOn:
+    id: crm-service-save
+- assertNotVisible:
+    id: crm-sheet
+- tapOn: "Edit Gel polish"
+- scrollUntilVisible:
+    element:
+      id: crm-service-price
+    direction: DOWN
+- assertVisible:
+    id: crm-service-price
+    text: "285000"
+- tapOn:
+    point: "90%,11%"

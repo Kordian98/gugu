@@ -71,7 +71,10 @@ export function InsightsScreen() {
   const d = q.data?.data ?? null;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}
+    >
       {q.isError && q.data ? (
         <QueryError
           testID="crm-insights-refresh-error"

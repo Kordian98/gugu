@@ -73,7 +73,10 @@ export function TeamScreen() {
     : 0;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 20 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 20 }}
+    >
       {team.isError && team.data ? (
         <QueryError
           testID="crm-team-refresh-error"

@@ -51,7 +51,10 @@ export function SettingsScreen() {
   // `?zalo=<result>` when Zalo's OAuth flow returns here (topic 09).
   const { zalo } = useLocalSearchParams<{ zalo?: string }>();
   return (
-    <ScrollView contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}
+    >
       {settings.isError && settings.data ? (
         <QueryError
           testID="crm-settings-refresh-error"

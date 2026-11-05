@@ -65,7 +65,10 @@ export function ServicesScreen() {
     .filter((g) => g.items.length > 0);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}
+    >
       <PageHeader
         title={t("pages.services.title")}
         subtitle={t("services.subtitle")}

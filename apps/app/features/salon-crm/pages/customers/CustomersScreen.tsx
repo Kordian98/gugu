@@ -59,7 +59,10 @@ function CustomerDirectory({ initialQuery }: { initialQuery: string }) {
   const canEdit = can("customers.read");
 
   return (
-    <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}
+    >
       <PageHeader
         title={t("pages.customers.title")}
         subtitle={t("customers.subtitle")}
