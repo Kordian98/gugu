@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { TextInput, View } from "react-native";
+import { Platform, TextInput, View } from "react-native";
 import Head from "expo-router/head";
 import { useTranslation } from "react-i18next";
 
@@ -34,9 +34,11 @@ export function PageHeader({
 
   return (
     <>
-      <Head>
-        <title>{t("shell.docTitle", { page: title })}</title>
-      </Head>
+      {Platform.OS === "web" ? (
+        <Head>
+          <title>{t("shell.docTitle", { page: title })}</title>
+        </Head>
+      ) : null}
       <View
         style={{
           flexDirection: mobile ? "column" : "row",

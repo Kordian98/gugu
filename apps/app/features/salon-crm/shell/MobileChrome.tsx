@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { StatusBar } from "expo-status-bar";
 
 import { Icon, Logo, Pill, Text, alpha, color, useCalm } from "@gugu/design-system";
 
@@ -30,6 +31,8 @@ export function MobileHeader({ onMenu }: { onMenu: () => void }) {
         justifyContent: "space-between",
       }}
     >
+      {/* The mobile header stays plum in both themes, so system icons need light contrast. */}
+      <StatusBar style="light" />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("shell.openMenu")}

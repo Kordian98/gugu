@@ -178,6 +178,7 @@ export function ServiceEditor({
   const invalid = !d.nameVi.trim() || d.price === null || d.duration === null || d.duration < 5;
 
   const save = () => {
+    if (busy) return;
     setTouched(true);
     if (invalid) return;
     const body = toInput(d, service?.description ?? null, canCost);
@@ -213,6 +214,7 @@ export function ServiceEditor({
       onClose={onClose}
       closeLabel={t("common.close")}
       title={service ? t("services.editTitle") : t("services.newTitle")}
+      dismissDisabled={busy}
       footer={
         <>
           {service ? (
@@ -220,16 +222,23 @@ export function ServiceEditor({
               variant="ghost"
               icon="trash"
               label={t("common.delete")}
+              disabled={busy}
               onPress={() => {
                 setConfirmDelete(true);
               }}
             />
           ) : null}
-          <CalmButton variant="secondary" label={t("common.cancel")} onPress={onClose} />
+          <CalmButton
+            variant="secondary"
+            label={t("common.cancel")}
+            onPress={onClose}
+            disabled={busy}
+          />
           <CalmButton
             testID="crm-service-save"
             label={busy ? t("common.saving") : t("common.save")}
             onPress={save}
+            disabled={busy}
           />
         </>
       }

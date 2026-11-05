@@ -33,7 +33,10 @@ export function ResourcesScreen() {
   const mobile = bp === "mobile";
 
   return (
-    <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}
+    >
       {list.isError && list.data ? (
         <QueryError
           testID="crm-resources-refresh-error"

@@ -219,7 +219,8 @@
     "edit": "Sửa",
     "done": "Xong",
     "back": "Quay lại",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "hideKeyboard": "Ẩn bàn phím"
   },
   "errors": {
     "generic": "Có lỗi xảy ra. Anh/chị thử lại giúp em nhé.",
@@ -1560,5 +1561,21 @@
       "team": "Thêm người làm dịch vụ",
       "zalo": "Kết nối Zalo OA"
     }
+  },
+  "quickWalkIn": {
+    "title": "Khách vãng lai",
+    "intro": "Chọn dịch vụ. Giờ trống sớm nhất hôm nay sẽ hiện bên dưới.",
+    "chooseService": "Chọn dịch vụ",
+    "options": "Đổi giờ hoặc nhân viên",
+    "noSlotsToday": "Hôm nay không còn giờ phù hợp. Anh/chị có thể chọn ngày khác trong lịch.",
+    "openCalendar": "Mở lịch",
+    "noServices": "Chưa có dịch vụ đang hoạt động.",
+    "todayAt": "Hôm nay, {{time}}",
+    "duration": "{{minutes}} phút",
+    "price": "Giá tham khảo dịch vụ: {{price}}",
+    "assigned": "Nhân viên: {{name}}",
+    "selectHint": "Chọn dịch vụ để xem giờ trống hôm nay.",
+    "refreshed": "Giờ trống đã được kiểm tra lại. Anh/chị xem giờ mới trước khi xác nhận.",
+    "priceRange": "{{min}}–{{max}}"
   }
 }

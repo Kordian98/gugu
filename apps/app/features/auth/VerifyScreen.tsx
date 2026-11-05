@@ -4,12 +4,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import { Button, Text, color } from "@gugu/design-system";
+import type { AuthSession } from "@gugu/contracts";
 
 import { useAuth } from "@/services/auth/AuthProvider";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { afterSignInHref } from "./afterSignIn";
 import { AuthCard } from "./AuthCard";
+import { createTokenVerification } from "./tokenVerification";
 
 /** Landing page of the emailed magic link: exchanges the token once, then redirects. */
 export function VerifyScreen() {
@@ -19,23 +21,23 @@ export function VerifyScreen() {
   const auth = useAuth();
   const { token } = useLocalSearchParams<{ token?: string }>();
   const validToken = typeof token === "string" && token.length >= 32 ? token : null;
-  const [rejected, setRejected] = useState(false);
-  const failed = rejected || validToken === null;
-  const started = useRef(false);
+  const [rejectedToken, setRejectedToken] = useState<string | null>(null);
+  const failed = validToken === null || rejectedToken === validToken;
+  const verification = useRef<ReturnType<typeof createTokenVerification<AuthSession>> | null>(null);
 
   useEffect(() => {
-    if (started.current || validToken === null) return;
-    started.current = true;
-    auth
-      .verify({ token: validToken })
-      .then((session) => {
+    if (validToken === null) return;
+    verification.current ??= createTokenVerification<AuthSession>();
+    return verification.current.subscribe(validToken, () => auth.verify({ token: validToken }), {
+      onSuccess: (session) => {
         router.replace(
           afterSignInHref(session.user, session.redirectPath ?? `/${locale}/business`),
         );
-      })
-      .catch(() => {
-        setRejected(true);
-      });
+      },
+      onError: () => {
+        setRejectedToken(validToken);
+      },
+    });
   }, [validToken, auth, router, locale]);
 
   return (

@@ -13,6 +13,7 @@ import { hourRange, useBookings } from "../data/bookings";
 import { useTeam } from "../data/catalog";
 import { minutesInZone, salonDate } from "../data/dates";
 import { BookingSheet } from "../pages/calendar/BookingSheet";
+import { QuickWalkInSheet } from "../pages/calendar/QuickWalkInSheet";
 import { isSetupDismissed } from "../pages/setup/firstRun";
 import { useOptionalSalon } from "../data/SalonContext";
 import { useWorkspace } from "../data/useWorkspace";
@@ -59,6 +60,33 @@ export function TodayScreen() {
       ? !ws.setup.wizardClosed
       : ws.setupDone.every((s) => s === "business") && !isSetupDismissed(salonId));
   const [openId, setOpenId] = useState<string | null>(null);
+  const [walkInOpen, setWalkInOpen] = useState(false);
+  const walkIn =
+    !ws.demo && salon?.can("bookings.write") ? (
+      <>
+        <CalmButton
+          testID="crm-today-walk-in"
+          label={t("quickWalkIn.title")}
+          icon="plus"
+          onPress={() => {
+            setOpenId(null);
+            setWalkInOpen(true);
+          }}
+        />
+        {walkInOpen ? (
+          <QuickWalkInSheet
+            tz={ws.timeZone}
+            onClose={() => {
+              setWalkInOpen(false);
+            }}
+            onCreated={(booking) => {
+              setWalkInOpen(false);
+              setOpenId(booking.id);
+            }}
+          />
+        ) : null}
+      </>
+    ) : null;
   const openBooking = (id: string) => {
     setOpenId(id);
   };
@@ -79,7 +107,7 @@ export function TodayScreen() {
   const title = ws.user
     ? t("greeting.named", { greeting, name: ws.user.firstName })
     : t("greeting.plain", { greeting });
-  const subtitle = t("greeting.subtitle", { date: formatDateLong(now, locale) });
+  const subtitle = t("greeting.subtitle", { date: formatDateLong(now, locale, ws.timeZone) });
   // Owners/managers of older salons see the checklist until the salon is live; staff never do.
   // Salons from the guided setup get the compact "finish setup" card instead (optional items only).
   const manages = ws.role === "owner" || ws.role === "manager";
@@ -173,16 +201,20 @@ export function TodayScreen() {
         ws={ws}
         readWarning={staleWarning}
         title={title}
-        subtitle={t("myDay.subtitle", { date: formatDateLong(now, locale) })}
+        subtitle={t("myDay.subtitle", { date: formatDateLong(now, locale, ws.timeZone) })}
       />
     );
 
   if (mobile) {
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ padding: 16, gap: 14 }}
+      >
         {ws.demo ? <Pill label={tc("demo.notice")} tone="brand" /> : null}
         <PageHeader title={title} subtitle={subtitle} workspace={ws} />
         {staleWarning}
+        {walkIn}
         {setupIncomplete && !ws.demo ? (
           <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} compact />
         ) : null}
@@ -190,7 +222,7 @@ export function TodayScreen() {
         {ws.demo ? null : <BookabilityIssues />}
         {ws.demo ? null : <PlanNotice timeZone={ws.timeZone} />}
         <ZaloWaitingCard />
-        <WeekStrip now={now} />
+        <WeekStrip now={now} timeZone={ws.timeZone} />
         <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
         <KpiRow today={ws.today} only="revenue" />
         {ws.demo ? null : <ProfitCard />}
@@ -209,11 +241,13 @@ export function TodayScreen() {
 
   return (
     <ScrollView
+      keyboardShouldPersistTaps="handled"
       style={{ backgroundColor: c.canvas }}
       contentContainerStyle={{ padding: 28, gap: 20 }}
     >
       <PageHeader title={title} subtitle={subtitle} workspace={ws} />
       {staleWarning}
+      {walkIn}
       {setupIncomplete && !ws.demo ? (
         <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} />
       ) : null}

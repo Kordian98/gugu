@@ -52,7 +52,11 @@ export function MyDay({
   const name = (b: SalonBooking) => (locale === "en" && b.service.name.en) || b.service.name.vi;
 
   return (
-    <ScrollView testID="crm-my-day" contentContainerStyle={{ padding: 16, gap: 14 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      testID="crm-my-day"
+      contentContainerStyle={{ padding: 16, gap: 14 }}
+    >
       <PageHeader title={title} subtitle={subtitle} workspace={ws} />
       {readWarning}
       <View style={{ flexDirection: "row", gap: 8 }}>

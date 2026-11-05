@@ -1,0 +1,17 @@
+# Precondition: signed into a disposable test salon on English Today screen.
+# SERVICE_OPTION_ID is a real active service (or variant) with available staff/time today.
+# This flow CREATES a booking through the real backend. Never run on a live salon.
+appId: vn.gugu.app.dev
+---
+- tapOn:
+    id: crm-today-walk-in
+- tapOn:
+    id: "crm-walk-in-service-${SERVICE_OPTION_ID}"
+- assertVisible:
+    id: crm-walk-in-summary
+- tapOn:
+    id: crm-walk-in-confirm
+    enabled: true
+- assertNotVisible:
+    id: crm-quick-walk-in
+- takeScreenshot: ios-walk-in-confirmed

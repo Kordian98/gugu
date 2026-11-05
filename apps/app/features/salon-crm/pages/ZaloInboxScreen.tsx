@@ -86,6 +86,7 @@ export function ZaloInboxScreen() {
 
   return (
     <ScrollView
+      keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
         padding: bp === "mobile" ? 16 : 28,
         // Room for the floating assistant button so the reply box is never covered.

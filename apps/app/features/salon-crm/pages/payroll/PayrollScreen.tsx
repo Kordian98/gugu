@@ -49,7 +49,10 @@ export function PayrollScreen() {
   const mobile = bp === "mobile";
   const tab: Tab = params.tab === "rates" ? "rates" : "month";
   return (
-    <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}
+    >
       <PageHeader
         title={t("pages.payroll.title")}
         subtitle={t("payroll.subtitle")}
