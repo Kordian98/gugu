@@ -17,6 +17,7 @@ export const REDACT_PATHS = [
   "*.email",
   "*.notes",
   "*.note",
+  "*.customService",
   "*.databaseUrl",
   "*.connectionString",
   "*.apiKey",
@@ -31,7 +32,15 @@ const SECRET_PATH_PATTERNS: readonly RegExp[] = [/(\/public\/bookings\/)[^/?#]+/
 
 export function redactUrl(url: string | undefined): string | undefined {
   if (url === undefined) return url;
-  return SECRET_PATH_PATTERNS.reduce((u, re) => u.replace(re, "$1[Redacted]"), url);
+  const safe = SECRET_PATH_PATTERNS.reduce((u, re) => u.replace(re, "$1[Redacted]"), url);
+  const queryStart = safe.indexOf("?");
+  if (queryStart === -1) return safe;
+  const params = new URLSearchParams(safe.slice(queryStart + 1));
+  // Ad hoc names are arbitrary salon-entered text and may contain customer details.
+  // URLSearchParams also handles encoded keys and removes duplicate values with set().
+  if (!params.has("customService")) return safe;
+  params.set("customService", "[Redacted]");
+  return `${safe.slice(0, queryStart)}?${params.toString()}`;
 }
 
 /** pino-http `req` serializer (applied after the standard one): redacts secret path segments. */

@@ -1,0 +1,79 @@
+{
+  "date": "2026-11-05",
+  "url": "http://localhost:8094/vi",
+  "source": "gugu-wt/design/02-glass",
+  "commit": "c42b78a",
+  "mobile": "Safari 26.4 iOS Simulator iPhone 17 Pro, viewport 402x714",
+  "desktop": "Playwright WebKit 1440x900",
+  "scope": "Experiential review, salon owner arriving from Zalo; all 19 mobile pages, offer, pricing, examples, registration destination. No product edits.",
+  "limitations": [
+    "Not launched inside Zalo in-app browser",
+    "Controls traversed using WebDriver and DOM activation; no conclusive full pinch/swipe validation",
+    "No physical device or network performance measurement",
+    "Desktop examined in WebKit, not macOS Safari",
+    "No registration form submitted"
+  ],
+  "main_finding": "Mobile hides the scene behind a full-screen glass panel and replaces desktop product evidence with copy; preserve cinematic scene and choreograph visible product outcomes.",
+  "priorities": [
+    {
+      "priority": "P1",
+      "area": "Film and polish",
+      "finding": "Pages 3 and 6 hide all product content during 2.6-second room walk, then replace scene with full-screen glass.",
+      "change": "Keep a readable portrait scene, introduce a brief caption late in the walk, then reveal the product at camera stop. Use glass locally."
+    },
+    {
+      "priority": "P1",
+      "area": "Demo pages 1–2",
+      "finding": "Desktop after-state shows calendar, reservation and reminder; mobile after-state is mainly prose, hypothetical numbers and a toast.",
+      "change": "Show the same reservation arriving in the calendar and its reminder; subordinate metrics."
+    },
+    {
+      "priority": "P1",
+      "area": "Hierarchy pages 3–5, 8–9",
+      "finding": "Headline, numeral, description, old problem, caption and callout compete with screenshot.",
+      "change": "One benefit headline, one large product crop, one callout; remove repeated old-problem copy."
+    },
+    {
+      "priority": "P1",
+      "area": "Narrative",
+      "finding": "9 of 19 pages are Zalo/AI steps; calculator interrupts product demo.",
+      "change": "Move calculator to price, reduce AI to 2 examples, connect Zalo booking to visible calendar early. Preserve salon journey."
+    },
+    {
+      "priority": "P1",
+      "area": "First 10 seconds",
+      "finding": "Hero headline communicates mood before product; mobile omits free-year/no-card microcopy.",
+      "change": "Add concrete appointments/customers/Zalo value and Basic first-year/no-card line. Distinguish View demo from Start free."
+    },
+    {
+      "priority": "P1",
+      "area": "Honesty",
+      "finding": "Ultra recommendation promises multi-location capabilities that plan copy labels coming soon.",
+      "change": "Show coming-soon status in recommendation itself. Label illustrative benefits next to numbers, narrow migration promise to service import."
+    },
+    {
+      "priority": "P2",
+      "area": "Navigation",
+      "finding": "Invisible next/back regions coexist with screenshot zoom, sliders and chat controls. Last AI step lacks prominent offer transition.",
+      "change": "Visible small previous/next controls plus final free-plan CTA; keep horizontal gestures and free vertical scroll."
+    },
+    {
+      "priority": "P2",
+      "area": "Below story",
+      "finding": "Pricing CTA is strong; fictional salon cases have long setup before product results.",
+      "change": "Keep pricing CTA and explicit renewal price; shorten each case to problem, product result, 3 benefits; collapse calculation assumptions."
+    }
+  ],
+  "preserve": [
+    "Desktop composition and motion",
+    "Salon atmosphere and before/after wipe",
+    "Real mobile CRM crops and zoom",
+    "Full-width Zalo chat",
+    "AI import demonstration",
+    "Basic versus Pro distinction",
+    "No-card and renewal disclosures",
+    "Clearly labeled fictional cases",
+    "Email-only signup landing"
+  ],
+  "cta_result": "Start free navigated to /vi/business/join; email-only form rendered."
+}

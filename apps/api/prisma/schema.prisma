@@ -1170,7 +1170,7 @@ model BookingService {
   salonId             String   @map("salon_id") @db.Uuid
   bookingId           String   @map("booking_id") @db.Uuid
   sequence            Int      @default(1)
-  serviceId           String   @map("service_id") @db.Uuid
+  serviceId           String?  @map("service_id") @db.Uuid
   variantId           String?  @map("variant_id") @db.Uuid
   staffId             String   @map("staff_id") @db.Uuid
   startsAt            DateTime @map("starts_at") @db.Timestamptz(6)
@@ -1187,7 +1187,7 @@ model BookingService {
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   booking Booking               @relation(fields: [salonId, bookingId], references: [salonId, id], onDelete: Restrict)
-  service Service               @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
+  service Service?              @relation(fields: [salonId, serviceId], references: [salonId, id], onDelete: Restrict)
   variant ServiceVariant?       @relation(fields: [salonId, variantId], references: [salonId, id], onDelete: Restrict)
   staff   StaffProfile          @relation(fields: [salonId, staffId], references: [salonId, id], onDelete: Restrict)
   addOns  BookingServiceAddOn[]

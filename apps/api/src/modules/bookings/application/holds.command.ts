@@ -37,7 +37,7 @@ export class HoldsCommand {
   async create(
     ctx: SalonBookingContext,
     deviceHash: string,
-    req: ServiceSelection & { staffId: string | null; startsAt: Date },
+    req: ServiceSelection & { serviceId: string; staffId: string | null; startsAt: Date },
   ): Promise<Hold> {
     const now = this.clock.now();
     try {
@@ -76,7 +76,7 @@ export class HoldsCommand {
             data: {
               salonId: ctx.salonId,
               staffId: option.staffId,
-              serviceId: selection.serviceId,
+              serviceId: req.serviceId,
               variantId: selection.variantId,
               addOnIds: [...selection.addOnIds],
               startsAt: new Date(option.start),

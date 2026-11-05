@@ -363,7 +363,9 @@ export class BotPortsFactory {
         startsAt: b.startsAt.toISOString(),
         serviceId: line?.serviceId ?? "",
         variantId: line?.variantId ?? null,
-        second: second ? { serviceId: second.serviceId, variantId: second.variantId } : null,
+        second: second?.serviceId
+          ? { serviceId: second.serviceId, variantId: second.variantId }
+          : null,
         serviceCount: b.services.length,
         staffId: b.staffId,
         serviceName: b.services.map((l) => pick(l.name, locale)).join(" + "),

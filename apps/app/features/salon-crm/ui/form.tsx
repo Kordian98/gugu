@@ -67,6 +67,7 @@ export function Input({
   testID,
   width,
   onBlur,
+  maxLength,
 }: {
   value: string;
   onChangeText: (v: string) => void;
@@ -78,6 +79,7 @@ export function Input({
   invalid?: boolean | undefined;
   testID?: string | undefined;
   width?: number | undefined;
+  maxLength?: number | undefined;
 }) {
   const { c } = useCalm();
   return (
@@ -91,6 +93,7 @@ export function Input({
       placeholderTextColor={c.muted}
       keyboardType={keyboardType}
       multiline={multiline}
+      maxLength={maxLength}
       style={{
         minHeight: multiline ? 88 : 42,
         width,
@@ -413,6 +416,7 @@ export function Sheet({
   children,
   footer,
   closeLabel,
+  dismissDisabled = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -420,17 +424,27 @@ export function Sheet({
   children: ReactNode;
   footer?: ReactNode;
   closeLabel?: string | undefined;
+  dismissDisabled?: boolean | undefined;
 }) {
   const { c } = useCalm();
   const bp = useBreakpoint();
   const insets = useSafeAreaInsets();
   const mobile = bp === "mobile";
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={open}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!dismissDisabled) onClose();
+      }}
+    >
       <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end" }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={closeLabel ?? title}
+          disabled={dismissDisabled}
+          accessibilityState={{ disabled: dismissDisabled }}
           onPress={onClose}
           style={{
             position: "absolute",
@@ -473,6 +487,8 @@ export function Sheet({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={closeLabel ?? title}
+              disabled={dismissDisabled}
+              accessibilityState={{ disabled: dismissDisabled }}
               onPress={onClose}
               style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}
             >

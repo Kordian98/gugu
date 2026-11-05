@@ -138,3 +138,7 @@ pnpm --filter @gugu/api build && pnpm --filter @gugu/api start   # production-st
 ## ADRs
 - [0008 — Prisma 7 + raw SQL boundary; API bundling](../adr/0008-prisma-raw-sql-boundary.md) (proposed)
 - `0002-contracts-zod-openapi` from the spec is covered by ADR-0008 decision 7; topic 01's planned 0002/0003 keep their numbers.
+
+## Ad hoc booking snapshots
+
+Migration `20261105130000_booking_ad_hoc_service` makes `booking_services.service_id` nullable. An ad hoc CRM appointment keeps its name, duration and price in the existing immutable snapshot without creating a catalog service. The composite service FK and all staff/resource occupancy exclusion constraints remain unchanged. Existing rows need no backfill. See ADR-0019 and `custom-appointments.int.test.ts`.

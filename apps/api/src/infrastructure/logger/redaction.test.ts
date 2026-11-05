@@ -44,4 +44,17 @@ describe("log redaction", () => {
     const req = redactRequest({ method: "GET", url: "/api/v1/public/bookings/tok/x" });
     expect(req).toEqual({ method: "GET", url: "/api/v1/public/bookings/[Redacted]/x" });
   });
+
+  it("redacts ad hoc service names in availability, earliest and booking-check request logs", () => {
+    const custom = JSON.stringify({ name: "Linh 0933444555", priceMinor: 175000 });
+    for (const route of ["availability", "availability/earliest", "booking-check"]) {
+      const url = `/api/v1/salons/salon/${route}?customService=${encodeURIComponent(custom)}&durationMinutes=75&custom%53ervice=${encodeURIComponent(custom)}`;
+      const safe = redactRequest({ method: "GET", url }).url;
+      expect(decodeURIComponent(safe)).not.toContain("Linh");
+      expect(safe).not.toContain("0933444555");
+      const params = new URLSearchParams(safe.slice(safe.indexOf("?") + 1));
+      expect(params.getAll("customService")).toEqual(["[Redacted]"]);
+      expect(params.get("durationMinutes")).toBe("75");
+    }
+  });
 });

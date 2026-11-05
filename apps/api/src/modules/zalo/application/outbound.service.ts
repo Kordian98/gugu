@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { UPCOMING_BOOKING_STATUSES } from "@gugu/domain";
 import { AppConfig } from "../../../infrastructure/config/app-config";
 import { Prisma } from "../../../infrastructure/prisma/generated/client";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
@@ -34,7 +35,7 @@ export interface TemplateData {
   salon_name: string;
 }
 
-export type OutboundItem =
+export type OutboundItem = (
   | {
       channel: "cs";
       purpose: string;
@@ -57,11 +58,13 @@ export type OutboundItem =
       /** Shown in the panel's chat history. */
       previewText: string;
       dedupKey: string;
-    };
+    }
+) & { bookingVersion?: number };
 
-type StoredRequest =
+type StoredRequest = (
   | { channel: "cs"; userId: string; message: CsMessage }
-  | { channel: "template"; templateKey: TemplateKey; phoneE164: string | null; data: TemplateData };
+  | { channel: "template"; templateKey: TemplateKey; phoneE164: string | null; data: TemplateData }
+) & { bookingVersion?: number };
 
 /**
  * Every outbound Zalo message goes through here: a chat-history row, a send-log row (status, tier,
@@ -95,7 +98,7 @@ export class OutboundService {
         ? []
         : (
             await db.zaloSendLog.findMany({
-              where: { dedupKey: { in: keys } },
+              where: { salonId, dedupKey: { in: keys } },
               select: { dedupKey: true },
             })
           ).map((r) => r.dedupKey),
@@ -149,6 +152,8 @@ export class OutboundService {
           messageId = msg.id;
         }
       }
+      if (item.bookingVersion !== undefined)
+        request = { ...request, bookingVersion: item.bookingVersion };
       const log = await db.zaloSendLog.create({
         data: {
           salonId,
@@ -187,17 +192,33 @@ export class OutboundService {
   }
 
   /**
-   * Records and enqueues in one transaction. A concurrent duplicate (same dedup key from a
-   * redelivered event) loses on the unique index and counts as "already queued".
+   * Records transactionally, then enqueues after commit. A replay recovers queued logs when the
+   * first queue add failed; the same deterministic job id deduplicates successful queue adds.
    */
   async send(salonId: string, items: readonly OutboundItem[]): Promise<string[]> {
-    let ids: string[];
+    let ids: string[] = [];
     try {
       ids = await this.prisma.$transaction((tx) => this.record(salonId, items, tx));
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
-        return [];
-      throw error;
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"))
+        throw error;
+    }
+    if (ids.length === 0) {
+      const keys = items
+        .map((item) => item.dedupKey)
+        .filter((key): key is string => key !== undefined);
+      if (keys.length) {
+        const queued = await this.prisma.zaloSendLog.findMany({
+          where: { salonId, dedupKey: { in: keys }, status: "queued" },
+          select: { id: true, dedupKey: true },
+        });
+        const byKey = new Map(queued.map((log) => [log.dedupKey, log.id]));
+        // Preserve the original item's order, hence its original first-log batch job id.
+        ids = keys.flatMap((key) => {
+          const id = byKey.get(key);
+          return id ? [id] : [];
+        });
+      }
     }
     await this.enqueue(salonId, ids);
     return ids;
@@ -277,10 +298,28 @@ export class OutboundService {
     salonId: string;
     purpose: string;
     conversationId: string | null;
+    bookingId: string | null;
     dedupKey: string;
     request: Prisma.JsonValue;
   }): Promise<void> {
     const request = log.request as unknown as StoredRequest;
+    // A newer move/cancellation can commit while this send waits in the queue or retries.
+    if (log.purpose === "booking_rescheduled") {
+      // Legacy/malformed queued work cannot prove which appointment revision it confirmed.
+      if (typeof request.bookingVersion !== "number") return this.reject(log.id, "stale_booking");
+      const booking = log.bookingId
+        ? await this.prisma.booking.findFirst({
+            where: { id: log.bookingId, salonId: log.salonId },
+            select: { version: true, status: true },
+          })
+        : null;
+      if (
+        !booking ||
+        booking.version !== request.bookingVersion ||
+        !UPCOMING_BOOKING_STATUSES.includes(booking.status)
+      )
+        return this.reject(log.id, "stale_booking");
+    }
     const conn = await this.prisma.zaloOaConnection.findUnique({ where: { salonId: log.salonId } });
     if (conn?.status !== "connected") return this.reject(log.id, "not_connected");
     // Suspended by GuGu (q89), checked at send time: only the neutral notice goes out. Bot and

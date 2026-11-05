@@ -18,6 +18,7 @@ export function CalmButton({
   accessibilityLabel,
   trailing,
   testID,
+  disabled = false,
 }: {
   label: string;
   onPress: () => void;
@@ -27,6 +28,7 @@ export function CalmButton({
   accessibilityLabel?: string | undefined;
   trailing?: ReactNode | undefined;
   testID?: string | undefined;
+  disabled?: boolean | undefined;
 }) {
   const { c } = useCalm();
   const h = size === "sm" ? 34 : 40;
@@ -41,6 +43,8 @@ export function CalmButton({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      disabled={disabled}
+      accessibilityState={{ disabled }}
       onPress={onPress}
       style={{
         minHeight: h + slop.top + slop.bottom,
@@ -70,7 +74,13 @@ export function CalmButton({
                       : "transparent",
               borderWidth: variant === "secondary" ? 1 : 0,
               borderColor: hovered ? c.accentBg : c.line,
-              opacity: state.pressed ? 0.85 : hovered && variant === "primary" ? 0.92 : 1,
+              opacity: disabled
+                ? 0.45
+                : state.pressed
+                  ? 0.85
+                  : hovered && variant === "primary"
+                    ? 0.92
+                    : 1,
             }}
           >
             {icon ? <Icon name={icon} size={fs + 3} color={fg} /> : null}

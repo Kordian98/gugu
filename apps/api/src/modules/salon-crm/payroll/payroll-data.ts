@@ -74,7 +74,7 @@ type LineRow = {
   id: string;
   booking_id: string;
   staff_id: string;
-  service_id: string;
+  service_id: string | null;
   variant_id: string | null;
   name: unknown;
   price_minor: bigint;
@@ -288,7 +288,7 @@ export class PayrollData {
       FROM mine m
       JOIN booking_services bs ON bs.booking_id = m.booking_id AND bs.salon_id = ${salonId}::uuid
       JOIN bookings b ON b.id = bs.booking_id AND b.salon_id = bs.salon_id
-      JOIN services s ON s.id = bs.service_id AND s.salon_id = bs.salon_id
+      LEFT JOIN services s ON s.id = bs.service_id AND s.salon_id = bs.salon_id
       LEFT JOIN service_variants v ON v.id = bs.variant_id AND v.salon_id = bs.salon_id
       LEFT JOIN offline_sales o ON o.booking_id = b.id AND o.salon_id = b.salon_id
       LEFT JOIN LATERAL (

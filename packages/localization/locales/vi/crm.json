@@ -27,6 +27,8 @@
     "close": "Đóng"
   },
   "shell": {
+    "signOut": "Đăng xuất",
+    "signOutFailed": "Chưa đăng xuất được. Anh/chị vui lòng thử lại.",
     "searchPlaceholder": "Tìm lịch hẹn, khách hàng…",
     "newAppointment": "Lịch hẹn mới",
     "newShort": "Mới",
@@ -246,7 +248,8 @@
     "ai_import_extraction_failed": "AI chưa đọc được bảng giá. Anh/chị thử lại hoặc dùng ảnh rõ hơn nhé.",
     "entitlement_quota_exceeded": "Đã dùng hết hạn mức AI của tháng này.",
     "entitlement_required": "Gói hiện tại chưa có tính năng này.",
-    "booking_slot_taken": "Giờ này vừa có người đặt. Anh/chị chọn giờ khác nhé.",
+    "booking_slot_taken": "Nhân viên hoặc thiết bị cần dùng không sẵn sàng vào giờ này. Anh/chị chọn giờ hoặc nhân viên khác nhé.",
+    "booking_override_required": "Giờ này nằm ngoài quy định đặt lịch. Anh/chị nhờ chủ salon hoặc quản lý xác nhận ngoại lệ nhé.",
     "booking_invalid_transition": "Không thể đổi sang trạng thái này.",
     "booking_too_early": "Chưa đến giờ để thực hiện thao tác này.",
     "booking_too_late": "Đã quá thời gian cho thao tác này.",
@@ -521,6 +524,8 @@
     "pickFailed": "Không mở được thư viện ảnh."
   },
   "calendar": {
+    "previewDraft": "Chưa lưu",
+    "previewSaving": "Đang lưu…",
     "newFor": "Lịch hẹn mới với {{name}}",
     "today": "Hôm nay",
     "noSlots": "Không còn giờ trống trong ngày này. Anh/chị chọn ngày khác hoặc nhân viên khác nhé.",
@@ -563,7 +568,7 @@
     },
     "findEarliest": "Tìm giờ sớm nhất",
     "earliestTitle": "Giờ trống sớm nhất",
-    "dragUnavailable": "Khung giờ bạn vừa chọn không còn trống.",
+    "dragUnavailable": "Giờ này không nằm trong lịch trống thông thường. Anh/chị có thể xác nhận lịch hẹn để kiểm tra hoặc chọn giờ khác.",
     "overrideOn": "Đặt ngoài giờ / ngoài quy định",
     "overrideOff": "Quay lại giờ trống",
     "overrideExplain": "Nhập giờ bất kỳ (ngoài giờ mở cửa, sát giờ…) kèm lý do. Lịch vẫn không được trùng với lịch khác của nhân viên. Thao tác được ghi nhật ký.",
@@ -573,7 +578,15 @@
     "nextServiceHint": "Làm ngay sau dịch vụ trước. “Ai cũng được” sẽ ưu tiên người làm dịch vụ trước.",
     "chainTotal": "Tổng {{minutes}} phút · {{price}}",
     "chainPlan": "{{time}} {{service}} · {{staff}}",
-    "chainSeparator": " → "
+    "chainSeparator": " → ",
+    "catalogService": "Dịch vụ có sẵn",
+    "customService": "Dịch vụ phát sinh",
+    "customServiceName": "Tên dịch vụ",
+    "customServicePrice": "Giá dịch vụ (đ)",
+    "customServiceHint": "Chỉ lưu cho lịch hẹn này, không thêm vào danh sách dịch vụ.",
+    "durationLabel": "Thời lượng lịch hẹn (phút)",
+    "selectedDuration": "Khoảng anh/chị vừa chọn: {{minutes}} phút. Có thể điều chỉnh trước khi lưu.",
+    "durationInvalid": "Nhập thời lượng từ 5 đến 1.440 phút."
   },
   "booking": {
     "title": "Lịch hẹn {{code}}",
@@ -802,6 +815,11 @@
     "vsPrevious": "so với kỳ trước",
     "noPrevious": "Kỳ trước chưa có số liệu",
     "daily": "Lịch hẹn theo ngày",
+    "dailyHint": "Chọn một cột hoặc dùng mũi tên để xem từng ngày.",
+    "dailyEmpty": "Chưa có lịch hẹn trong khoảng này",
+    "dailyCount": "Lịch hẹn: {{count}}",
+    "dailyPrevious": "Ngày trước",
+    "dailyNext": "Ngày sau",
     "services": "Dịch vụ phổ biến",
     "sources": "Nguồn đặt lịch",
     "staff": "Theo nhân viên",
@@ -879,6 +897,7 @@
     "subtitle": "Lịch của anh/chị hôm nay, {{date}}"
   },
   "override": {
+    "rulesLabel": "Các quy định có thể cho phép ngoại lệ khi xác nhận:",
     "title": "Ngoài quy định đặt lịch — vẫn đặt?",
     "confirm": "Vẫn đặt",
     "body": "Lịch vẫn không được trùng lịch khác. Lý do sẽ được ghi vào nhật ký.",
@@ -1451,7 +1470,7 @@
     "services": {
       "title": "Salon có những dịch vụ nào?",
       "body": "Chọn cách nhanh nhất với anh/chị. Danh sách sẽ hiện ngay bên dưới.",
-      "aiTitle": "Chụp hoặc tải ảnh bảng giá",
+      "aiTitle": "Thiết lập dịch vụ bằng AI",
       "aiBody": "AI đọc ảnh và tạo danh sách để anh/chị kiểm tra. Chỉ cần bảng giá, không gửi thông tin khách.",
       "aiCta": "Chọn ảnh bảng giá",
       "aiUnavailable": "Nhập bằng AI chưa bật trên hệ thống này. Anh/chị chọn từ mẫu bên dưới nhé, mất chưa tới một phút.",
@@ -1467,7 +1486,10 @@
       "empty": "Chưa có dịch vụ nào. Chọn một cách ở trên nhé.",
       "addSelected_one": "Thêm {{count}} dịch vụ",
       "added_one": "Đã thêm {{count}} dịch vụ",
-      "editRow": "Sửa"
+      "editRow": "Sửa",
+      "tabAi": "Thiết lập bằng AI",
+      "aiSteps": "Tải ảnh bảng giá → kiểm tra tên, giá và thời lượng → xác nhận thêm dịch vụ.",
+      "aiStatusFailed": "Chưa kiểm tra được tính năng AI. Anh/chị vui lòng thử lại hoặc dùng mẫu bên dưới."
     },
     "team": {
       "title": "Ai sẽ phục vụ khách?",

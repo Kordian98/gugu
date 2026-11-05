@@ -188,7 +188,8 @@ export class CustomersService {
       .reverse();
     const counts = new Map<string, number>();
     for (const b of completed)
-      for (const s of b.services) counts.set(s.serviceId, (counts.get(s.serviceId) ?? 0) + 1);
+      for (const s of b.services)
+        if (s.serviceId) counts.set(s.serviceId, (counts.get(s.serviceId) ?? 0) + 1);
     const canNotes = ctx.permissions.has("customers.notes.write");
     const notes = canNotes
       ? await this.prisma.customerNote.findMany({

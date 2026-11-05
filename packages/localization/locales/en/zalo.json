@@ -57,6 +57,7 @@
     "attendanceConfirmed": "Thank you! The salon knows you're coming.",
     "bookingNotFound": "We couldn't find this appointment. Please pick an option below.",
     "updateConfirmed": "{{salon}} confirmed booking {{ref}}: {{service}} at {{when}}. See you soon!",
+    "updateRescheduled": "{{salon}} moved booking {{ref}} ({{service}}) to {{when}}. Your new appointment time is confirmed.",
     "updateCancelled": "Sorry, {{salon}} cancelled booking {{ref}} ({{service}}, {{when}}). Message “Book” to pick another time.",
     "bookAgain": "Book again",
     "limitReached": "You already have several upcoming appointments at this salon. You can view or change them.",

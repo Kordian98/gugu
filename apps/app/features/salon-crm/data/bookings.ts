@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 
 import type {
   Availability,
@@ -19,7 +25,8 @@ import type {
 
 import { ApiError, apiFetch } from "@/services/auth/api";
 
-import { addDays, clockMinutes, instantAt, isoWeekday } from "./dates";
+import { addDays, clockMinutes, instantAt, isoWeekday, salonDate } from "./dates";
+import { DEFAULT_SALON_TIMEZONE } from "@gugu/localization";
 import { useOptionalSalon, useSalon } from "./SalonContext";
 import type { BookingStatus, TimelineItem } from "./types";
 
@@ -62,7 +69,9 @@ export function useBookings(from: string, to: string = from) {
 }
 
 export type AvailabilityRequest = {
-  serviceId: string;
+  serviceId?: string | undefined;
+  customService?: { name: string; priceMinor: number } | undefined;
+  durationMinutes?: number | undefined;
   variantId: string | null;
   addOnIds: string[];
   staffId: string | null;
@@ -92,7 +101,9 @@ export function useAvailability(req: AvailabilityRequest | null) {
   const salonId = useOptionalSalon()?.salonId ?? "";
   const q = req
     ? new URLSearchParams({
-        serviceId: req.serviceId,
+        ...(req.serviceId ? { serviceId: req.serviceId } : {}),
+        ...(req.customService ? { customService: JSON.stringify(req.customService) } : {}),
+        ...(req.durationMinutes ? { durationMinutes: String(req.durationMinutes) } : {}),
         from: req.date,
         to: req.to ?? req.date,
         ...(req.variantId ? { variantId: req.variantId } : {}),
@@ -116,7 +127,9 @@ export function useEarliestSlots(
   const salonId = useOptionalSalon()?.salonId ?? "";
   const q = req
     ? new URLSearchParams({
-        serviceId: req.serviceId,
+        ...(req.serviceId ? { serviceId: req.serviceId } : {}),
+        ...(req.customService ? { customService: JSON.stringify(req.customService) } : {}),
+        ...(req.durationMinutes ? { durationMinutes: String(req.durationMinutes) } : {}),
         limit: "6",
         perDay: "3",
         ...(req.variantId ? { variantId: req.variantId } : {}),
@@ -165,11 +178,14 @@ export function useOfflineSale(bookingId: string | null) {
 
 function useBookingMutation<TVars, TResult>(
   request: (salonId: string, vars: TVars, idem: string) => Promise<TResult>,
+  onSuccess?: (result: TResult, client: QueryClient, salonId: string, tz: string) => Promise<void>,
 ) {
-  const { salonId } = useSalon();
+  const { salonId, summary } = useSalon();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: TVars) => request(salonId, vars, idempotencyKey()),
+    onSuccess: (result) =>
+      onSuccess?.(result, qc, salonId, summary?.timezone ?? DEFAULT_SALON_TIMEZONE),
     onSettled: async () => {
       await Promise.all([
         qc.invalidateQueries({ queryKey: key(salonId) }),
@@ -192,12 +208,40 @@ export function requiredOverrides(e: unknown): RuleOverride[] | null {
 }
 
 export const useCreateBooking = () =>
-  useBookingMutation((s, body: CreateSalonBookingInput, idem) =>
-    apiFetch<SalonBooking>(`/salons/${s}/bookings`, {
-      method: "POST",
-      body,
-      headers: { "idempotency-key": idem },
-    }),
+  useBookingMutation(
+    (s, body: CreateSalonBookingInput, idem) =>
+      apiFetch<SalonBooking>(`/salons/${s}/bookings`, {
+        method: "POST",
+        body,
+        headers: { "idempotency-key": idem },
+      }),
+    async (booking, client, salonId, tz) => {
+      const date = salonDate(new Date(booking.startsAt), tz);
+      // The POST result is authoritative. Cancel older list reads before inserting it so a stale
+      // response cannot briefly remove the saved block while invalidation fetches the full list.
+      const lists = {
+        queryKey: key(salonId),
+        predicate: (query: { queryKey: readonly unknown[] }) =>
+          query.queryKey.length === 5 &&
+          typeof query.queryKey[3] === "string" &&
+          typeof query.queryKey[4] === "string" &&
+          query.queryKey[3] <= date &&
+          query.queryKey[4] >= date,
+      };
+      await client.cancelQueries(lists);
+      client.setQueriesData<{ items: SalonBooking[] }>(lists, (old) =>
+        old
+          ? {
+              ...old,
+              items: [...old.items.filter((b) => b.id !== booking.id), booking],
+            }
+          : old,
+      );
+      client.setQueryData<{ items: SalonBooking[] }>([...key(salonId), date, date], (old) => ({
+        ...old,
+        items: [...(old?.items ?? []).filter((b) => b.id !== booking.id), booking],
+      }));
+    },
   );
 
 export const useTransition = () =>

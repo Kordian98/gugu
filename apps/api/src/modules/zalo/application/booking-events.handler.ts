@@ -4,7 +4,8 @@ import { BookingUpdatesService } from "./booking-updates.service";
 
 /**
  * Outbox consumer (04-S5): tells the Zalo customer about salon-side booking changes right after
- * the commit instead of on the minute scan. Idempotent: sends dedupe by `booking_update:<eventId>`.
+ * the commit instead of on the minute scan. Reschedules dedupe by booking revision; other sends
+ * dedupe by `booking_update:<eventId>`.
  */
 @Injectable()
 export class ZaloBookingEventsHandler implements DomainEventHandler {

@@ -53,7 +53,7 @@ Source: `apps/api/src/modules/notifications/domain/catalog.ts`, event ids in `pa
 | Event | Trigger (outbox) | Recipients | Channels | Template keys (`notifications` namespace) |
 |---|---|---|---|---|
 | `booking.confirmed` | `booking.created` (confirmed) or pending→confirmed, by a salon member | customer | salon's Zalo OA only (module `zalo`), else nothing | — (ZBS templates in module `zalo`) |
-| `booking.rescheduled` | `booking.rescheduled` by a salon member | customer | salon's Zalo OA only, else nothing | — |
+| `booking.rescheduled` | `booking.rescheduled` by a salon member | customer | salon's Zalo OA consultation message, or existing `booking_confirmation` template reconfirming the new time when the chat window is unavailable; else nothing | — |
 | `booking.cancelled_by_salon` | → cancelled_by_salon by a salon member | customer | salon's Zalo OA only, else nothing | — |
 | `booking.reminder` | Zalo reminder scan (24 h / 2 h, switches in Settings → Zalo) | customer | salon's Zalo OA only, else nothing | — |
 | `salon.booking_received` | `booking.created` | team except the actor | bell + email | `email.team.salonBookingReceived.*`, `panel.inbox.items.salon_booking_received` |

@@ -1,41 +1,12 @@
-import { useLocalSearchParams } from "expo-router";
-import { useTranslation } from "react-i18next";
+import { Redirect, useLocalSearchParams } from "expo-router";
 
-import { CalmButton, CalmCard } from "@gugu/design-system";
-
-import { useCrmNav } from "../shell/useCrmNav";
-import { EmptyState } from "../ui/EmptyState";
-import { SectionScreen } from "./SectionScreen";
+import { useLocale } from "@/services/i18n/useLocale";
 import { UpcomingAppointments } from "./calendar/UpcomingAppointments";
 
-/**
- * Appointments list. `?new=1` (from "New appointment") explains the prerequisite: the booking engine
- * needs at least one service and working hours before it can offer free times (06, 07 §3.4).
- */
+/** New appointments can use either a catalog service or a one-off service. */
 export function AppointmentsScreen() {
-  const { t } = useTranslation("crm");
-  const { go } = useCrmNav();
+  const locale = useLocale();
   const { new: isNew } = useLocalSearchParams<{ new?: string | undefined }>();
-  if (isNew !== "1") return <UpcomingAppointments />;
-  return (
-    <SectionScreen id="appointments">
-      <CalmCard>
-        <EmptyState
-          testID="crm-new-appointment-prereq"
-          icon="calendar"
-          title={t("pages.newAppointment.title")}
-          body={t("pages.newAppointment.body")}
-          action={
-            <CalmButton
-              label={t("pages.setupCta")}
-              icon="sparkles"
-              onPress={() => {
-                go("/business/services?import=1");
-              }}
-            />
-          }
-        />
-      </CalmCard>
-    </SectionScreen>
-  );
+  if (isNew === "1") return <Redirect href={`/${locale}/business/calendar?new=1`} />;
+  return <UpcomingAppointments />;
 }

@@ -73,3 +73,62 @@ describe("booking contracts", () => {
     ).toHaveLength(2);
   });
 });
+
+describe("CRM custom appointment selection", () => {
+  const base = { startsAt: "2026-11-03T03:00:00Z", customer: null, source: "walk_in" };
+  const customService = { name: "Repair", priceMinor: 100_000 };
+  it("requires exactly one service definition and a bounded custom duration", () => {
+    expect(createSalonBookingInputSchema.safeParse(base).success).toBe(false);
+    expect(createSalonBookingInputSchema.safeParse({ ...base, customService }).success).toBe(false);
+    for (const durationMinutes of [5, 75, 1440])
+      expect(
+        createSalonBookingInputSchema.safeParse({ ...base, customService, durationMinutes })
+          .success,
+      ).toBe(true);
+    for (const durationMinutes of [0, 4, 1441, 10.5])
+      expect(
+        createSalonBookingInputSchema.safeParse({ ...base, customService, durationMinutes })
+          .success,
+      ).toBe(false);
+    expect(
+      createSalonBookingInputSchema.safeParse({
+        ...base,
+        customService,
+        durationMinutes: 60,
+        serviceId: SERVICE,
+      }).success,
+    ).toBe(false);
+    expect(
+      createSalonBookingInputSchema.safeParse({
+        ...base,
+        customService,
+        durationMinutes: 60,
+        nextServices: [{ serviceId: SERVICE }],
+      }).success,
+    ).toBe(false);
+    expect(
+      createSalonBookingInputSchema.safeParse({
+        ...base,
+        serviceId: SERVICE,
+        durationMinutes: 60,
+        nextServices: [{ serviceId: SERVICE }],
+      }).success,
+    ).toBe(false);
+  });
+  it("rejects invalid ad hoc prices and JSON query values", () => {
+    for (const priceMinor of [-1, 0.5, 1_000_000_001])
+      expect(
+        createSalonBookingInputSchema.safeParse({
+          ...base,
+          customService: { ...customService, priceMinor },
+          durationMinutes: 60,
+        }).success,
+      ).toBe(false);
+    const q = { from: "2026-11-01", to: "2026-11-01", durationMinutes: "60" };
+    expect(
+      availabilityQuerySchema.parse({ ...q, customService: JSON.stringify(customService) })
+        .customService,
+    ).toEqual(customService);
+    expect(availabilityQuerySchema.safeParse({ ...q, customService: "{" }).success).toBe(false);
+  });
+});

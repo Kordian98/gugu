@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -17,11 +17,13 @@ import type {
   EarliestSlots,
   RuleOverride,
   Service,
+  SalonBooking,
   StaffMember,
 } from "@gugu/contracts";
 import { formatDateLong, formatTime, formatVND } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
+import type { AppointmentDraft } from "../../calendar/AppointmentDraft";
 
 import {
   useAvailability,
@@ -52,8 +54,10 @@ import {
   Sheet,
   TimeInput,
   Toggle,
+  MoneyInput,
   isClock,
 } from "../../ui/form";
+import { OverridePrompt } from "../../ui/OverridePrompt";
 import { type ExtraLine, nextServicesOf, ServiceLines } from "./ServiceLines";
 import { SlotGrid } from "./SlotPicker";
 
@@ -63,7 +67,7 @@ export type NewAppointmentPrefill = {
   date: string;
   staffId?: string | null;
   minutes?: number | null;
-  /** From drag-to-create: services longer than this are hidden unless "show all" is on. */
+  /** Exact appointment length from drag-to-create, editable before saving. */
   durationMinutes?: number | null;
 };
 
@@ -89,6 +93,8 @@ export function NewAppointmentSheet({
   prefill,
   client: initialClient = null,
   onClose,
+  onPreviewChange,
+  onCreated,
 }: {
   services: Service[];
   staff: StaffMember[];
@@ -97,6 +103,8 @@ export function NewAppointmentSheet({
   /** "Book again" from a client profile: client, last service and staff preselected. */
   client?: ClientSuggestion | null | undefined;
   onClose: () => void;
+  onPreviewChange?: ((draft: AppointmentDraft | null) => void) | undefined;
+  onCreated?: ((booking: SalonBooking) => void) | undefined;
 }) {
   const { c } = useCalm();
   const { go } = useCrmNav();
@@ -104,13 +112,17 @@ export function NewAppointmentSheet({
   const locale = useLocale();
   const errorText = useErrorText();
   const { can } = useSalon();
-  const [showAll, setShowAll] = useState(false);
-  const fits = (s: Service) =>
-    !prefill.durationMinutes ||
-    Math.min(s.durationMinutes, ...s.variants.map((v) => v.durationMinutes ?? s.durationMinutes)) <=
-      prefill.durationMinutes;
   const active = useMemo(() => services.filter((s) => s.isActive), [services]);
-  const offered = showAll ? active : active.filter(fits);
+  const [serviceMode, setServiceMode] = useState<"catalog" | "custom">(
+    active.length ? "catalog" : "custom",
+  );
+  const custom = serviceMode === "custom";
+  const [customName, setCustomName] = useState("");
+  const [customPrice, setCustomPrice] = useState<number | null>(null);
+  const [durationOverride, setDurationOverride] = useState<string | null>(
+    prefill.durationMinutes == null ? null : String(prefill.durationMinutes),
+  );
+  const [overridePending, setOverridePending] = useState<RuleOverride[] | null>(null);
   const [q, setQ] = useState("");
   const [client, setClient] = useState<ClientSuggestion | null>(initialClient);
   const again = initialClient
@@ -141,7 +153,37 @@ export function NewAppointmentSheet({
   const nextServices = nextServicesOf(extras, active);
   const lookup = useClientLookup(q, !walkIn && !client);
   const create = useCreateBooking();
-  const service = active.find((s) => s.id === serviceId) ?? null;
+  const service = custom ? null : (active.find((s) => s.id === serviceId) ?? null);
+  const catalogDuration = service
+    ? (service.variants.find((v) => v.id === variantId)?.durationMinutes ??
+        service.durationMinutes) +
+      service.addOns
+        .filter((a) => addOnIds.includes(a.id))
+        .reduce((sum, a) => sum + a.extraDurationMinutes, 0)
+    : 30;
+  const durationMinutes = durationOverride === null ? catalogDuration : Number(durationOverride);
+  const validDuration =
+    Number.isInteger(durationMinutes) && durationMinutes >= 5 && durationMinutes <= 1440;
+  const customService =
+    custom &&
+    customName.trim() &&
+    customName.trim().length <= 160 &&
+    customPrice !== null &&
+    customPrice <= 1_000_000_000
+      ? { name: customName.trim(), priceMinor: customPrice }
+      : undefined;
+  const selectionReady =
+    validDuration &&
+    (custom ? Boolean(customService) : Boolean(service && (!service.variants.length || variantId)));
+  const selection = {
+    ...(service ? { serviceId: service.id } : {}),
+    ...(customService ? { customService } : {}),
+    ...(extras.length || (!custom && durationOverride === null) ? {} : { durationMinutes }),
+    variantId: custom ? null : variantId,
+    addOnIds: custom ? [] : addOnIds,
+    staffId,
+    nextServices: custom ? [] : (nextServices ?? []),
+  };
   const people = staff.filter((s) => s.isBookable && (!service || service.staffIds.includes(s.id)));
   const settings = useSettings();
   const today = salonDate(new Date(), tz);
@@ -152,18 +194,12 @@ export function NewAppointmentSheet({
   const beyondWindow = date > maxDate;
   // Outside the rules (q18): after hours / short notice / beyond the window, with a reason; audited
   // by the API (bookings.override_rules). Never lifts the overlap guarantee.
-  const [overrideOn, setOverrideOn] = useState(false);
-  const manualMode = beyondWindow || overrideOn;
   const availability = useAvailability(
-    service && (!service.variants.length || variantId) && nextServices && month.last >= today
+    selectionReady && nextServices && month.last >= today && month.first <= maxDate
       ? {
-          serviceId: service.id,
-          variantId,
-          addOnIds,
-          staffId,
+          ...selection,
           date: month.first < today ? today : month.first,
           to: month.last > maxDate ? maxDate : month.last,
-          nextServices,
         }
       : null,
   );
@@ -184,8 +220,11 @@ export function NewAppointmentSheet({
   const freeDays = new Set(
     (availability.data?.days ?? []).filter((d) => d.slots.length).map((d) => d.date),
   );
-  const [manualTime, setManualTime] = useState("");
-  const [overrideReason, setOverrideReason] = useState("");
+  const [manualTime, setManualTime] = useState(
+    prefill.minutes == null
+      ? ""
+      : `${String(Math.floor(prefill.minutes / 60)).padStart(2, "0")}:${String(prefill.minutes % 60).padStart(2, "0")}`,
+  );
   const closedWeekdays = new Set(
     [1, 2, 3, 4, 5, 6, 7].filter(
       (w) =>
@@ -201,8 +240,7 @@ export function NewAppointmentSheet({
     return null;
   };
 
-  // A tap on an empty grid cell preselects that time when it is free.
-  // A tap on an empty grid cell preselects that time when it is free (until the user picks).
+  // Engine slots supplement the editable time. Confirm always revalidates it on the server.
   const [slotTouched, setSlotTouched] = useState(false);
   const autoSlot =
     prefill.minutes != null && !slotTouched
@@ -212,10 +250,9 @@ export function NewAppointmentSheet({
             salonDate(new Date(s.startsAt), tz) === date,
         )?.startsAt ?? null)
       : null;
-  const manualSlot =
-    manualMode && isClock(manualTime) ? instantAt(date, clockMinutes(manualTime), tz) : null;
-  const chosenSlot = manualMode ? manualSlot : (slot ?? autoSlot);
-  // Drag-to-create on a time that is not free: offer the earliest options instead.
+  const manualSlot = isClock(manualTime) ? instantAt(date, clockMinutes(manualTime), tz) : null;
+  const chosenSlot = manualSlot ?? slot ?? autoSlot;
+  // The selected time can still be confirmed; alternatives are offered without discarding it.
   const dragUnavailable =
     prefill.minutes != null &&
     !slotTouched &&
@@ -226,9 +263,7 @@ export function NewAppointmentSheet({
     reason === null;
   const [earliestOpen, setEarliestOpen] = useState(false);
   const earliest = useEarliestSlots(
-    service && (!service.variants.length || variantId) && nextServices
-      ? { serviceId: service.id, variantId, addOnIds, staffId, nextServices }
-      : null,
+    selectionReady && nextServices ? selection : null,
     earliestOpen,
   );
   const pickEarliest = (e: { date: string; startsAt: string; staffIds: string[] }) => {
@@ -236,6 +271,7 @@ export function NewAppointmentSheet({
     setMonth(monthOf(e.date));
     if (!staffId && e.staffIds[0]) setStaffId(e.staffIds[0]);
     setSlot(e.startsAt);
+    setManualTime("");
     setSlotTouched(true);
     setEarliestOpen(false);
   };
@@ -265,40 +301,100 @@ export function NewAppointmentSheet({
         phone: phone.trim() || (digits.length >= 8 ? q.trim() : ""),
       };
   const ready = Boolean(
-    service &&
+    selectionReady &&
     chosenSlot &&
     nextServices &&
-    (!manualMode || (staffId && overrideReason.trim().length >= 3)) &&
     (walkIn || (contact.name && contact.phone.replace(/\D/g, "").length >= 8)),
   );
 
-  const submit = (overrides: RuleOverride[] = []) => {
-    if (!service || !chosenSlot) return;
+  // Keep the drawn block while the form is open. This is a visual draft, never an availability
+  // decision: the engine's selected plan replaces the tentative range once it is available.
+  const previewStart =
+    chosenSlot ??
+    (!slotTouched && prefill.minutes != null ? instantAt(date, prefill.minutes, tz) : null);
+  const previewStaff = staffId ?? slots.find((s) => s.startsAt === chosenSlot)?.staffIds[0] ?? null;
+  const previewName = custom
+    ? customName.trim() || t("calendar.newTitle")
+    : service
+      ? (locale === "en" && service.name.en) || service.name.vi
+      : t("calendar.newTitle");
+  const previewPlan = slots.find((s) => s.startsAt === chosenSlot)?.lines;
+  const previewBlocks = JSON.stringify(
+    previewStart && validDuration && previewStaff
+      ? previewPlan?.length
+        ? previewPlan.flatMap((line) => {
+            if (!line.staffId) return [];
+            const catalog = active.find((s) => s.id === line.serviceId);
+            return [
+              {
+                staffId: line.staffId,
+                startsAt: line.startsAt,
+                endsAt: line.endsAt,
+                service: catalog
+                  ? (locale === "en" && catalog.name.en) || catalog.name.vi
+                  : previewName,
+              },
+            ];
+          })
+        : [
+            {
+              staffId: previewStaff,
+              startsAt: previewStart,
+              endsAt: new Date(Date.parse(previewStart) + durationMinutes * 60_000).toISOString(),
+              service: previewName,
+            },
+          ]
+      : [],
+  );
+  const lastPreview = useRef<AppointmentDraft | null>(null);
+  const created = useRef(false);
+  useEffect(() => {
+    if (created.current) {
+      onPreviewChange?.(null);
+      return;
+    }
+    const blocks = JSON.parse(previewBlocks) as AppointmentDraft["blocks"];
+    if (blocks.length) lastPreview.current = { date, saving: create.isPending, blocks };
+    const draft = lastPreview.current?.date === date ? lastPreview.current : null;
+    onPreviewChange?.(draft ? { ...draft, saving: create.isPending } : null);
+  }, [date, previewBlocks, create.isPending, onPreviewChange]);
+  useEffect(
+    () => () => {
+      onPreviewChange?.(null);
+    },
+    [onPreviewChange],
+  );
+
+  const submit = (overrides: RuleOverride[] = [], reason = "") => {
+    if (!selectionReady || !chosenSlot || create.isPending) return;
     create.mutate(
       {
-        serviceId: service.id,
-        variantId,
-        addOnIds,
-        staffId,
+        ...selection,
         startsAt: chosenSlot,
-        nextServices: nextServices ?? [],
         source: walkIn ? "walk_in" : source,
         customer: walkIn ? null : contact,
         note: note.trim() || null,
         // Only the rules this time actually breaks are overridden (and audited, 06).
         overrides,
-        ...(overrides.length ? { overrideReason: overrideReason.trim() } : {}),
+        ...(overrides.length ? { overrideReason: reason.trim() } : {}),
       },
       {
-        onSuccess: onClose,
+        onSuccess: (booking) => {
+          created.current = true;
+          onPreviewChange?.(null);
+          if (onCreated) onCreated(booking);
+          else onClose();
+        },
         onError: (e) => {
           const codes = requiredOverrides(e);
-          if (codes?.length && manualMode && overrides.length === 0 && canOverride) {
-            submit(codes);
+          if (codes?.length && overrides.length === 0 && canOverride) {
+            const minutes = minutesInZone(new Date(chosenSlot), tz);
+            setManualTime(
+              `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`,
+            );
+            setOverridePending(codes);
             return;
           }
-          setSlot(null);
-          setSlotTouched(true);
           void availability.refetch();
         },
       },
@@ -308,435 +404,484 @@ export function NewAppointmentSheet({
   const serviceName = (s: Service) => (locale === "en" && s.name.en) || s.name.vi;
 
   return (
-    <Sheet
-      open
-      onClose={onClose}
-      closeLabel={t("common.close")}
-      title={t("calendar.newTitle")}
-      footer={
-        <>
-          <CalmButton variant="secondary" label={t("common.cancel")} onPress={onClose} />
-          <CalmButton
-            testID="crm-new-confirm"
-            label={create.isPending ? t("common.saving") : t("calendar.confirmBooking")}
-            onPress={() => {
-              if (ready) submit();
-            }}
-          />
-        </>
-      }
-    >
-      <ErrorBanner text={errorText(create.error)} />
-
-      <Section title={t("calendar.client")}>
-        <View
-          style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
-        >
-          <Text size={13} color={c.body}>
-            {t("calendar.walkIn")}
-          </Text>
-          <Toggle
-            testID="crm-walk-in"
-            value={walkIn}
-            label={t("calendar.walkIn")}
-            onChange={(v) => {
-              setWalkIn(v);
-              setClient(null);
-              if (v) setDate(salonDate(new Date(), tz));
-            }}
-          />
-        </View>
-        {walkIn ? null : client ? (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 10,
-              padding: 10,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: c.accentBg,
-              backgroundColor: c.accentSoft,
-            }}
-          >
-            <Avatar name={client.name} size={34} />
-            <View style={{ flex: 1 }}>
-              <Text role="uiSemiBold" size={14} color={c.ink}>
-                {client.name}
+    <>
+      {overridePending !== null ? (
+        <OverridePrompt
+          codes={overridePending}
+          busy={create.isPending}
+          error={requiredOverrides(create.error) ? null : errorText(create.error)}
+          disabled={
+            !selectionReady ||
+            !chosenSlot ||
+            !(walkIn || (contact.name && contact.phone.replace(/\D/g, "").length >= 8))
+          }
+          extra={
+            <>
+              <Text testID="crm-override-context" size={14} color={c.ink}>
+                {`${staff.find((s) => s.id === staffId)?.displayName ?? t("calendar.anyStaff")} · ${dayLabel(date, locale)} · ${chosenSlot ? formatTime(new Date(chosenSlot), locale, tz) : ""}`}
               </Text>
-              <Text size={12} color={c.body}>
-                {`${client.phone} · ${t("calendar.visits", { count: client.visits })}`}
-              </Text>
-            </View>
-            {client.noShows > 0 ? (
-              <Pill
-                tone="down"
-                size={11}
-                label={t("calendar.noShows", { count: client.noShows })}
-              />
-            ) : null}
+            </>
+          }
+          onCancel={() => {
+            setOverridePending(null);
+            create.reset();
+          }}
+          onConfirm={(reason) => {
+            submit(overridePending, reason);
+          }}
+        />
+      ) : null}
+      <Sheet
+        open={overridePending === null}
+        onClose={onClose}
+        dismissDisabled={create.isPending}
+        closeLabel={t("common.close")}
+        title={t("calendar.newTitle")}
+        footer={
+          <>
             <CalmButton
-              size="sm"
-              variant="ghost"
-              label={t("calendar.change")}
+              variant="secondary"
+              label={t("common.cancel")}
+              onPress={onClose}
+              disabled={create.isPending}
+            />
+            <CalmButton
+              testID="crm-new-confirm"
+              disabled={!ready || create.isPending}
+              label={create.isPending ? t("common.saving") : t("calendar.confirmBooking")}
               onPress={() => {
+                if (ready && !create.isPending) {
+                  submit();
+                }
+              }}
+            />
+          </>
+        }
+      >
+        <ErrorBanner text={overridePending ? null : errorText(create.error)} />
+
+        <Section title={t("calendar.client")}>
+          <View
+            style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+          >
+            <Text size={13} color={c.body}>
+              {t("calendar.walkIn")}
+            </Text>
+            <Toggle
+              testID="crm-walk-in"
+              value={walkIn}
+              label={t("calendar.walkIn")}
+              onChange={(v) => {
+                setWalkIn(v);
                 setClient(null);
+                if (v) setDate(salonDate(new Date(), tz));
               }}
             />
           </View>
-        ) : (
-          <>
-            <Input
-              testID="crm-client-search"
-              label={t("calendar.clientSearch")}
-              placeholder={t("calendar.clientSearch")}
-              value={q}
-              onChangeText={setQ}
-            />
-            {(lookup.data?.items ?? []).map((cl) => (
-              <Pressable
-                key={cl.phone}
-                testID="crm-client-suggestion"
-                accessibilityRole="button"
-                disabled={cl.phoneMasked}
+          {walkIn ? null : client ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                padding: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: c.accentBg,
+                backgroundColor: c.accentSoft,
+              }}
+            >
+              <Avatar name={client.name} size={34} />
+              <View style={{ flex: 1 }}>
+                <Text role="uiSemiBold" size={14} color={c.ink}>
+                  {client.name}
+                </Text>
+                <Text size={12} color={c.body}>
+                  {`${client.phone} · ${t("calendar.visits", { count: client.visits })}`}
+                </Text>
+              </View>
+              {client.noShows > 0 ? (
+                <Pill
+                  tone="down"
+                  size={11}
+                  label={t("calendar.noShows", { count: client.noShows })}
+                />
+              ) : null}
+              <CalmButton
+                size="sm"
+                variant="ghost"
+                label={t("calendar.change")}
                 onPress={() => {
-                  pickClient(cl);
+                  setClient(null);
                 }}
-                style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 }}
-              >
-                <Avatar name={cl.name} size={30} />
-                <View style={{ flex: 1 }}>
-                  <Text role="uiMedium" size={14} color={c.ink}>
-                    {cl.name}
-                  </Text>
-                  <Text size={12} color={c.muted}>
-                    {cl.phone}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
-            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-              <Field flex={1} label={t("calendar.newClientName")}>
-                <Input
-                  testID="crm-client-name"
-                  label={t("calendar.newClientName")}
-                  value={name || (digits.length < 3 ? q : "")}
-                  onChangeText={setName}
-                />
-              </Field>
-              <Field flex={1} label={t("calendar.newClientPhone")}>
-                <Input
-                  testID="crm-client-phone"
-                  label={t("calendar.newClientPhone")}
-                  keyboardType="phone-pad"
-                  value={phone || (digits.length >= 3 ? q : "")}
-                  onChangeText={setPhone}
-                />
-              </Field>
+              />
             </View>
-          </>
-        )}
-      </Section>
-
-      <Section title={t("calendar.service")}>
-        <Chips
-          items={offered.map((s) => ({
-            id: s.id,
-            label: serviceName(s),
-            sub: formatVND(s.price, locale),
-          }))}
-          value={serviceId}
-          onChange={(id) => {
-            setServiceId(id);
-            const s = active.find((x) => x.id === id);
-            setVariantId(s?.variants[0]?.id ?? null);
-            setAddOnIds([]);
-            if (staffId && s && !s.staffIds.includes(staffId)) setStaffId(null);
-            setSlot(null);
-            setSlotTouched(true);
-          }}
-        />
-        {prefill.durationMinutes && offered.length < active.length ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setShowAll((v) => !v);
-            }}
-          >
-            <Text size={12} color={c.accent}>
-              {showAll
-                ? t("calendar.fitsRange", { min: prefill.durationMinutes })
-                : t("calendar.showAllServices", { count: active.length - offered.length })}
-            </Text>
-          </Pressable>
-        ) : null}
-        {service?.variants.length ? (
-          <Chips
-            items={service.variants
-              .filter((v) => v.isActive)
-              .map((v) => ({
-                id: v.id,
-                label: (locale === "en" && v.name.en) || v.name.vi,
-                sub: v.price !== null ? formatVND(v.price, locale) : undefined,
-              }))}
-            value={variantId}
-            onChange={(id) => {
-              setVariantId(id);
-              setSlot(null);
-              setSlotTouched(true);
-            }}
-          />
-        ) : null}
-        {service?.addOns.length ? (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {service.addOns
-              .filter((a) => a.isActive)
-              .map((a) => {
-                const on = addOnIds.includes(a.id);
-                return (
-                  <Pressable
-                    key={a.id}
-                    {...checkableA11y("checkbox", on)}
-                    onPress={() => {
-                      setAddOnIds((ids) => (on ? ids.filter((x) => x !== a.id) : [...ids, a.id]));
-                      setSlot(null);
-                      setSlotTouched(true);
-                    }}
-                    style={{
-                      paddingHorizontal: 10,
-                      height: 34,
-                      borderRadius: 10,
-                      justifyContent: "center",
-                      borderWidth: 1,
-                      borderStyle: "dashed",
-                      borderColor: on ? c.accentBg : c.line,
-                      backgroundColor: on ? c.accentSoft : c.surface,
-                    }}
-                  >
-                    <Text size={13} color={on ? c.accent : c.ink}>
-                      {`+ ${(locale === "en" && a.name.en) || a.name.vi} · ${formatVND(a.extraPrice, locale)}`}
+          ) : (
+            <>
+              <Input
+                testID="crm-client-search"
+                label={t("calendar.clientSearch")}
+                placeholder={t("calendar.clientSearch")}
+                value={q}
+                onChangeText={setQ}
+              />
+              {(lookup.data?.items ?? []).map((cl) => (
+                <Pressable
+                  key={cl.phone}
+                  testID="crm-client-suggestion"
+                  accessibilityRole="button"
+                  disabled={cl.phoneMasked}
+                  onPress={() => {
+                    pickClient(cl);
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                    paddingVertical: 6,
+                  }}
+                >
+                  <Avatar name={cl.name} size={30} />
+                  <View style={{ flex: 1 }}>
+                    <Text role="uiMedium" size={14} color={c.ink}>
+                      {cl.name}
                     </Text>
-                  </Pressable>
-                );
-              })}
-          </View>
-        ) : null}
-      </Section>
+                    <Text size={12} color={c.muted}>
+                      {cl.phone}
+                    </Text>
+                  </View>
+                </Pressable>
+              ))}
+              <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+                <Field flex={1} label={t("calendar.newClientName")}>
+                  <Input
+                    testID="crm-client-name"
+                    label={t("calendar.newClientName")}
+                    value={name || (digits.length < 3 ? q : "")}
+                    onChangeText={setName}
+                  />
+                </Field>
+                <Field flex={1} label={t("calendar.newClientPhone")}>
+                  <Input
+                    testID="crm-client-phone"
+                    label={t("calendar.newClientPhone")}
+                    keyboardType="phone-pad"
+                    value={phone || (digits.length >= 3 ? q : "")}
+                    onChangeText={setPhone}
+                  />
+                </Field>
+              </View>
+            </>
+          )}
+        </Section>
 
-      {service ? (
-        <Section title={t("calendar.staff")}>
-          <Chips
-            items={[
-              { id: "any", label: t("calendar.anyStaff") },
-              ...people.map((s) => ({ id: s.id, label: s.displayName })),
+        <Section title={t("calendar.service")}>
+          <Segmented<"catalog" | "custom">
+            value={serviceMode}
+            options={[
+              { id: "catalog", label: t("calendar.catalogService") },
+              { id: "custom", label: t("calendar.customService") },
             ]}
-            value={staffId ?? "any"}
-            onChange={(id) => {
-              setStaffId(id === "any" ? null : id);
+            onChange={(mode) => {
+              setServiceMode(mode);
+              setExtras([]);
               setSlot(null);
-              setSlotTouched(true);
+              setSlotTouched(false);
             }}
           />
-        </Section>
-      ) : null}
-
-      {service && maxExtra > 0 ? (
-        <ServiceLines
-          lines={extras}
-          services={active}
-          staff={staff}
-          max={maxExtra}
-          onChange={(next) => {
-            setExtras(next);
-            setSlot(null);
-            setSlotTouched(true);
-          }}
-        />
-      ) : null}
-
-      {service ? (
-        <Section title={t("calendar.time")}>
-          {dragUnavailable && !earliestOpen ? (
-            <BookabilityWarning
-              testID="crm-drag-unavailable"
-              text={t("calendar.dragUnavailable")}
-              action={t("calendar.findEarliest")}
-              onPress={() => {
-                setEarliestOpen(true);
+          {custom ? (
+            <>
+              <Field label={t("calendar.customServiceName")} hint={t("calendar.customServiceHint")}>
+                <Input
+                  testID="crm-custom-service-name"
+                  label={t("calendar.customServiceName")}
+                  value={customName}
+                  onChangeText={setCustomName}
+                  maxLength={160}
+                />
+              </Field>
+              <Field label={t("calendar.customServicePrice")}>
+                <MoneyInput
+                  testID="crm-custom-service-price"
+                  label={t("calendar.customServicePrice")}
+                  value={customPrice}
+                  onChange={setCustomPrice}
+                />
+              </Field>
+            </>
+          ) : (
+            <Chips
+              items={active.map((s) => ({
+                id: s.id,
+                label: serviceName(s),
+                sub: formatVND(s.price, locale),
+              }))}
+              value={serviceId}
+              onChange={(id) => {
+                setServiceId(id);
+                const s = active.find((x) => x.id === id);
+                setVariantId(s?.variants[0]?.id ?? null);
+                setAddOnIds([]);
+                if (staffId && s && !s.staffIds.includes(staffId)) setStaffId(null);
+                setSlot(null);
+                setSlotTouched(false);
+              }}
+            />
+          )}
+          {service?.variants.length ? (
+            <Chips
+              items={service.variants
+                .filter((v) => v.isActive)
+                .map((v) => ({
+                  id: v.id,
+                  label: (locale === "en" && v.name.en) || v.name.vi,
+                  sub: v.price !== null ? formatVND(v.price, locale) : undefined,
+                }))}
+              value={variantId}
+              onChange={(id) => {
+                setVariantId(id);
+                setSlot(null);
+                setSlotTouched(false);
               }}
             />
           ) : null}
-          {reason === null && !earliestOpen ? (
-            <View style={{ flexDirection: "row" }}>
-              <CalmButton
-                testID="crm-find-earliest"
-                size="sm"
-                variant="secondary"
-                icon="clock"
-                label={t("calendar.findEarliest")}
+          {service?.addOns.length ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {service.addOns
+                .filter((a) => a.isActive)
+                .map((a) => {
+                  const on = addOnIds.includes(a.id);
+                  return (
+                    <Pressable
+                      key={a.id}
+                      {...checkableA11y("checkbox", on)}
+                      onPress={() => {
+                        setAddOnIds((ids) => (on ? ids.filter((x) => x !== a.id) : [...ids, a.id]));
+                        setSlot(null);
+                        setSlotTouched(false);
+                      }}
+                      style={{
+                        paddingHorizontal: 10,
+                        height: 34,
+                        borderRadius: 10,
+                        justifyContent: "center",
+                        borderWidth: 1,
+                        borderStyle: "dashed",
+                        borderColor: on ? c.accentBg : c.line,
+                        backgroundColor: on ? c.accentSoft : c.surface,
+                      }}
+                    >
+                      <Text size={13} color={on ? c.accent : c.ink}>
+                        {`+ ${(locale === "en" && a.name.en) || a.name.vi} · ${formatVND(a.extraPrice, locale)}`}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+            </View>
+          ) : null}
+          {extras.length === 0 ? (
+            <Field
+              label={t("calendar.durationLabel")}
+              hint={
+                prefill.durationMinutes
+                  ? t("calendar.selectedDuration", { minutes: prefill.durationMinutes })
+                  : undefined
+              }
+              error={validDuration ? null : t("calendar.durationInvalid")}
+            >
+              <Input
+                testID="crm-booking-duration"
+                label={t("calendar.durationLabel")}
+                keyboardType="number-pad"
+                value={durationOverride ?? String(catalogDuration)}
+                onChangeText={(value) => {
+                  setDurationOverride(value.replace(/\D/g, "").slice(0, 4));
+                  setSlot(null);
+                  setSlotTouched(false);
+                }}
+              />
+            </Field>
+          ) : null}
+        </Section>
+
+        {service || custom ? (
+          <Section title={t("calendar.staff")}>
+            <Chips
+              items={[
+                { id: "any", label: t("calendar.anyStaff") },
+                ...people.map((s) => ({ id: s.id, label: s.displayName })),
+              ]}
+              value={staffId ?? "any"}
+              onChange={(id) => {
+                setStaffId(id === "any" ? null : id);
+                setSlot(null);
+                setSlotTouched(false);
+              }}
+            />
+          </Section>
+        ) : null}
+
+        {service && maxExtra > 0 ? (
+          <ServiceLines
+            lines={extras}
+            services={active}
+            staff={staff}
+            max={maxExtra}
+            onChange={(next) => {
+              setExtras(next);
+              if (next.length) setDurationOverride(null);
+              setSlot(null);
+              setSlotTouched(true);
+            }}
+          />
+        ) : null}
+
+        {service || custom ? (
+          <Section title={t("calendar.time")}>
+            {dragUnavailable && !earliestOpen ? (
+              <BookabilityWarning
+                testID="crm-drag-unavailable"
+                text={t("calendar.dragUnavailable")}
+                action={t("calendar.findEarliest")}
                 onPress={() => {
                   setEarliestOpen(true);
                 }}
               />
-            </View>
-          ) : null}
-          {earliestOpen ? (
-            <EarliestList
-              loading={earliest.isPending}
-              data={earliest.data}
-              tz={tz}
-              staff={staff}
-              showStaff={!staffId}
-              onPick={pickEarliest}
-              onClose={() => {
-                setEarliestOpen(false);
+            ) : null}
+            {reason === null && !earliestOpen ? (
+              <View style={{ flexDirection: "row" }}>
+                <CalmButton
+                  testID="crm-find-earliest"
+                  size="sm"
+                  variant="secondary"
+                  icon="clock"
+                  label={t("calendar.findEarliest")}
+                  onPress={() => {
+                    setEarliestOpen(true);
+                  }}
+                />
+              </View>
+            ) : null}
+            {earliestOpen ? (
+              <EarliestList
+                loading={earliest.isPending}
+                data={earliest.data}
+                tz={tz}
+                staff={staff}
+                showStaff={!staffId}
+                onPick={pickEarliest}
+                onClose={() => {
+                  setEarliestOpen(false);
+                }}
+              />
+            ) : null}
+            <DatePicker
+              testID="crm-date-picker"
+              value={date}
+              today={today}
+              min={today}
+              max={maxDate}
+              allowBeyondMax={canOverride}
+              dayState={dayState}
+              localeTag={locale === "vi" ? "vi-VN" : "en-US"}
+              prevLabel={t("calendar.prevMonth")}
+              nextLabel={t("calendar.nextMonth")}
+              onMonthChange={(first, last) => {
+                setMonth({ first, last });
               }}
-            />
-          ) : null}
-          <DatePicker
-            testID="crm-date-picker"
-            value={date}
-            today={today}
-            min={today}
-            max={maxDate}
-            allowBeyondMax={canOverride}
-            dayState={dayState}
-            localeTag={locale === "vi" ? "vi-VN" : "en-US"}
-            prevLabel={t("calendar.prevMonth")}
-            nextLabel={t("calendar.nextMonth")}
-            onMonthChange={(first, last) => {
-              setMonth({ first, last });
-            }}
-            onChange={(d) => {
-              setDate(d);
-              setSlot(null);
-              setSlotTouched(true);
-            }}
-          />
-          {canOverride && !beyondWindow ? (
-            <Pressable
-              testID="crm-override-toggle"
-              {...checkableA11y("switch", overrideOn)}
-              onPress={() => {
-                setOverrideOn((v) => !v);
+              onChange={(d) => {
+                setDate(d);
                 setSlot(null);
                 setSlotTouched(true);
               }}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                alignSelf: "flex-start",
-              }}
-            >
-              <Icon name={overrideOn ? "close" : "clock"} size={14} color={c.accent} />
-              <Text role="uiSemiBold" size={13} color={c.accent}>
-                {overrideOn ? t("calendar.overrideOff") : t("calendar.overrideOn")}
-              </Text>
-            </Pressable>
-          ) : null}
-          {manualMode ? (
-            <View
-              testID={beyondWindow ? "crm-beyond-window" : "crm-override-panel"}
-              style={{ gap: 8, padding: 12, borderRadius: 12, backgroundColor: c.surfaceMuted }}
-            >
-              <Text size={13} color={c.body}>
-                {beyondWindow
-                  ? t("calendar.beyondWindow", { days: windowDays })
-                  : t("calendar.overrideExplain")}
-              </Text>
-              <View
-                style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}
-              >
-                <Field label={t("calendar.manualTime")}>
-                  <TimeInput
-                    testID="crm-manual-time"
-                    label={t("calendar.manualTime")}
-                    value={manualTime}
-                    onChange={setManualTime}
-                  />
-                </Field>
-                <Field
-                  flex={1}
-                  label={t("calendar.overrideReason")}
-                  hint={staffId ? undefined : t("calendar.overrideNeedsStaff")}
-                >
-                  <Input
-                    testID="crm-override-reason"
-                    label={t("calendar.overrideReason")}
-                    value={overrideReason}
-                    onChangeText={setOverrideReason}
-                  />
-                </Field>
-              </View>
-            </View>
-          ) : null}
-          {!manualMode && reason ? (
-            <BookabilityWarning
-              testID={`crm-unavailable-${reason}`}
-              text={t(`calendar.unavailable.${reason}`)}
-              {...(reasonFix
-                ? {
-                    action: reasonFix.label,
-                    onPress: () => {
-                      onClose();
-                      go(reasonFix.path);
-                    },
-                  }
-                : {})}
             />
-          ) : null}
-          {manualMode || reason ? null : (
-            <SlotGrid
-              tz={tz}
-              loading={availability.isPending && availability.fetchStatus !== "idle"}
-              slots={slots}
-              selected={chosenSlot}
-              onSelect={(s) => {
-                setSlot(s);
-              }}
-            />
-          )}
-          {!manualMode && !reason && availability.data?.truncated ? (
-            <TruncatedHint testID="crm-availability-truncated" />
-          ) : null}
-          {extras.length > 0 && availability.data ? (
-            <ChainPlan
-              durationMinutes={availability.data.durationMinutes}
-              price={[service, ...extras.map((l) => active.find((x) => x.id === l.serviceId))]
-                .filter((x): x is Service => Boolean(x))
-                .reduce((sum, x, i) => {
-                  const v =
-                    i === 0
-                      ? x.variants.find((y) => y.id === variantId)
-                      : x.variants.find((y) => y.id === extras[i - 1]?.variantId);
-                  return sum + (v?.price ?? x.price);
-                }, 0)}
-              lines={slots.find((x) => x.startsAt === chosenSlot)?.lines ?? []}
-              services={active}
-              staff={staff}
-              tz={tz}
-            />
-          ) : null}
-        </Section>
-      ) : null}
+            <Field label={t("calendar.manualTime")}>
+              <TimeInput
+                testID="crm-manual-time"
+                label={t("calendar.manualTime")}
+                value={
+                  chosenSlot
+                    ? `${String(Math.floor(minutesInZone(new Date(chosenSlot), tz) / 60)).padStart(2, "0")}:${String(minutesInZone(new Date(chosenSlot), tz) % 60).padStart(2, "0")}`
+                    : manualTime
+                }
+                onChange={(value) => {
+                  setManualTime(value);
+                  setSlot(null);
+                  setSlotTouched(true);
+                  create.reset();
+                }}
+              />
+            </Field>
+            {reason ? (
+              <BookabilityWarning
+                testID={`crm-unavailable-${reason}`}
+                text={t(`calendar.unavailable.${reason}`)}
+                {...(reasonFix
+                  ? {
+                      action: reasonFix.label,
+                      onPress: () => {
+                        onClose();
+                        go(reasonFix.path);
+                      },
+                    }
+                  : {})}
+              />
+            ) : null}
+            {reason ? null : (
+              <SlotGrid
+                tz={tz}
+                loading={availability.isPending && availability.fetchStatus !== "idle"}
+                slots={slots}
+                selected={chosenSlot}
+                onSelect={(s) => {
+                  setSlot(s);
+                  setManualTime("");
+                  setSlotTouched(true);
+                  create.reset();
+                }}
+              />
+            )}
+            {!reason && availability.data?.truncated ? (
+              <TruncatedHint testID="crm-availability-truncated" />
+            ) : null}
+            {extras.length > 0 && availability.data ? (
+              <ChainPlan
+                durationMinutes={availability.data.durationMinutes}
+                price={[service, ...extras.map((l) => active.find((x) => x.id === l.serviceId))]
+                  .filter((x): x is Service => Boolean(x))
+                  .reduce((sum, x, i) => {
+                    const v =
+                      i === 0
+                        ? x.variants.find((y) => y.id === variantId)
+                        : x.variants.find((y) => y.id === extras[i - 1]?.variantId);
+                    return sum + (v?.price ?? x.price);
+                  }, 0)}
+                lines={slots.find((x) => x.startsAt === chosenSlot)?.lines ?? []}
+                services={active}
+                staff={staff}
+                tz={tz}
+              />
+            ) : null}
+          </Section>
+        ) : null}
 
-      {walkIn ? null : (
-        <Section title={t("calendar.source")}>
-          <Segmented<Source>
-            value={source}
-            onChange={setSource}
-            options={(["phone", "zalo_chat", "staff_created"] as const).map((s) => ({
-              id: s,
-              label: t(`booking.source.${s}`),
-            }))}
-          />
-        </Section>
-      )}
-      <Field label={t("booking.note")}>
-        <Input multiline label={t("booking.note")} value={note} onChangeText={setNote} />
-      </Field>
-    </Sheet>
+        {walkIn ? null : (
+          <Section title={t("calendar.source")}>
+            <Segmented<Source>
+              value={source}
+              onChange={setSource}
+              options={(["phone", "zalo_chat", "staff_created"] as const).map((s) => ({
+                id: s,
+                label: t(`booking.source.${s}`),
+              }))}
+            />
+          </Section>
+        )}
+        <Field label={t("booking.note")}>
+          <Input multiline label={t("booking.note")} value={note} onChangeText={setNote} />
+        </Field>
+      </Sheet>
+    </>
   );
 }
 
@@ -934,7 +1079,7 @@ function ChainPlan({
   durationMinutes: number;
   /** Base prices (add-ons excluded); the booking shows the exact estimate. */
   price: number;
-  lines: { serviceId: string; startsAt: string; staffId: string | null }[];
+  lines: { serviceId: string | null; startsAt: string; staffId: string | null }[];
   services: Service[];
   staff: StaffMember[];
   tz: string;
@@ -950,7 +1095,7 @@ function ChainPlan({
       {lines.map((l) => {
         const s = services.find((x) => x.id === l.serviceId);
         return (
-          <Text key={`${l.serviceId}-${l.startsAt}`} size={12} color={c.body}>
+          <Text key={`${l.serviceId ?? "custom"}-${l.startsAt}`} size={12} color={c.body}>
             {t("calendar.chainPlan", {
               time: formatTime(new Date(l.startsAt), locale, tz),
               service: s ? (locale === "en" && s.name.en) || s.name.vi : "",

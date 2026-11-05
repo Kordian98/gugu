@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { createI18n } from "@gugu/localization";
+import { createI18n, formatDateTimeShort } from "@gugu/localization";
+import { UPCOMING_BOOKING_STATUSES } from "@gugu/domain";
 import { PrismaService } from "../../../infrastructure/prisma/prisma.service";
 import { decideCs } from "../domain/window";
 import { type OutboundItem, OutboundService } from "./outbound.service";
@@ -13,7 +14,7 @@ type Update = "confirmed" | "cancelled" | "rescheduled";
  * staff-entered bookings for a known Zalo customer (confirmation), a pending booking confirmed,
  * a booking cancelled or moved by the salon. Changes the customer made in the chat are skipped
  * (the bot already answered). Fed by `ZaloBookingEventsHandler` from the outbox relay (04-S5) right
- * after the commit. Delivery is at-least-once: sends are deduped by `booking_update:<eventId>`.
+ * after the commit. Reschedules dedupe by booking revision; other updates by outbox event id.
  */
 @Injectable()
 export class BookingUpdatesService {
@@ -49,6 +50,17 @@ export class BookingUpdatesService {
       update = "rescheduled";
     }
     if (!update) return 0;
+    const version = payload["version"];
+    // Also protects A→B→A moves and a cancellation/completion before the outbox was consumed.
+    if (
+      update === "rescheduled" &&
+      (!UPCOMING_BOOKING_STATUSES.includes(booking.status) ||
+        typeof version !== "number" ||
+        version !== booking.version ||
+        (typeof payload["toStartsAt"] === "string" &&
+          payload["toStartsAt"] !== booking.startsAt.toISOString()))
+    )
+      return 0;
 
     let conv = booking.zaloLink?.conversation ?? null;
     if (!conv && booking.customerPhoneE164) {
@@ -69,14 +81,7 @@ export class BookingUpdatesService {
 
     const { t } = createI18n("vi");
     const tz = booking.salon.timezone;
-    const time = new Intl.DateTimeFormat("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      day: "2-digit",
-      month: "2-digit",
-      hourCycle: "h23",
-      timeZone: tz,
-    }).format(booking.startsAt);
+    const time = formatDateTimeShort(booking.startsAt, "vi", tz);
     // Every service of a multi-service booking (M6.8): "Sơn gel + Pedicure".
     const service = booking.services
       .map((l) => ((l.name ?? {}) as { vi?: string }).vi ?? "")
@@ -87,27 +92,32 @@ export class BookingUpdatesService {
         ? t("zalo:bot.updateConfirmed", vars)
         : update === "cancelled"
           ? t("zalo:bot.updateCancelled", vars)
-          : t("zalo:bot.rescheduled", vars);
-    const dedupKey = `booking_update:${eventId}`;
+          : t("zalo:bot.updateRescheduled", vars);
+    const dedupKey =
+      update === "rescheduled" && typeof version === "number"
+        ? `booking_update:rescheduled:${booking.id}:${String(version)}`
+        : `booking_update:${eventId}`;
     const decision = decideCs(conv.lastUserInteractionAt, this.clock.now(), conn.allowPaidMessages);
-    // Outside the 7-day window only a confirmation has a template; other changes are still logged
-    // (as rejected) so staff can see the customer was not told and call instead.
+    // A move reconfirms the appointment at its new time. Use the existing approved confirmation
+    // template when consultation messages cannot be sent; cancellation has no such template.
     const item: OutboundItem =
-      decision.send || update !== "confirmed"
+      decision.send || update === "cancelled"
         ? {
             channel: "cs",
             purpose: `booking_${update}`,
             conversationId: conv.id,
             sender: "system",
             bookingId,
+            ...(update === "rescheduled" ? { bookingVersion: booking.version } : {}),
             dedupKey,
             message: { kind: "text", text, buttons: [] },
           }
         : {
             channel: "template",
-            purpose: "booking_confirmation",
+            purpose: update === "rescheduled" ? "booking_rescheduled" : "booking_confirmation",
             conversationId: conv.id,
             bookingId,
+            ...(update === "rescheduled" ? { bookingVersion: booking.version } : {}),
             templateKey: "booking_confirmation",
             phoneE164: conv.phoneE164 ?? booking.customerPhoneE164,
             data: templateData(

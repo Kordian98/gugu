@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Modal, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,7 @@ import { NotificationBell } from "@/features/notifications/NotificationBell";
 import { useThemePreference } from "../theme/CrmThemeProvider";
 import { ALL_ITEMS, TABS } from "./nav";
 import { useCrmNav, useVisibleNav } from "./useCrmNav";
+import { SignOutButton } from "./SignOutButton";
 
 /** Mobile header (ref crm-02 phone): menu, wordmark + STUDIO pill, theme toggle. */
 export function MobileHeader({ onMenu }: { onMenu: () => void }) {
@@ -185,6 +186,7 @@ export function MoreSheet({ open, onClose }: { open: boolean; onClose: () => voi
           left: 0,
           right: 0,
           bottom: 0,
+          maxHeight: "90%",
           paddingBottom: insets.bottom + 12,
           paddingTop: 12,
           paddingHorizontal: 12,
@@ -203,35 +205,38 @@ export function MoreSheet({ open, onClose }: { open: boolean; onClose: () => voi
             marginBottom: 8,
           }}
         />
-        {items.map((item) => {
-          const on = active === item.id;
-          const fg = on ? c.navActiveText : c.sidebarText;
-          return (
-            <Pressable
-              key={item.id}
-              accessibilityRole="link"
-              accessibilityState={{ selected: on }}
-              onPress={() => {
-                onClose();
-                go(item.path);
-              }}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                height: 46,
-                paddingHorizontal: 12,
-                borderRadius: 12,
-                backgroundColor: on ? c.navActiveBg : "transparent",
-              }}
-            >
-              <Icon name={item.icon} size={20} color={fg} strokeWidth={1.8} />
-              <Text role={on ? "uiSemiBold" : "ui"} size={15} color={fg}>
-                {t(`nav.items.${item.id}`)}
-              </Text>
-            </Pressable>
-          );
-        })}
+        <ScrollView style={{ flexShrink: 1 }}>
+          {items.map((item) => {
+            const on = active === item.id;
+            const fg = on ? c.navActiveText : c.sidebarText;
+            return (
+              <Pressable
+                key={item.id}
+                accessibilityRole="link"
+                accessibilityState={{ selected: on }}
+                onPress={() => {
+                  onClose();
+                  go(item.path);
+                }}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  height: 46,
+                  paddingHorizontal: 12,
+                  borderRadius: 12,
+                  backgroundColor: on ? c.navActiveBg : "transparent",
+                }}
+              >
+                <Icon name={item.icon} size={20} color={fg} strokeWidth={1.8} />
+                <Text role={on ? "uiSemiBold" : "ui"} size={15} color={fg}>
+                  {t(`nav.items.${item.id}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        <SignOutButton />
       </View>
     </Modal>
   );
