@@ -15,6 +15,7 @@ import { useSalon } from "../../data/SalonContext";
 import { useWorkspace } from "../../data/useWorkspace";
 import { PageHeader } from "../../shell/PageHeader";
 import { useBreakpoint } from "../../shell/useBreakpoint";
+import { QueryError } from "../../ui/QueryError";
 import { EmptyState } from "../../ui/EmptyState";
 import { Segmented } from "../../ui/form";
 import { DailyAppointmentsChart } from "./DailyAppointmentsChart";
@@ -71,6 +72,15 @@ export function InsightsScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+      {q.isError && q.data ? (
+        <QueryError
+          testID="crm-insights-refresh-error"
+          busy={q.isFetching}
+          onRetry={() => {
+            void q.refetch();
+          }}
+        />
+      ) : null}
       <PageHeader
         title={t("pages.insights.title")}
         subtitle={t("insights.subtitle")}
@@ -107,7 +117,15 @@ export function InsightsScreen() {
           </View>
           {q.isPending ? (
             <ActivityIndicator color={c.accent} />
-          ) : q.data?.forbidden ? (
+          ) : q.isError && !q.data ? (
+            <QueryError
+              testID="crm-insights-error"
+              busy={q.isFetching}
+              onRetry={() => {
+                void q.refetch();
+              }}
+            />
+          ) : q.data.forbidden ? (
             <EmptyState
               testID="crm-insights-forbidden"
               icon="chart"

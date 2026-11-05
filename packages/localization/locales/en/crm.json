@@ -29,7 +29,7 @@
   "shell": {
     "signOut": "Sign out",
     "signOutFailed": "Couldn't sign out. Please try again.",
-    "searchPlaceholder": "Search appointments, customers…",
+    "searchPlaceholder": "Find clients by name or phone",
     "newAppointment": "New appointment",
     "newShort": "New",
     "notifications": "Notifications",
@@ -218,7 +218,8 @@
     "required": "Required",
     "edit": "Edit",
     "done": "Done",
-    "back": "Back"
+    "back": "Back",
+    "retry": "Try again"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -436,7 +437,11 @@
     "pay": {
       "open": "Pay & commission of {{name}}",
       "setNow": "No pay set · Set it now"
-    }
+    },
+    "removeTitle": "Remove {{name}} from the team?",
+    "removeBody": "This team member will no longer take new appointments. Their history is kept.",
+    "splitHoursPreserved": "Existing shifts and breaks are kept unchanged.",
+    "replaceSplitHours": "Replace with one shift"
   },
   "settings": {
     "profile": "Salon details",
@@ -479,7 +484,9 @@
     "bookingPolicy": "Booking policy",
     "bookingPolicyHint": "E.g. please arrive 5 minutes early.",
     "cancellationPolicy": "Cancellation policy",
-    "cancellationPolicyHint": "Shown to clients when they book."
+    "cancellationPolicyHint": "Shown to clients when they book.",
+    "contactOptional": "Phone and address are optional. You can add them later.",
+    "addressIncomplete": "To add an address, enter the street and select both the province and ward."
   },
   "join": {
     "usedTitle": "This invitation was already used",
@@ -778,7 +785,16 @@
     "email": "Email (optional)",
     "emailHint": "Saved for your records only. GuGu never emails your clients.",
     "emailInvalid": "This email address doesn't look right.",
-    "emailSaved": "Email saved."
+    "emailSaved": "Email saved.",
+    "noResultsTitle": "No matching clients",
+    "noResultsBody": "Try another name or phone number, or clear the filters.",
+    "clearFilters": "Clear filters",
+    "loadMore": "Load more clients",
+    "loadedCount": "Showing {{shown}} of {{total}} clients",
+    "editName": "Edit client name",
+    "nameSaved": "Client name saved.",
+    "deleteNoteTitle": "Delete this note?",
+    "deleteNoteBody": "This note cannot be recovered after deletion."
   },
   "insights": {
     "subtitle": "Figures from your salon's appointments. Revenue is an estimate, not money received.",
@@ -879,7 +895,8 @@
     "deleteTypeBody": "Its rooms/equipment are removed too. Past appointments stay as they are.",
     "deleteTypeInUse": "{{count}} services need this type. Remove the requirement from them first.",
     "deleteResource": "Delete {{name}}",
-    "active": "Turn {{name}} on/off"
+    "active": "Turn {{name}} on/off",
+    "deleteResourceBody": "This room or equipment will no longer be available for new appointments."
   },
   "myDay": {
     "total": "{{count}} today",

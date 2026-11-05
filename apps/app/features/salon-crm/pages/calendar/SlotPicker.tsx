@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Text, useCalm } from "@gugu/design-system";
+import { MIN_TOUCH, Text, useCalm } from "@gugu/design-system";
 import type { SalonBooking, StaffMember } from "@gugu/contracts";
 import { formatTime } from "@gugu/localization";
 
@@ -118,7 +118,7 @@ export function SlotGrid({
             }}
             style={{
               minWidth: 72,
-              height: 38,
+              minHeight: MIN_TOUCH,
               paddingHorizontal: 10,
               borderRadius: 10,
               alignItems: "center",

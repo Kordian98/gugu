@@ -93,39 +93,52 @@ export class SalonSettingsService {
   }
 
   async updateProfile(ctx: SalonContext, input: SalonProfileInput): Promise<void> {
-    const phone = normalizeVnPhone(input.phone);
-    if (!phone) throw new AppError(400, SALON_ERRORS.invalidPhone, "Invalid phone");
-    const ward = await this.prisma.location.findFirst({
-      where: { id: input.wardId, level: "ward", parentId: input.provinceId, isActive: true },
-    });
-    if (!ward) throw new AppError(400, SALON_ERRORS.unknownLocation, "Unknown location");
+    const phone =
+      input.phone === undefined
+        ? undefined
+        : input.phone === null
+          ? null
+          : normalizeVnPhone(input.phone);
+    if (input.phone != null && !phone)
+      throw new AppError(400, SALON_ERRORS.invalidPhone, "Invalid phone");
+    if (input.wardId != null && input.provinceId != null) {
+      const ward = await this.prisma.location.findFirst({
+        where: { id: input.wardId, level: "ward", parentId: input.provinceId, isActive: true },
+      });
+      if (!ward) throw new AppError(400, SALON_ERRORS.unknownLocation, "Unknown location");
+    }
     await this.prisma.$transaction(async (tx) => {
       await tx.salon.update({
         where: { id: ctx.salonId, organizationId: ctx.organizationId },
-        data: { name: input.name, phoneE164: phone },
+        data: { name: input.name, ...(phone !== undefined ? { phoneE164: phone } : {}) },
       });
-      await tx.salonLocation.upsert({
-        where: { salonId: ctx.salonId },
-        create: {
-          salonId: ctx.salonId,
-          addressLine: input.streetAddress,
-          provinceId: input.provinceId,
-          wardId: input.wardId,
-        },
-        update: {
-          addressLine: input.streetAddress,
-          provinceId: input.provinceId,
-          wardId: input.wardId,
-        },
-      });
-      await tx.salonSettings.upsert({
-        where: { salonId: ctx.salonId },
-        create: {
-          salonId: ctx.salonId,
-          description: jsonOrNull(input.description) ?? Prisma.DbNull,
-        },
-        update: { description: jsonOrNull(input.description) ?? Prisma.DbNull },
-      });
+      if (input.streetAddress === null) {
+        await tx.salonLocation.deleteMany({ where: { salonId: ctx.salonId } });
+      } else if (input.streetAddress !== undefined && input.provinceId && input.wardId) {
+        await tx.salonLocation.upsert({
+          where: { salonId: ctx.salonId },
+          create: {
+            salonId: ctx.salonId,
+            addressLine: input.streetAddress,
+            provinceId: input.provinceId,
+            wardId: input.wardId,
+          },
+          update: {
+            addressLine: input.streetAddress,
+            provinceId: input.provinceId,
+            wardId: input.wardId,
+          },
+        });
+      }
+      if (input.description !== undefined)
+        await tx.salonSettings.upsert({
+          where: { salonId: ctx.salonId },
+          create: {
+            salonId: ctx.salonId,
+            description: jsonOrNull(input.description) ?? Prisma.DbNull,
+          },
+          update: { description: jsonOrNull(input.description) ?? Prisma.DbNull },
+        });
       await this.record(tx, ctx, "salon.profile_updated", { fields: "profile" });
     });
   }

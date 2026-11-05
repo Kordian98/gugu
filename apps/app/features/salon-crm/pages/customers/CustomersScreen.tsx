@@ -1,8 +1,18 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { Avatar, CalmButton, CalmCard, Pill, Text, useCalm } from "@gugu/design-system";
+import {
+  Avatar,
+  CalmButton,
+  CalmCard,
+  Pill,
+  space,
+  Text,
+  typeScale,
+  useCalm,
+} from "@gugu/design-system";
 import type { CustomerSummary } from "@gugu/contracts";
 import { formatDateLong, formatVND } from "@gugu/localization";
 
@@ -16,23 +26,35 @@ import { useBreakpoint } from "../../shell/useBreakpoint";
 import { EmptyState } from "../../ui/EmptyState";
 import { useErrorText } from "../../ui/errors";
 import { ErrorBanner, Field, Input, Sheet } from "../../ui/form";
+import { QueryError } from "../../ui/QueryError";
 import { CustomerSheet } from "./CustomerSheet";
 
 const SEGMENTS = ["all", "new", "returning", "at_risk", "no_shows"] as const;
 
 /** Customers (07 M7.7, §3.5): directory with search, segments, tags; opens the client profile. */
 export function CustomersScreen() {
+  const { q } = useLocalSearchParams<{ q?: string }>();
+  return <CustomerDirectory key={q ?? ""} initialQuery={q?.slice(0, 60) ?? ""} />;
+}
+
+function CustomerDirectory({ initialQuery }: { initialQuery: string }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
   const bp = useBreakpoint();
   const ws = useWorkspace();
   const { can } = useSalon();
-  const [filter, setFilter] = useState<CustomerFilter>({ q: "", segment: "all", tag: null });
+  const [filter, setFilter] = useState<CustomerFilter>({
+    q: initialQuery,
+    segment: "all",
+    tag: null,
+  });
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const list = useCustomers(filter);
-  const items = list.data?.items ?? [];
+  const items = list.data?.pages.flatMap((page) => page.items) ?? [];
+  const total = list.data?.pages[0]?.total ?? 0;
+  const filtered = Boolean(filter.q.trim() || filter.tag || filter.segment !== "all");
   const mobile = bp === "mobile";
   const canEdit = can("customers.read");
 
@@ -48,6 +70,7 @@ export function CustomersScreen() {
           <View style={{ flex: 1, minWidth: 220 }}>
             <Input
               testID="crm-customers-search"
+              maxLength={60}
               label={t("customers.search")}
               placeholder={t("customers.search")}
               value={filter.q}
@@ -82,7 +105,7 @@ export function CustomersScreen() {
               }}
             />
           ))}
-          {(list.data?.tags ?? []).map((tag) => (
+          {(list.data?.pages[0]?.tags ?? []).map((tag) => (
             <Chip
               key={`tag-${tag}`}
               label={`#${tag}`}
@@ -93,17 +116,37 @@ export function CustomersScreen() {
             />
           ))}
         </ScrollView>
-        <Text size={12} color={c.muted}>
-          {t("customers.count", { count: list.data?.total ?? 0 })}
-        </Text>
+        {list.data ? (
+          <Text size={typeScale.caption} color={c.muted}>
+            {t("customers.loadedCount", { shown: items.length, total })}
+          </Text>
+        ) : null}
         {list.isPending ? (
           <ActivityIndicator color={c.accent} />
+        ) : list.isError && !list.data ? (
+          <QueryError
+            onRetry={() => {
+              void list.refetch();
+            }}
+            busy={list.isFetching}
+          />
         ) : items.length === 0 ? (
           <EmptyState
             testID="crm-customers-empty"
             icon="users"
-            title={t("pages.customers.emptyTitle")}
-            body={t("pages.customers.emptyBody")}
+            title={t(filtered ? "customers.noResultsTitle" : "pages.customers.emptyTitle")}
+            body={t(filtered ? "customers.noResultsBody" : "pages.customers.emptyBody")}
+            action={
+              filtered ? (
+                <CalmButton
+                  variant="secondary"
+                  label={t("customers.clearFilters")}
+                  onPress={() => {
+                    setFilter({ q: "", segment: "all", tag: null });
+                  }}
+                />
+              ) : undefined
+            }
           />
         ) : (
           items.map((cu) => (
@@ -118,6 +161,25 @@ export function CustomersScreen() {
             />
           ))
         )}
+        {list.isError && list.data ? (
+          <QueryError
+            onRetry={() => {
+              void (list.isFetchNextPageError ? list.fetchNextPage() : list.refetch());
+            }}
+            busy={list.isFetching}
+          />
+        ) : null}
+        {list.hasNextPage ? (
+          <CalmButton
+            testID="crm-customers-more"
+            variant="secondary"
+            label={t("customers.loadMore")}
+            disabled={list.isFetching}
+            onPress={() => {
+              void list.fetchNextPage();
+            }}
+          />
+        ) : null}
       </CalmCard>
       {open ? (
         <CustomerSheet
@@ -227,7 +289,7 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
       accessibilityState={{ selected: on }}
       onPress={onPress}
       style={{
-        height: 34,
+        minHeight: space[10] + space[1],
         paddingHorizontal: 12,
         borderRadius: 17,
         justifyContent: "center",
@@ -236,7 +298,7 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
         backgroundColor: on ? c.accentSoft : c.surface,
       }}
     >
-      <Text role={on ? "uiSemiBold" : "ui"} size={13} color={on ? c.accent : c.ink}>
+      <Text role={on ? "uiSemiBold" : "ui"} size={typeScale.body} color={on ? c.accent : c.ink}>
         {label}
       </Text>
     </Pressable>
@@ -256,21 +318,24 @@ function AddCustomer({ onClose }: { onClose: (id: string | null) => void }) {
         onClose(null);
       }}
       closeLabel={t("common.close")}
+      dismissDisabled={create.isPending}
       title={t("customers.add")}
       footer={
         <>
           <CalmButton
             variant="secondary"
             label={t("common.cancel")}
+            disabled={create.isPending}
             onPress={() => {
               onClose(null);
             }}
           />
           <CalmButton
             testID="crm-customer-save"
+            disabled={!name.trim() || create.isPending}
             label={create.isPending ? t("common.saving") : t("common.save")}
             onPress={() => {
-              if (!name.trim()) return;
+              if (!name.trim() || create.isPending) return;
               create.mutate(
                 { displayName: name.trim(), phone: phone.trim() || null },
                 {
@@ -288,6 +353,7 @@ function AddCustomer({ onClose }: { onClose: (id: string | null) => void }) {
       <Field label={t("calendar.newClientName")}>
         <Input
           testID="crm-customer-name"
+          maxLength={120}
           label={t("calendar.newClientName")}
           value={name}
           onChangeText={setName}
@@ -296,6 +362,7 @@ function AddCustomer({ onClose }: { onClose: (id: string | null) => void }) {
       <Field label={t("calendar.newClientPhone")} hint={t("customers.phoneOptional")}>
         <Input
           testID="crm-customer-phone"
+          maxLength={32}
           label={t("calendar.newClientPhone")}
           keyboardType="phone-pad"
           value={phone}

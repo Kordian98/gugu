@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import type {
   CustomerDetail,
@@ -27,11 +33,18 @@ export function useCustomers(f: CustomerFilter) {
     segment: f.segment,
     ...(f.tag ? { tag: f.tag } : {}),
   }).toString();
-  return useQuery({
-    queryKey: [...key(salonId), qs],
-    queryFn: () => apiFetch<CustomerList>(`/salons/${salonId}/customers?${qs}`),
+  return useInfiniteQuery({
+    queryKey: [...key(salonId), "directory", qs],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      apiFetch<CustomerList>(
+        `/salons/${salonId}/customers?${qs}&limit=50&offset=${String(pageParam)}`,
+      ),
+    getNextPageParam: (last, pages) => {
+      const shown = pages.reduce((n, page) => n + page.items.length, 0);
+      return last.items.length > 0 && shown < last.total ? shown : undefined;
+    },
     enabled: salonId !== "",
-    placeholderData: keepPreviousData,
   });
 }
 

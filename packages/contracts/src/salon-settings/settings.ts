@@ -16,14 +16,26 @@ export const SETTINGS_ERRORS = {
 
 const dateSchema = z.iso.date();
 
-export const salonProfileInputSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  phone: z.string().trim().min(8).max(20),
-  description: localizedLongTextSchema.nullable().default(null),
-  streetAddress: z.string().trim().min(3).max(200),
-  provinceId: uuidV7Schema,
-  wardId: uuidV7Schema,
-});
+export const salonProfileInputSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    phone: z.string().trim().min(8).max(20).nullable().optional(),
+    description: localizedLongTextSchema.nullable().optional(),
+    streetAddress: z.string().trim().min(3).max(200).nullable().optional(),
+    provinceId: uuidV7Schema.nullable().optional(),
+    wardId: uuidV7Schema.nullable().optional(),
+  })
+  .refine(
+    (p) => {
+      const address = [p.streetAddress, p.provinceId, p.wardId];
+      return (
+        address.every((v) => v === undefined) ||
+        address.every((v) => v === null) ||
+        address.every((v) => typeof v === "string")
+      );
+    },
+    { path: ["streetAddress"], message: "complete_address_required" },
+  );
 export type SalonProfileInput = z.infer<typeof salonProfileInputSchema>;
 
 export const bookingSettingsSchema = z.object({

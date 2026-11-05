@@ -2,7 +2,16 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, Icon, Pill, Text, useCalm } from "@gugu/design-system";
+import {
+  CalmButton,
+  Icon,
+  Pill,
+  MIN_TOUCH,
+  space,
+  typeScale,
+  Text,
+  useCalm,
+} from "@gugu/design-system";
 import type { ClientSuggestion, CustomerDetail } from "@gugu/contracts";
 import { formatDateLong, formatTime, formatVND } from "@gugu/localization";
 
@@ -12,6 +21,8 @@ import { salonDate } from "../../data/dates";
 import { useAddNote, useCustomer, useDeleteNote, useUpdateCustomer } from "../../data/customers";
 import { useSalon } from "../../data/SalonContext";
 import { useErrorText } from "../../ui/errors";
+import { useBreakpoint } from "../../shell/useBreakpoint";
+import { QueryError } from "../../ui/QueryError";
 import { ErrorBanner, Field, Input, Sheet, Toggle } from "../../ui/form";
 import { NewAppointmentSheet } from "../calendar/NewAppointmentSheet";
 import { ClientPrivacySection } from "./ClientPrivacySection";
@@ -37,6 +48,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
   const deleteNote = useDeleteNote();
   const [tag, setTag] = useState("");
   const [note, setNote] = useState("");
+  const [deletingNote, setDeletingNote] = useState<string | null>(null);
   const [booking, setBooking] = useState(false);
   const cal = useCalendarData(salonDate(new Date()));
   const d = detail.data;
@@ -45,6 +57,51 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
   const canContact = can("customers.phone.read");
   const canPrivacy = can("customers.export") && can("customers.erase");
   const tz = cal.tz;
+
+  if (deletingNote)
+    return (
+      <Sheet
+        open
+        title={t("customers.deleteNoteTitle")}
+        closeLabel={t("common.close")}
+        dismissDisabled={deleteNote.isPending}
+        onClose={() => {
+          setDeletingNote(null);
+        }}
+        footer={
+          <>
+            <CalmButton
+              variant="secondary"
+              label={t("common.cancel")}
+              disabled={deleteNote.isPending}
+              onPress={() => {
+                setDeletingNote(null);
+              }}
+            />
+            <CalmButton
+              testID="crm-customer-note-delete-confirm"
+              label={t("common.delete")}
+              disabled={deleteNote.isPending}
+              onPress={() => {
+                deleteNote.mutate(
+                  { id, noteId: deletingNote },
+                  {
+                    onSuccess: () => {
+                      setDeletingNote(null);
+                    },
+                  },
+                );
+              }}
+            />
+          </>
+        }
+      >
+        <Text size={typeScale.body} color={c.body}>
+          {t("customers.deleteNoteBody")}
+        </Text>
+        <ErrorBanner text={errorText(deleteNote.error)} />
+      </Sheet>
+    );
 
   if (booking && d) {
     const suggestion: ClientSuggestion = {
@@ -94,10 +151,26 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
       }
     >
       <ErrorBanner text={errorText(update.error ?? addNote.error ?? deleteNote.error)} />
-      {!d ? (
+      {detail.isError && !d ? (
+        <QueryError
+          onRetry={() => {
+            void detail.refetch();
+          }}
+          busy={detail.isFetching}
+        />
+      ) : !d ? (
         <ActivityIndicator color={c.accent} />
       ) : (
         <>
+          {detail.isError ? (
+            <QueryError
+              onRetry={() => {
+                void detail.refetch();
+              }}
+              busy={detail.isFetching}
+            />
+          ) : null}
+          {canEdit ? <NameField key={`name-${id}`} id={id} initial={d.displayName} /> : null}
           <View style={{ gap: 4 }}>
             {d.phone ? (
               <Text size={14} color={c.body}>
@@ -116,7 +189,9 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
               ) : null}
             </View>
           </View>
-          {canEdit && canContact ? <EmailField key={id} id={id} initial={d.email} /> : null}
+          {canEdit && canContact ? (
+            <EmailField key={`email-${id}`} id={id} initial={d.email} />
+          ) : null}
           <View style={{ flexDirection: "row", gap: 10 }}>
             <Stat label={t("customers.visits")} value={String(d.visits)} />
             <Stat
@@ -150,7 +225,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
                     alignItems: "center",
                     gap: 4,
                     paddingHorizontal: 10,
-                    height: 28,
+                    minHeight: MIN_TOUCH,
                     borderRadius: 14,
                     backgroundColor: c.accentSoft,
                   }}
@@ -167,6 +242,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
                 <View style={{ flex: 1 }}>
                   <Input
                     testID="crm-customer-tag"
+                    maxLength={30}
                     label={t("customers.addTag")}
                     placeholder={t("customers.tagPlaceholder")}
                     value={tag}
@@ -178,6 +254,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
                   variant="secondary"
                   icon="plus"
                   label={t("customers.addTag")}
+                  disabled={!tag.trim() || update.isPending || d.tags.length >= 20}
                   onPress={() => {
                     if (!tag.trim()) return;
                     update.mutate(
@@ -232,6 +309,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
                 <View style={{ flex: 1 }}>
                   <Input
                     testID="crm-customer-note"
+                    maxLength={2000}
                     multiline
                     label={t("customers.addNote")}
                     placeholder={t("customers.notePlaceholder")}
@@ -241,6 +319,7 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
                 </View>
                 <CalmButton
                   testID="crm-customer-note-save"
+                  disabled={!note.trim() || addNote.isPending}
                   size="sm"
                   label={t("common.save")}
                   onPress={() => {
@@ -278,8 +357,15 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={t("common.delete")}
+                        style={{
+                          minHeight: MIN_TOUCH,
+                          minWidth: MIN_TOUCH,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
                         onPress={() => {
-                          deleteNote.mutate({ id, noteId: n.id });
+                          deleteNote.reset();
+                          setDeletingNote(n.id);
                         }}
                       >
                         <Icon name="trash" size={14} color={c.body} />
@@ -310,12 +396,45 @@ export function CustomerSheet({ id, onClose }: { id: string; onClose: () => void
   );
 }
 
+function NameField({ id, initial }: { id: string; initial: string }) {
+  const { t } = useTranslation("crm");
+  const update = useUpdateCustomer();
+  const errorText = useErrorText();
+  const [value, setValue] = useState(initial);
+  const changed = value.trim() !== initial;
+  return (
+    <View style={{ gap: space[2] }}>
+      <Field label={t("calendar.newClientName")} error={errorText(update.error)}>
+        <Input
+          testID="crm-customer-edit-name"
+          label={t("calendar.newClientName")}
+          value={value}
+          onChangeText={setValue}
+          maxLength={120}
+        />
+      </Field>
+      {changed ? (
+        <CalmButton
+          testID="crm-customer-name-save"
+          variant="secondary"
+          label={t("common.save")}
+          disabled={!value.trim() || update.isPending}
+          onPress={() => {
+            update.mutate({ id, body: { displayName: value.trim() } });
+          }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Optional email kept on the profile (q87). The hint says plainly that GuGu never emails it. */
 function EmailField({ id, initial }: { id: string; initial: string | null }) {
   const { t } = useTranslation("crm");
   const update = useUpdateCustomer();
+  const errorText = useErrorText();
   const [value, setValue] = useState(initial ?? "");
   const [saved, setSaved] = useState(false);
   const trimmed = value.trim();
@@ -327,7 +446,7 @@ function EmailField({ id, initial }: { id: string; initial: string | null }) {
         flex={1}
         label={t("customers.email")}
         hint={saved ? t("customers.emailSaved") : t("customers.emailHint")}
-        error={invalid ? t("customers.emailInvalid") : null}
+        error={invalid ? t("customers.emailInvalid") : errorText(update.error)}
       >
         <Input
           testID="crm-customer-email"
@@ -345,6 +464,7 @@ function EmailField({ id, initial }: { id: string; initial: string | null }) {
         <View style={{ paddingBottom: 22 }}>
           <CalmButton
             testID="crm-customer-email-save"
+            disabled={invalid || update.isPending}
             size="sm"
             variant="secondary"
             label={t("common.save")}
@@ -424,6 +544,7 @@ function Visits({
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
+  const mobile = useBreakpoint() === "mobile";
   return (
     <Section title={title}>
       {items.length === 0 ? (
@@ -432,16 +553,30 @@ function Visits({
         </Text>
       ) : (
         items.map((v) => (
-          <View key={v.bookingId} style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+          <View
+            key={v.bookingId}
+            style={{
+              flexDirection: mobile ? "column" : "row",
+              gap: space[2],
+              alignItems: mobile ? "flex-start" : "center",
+              paddingVertical: space[2],
+            }}
+          >
             <Text
               size={13}
               color={c.body}
-              style={{ width: 150, textTransform: "capitalize" }}
+              style={{ width: mobile ? "100%" : 150, textTransform: "capitalize" }}
               numberOfLines={1}
             >
               {`${formatDateLong(new Date(v.startsAt), locale, tz)} ${formatTime(new Date(v.startsAt), locale, tz)}`}
             </Text>
-            <Text size={13} color={c.ink} style={{ flex: 1 }} numberOfLines={1}>
+            <Text
+              testID="crm-customer-visit-service"
+              size={mobile ? typeScale.body : typeScale.caption}
+              color={c.ink}
+              style={{ flex: mobile ? undefined : 1 }}
+              {...(mobile ? {} : { numberOfLines: 1 })}
+            >
               {(locale === "en" && v.service.en) || v.service.vi}
             </Text>
             <Pill size={10} label={t(`booking.status.${v.status}`, { defaultValue: v.status })} />

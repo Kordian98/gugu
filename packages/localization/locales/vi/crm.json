@@ -29,7 +29,7 @@
   "shell": {
     "signOut": "Đăng xuất",
     "signOutFailed": "Chưa đăng xuất được. Anh/chị vui lòng thử lại.",
-    "searchPlaceholder": "Tìm lịch hẹn, khách hàng…",
+    "searchPlaceholder": "Tìm khách theo tên, số điện thoại",
     "newAppointment": "Lịch hẹn mới",
     "newShort": "Mới",
     "notifications": "Thông báo",
@@ -218,7 +218,8 @@
     "required": "Vui lòng nhập",
     "edit": "Sửa",
     "done": "Xong",
-    "back": "Quay lại"
+    "back": "Quay lại",
+    "retry": "Thử lại"
   },
   "errors": {
     "generic": "Có lỗi xảy ra. Anh/chị thử lại giúp em nhé.",
@@ -436,7 +437,11 @@
     "pay": {
       "open": "Lương & hoa hồng của {{name}}",
       "setNow": "Chưa cài lương · Cài ngay"
-    }
+    },
+    "removeTitle": "Xoá {{name}} khỏi đội ngũ?",
+    "removeBody": "Nhân viên này sẽ không còn nhận lịch hẹn mới. Lịch sử vẫn được giữ lại.",
+    "splitHoursPreserved": "Các ca và giờ nghỉ hiện có được giữ nguyên.",
+    "replaceSplitHours": "Đổi thành một ca"
   },
   "settings": {
     "profile": "Thông tin salon",
@@ -479,7 +484,9 @@
     "bookingPolicy": "Chính sách đặt lịch",
     "bookingPolicyHint": "Ví dụ: vui lòng đến trước 5 phút.",
     "cancellationPolicy": "Chính sách huỷ lịch",
-    "cancellationPolicyHint": "Hiển thị cho khách khi đặt lịch."
+    "cancellationPolicyHint": "Hiển thị cho khách khi đặt lịch.",
+    "contactOptional": "Số điện thoại và địa chỉ không bắt buộc. Anh/chị có thể bổ sung sau.",
+    "addressIncomplete": "Nếu thêm địa chỉ, anh/chị vui lòng điền số nhà, chọn tỉnh/thành và phường/xã."
   },
   "join": {
     "usedTitle": "Lời mời đã được sử dụng",
@@ -778,7 +785,16 @@
     "email": "Email (không bắt buộc)",
     "emailHint": "Chỉ để lưu thông tin. GuGu không gửi email cho khách.",
     "emailInvalid": "Email chưa đúng định dạng.",
-    "emailSaved": "Đã lưu email."
+    "emailSaved": "Đã lưu email.",
+    "noResultsTitle": "Không tìm thấy khách phù hợp",
+    "noResultsBody": "Anh/chị thử tên, số điện thoại khác hoặc bỏ bộ lọc.",
+    "clearFilters": "Bỏ bộ lọc",
+    "loadMore": "Xem thêm khách",
+    "loadedCount": "Đang hiển thị {{shown}} / {{total}} khách",
+    "editName": "Sửa tên khách",
+    "nameSaved": "Đã lưu tên khách.",
+    "deleteNoteTitle": "Xoá ghi chú này?",
+    "deleteNoteBody": "Ghi chú đã xoá không thể khôi phục."
   },
   "insights": {
     "subtitle": "Số liệu từ lịch hẹn của salon. Doanh thu là ước tính, không phải tiền đã thu.",
@@ -879,7 +895,8 @@
     "deleteTypeBody": "Các phòng/thiết bị thuộc loại này cũng sẽ bị xoá. Lịch hẹn cũ vẫn giữ nguyên.",
     "deleteTypeInUse": "Đang có {{count}} dịch vụ cần loại này. Bỏ yêu cầu trong từng dịch vụ trước khi xoá.",
     "deleteResource": "Xoá {{name}}",
-    "active": "Bật/tắt {{name}}"
+    "active": "Bật/tắt {{name}}",
+    "deleteResourceBody": "Phòng hoặc thiết bị này sẽ không còn nhận lịch hẹn mới."
   },
   "myDay": {
     "total": "{{count}} lịch hôm nay",

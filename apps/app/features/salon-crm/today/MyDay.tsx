@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -23,7 +23,17 @@ const DONE = new Set(["completed", "no_show"]);
  * Staff "my day" (07, staff role): the next client up front with one-tap open / call, then the
  * rest of today's own appointments. Data is the member's own scope (the API filters).
  */
-export function MyDay({ ws, title, subtitle }: { ws: Workspace; title: string; subtitle: string }) {
+export function MyDay({
+  ws,
+  title,
+  subtitle,
+  readWarning,
+}: {
+  ws: Workspace;
+  title: string;
+  subtitle: string;
+  readWarning?: ReactNode;
+}) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
@@ -44,6 +54,7 @@ export function MyDay({ ws, title, subtitle }: { ws: Workspace; title: string; s
   return (
     <ScrollView testID="crm-my-day" contentContainerStyle={{ padding: 16, gap: 14 }}>
       <PageHeader title={title} subtitle={subtitle} workspace={ws} />
+      {readWarning}
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Pill tone="accent" label={t("myDay.total", { count: day.length })} />
         <Pill tone="up" label={t("myDay.done", { count: done })} />

@@ -81,6 +81,8 @@ function MonthTab({ mobile }: { mobile: boolean }) {
   const canManage = can("payroll.manage");
   const [open, setOpen] = useState<Open>(null);
   const [exporting, setExporting] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [exportError, setExportError] = useState<unknown>(null);
   const close = useCloseMonth();
   const exp = useExportPayroll();
   const errorText = useErrorText();
@@ -91,13 +93,22 @@ function MonthTab({ mobile }: { mobile: boolean }) {
   const vnd = (n: number) => formatVND(n, locale);
 
   const download = (format: "csv" | "xlsx") => {
+    if (sharing || exp.isPending) return;
+    setExportError(null);
     exp.mutate(
       { month, format, locale },
       {
         onSuccess: (f) => {
-          void (f.encoding === "base64"
-            ? saveBase64File(f.fileName, f.mimeType, f.content)
-            : saveTextFile(f.fileName, f.mimeType, f.content));
+          setSharing(true);
+          void (
+            f.encoding === "base64"
+              ? saveBase64File(f.fileName, f.mimeType, f.content)
+              : saveTextFile(f.fileName, f.mimeType, f.content)
+          )
+            .catch(setExportError)
+            .finally(() => {
+              setSharing(false);
+            });
         },
       },
     );
@@ -115,6 +126,7 @@ function MonthTab({ mobile }: { mobile: boolean }) {
               <CalmButton
                 variant="secondary"
                 label={t("payroll.exportCsv")}
+                disabled={sharing || exp.isPending}
                 onPress={() => {
                   download("csv");
                 }}
@@ -122,6 +134,7 @@ function MonthTab({ mobile }: { mobile: boolean }) {
               <CalmButton
                 variant="secondary"
                 label={t("payroll.exportXlsx")}
+                disabled={sharing || exp.isPending}
                 onPress={() => {
                   download("xlsx");
                 }}
@@ -154,7 +167,7 @@ function MonthTab({ mobile }: { mobile: boolean }) {
           }}
         />
       ) : null}
-      <ErrorBanner text={errorText(close.error ?? exp.error)} />
+      <ErrorBanner text={errorText(exportError ?? close.error ?? exp.error)} />
 
       {q.isPending ? (
         <CalmCard>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, Icon, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, Icon, Text, typeScale, useCalm } from "@gugu/design-system";
 import type { StaffMember, WeeklyScheduleInput } from "@gugu/contracts";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -11,14 +11,12 @@ import { crmApi, useCrmMutation } from "../../data/catalog";
 import { useErrorText } from "../../ui/errors";
 import { ErrorBanner, Field, Input, Sheet, TimeInput, Toggle, isClock } from "../../ui/form";
 
-type Day = {
-  weekday: number;
-  on: boolean;
-  start: string;
-  end: string;
-  breakStart: string;
-  breakEnd: string;
-};
+import {
+  intervalSummary,
+  scheduleDraftDay,
+  scheduleDayInput,
+  type ScheduleDraftDay as Day,
+} from "./schedule-draft";
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 
@@ -36,23 +34,16 @@ export function weekdayLabel(
 }
 
 const fromStaff = (s: StaffMember): Day[] =>
-  WEEKDAYS.map((weekday) => {
-    const day = s.schedule.days.find((d) => d.weekday === weekday);
-    const first = day?.intervals[0];
-    const last = day?.intervals[day.intervals.length - 1];
-    const brk = day?.breaks[0];
-    return {
+  WEEKDAYS.map((weekday) =>
+    scheduleDraftDay(
       weekday,
-      on: Boolean(first),
-      start: first?.start ?? "09:00",
-      end: last?.end ?? "18:00",
-      breakStart: brk?.start ?? "",
-      breakEnd: brk?.end ?? "",
-    };
-  });
+      s.schedule.days.find((d) => d.weekday === weekday),
+    ),
+  );
 
 const valid = (d: Day) =>
   !d.on ||
+  d.preserved !== null ||
   (isClock(d.start) &&
     isClock(d.end) &&
     d.start < d.end &&
@@ -109,13 +100,7 @@ export function ScheduleEditor({
   const submit = () => {
     if (!allValid) return;
     const body: WeeklyScheduleInput = {
-      days: days
-        .filter((d) => d.on)
-        .map((d) => ({
-          weekday: d.weekday,
-          intervals: [{ start: d.start, end: d.end }],
-          breaks: d.breakStart && d.breakEnd ? [{ start: d.breakStart, end: d.breakEnd }] : [],
-        })),
+      days: days.filter((d) => d.on).map(scheduleDayInput),
     };
     save.mutate({ id: staff.id, body }, { onSuccess: onClose });
   };
@@ -124,12 +109,14 @@ export function ScheduleEditor({
     <Sheet
       open={open}
       onClose={onClose}
+      dismissDisabled={save.isPending}
       closeLabel={t("common.close")}
       title={t("team.scheduleTitle", { name: staff.displayName })}
       footer={
         <>
           <CalmButton variant="secondary" label={t("common.cancel")} onPress={onClose} />
           <CalmButton
+            disabled={save.isPending || !allValid}
             testID="crm-schedule-save"
             label={save.isPending ? t("common.saving") : t("common.save")}
             onPress={submit}
@@ -179,7 +166,28 @@ export function ScheduleEditor({
               />
             </View>
           </View>
-          {d.on ? (
+          {d.on && d.preserved ? (
+            <View style={{ gap: 8 }}>
+              <Text size={typeScale.body} color={c.body}>
+                {intervalSummary(d.preserved.intervals)}
+              </Text>
+              {d.preserved.breaks.length ? (
+                <Text size={typeScale.body} color={c.body}>
+                  {t("team.break")}: {intervalSummary(d.preserved.breaks)}
+                </Text>
+              ) : null}
+              <Text size={typeScale.body} color={c.muted}>
+                {t("team.splitHoursPreserved")}
+              </Text>
+              <CalmButton
+                variant="secondary"
+                label={t("team.replaceSplitHours")}
+                onPress={() => {
+                  patch(d.weekday, { preserved: null });
+                }}
+              />
+            </View>
+          ) : d.on ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
               <TimeInput
                 label={t("team.start")}

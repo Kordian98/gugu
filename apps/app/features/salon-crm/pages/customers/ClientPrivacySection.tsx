@@ -26,6 +26,18 @@ export function ClientPrivacySection({ id, onErased }: { id: string; onErased: (
   const [confirm, setConfirm] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const data = exp.data;
+  const [fileError, setFileError] = useState<unknown>(null);
+  const [sharing, setSharing] = useState(false);
+  const save = (fileName: string, mimeType: string, content: string) => {
+    if (sharing) return;
+    setFileError(null);
+    setSharing(true);
+    void saveTextFile(fileName, mimeType, content)
+      .catch(setFileError)
+      .finally(() => {
+        setSharing(false);
+      });
+  };
 
   return (
     <View testID="crm-client-privacy" style={{ gap: 8 }}>
@@ -40,7 +52,7 @@ export function ClientPrivacySection({ id, onErased }: { id: string; onErased: (
       <Text size={12} color={c.muted}>
         {t("client.hint")}
       </Text>
-      <ErrorBanner text={errorText(exp.error ?? erase.error)} />
+      <ErrorBanner text={errorText(fileError ?? exp.error ?? erase.error)} />
       {done ? (
         <Text size={13} color={c.up.text}>
           {done}
@@ -54,8 +66,9 @@ export function ClientPrivacySection({ id, onErased }: { id: string; onErased: (
               size="sm"
               variant="secondary"
               label={t("client.exportJson")}
+              disabled={sharing}
               onPress={() => {
-                void saveTextFile(
+                save(
                   `${data.fileBaseName}.json`,
                   "application/json",
                   JSON.stringify(data.json, null, 2),
@@ -67,8 +80,9 @@ export function ClientPrivacySection({ id, onErased }: { id: string; onErased: (
               size="sm"
               variant="secondary"
               label={t("client.exportText")}
+              disabled={sharing}
               onPress={() => {
-                void saveTextFile(`${data.fileBaseName}.txt`, "text/plain", data.text);
+                save(`${data.fileBaseName}.txt`, "text/plain", data.text);
               }}
             />
           </>

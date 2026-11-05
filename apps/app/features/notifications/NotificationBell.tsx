@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, View, type ViewStyle } from "react-native
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
-import { Icon, Text, alpha, color, useCalm } from "@gugu/design-system";
+import { Icon, MIN_TOUCH, Text, alpha, color, useCalm } from "@gugu/design-system";
 import type { InboxItem } from "@gugu/contracts";
 import { formatDateTimeShort } from "@gugu/localization";
 
@@ -59,7 +59,12 @@ export function NotificationBell({
         onPress={() => {
           setOpen((o) => !o);
         }}
-        style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+        style={{
+          width: MIN_TOUCH,
+          height: MIN_TOUCH,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         <Icon name="bell" size={20} color={iconColor ?? c.ink} />
         {unread > 0 ? (

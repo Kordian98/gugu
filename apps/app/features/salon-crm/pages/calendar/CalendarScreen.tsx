@@ -4,7 +4,7 @@ import { useReducedMotion } from "react-native-reanimated";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, CalmCard, Icon, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, CalmCard, Icon, MIN_TOUCH, Text, useCalm } from "@gugu/design-system";
 import type { RuleOverride, SalonBooking } from "@gugu/contracts";
 import { DEFAULT_SALON_TIMEZONE, formatDateLong } from "@gugu/localization";
 
@@ -19,6 +19,7 @@ import { useWorkspace } from "../../data/useWorkspace";
 import { PageHeader } from "../../shell/PageHeader";
 import { useBreakpoint } from "../../shell/useBreakpoint";
 import { EmptyState } from "../../ui/EmptyState";
+import { QueryError } from "../../ui/QueryError";
 import { useErrorText } from "../../ui/errors";
 import { ErrorBanner } from "../../ui/form";
 import { OverridePrompt } from "../../ui/OverridePrompt";
@@ -53,6 +54,14 @@ export function CalendarScreen() {
   const preview = creating !== null || params.new === "1" ? previewState : null;
   const date = preview?.date ?? viewDate;
   const day = useCalendarData(date);
+  const loadFailed = day.bookings.isError || day.team.isError || day.settings.isError;
+  const noCalendarData =
+    !day.bookings.data || (can("members.read") && !day.team.data) || !day.settings.data;
+  const retryCalendar = () => {
+    void day.bookings.refetch();
+    if (can("members.read")) void day.team.refetch();
+    void day.settings.refetch();
+  };
   const [open, setOpen] = useState<SalonBooking | null>(null);
   const [focus, setFocus] = useState<string>("all");
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -217,6 +226,12 @@ export function CalendarScreen() {
             : null
         }
       />
+      {loadFailed && !noCalendarData ? (
+        <QueryError
+          busy={day.bookings.isFetching || day.team.isFetching || day.settings.isFetching}
+          onRetry={retryCalendar}
+        />
+      ) : null}
 
       {mobile && staff.length > 0 ? (
         <ScrollView
@@ -238,7 +253,7 @@ export function CalendarScreen() {
                   setFocus(s.id);
                 }}
                 style={{
-                  height: 36,
+                  minHeight: MIN_TOUCH,
                   paddingHorizontal: 14,
                   borderRadius: 18,
                   justifyContent: "center",
@@ -263,7 +278,12 @@ export function CalendarScreen() {
         }}
       >
         <CalmCard style={{ gap: 12 }}>
-          {day.bookings.isPending && day.team.isPending ? (
+          {loadFailed && noCalendarData ? (
+            <QueryError
+              busy={day.bookings.isFetching || day.team.isFetching || day.settings.isFetching}
+              onRetry={retryCalendar}
+            />
+          ) : day.bookings.isPending || (can("members.read") && day.team.isPending) ? (
             <ActivityIndicator color={c.accent} />
           ) : staff.length === 0 ? (
             <EmptyState
@@ -392,8 +412,8 @@ const ALL = "all";
 
 const navBtn = (border: string, bg: string) =>
   ({
-    width: 34,
-    height: 34,
+    width: MIN_TOUCH,
+    height: MIN_TOUCH,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: border,

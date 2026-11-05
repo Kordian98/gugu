@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, CalmCard, Icon, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, CalmCard, Icon, Text, typeScale, useCalm } from "@gugu/design-system";
 import type { SalonSettings } from "@gugu/contracts";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -12,7 +12,12 @@ import { useErrorText } from "../../ui/errors";
 import { ErrorBanner, Field, Input, Segmented, TimeInput, Toggle, isClock } from "../../ui/form";
 import { weekdayLabel } from "../team/ScheduleEditor";
 
-type Day = { weekday: number; on: boolean; start: string; end: string };
+import {
+  intervalSummary,
+  scheduleDraftDay,
+  scheduleDayInput,
+  type ScheduleDraftDay as Day,
+} from "../team/schedule-draft";
 
 /** Weekly opening hours with the common "9:00–21:00 every day" preset (07 §3.7). */
 export function HoursSection({ settings, canEdit }: { settings: SalonSettings; canEdit: boolean }) {
@@ -23,17 +28,14 @@ export function HoursSection({ settings, canEdit }: { settings: SalonSettings; c
   const [days, setDays] = useState<Day[]>(() =>
     [1, 2, 3, 4, 5, 6, 7].map((weekday) => {
       const d = settings.openingHours.days.find((x) => x.weekday === weekday);
-      return {
-        weekday,
-        on: Boolean(d?.intervals.length),
-        start: d?.intervals[0]?.start ?? "09:00",
-        end: d?.intervals[d.intervals.length - 1]?.end ?? "21:00",
-      };
+      return { ...scheduleDraftDay(weekday, d), end: d?.intervals.at(-1)?.end ?? "21:00" };
     }),
   );
   const [saved, setSaved] = useState(false);
   const save = useCrmMutation(crmApi.replaceOpeningHours, ["settings"]);
-  const valid = days.every((d) => !d.on || (isClock(d.start) && isClock(d.end) && d.start < d.end));
+  const valid = days.every(
+    (d) => !d.on || d.preserved !== null || (isClock(d.start) && isClock(d.end) && d.start < d.end),
+  );
 
   return (
     <CalmCard style={{ gap: 12 }}>
@@ -55,7 +57,9 @@ export function HoursSection({ settings, canEdit }: { settings: SalonSettings; c
             variant="ghost"
             label={t("settings.hoursPreset")}
             onPress={() => {
-              setDays((ds) => ds.map((d) => ({ ...d, on: true, start: "09:00", end: "21:00" })));
+              setDays((ds) =>
+                ds.map((d) => ({ ...d, on: true, start: "09:00", end: "21:00", preserved: null })),
+              );
             }}
           />
         ) : null}
@@ -87,7 +91,27 @@ export function HoursSection({ settings, canEdit }: { settings: SalonSettings; c
               setDays((ds) => ds.map((x) => (x.weekday === d.weekday ? { ...x, on } : x)));
             }}
           />
-          {d.on ? (
+          {d.on && d.preserved ? (
+            <View style={{ gap: 8 }}>
+              <Text size={typeScale.body} color={c.body}>
+                {intervalSummary(d.preserved.intervals)}
+              </Text>
+              <Text size={typeScale.body} color={c.muted}>
+                {t("team.splitHoursPreserved")}
+              </Text>
+              {canEdit ? (
+                <CalmButton
+                  variant="secondary"
+                  label={t("team.replaceSplitHours")}
+                  onPress={() => {
+                    setDays((ds) =>
+                      ds.map((x) => (x.weekday === d.weekday ? { ...x, preserved: null } : x)),
+                    );
+                  }}
+                />
+              ) : null}
+            </View>
+          ) : d.on ? (
             <>
               <TimeInput
                 label={t("team.start")}
@@ -131,6 +155,7 @@ export function HoursSection({ settings, canEdit }: { settings: SalonSettings; c
             </Text>
           ) : null}
           <CalmButton
+            disabled={save.isPending || !valid}
             testID="crm-hours-save"
             label={save.isPending ? t("common.saving") : t("common.save")}
             onPress={() => {
@@ -140,10 +165,7 @@ export function HoursSection({ settings, canEdit }: { settings: SalonSettings; c
                 {
                   days: days
                     .filter((d) => d.on)
-                    .map((d) => ({
-                      weekday: d.weekday,
-                      intervals: [{ start: d.start, end: d.end }],
-                    })),
+                    .map((d) => ({ weekday: d.weekday, intervals: scheduleDayInput(d).intervals })),
                 },
                 {
                   onSuccess: () => {

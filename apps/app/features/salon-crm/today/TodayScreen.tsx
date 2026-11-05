@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Redirect } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { CalmButton, CalmCard, Pill, useCalm } from "@gugu/design-system";
@@ -9,8 +9,9 @@ import { formatDateLong } from "@gugu/localization";
 import { useLocale } from "@/services/i18n/useLocale";
 
 import { Timeline } from "../calendar/Timeline";
-import { hourRange } from "../data/bookings";
-import { minutesInZone } from "../data/dates";
+import { hourRange, useBookings } from "../data/bookings";
+import { useTeam } from "../data/catalog";
+import { minutesInZone, salonDate } from "../data/dates";
 import { BookingSheet } from "../pages/calendar/BookingSheet";
 import { isSetupDismissed } from "../pages/setup/firstRun";
 import { useOptionalSalon } from "../data/SalonContext";
@@ -19,6 +20,7 @@ import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
 import { useCrmNav } from "../shell/useCrmNav";
 import { CardHeader } from "../ui/CardHeader";
+import { QueryError } from "../ui/QueryError";
 import { EmptyState } from "../ui/EmptyState";
 import { greetingKey } from "./greeting";
 import { KpiRow } from "./KpiRow";
@@ -41,7 +43,11 @@ export function TodayScreen() {
   const bp = useBreakpoint();
   const { go } = useCrmNav();
   const ws = useWorkspace();
-  const salonId = useOptionalSalon()?.salonId ?? "";
+  const salon = useOptionalSalon();
+  const salonId = salon?.salonId ?? "";
+  const bookings = useBookings(salonDate(new Date(), ws.timeZone));
+  const canReadTeam = salon?.can("members.read") ?? false;
+  const team = useTeam(canReadTeam);
   // First run: the owner of a salon from the email-only signup stays in the guided setup until it is
   // finished or left with "Để sau" (server-side, so it resumes on any device). Older salons keep the
   // previous rule (only registration done, not dismissed on this device).
@@ -125,11 +131,47 @@ export function TodayScreen() {
 
   if (firstRun) return <Redirect href={`/${locale}/business/setup` as never} />;
 
+  if (
+    !ws.demo &&
+    ((bookings.isError && !bookings.data) || (canReadTeam && team.isError && !team.data))
+  )
+    return (
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+        <PageHeader title={title} subtitle={subtitle} workspace={ws} />
+        <QueryError
+          onRetry={() => {
+            void bookings.refetch();
+            if (canReadTeam) void team.refetch();
+          }}
+          busy={bookings.isFetching || (canReadTeam && team.isFetching)}
+        />
+      </ScrollView>
+    );
+  if (!ws.demo && (bookings.isPending || (canReadTeam && team.isPending)))
+    return (
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
+        <PageHeader title={title} subtitle={subtitle} workspace={ws} />
+        <ActivityIndicator color={c.accent} />
+      </ScrollView>
+    );
+
+  const staleWarning =
+    !ws.demo && (bookings.isError || (canReadTeam && team.isError)) ? (
+      <QueryError
+        onRetry={() => {
+          void bookings.refetch();
+          if (canReadTeam) void team.refetch();
+        }}
+        busy={bookings.isFetching || (canReadTeam && team.isFetching)}
+      />
+    ) : null;
+
   // Staff on a phone: their own day, next client first.
   if (mobile && ws.role === "staff" && !ws.demo)
     return (
       <MyDay
         ws={ws}
+        readWarning={staleWarning}
         title={title}
         subtitle={t("myDay.subtitle", { date: formatDateLong(now, locale) })}
       />
@@ -140,6 +182,7 @@ export function TodayScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
         {ws.demo ? <Pill label={tc("demo.notice")} tone="brand" /> : null}
         <PageHeader title={title} subtitle={subtitle} workspace={ws} />
+        {staleWarning}
         {setupIncomplete && !ws.demo ? (
           <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} compact />
         ) : null}
@@ -148,10 +191,10 @@ export function TodayScreen() {
         {ws.demo ? null : <PlanNotice timeZone={ws.timeZone} />}
         <ZaloWaitingCard />
         <WeekStrip now={now} />
+        <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
         <KpiRow today={ws.today} only="revenue" />
         {ws.demo ? null : <ProfitCard />}
         {ws.demo ? null : <MyEarningsCard />}
-        <UpcomingCard items={ws.today.upcoming} onPress={ws.demo ? undefined : openBooking} />
         {sheet}
       </ScrollView>
     );
@@ -170,6 +213,7 @@ export function TodayScreen() {
       contentContainerStyle={{ padding: 28, gap: 20 }}
     >
       <PageHeader title={title} subtitle={subtitle} workspace={ws} />
+      {staleWarning}
       {setupIncomplete && !ws.demo ? (
         <SetupCard done={ws.setupDone} canGoLive={ws.canGoLive} />
       ) : null}

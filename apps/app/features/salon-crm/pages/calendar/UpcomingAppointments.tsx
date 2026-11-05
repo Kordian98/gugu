@@ -7,6 +7,7 @@ import type { SalonBooking } from "@gugu/contracts";
 
 import { addDays, salonDate } from "../../data/dates";
 import { SectionScreen } from "../SectionScreen";
+import { QueryError } from "../../ui/QueryError";
 import { AgendaList } from "./AgendaList";
 import { BookingSheet } from "./BookingSheet";
 import { useCalendarData } from "./useCalendarData";
@@ -21,8 +22,23 @@ export function UpcomingAppointments() {
   return (
     <SectionScreen id="appointments">
       <CalmCard>
+        {data.bookings.isError && data.bookings.data ? (
+          <QueryError
+            onRetry={() => {
+              void data.bookings.refetch();
+            }}
+            busy={data.bookings.isFetching}
+          />
+        ) : null}
         {data.bookings.isPending ? (
           <ActivityIndicator color={c.accent} />
+        ) : data.bookings.isError && !data.bookings.data ? (
+          <QueryError
+            onRetry={() => {
+              void data.bookings.refetch();
+            }}
+            busy={data.bookings.isFetching}
+          />
         ) : (
           <AgendaList
             bookings={data.items}

@@ -17,6 +17,7 @@ import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
 import { useCrmNav } from "../shell/useCrmNav";
 import { BookabilityWarning } from "../ui/BookabilityWarning";
+import { QueryError } from "../ui/QueryError";
 import { EmptyState } from "../ui/EmptyState";
 import { PaySheet, paySummary } from "./payroll/PaySheet";
 import { InviteSheet } from "./team/InviteSheet";
@@ -73,6 +74,15 @@ export function TeamScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 20 }}>
+      {team.isError && team.data ? (
+        <QueryError
+          testID="crm-team-refresh-error"
+          busy={team.isFetching}
+          onRetry={() => {
+            void team.refetch();
+          }}
+        />
+      ) : null}
       <PageHeader title={t("pages.team.title")} subtitle={t("team.subtitle")} workspace={ws} />
       <CalmCard style={{ gap: 12 }}>
         <View
@@ -161,6 +171,14 @@ export function TeamScreen() {
         ) : null}
         {team.isPending ? (
           <ActivityIndicator color={c.accent} />
+        ) : team.isError && !team.data ? (
+          <QueryError
+            testID="crm-team-error"
+            busy={team.isFetching}
+            onRetry={() => {
+              void team.refetch();
+            }}
+          />
         ) : items.length === 0 ? (
           <EmptyState
             icon="team"

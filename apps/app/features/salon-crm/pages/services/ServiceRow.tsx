@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Avatar, Icon, Text, useCalm } from "@gugu/design-system";
+import { Avatar, Icon, MIN_TOUCH, Text, typeScale, useCalm } from "@gugu/design-system";
 import { formatVND } from "@gugu/localization";
 import type { Service, StaffMember } from "@gugu/contracts";
 
@@ -10,6 +10,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { marginText } from "./margin";
 
 import { Toggle } from "../../ui/form";
+import { useBreakpoint } from "../../shell/useBreakpoint";
 
 export const priceText = (price: number, max: number | null, locale: "vi" | "en") =>
   max !== null && max > price
@@ -41,6 +42,7 @@ export function ServiceRow({
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const locale = useLocale();
+  const mobile = useBreakpoint() === "mobile";
   const name = (locale === "en" && service.name.en) || service.name.vi;
   const people = staff.filter((s) => service.staffIds.includes(s.id));
   const unbookable = service.isActive && !people.some((p) => p.isBookable);
@@ -56,8 +58,8 @@ export function ServiceRow({
     <View
       testID={`crm-service-${service.id}`}
       style={{
-        flexDirection: "row",
-        alignItems: "center",
+        flexDirection: mobile ? "column" : "row",
+        alignItems: mobile ? "stretch" : "center",
         gap: 12,
         padding: 14,
         borderRadius: 14,
@@ -72,21 +74,39 @@ export function ServiceRow({
         accessibilityLabel={t("services.edit", { name })}
         disabled={!canEdit}
         onPress={onEdit}
-        style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 12 }}
+        style={{
+          flex: mobile ? undefined : 1,
+          minHeight: MIN_TOUCH,
+          flexDirection: mobile ? "column" : "row",
+          alignItems: mobile ? "stretch" : "center",
+          gap: 12,
+        }}
       >
-        <View
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: service.isActive ? c.accentBg : c.muted,
-          }}
-        />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text role="uiSemiBold" size={15} color={c.ink} numberOfLines={1}>
+        {mobile ? null : (
+          <View
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: service.isActive ? c.accentBg : c.muted,
+            }}
+          />
+        )}
+        <View style={{ flex: mobile ? undefined : 1, gap: 2 }}>
+          <Text
+            testID={`crm-service-name-${service.id}`}
+            role="uiSemiBold"
+            size={mobile ? typeScale.body : 15}
+            color={c.ink}
+            {...(mobile ? {} : { numberOfLines: 1 })}
+          >
             {name}
           </Text>
-          <Text size={12} color={c.body} numberOfLines={1}>
+          <Text
+            size={mobile ? typeScale.label : 12}
+            color={c.body}
+            {...(mobile ? {} : { numberOfLines: 1 })}
+          >
             {extrasText}
           </Text>
           {unbookable ? (
@@ -101,7 +121,7 @@ export function ServiceRow({
             </View>
           ) : null}
         </View>
-        <View style={{ alignItems: "flex-end", gap: 2 }}>
+        <View style={{ alignItems: mobile ? "flex-start" : "flex-end", gap: 2 }}>
           <Text role="uiSemiBold" size={14} color={c.ink}>
             {priceText(service.price, service.priceMax, locale)}
           </Text>
@@ -111,7 +131,13 @@ export function ServiceRow({
             </Text>
           ) : null}
         </View>
-        <View style={{ flexDirection: "row", minWidth: 44, justifyContent: "flex-end" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            minWidth: MIN_TOUCH,
+            justifyContent: mobile ? "flex-start" : "flex-end",
+          }}
+        >
           {people.slice(0, 3).map((p, i) => (
             <View key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>
               <Avatar name={p.displayName} size={26} />
@@ -120,7 +146,14 @@ export function ServiceRow({
         </View>
       </Pressable>
       {canEdit ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: mobile ? "space-between" : undefined,
+            gap: 2,
+          }}
+        >
           <Toggle
             value={service.isActive}
             onChange={onToggle}
@@ -133,7 +166,13 @@ export function ServiceRow({
             onPress={() => {
               onMove(-1);
             }}
-            style={{ padding: 6, opacity: first ? 0.3 : 1 }}
+            style={{
+              minWidth: MIN_TOUCH,
+              minHeight: MIN_TOUCH,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: first ? 0.3 : 1,
+            }}
           >
             <Icon name="arrowUp" size={16} color={c.body} />
           </Pressable>
@@ -144,7 +183,13 @@ export function ServiceRow({
             onPress={() => {
               onMove(1);
             }}
-            style={{ padding: 6, opacity: last ? 0.3 : 1 }}
+            style={{
+              minWidth: MIN_TOUCH,
+              minHeight: MIN_TOUCH,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: last ? 0.3 : 1,
+            }}
           >
             <Icon name="arrowDown" size={16} color={c.body} />
           </Pressable>
@@ -153,7 +198,12 @@ export function ServiceRow({
             accessibilityRole="button"
             accessibilityLabel={t("services.deleteNamed", { name })}
             onPress={onDelete}
-            style={{ padding: 6 }}
+            style={{
+              minWidth: MIN_TOUCH,
+              minHeight: MIN_TOUCH,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
             <Icon name="trash" size={16} color={c.body} />
           </Pressable>

@@ -2,7 +2,15 @@ import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmCard, checkableA11y, Icon, Text, type IconName, useCalm } from "@gugu/design-system";
+import {
+  CalmCard,
+  checkableA11y,
+  Icon,
+  MIN_TOUCH,
+  Text,
+  type IconName,
+  useCalm,
+} from "@gugu/design-system";
 import { LOCALE_LABELS, LOCALES } from "@gugu/localization";
 
 import { NotificationsSection } from "@/features/notifications/NotificationsSection";
@@ -17,6 +25,7 @@ import { PlanSection } from "./settings/PlanSection";
 import { PrivacySection } from "./settings/PrivacySection";
 import { ProfileSection } from "./settings/ProfileSection";
 import { ZaloSection } from "./settings/ZaloSection";
+import { QueryError } from "../ui/QueryError";
 import { PageHeader } from "../shell/PageHeader";
 import { useBreakpoint } from "../shell/useBreakpoint";
 import { useThemePreference, type ThemePreference } from "../theme/CrmThemeProvider";
@@ -43,9 +52,26 @@ export function SettingsScreen() {
   const { zalo } = useLocalSearchParams<{ zalo?: string }>();
   return (
     <ScrollView contentContainerStyle={{ padding: bp === "mobile" ? 16 : 28, gap: 20 }}>
+      {settings.isError && settings.data ? (
+        <QueryError
+          testID="crm-settings-refresh-error"
+          busy={settings.isFetching}
+          onRetry={() => {
+            void settings.refetch();
+          }}
+        />
+      ) : null}
       <PageHeader title={t("pages.settings.title")} workspace={ws} />
-      {settings.data ? (
-        <View key={settings.dataUpdatedAt} style={{ gap: 20, maxWidth: 860 }}>
+      {settings.isError && !settings.data ? (
+        <QueryError
+          testID="crm-settings-error"
+          busy={settings.isFetching}
+          onRetry={() => {
+            void settings.refetch();
+          }}
+        />
+      ) : settings.data ? (
+        <View key={salonId} style={{ gap: 20, maxWidth: 860 }}>
           {can("subscription.read") ? <PlanSection timeZone={ws.timeZone} /> : null}
           <ProfileSection settings={settings.data} canEdit={can("salon.profile.write")} />
           <HoursSection settings={settings.data} canEdit={can("salon.settings.write")} />
@@ -58,7 +84,7 @@ export function SettingsScreen() {
           ) : null}
           {can("customers.export") ? <PrivacySection /> : null}
         </View>
-      ) : settings.isPending && salonId ? (
+      ) : salonId ? (
         <ActivityIndicator color={c.accent} />
       ) : null}
       <CalmCard style={{ gap: 12, maxWidth: 640 }}>
@@ -127,7 +153,7 @@ function Choice({
       {...checkableA11y("radio", selected)}
       onPress={onPress}
       style={{
-        height: 42,
+        minHeight: MIN_TOUCH,
         paddingHorizontal: 14,
         borderRadius: 12,
         flexDirection: "row",

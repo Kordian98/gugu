@@ -520,4 +520,79 @@ describe("catalog, team & settings (integration)", () => {
     const manager = await bearerFor(app, await addSalonMember(prisma, a.salonId, "manager"));
     expect((await invite(manager, "burst-other")).status).toBe(201);
   });
+  it("profile: name-only updates preserve contacts, optional contacts can be cleared, permissions remain scoped", async () => {
+    const fixture = await createSalonFixture(prisma, "Optional contacts");
+    const owner = await bearerFor(app, fixture.ownerUserId);
+    const staff = await bearerFor(app, await addSalonMember(prisma, fixture.salonId, "staff"));
+    const url = `/api/v1/salons/${fixture.salonId}/settings/profile`;
+    await api()
+      .patch(url)
+      .set("authorization", owner)
+      .send({ name: "Renamed without contacts" })
+      .expect(204);
+    let settings = salonSettingsSchema.parse(
+      (await api().get(`/api/v1/salons/${fixture.salonId}/settings`).set("authorization", owner))
+        .body,
+    );
+    expect(settings.profile.name).toBe("Renamed without contacts");
+    expect(settings.profile.address?.streetAddress).toBe("1 Test St");
+    await api()
+      .patch(url)
+      .set("authorization", owner)
+      .send({
+        name: "Optional contacts",
+        phone: null,
+        streetAddress: null,
+        provinceId: null,
+        wardId: null,
+      })
+      .expect(204);
+    settings = salonSettingsSchema.parse(
+      (await api().get(`/api/v1/salons/${fixture.salonId}/settings`).set("authorization", owner))
+        .body,
+    );
+    expect(settings.profile.phone).toBeNull();
+    expect(settings.profile.address).toBeNull();
+    await api()
+      .patch(url)
+      .set("authorization", owner)
+      .send({ name: "No required address", description: { vi: "Ghi chú" } })
+      .expect(204);
+    await api()
+      .patch(url)
+      .set("authorization", owner)
+      .send({ name: "Incomplete address", streetAddress: "123 Test" })
+      .expect(400);
+    await api()
+      .patch(url)
+      .set("authorization", owner)
+      .send({ name: "Invalid phone", phone: "abcdefgh" })
+      .expect(400);
+    await api().patch(url).set("authorization", staff).send({ name: "Not allowed" }).expect(403);
+    await api().patch(url).set("authorization", ownerB).send({ name: "Other tenant" }).expect(404);
+    const ward = await prisma.location.findFirstOrThrow({ where: { level: "ward" } });
+    await api()
+      .patch(url)
+      .set("authorization", owner)
+      .send({
+        name: "Contacts added later",
+        phone: "0901234567",
+        streetAddress: "123 Test",
+        provinceId: ward.parentId,
+        wardId: ward.id,
+      })
+      .expect(204);
+    await api()
+      .patch(url)
+      .set("authorization", owner)
+      .send({ name: "Name only again" })
+      .expect(204);
+    settings = salonSettingsSchema.parse(
+      (await api().get(`/api/v1/salons/${fixture.salonId}/settings`).set("authorization", owner))
+        .body,
+    );
+    expect(settings.profile.phone).toBe("+84901234567");
+    expect(settings.profile.address?.streetAddress).toBe("123 Test");
+    expect(settings.profile.description?.vi).toBe("Ghi chú");
+  });
 });

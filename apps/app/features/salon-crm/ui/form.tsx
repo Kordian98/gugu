@@ -1,6 +1,8 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
 import {
   Modal,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   TextInput,
@@ -15,8 +17,10 @@ import {
   color,
   font,
   Icon,
+  MIN_TOUCH,
   Text,
   touchSlop,
+  typeScale,
   useCalm,
 } from "@gugu/design-system";
 
@@ -68,6 +72,7 @@ export function Input({
   width,
   onBlur,
   maxLength,
+  editable = true,
 }: {
   value: string;
   onChangeText: (v: string) => void;
@@ -80,6 +85,7 @@ export function Input({
   testID?: string | undefined;
   width?: number | undefined;
   maxLength?: number | undefined;
+  editable?: boolean | undefined;
 }) {
   const { c } = useCalm();
   return (
@@ -94,8 +100,9 @@ export function Input({
       keyboardType={keyboardType}
       multiline={multiline}
       maxLength={maxLength}
+      editable={editable}
       style={{
-        minHeight: multiline ? 88 : 42,
+        minHeight: multiline ? MIN_TOUCH * 2 : MIN_TOUCH,
         width,
         paddingHorizontal: 12,
         paddingVertical: multiline ? 10 : 0,
@@ -105,7 +112,7 @@ export function Input({
         backgroundColor: c.surface,
         color: c.ink,
         fontFamily: font.ui,
-        fontSize: 15,
+        fontSize: typeScale.body,
         textAlignVertical: multiline ? "top" : "center",
       }}
     />
@@ -303,7 +310,7 @@ export function Segmented<T extends string>({
               onChange(o.id);
             }}
             style={{
-              height: 36,
+              minHeight: MIN_TOUCH,
               paddingHorizontal: 12,
               borderRadius: 10,
               justifyContent: "center",
@@ -322,7 +329,7 @@ export function Segmented<T extends string>({
   );
 }
 
-/** Minimal select: a field that opens a list sheet. */
+/** Inline choices stay inside the current editor, including when it is already a sheet. */
 export function Select<T extends string>({
   value,
   options,
@@ -340,18 +347,45 @@ export function Select<T extends string>({
 }) {
   const { c } = useCalm();
   const [open, setOpen] = useState(false);
+  const trigger = useRef<ComponentRef<typeof View>>(null);
+  const closeChoices = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
+  useEffect(() => {
+    if (!open || Platform.OS !== "web" || typeof document === "undefined") return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      // React Native Web closes Modal on document keyup; consume both halves before it.
+      event.stopPropagation();
+      event.preventDefault();
+      if (event.type === "keyup") {
+        setOpen(false);
+        trigger.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onEscape, true);
+    document.addEventListener("keyup", onEscape, true);
+    return () => {
+      document.removeEventListener("keydown", onEscape, true);
+      document.removeEventListener("keyup", onEscape, true);
+    };
+  }, [open]);
   const current = options.find((o) => o.id === value);
   return (
-    <>
+    <View>
       <Pressable
+        ref={trigger}
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={label}
+        accessibilityState={{ expanded: open }}
+        aria-expanded={open}
         onPress={() => {
-          setOpen(true);
+          setOpen((value) => !value);
         }}
         style={{
-          height: 42,
+          minHeight: MIN_TOUCH,
           paddingHorizontal: 12,
           borderRadius: 12,
           borderWidth: 1,
@@ -368,40 +402,36 @@ export function Select<T extends string>({
         </Text>
         <Icon name="chevronDown" size={16} color={c.body} />
       </Pressable>
-      <Sheet
-        open={open}
-        onClose={() => {
-          setOpen(false);
-        }}
-        title={label}
-      >
-        {options.map((o) => (
-          <Pressable
-            key={o.id}
-            accessibilityRole="button"
-            accessibilityState={{ selected: o.id === value }}
-            onPress={() => {
-              onChange(o.id);
-              setOpen(false);
-            }}
-            style={{
-              paddingVertical: 12,
-              paddingHorizontal: 12,
-              borderRadius: 10,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              backgroundColor: o.id === value ? c.accentSoft : "transparent",
-            }}
-          >
-            <Text size={15} color={c.ink}>
-              {o.label}
-            </Text>
-            {o.id === value ? <Icon name="check" size={16} color={c.accent} /> : null}
-          </Pressable>
-        ))}
-      </Sheet>
-    </>
+      {open ? (
+        <View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ gap: 4 }}>
+          {options.map((o) => (
+            <Pressable
+              key={o.id}
+              {...checkableA11y("radio", o.id === value)}
+              onPress={() => {
+                onChange(o.id);
+                closeChoices();
+              }}
+              style={{
+                minHeight: MIN_TOUCH,
+                paddingVertical: 12,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: o.id === value ? c.accentSoft : "transparent",
+              }}
+            >
+              <Text size={15} color={c.ink}>
+                {o.label}
+              </Text>
+              {o.id === value ? <Icon name="check" size={16} color={c.accent} /> : null}
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -439,7 +469,11 @@ export function Sheet({
         if (!dismissDisabled) onClose();
       }}
     >
-      <View style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end" }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        enabled={Platform.OS !== "web"}
+        style={{ flex: 1, flexDirection: "row", justifyContent: "flex-end" }}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={closeLabel ?? title}
@@ -490,7 +524,12 @@ export function Sheet({
               disabled={dismissDisabled}
               accessibilityState={{ disabled: dismissDisabled }}
               onPress={onClose}
-              style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}
+              style={{
+                width: MIN_TOUCH,
+                height: MIN_TOUCH,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
               <Icon name="close" size={20} color={c.body} strokeWidth={1.8} />
             </Pressable>
@@ -498,6 +537,7 @@ export function Sheet({
           <ScrollView
             contentContainerStyle={{ padding: 20, gap: 16 }}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
             {children}
           </ScrollView>
@@ -505,6 +545,7 @@ export function Sheet({
             <View
               style={{
                 flexDirection: "row",
+                flexWrap: "wrap",
                 justifyContent: "flex-end",
                 gap: 10,
                 padding: 16,
@@ -518,7 +559,7 @@ export function Sheet({
             </View>
           ) : null}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -569,7 +610,14 @@ export function ConfirmDialog({
 }) {
   const { c } = useCalm();
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={open}
+      transparent
+      animationType="fade"
+      onRequestClose={() => {
+        if (!busy) onCancel();
+      }}
+    >
       <View
         style={{
           flex: 1,
@@ -599,12 +647,22 @@ export function ConfirmDialog({
           <Text size={14} color={c.body}>
             {body}
           </Text>
-          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 6 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+              gap: 10,
+              marginTop: 6,
+            }}
+          >
             <Pressable
               accessibilityRole="button"
+              disabled={busy}
+              accessibilityState={{ disabled: Boolean(busy) }}
               onPress={onCancel}
               style={{
-                height: 40,
+                minHeight: MIN_TOUCH,
                 paddingHorizontal: 16,
                 borderRadius: 12,
                 justifyContent: "center",
@@ -620,9 +678,10 @@ export function ConfirmDialog({
               testID={testID ? `${testID}-confirm` : undefined}
               accessibilityRole="button"
               disabled={busy}
+              accessibilityState={{ disabled: Boolean(busy), busy: Boolean(busy) }}
               onPress={onConfirm}
               style={{
-                height: 40,
+                minHeight: MIN_TOUCH,
                 paddingHorizontal: 16,
                 borderRadius: 12,
                 justifyContent: "center",

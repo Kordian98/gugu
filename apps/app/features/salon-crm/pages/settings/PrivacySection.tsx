@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 
@@ -34,6 +35,8 @@ export function PrivacySection() {
   const list = useSalonExports(true);
   const request = useRequestSalonExport();
   const download = useDownloadSalonExport();
+  const [fileError, setFileError] = useState<unknown>(null);
+  const [sharing, setSharing] = useState(false);
   const items = list.data?.items ?? [];
   const busy = items.some((e) => e.status === "queued" || e.status === "running");
 
@@ -45,7 +48,7 @@ export function PrivacySection() {
       <Text size={13} color={c.body}>
         {t("salon.body")}
       </Text>
-      <ErrorBanner text={errorText(request.error ?? download.error)} />
+      <ErrorBanner text={errorText(fileError ?? request.error ?? download.error)} />
       <View style={{ flexDirection: "row" }}>
         <CalmButton
           testID="crm-privacy-export"
@@ -103,12 +106,20 @@ export function PrivacySection() {
                     size="sm"
                     variant="secondary"
                     label={t(format === "json" ? "salon.downloadJson" : "salon.downloadCsv")}
+                    disabled={sharing || download.isPending}
                     onPress={() => {
+                      if (sharing || download.isPending) return;
+                      setFileError(null);
                       download.mutate(
                         { id: e.id, format },
                         {
                           onSuccess: (f) => {
-                            void saveTextFile(f.fileName, f.mimeType, f.content);
+                            setSharing(true);
+                            void saveTextFile(f.fileName, f.mimeType, f.content)
+                              .catch(setFileError)
+                              .finally(() => {
+                                setSharing(false);
+                              });
                           },
                         },
                       );

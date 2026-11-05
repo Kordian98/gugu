@@ -8,6 +8,7 @@ import {
   checkableA11y,
   DatePicker,
   Icon,
+  MIN_TOUCH,
   Pill,
   Text,
   useCalm,
@@ -662,7 +663,7 @@ export function NewAppointmentSheet({
                       }}
                       style={{
                         paddingHorizontal: 10,
-                        height: 34,
+                        minHeight: MIN_TOUCH,
                         borderRadius: 10,
                         justifyContent: "center",
                         borderWidth: 1,
@@ -1028,7 +1029,7 @@ function EarliestList({
                       }}
                       style={{
                         paddingHorizontal: 12,
-                        height: 38,
+                        minHeight: MIN_TOUCH,
                         borderRadius: 10,
                         justifyContent: "center",
                         borderWidth: 1,

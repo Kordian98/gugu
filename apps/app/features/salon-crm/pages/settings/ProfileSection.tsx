@@ -47,12 +47,11 @@ export function ProfileSection({
   const provinces = useLocations("province");
   const wards = useLocations("ward", provinceId);
   const save = useCrmMutation(crmApi.updateProfile, ["settings"]);
+  const addressStarted = Boolean(street.trim() || provinceId || wardId);
   const ready =
     name.trim().length >= 2 &&
-    phone.trim().length >= 8 &&
-    street.trim().length >= 3 &&
-    provinceId &&
-    wardId;
+    (!phone.trim() || phone.trim().length >= 8) &&
+    (!addressStarted || Boolean(street.trim().length >= 3 && provinceId && wardId));
   const label = (l: LocationItem) => l.name[locale] || l.name.vi;
 
   return (
@@ -61,12 +60,25 @@ export function ProfileSection({
         {t("settings.profile")}
       </Text>
       <ErrorBanner text={errorText(save.error)} />
+      <Text size={16} color={c.body}>
+        {t("settings.contactOptional")}
+      </Text>
+      {addressStarted && !(street.trim().length >= 3 && provinceId && wardId) ? (
+        <ErrorBanner text={t("settings.addressIncomplete")} />
+      ) : null}
       <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
         <Field flex={1.4} label={t("settings.salonName")}>
-          <Input label={t("settings.salonName")} value={name} onChangeText={setName} />
+          <Input
+            testID="crm-profile-name"
+            editable={canEdit}
+            label={t("settings.salonName")}
+            value={name}
+            onChangeText={setName}
+          />
         </Field>
         <Field flex={1} label={t("settings.phone")}>
           <Input
+            editable={canEdit}
             label={t("settings.phone")}
             value={phone}
             keyboardType="phone-pad"
@@ -76,6 +88,7 @@ export function ProfileSection({
       </View>
       <Field label={t("settings.description")} hint={t("settings.descriptionHint")}>
         <Input
+          editable={canEdit}
           multiline
           label={t("settings.description")}
           value={description}
@@ -83,7 +96,12 @@ export function ProfileSection({
         />
       </Field>
       <Field label={t("settings.street")}>
-        <Input label={t("settings.street")} value={street} onChangeText={setStreet} />
+        <Input
+          editable={canEdit}
+          label={t("settings.street")}
+          value={street}
+          onChangeText={setStreet}
+        />
       </Field>
       <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
         <Field flex={1} label={t("settings.province")}>
@@ -123,19 +141,20 @@ export function ProfileSection({
             </Text>
           ) : null}
           <CalmButton
+            disabled={save.isPending || !ready}
             testID="crm-profile-save"
             label={save.isPending ? t("common.saving") : t("common.save")}
             onPress={() => {
-              if (!ready || !provinceId || !wardId) return;
+              if (!ready || save.isPending) return;
               setSaved(false);
               save.mutate(
                 {
                   name: name.trim(),
-                  phone: phone.trim(),
+                  phone: phone.trim() || null,
                   description: description.trim()
                     ? { vi: description.trim(), en: p.description?.en ?? "" }
                     : null,
-                  streetAddress: street.trim(),
+                  streetAddress: street.trim() || null,
                   provinceId,
                   wardId,
                 },
