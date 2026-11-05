@@ -7,7 +7,7 @@ import { signInViaUi } from "./auth";
 import { WEB } from "./env";
 import type { Area, SeedManifest, SeededSalon } from "./seed";
 
-const SEED_FILE = resolve(import.meta.dirname, "../.e2e/seed.json");
+const SEED_FILE = process.env["E2E_SEED_FILE"] ?? resolve(import.meta.dirname, "../.e2e/seed.json");
 
 function manifest(): SeedManifest {
   return JSON.parse(readFileSync(SEED_FILE, "utf8")) as SeedManifest;

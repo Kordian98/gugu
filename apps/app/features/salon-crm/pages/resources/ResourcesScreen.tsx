@@ -10,6 +10,7 @@ import { useSalon } from "../../data/SalonContext";
 import { useWorkspace } from "../../data/useWorkspace";
 import { PageHeader } from "../../shell/PageHeader";
 import { useBreakpoint } from "../../shell/useBreakpoint";
+import { QueryError } from "../../ui/QueryError";
 import { EmptyState } from "../../ui/EmptyState";
 import { useErrorText } from "../../ui/errors";
 import { ConfirmDialog, ErrorBanner, Input, NumberInput, Sheet, Toggle } from "../../ui/form";
@@ -33,6 +34,15 @@ export function ResourcesScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+      {list.isError && list.data ? (
+        <QueryError
+          testID="crm-resources-refresh-error"
+          busy={list.isFetching}
+          onRetry={() => {
+            void list.refetch();
+          }}
+        />
+      ) : null}
       <PageHeader
         title={t("pages.resources.title")}
         subtitle={t("resources.subtitle")}
@@ -55,6 +65,14 @@ export function ResourcesScreen() {
       </View>
       {list.isPending ? (
         <ActivityIndicator color={c.accent} />
+      ) : list.isError && !list.data ? (
+        <QueryError
+          testID="crm-list-error"
+          busy={list.isFetching}
+          onRetry={() => {
+            void list.refetch();
+          }}
+        />
       ) : items.length === 0 ? (
         <CalmCard>
           <EmptyState
@@ -184,11 +202,12 @@ function TypeCard({ type, canEdit }: { type: ResourceType; canEdit: boolean }) {
         open={confirm}
         title={t("resources.deleteType", { name: type.name })}
         body={
-          inUse
+          errorText(remove.error) ??
+          (inUse
             ? t("resources.deleteTypeInUse", { count: type.requiredByServiceCount })
-            : t("resources.deleteTypeBody")
+            : t("resources.deleteTypeBody"))
         }
-        confirmLabel={t("common.delete")}
+        confirmLabel={inUse ? t("common.close") : t("common.delete")}
         cancelLabel={t("common.cancel")}
         busy={remove.isPending}
         onCancel={() => {
@@ -200,7 +219,7 @@ function TypeCard({ type, canEdit }: { type: ResourceType; canEdit: boolean }) {
             return;
           }
           remove.mutate(type.id, {
-            onSettled: () => {
+            onSuccess: () => {
               setConfirm(false);
             },
           });
@@ -215,6 +234,7 @@ function ResourceRow({ r, canEdit }: { r: Resource; canEdit: boolean }) {
   const { t } = useTranslation("crm");
   const errorText = useErrorText();
   const [cap, setCap] = useState<number | null>(r.capacity);
+  const [confirm, setConfirm] = useState(false);
   const update = useCrmMutation(crmApi.updateResource, ["resources"]);
   const remove = useCrmMutation(crmApi.removeResource, ["resources"]);
   const saveCap = () => {
@@ -267,8 +287,10 @@ function ResourceRow({ r, canEdit }: { r: Resource; canEdit: boolean }) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("resources.deleteResource", { name: r.name })}
+              testID={`crm-resource-delete-${r.id}`}
+              disabled={remove.isPending}
               onPress={() => {
-                remove.mutate(r.id);
+                setConfirm(true);
               }}
               style={{ padding: 6 }}
             >
@@ -282,6 +304,26 @@ function ResourceRow({ r, canEdit }: { r: Resource; canEdit: boolean }) {
         )}
       </View>
       <ErrorBanner text={errorText(update.error ?? remove.error)} />
+      <ConfirmDialog
+        testID="crm-resource-delete-dialog"
+        open={confirm}
+        title={t("resources.deleteResource", { name: r.name })}
+        body={errorText(remove.error) ?? t("resources.deleteResourceBody")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
+        busy={remove.isPending}
+        onCancel={() => {
+          if (!remove.isPending) setConfirm(false);
+        }}
+        onConfirm={() => {
+          if (!remove.isPending)
+            remove.mutate(r.id, {
+              onSuccess: () => {
+                setConfirm(false);
+              },
+            });
+        }}
+      />
     </View>
   );
 }
@@ -292,23 +334,36 @@ function AddTypeSheet({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [first, setFirst] = useState("");
   const [cap, setCap] = useState<number | null>(1);
+  const [createdTypeId, setCreatedTypeId] = useState<string | null>(null);
   const createType = useCrmMutation(crmApi.createResourceType, ["resources"]);
   const createRes = useCrmMutation(crmApi.createResource, ["resources"]);
   const busy = createType.isPending || createRes.isPending;
   const save = () => {
-    if (!name.trim()) return;
+    if (busy || !name.trim()) return;
+    const addResource = (resourceTypeId: string) => {
+      if (!first.trim()) {
+        onClose();
+        return;
+      }
+      createRes.mutate(
+        {
+          resourceTypeId,
+          name: first.trim(),
+          capacity: Math.min(MAX_RESOURCE_CAPACITY, Math.max(1, cap ?? 1)),
+        },
+        { onSuccess: onClose },
+      );
+    };
+    if (createdTypeId) {
+      addResource(createdTypeId);
+      return;
+    }
     createType.mutate(
       { name: name.trim() },
       {
         onSuccess: (r) => {
-          if (!first.trim()) {
-            onClose();
-            return;
-          }
-          createRes.mutate(
-            { resourceTypeId: r.id, name: first.trim(), capacity: Math.max(1, cap ?? 1) },
-            { onSuccess: onClose },
-          );
+          setCreatedTypeId(r.id);
+          addResource(r.id);
         },
       },
     );
@@ -316,13 +371,20 @@ function AddTypeSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet
       open
+      dismissDisabled={busy}
       onClose={onClose}
       closeLabel={t("common.close")}
       title={t("resources.addType")}
       footer={
         <>
-          <CalmButton variant="secondary" label={t("common.cancel")} onPress={onClose} />
           <CalmButton
+            variant="secondary"
+            disabled={busy}
+            label={t("common.cancel")}
+            onPress={onClose}
+          />
+          <CalmButton
+            disabled={busy || !name.trim()}
             testID="crm-resource-type-save"
             label={busy ? t("common.saving") : t("common.save")}
             onPress={save}
@@ -332,6 +394,7 @@ function AddTypeSheet({ onClose }: { onClose: () => void }) {
     >
       <ErrorBanner text={errorText(createType.error ?? createRes.error)} />
       <Input
+        editable={!busy && createdTypeId === null}
         testID="crm-resource-type-name"
         label={t("resources.typeName")}
         placeholder={t("resources.typePlaceholder")}

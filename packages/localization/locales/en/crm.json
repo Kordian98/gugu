@@ -27,7 +27,9 @@
     "close": "Close"
   },
   "shell": {
-    "searchPlaceholder": "Search appointments, customers…",
+    "signOut": "Sign out",
+    "signOutFailed": "Couldn't sign out. Please try again.",
+    "searchPlaceholder": "Find clients by name or phone",
     "newAppointment": "New appointment",
     "newShort": "New",
     "notifications": "Notifications",
@@ -216,7 +218,8 @@
     "required": "Required",
     "edit": "Edit",
     "done": "Done",
-    "back": "Back"
+    "back": "Back",
+    "retry": "Try again"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
@@ -246,7 +249,8 @@
     "ai_import_extraction_failed": "AI could not read the price list. Try again or use a sharper photo.",
     "entitlement_quota_exceeded": "This month's AI allowance is used up.",
     "entitlement_required": "Your plan does not include this feature.",
-    "booking_slot_taken": "Someone just took this time. Please pick another one.",
+    "booking_slot_taken": "The selected staff member or required equipment isn't available at this time. Please choose another time or staff member.",
+    "booking_override_required": "This time is outside the booking rules. Ask a salon owner or manager to confirm an exception.",
     "booking_invalid_transition": "This status change isn't possible.",
     "booking_too_early": "It's too early for this action.",
     "booking_too_late": "It's too late for this action.",
@@ -433,7 +437,11 @@
     "pay": {
       "open": "Pay & commission of {{name}}",
       "setNow": "No pay set · Set it now"
-    }
+    },
+    "removeTitle": "Remove {{name}} from the team?",
+    "removeBody": "This team member will no longer take new appointments. Their history is kept.",
+    "splitHoursPreserved": "Existing shifts and breaks are kept unchanged.",
+    "replaceSplitHours": "Replace with one shift"
   },
   "settings": {
     "profile": "Salon details",
@@ -476,7 +484,9 @@
     "bookingPolicy": "Booking policy",
     "bookingPolicyHint": "E.g. please arrive 5 minutes early.",
     "cancellationPolicy": "Cancellation policy",
-    "cancellationPolicyHint": "Shown to clients when they book."
+    "cancellationPolicyHint": "Shown to clients when they book.",
+    "contactOptional": "Phone and address are optional. You can add them later.",
+    "addressIncomplete": "To add an address, enter the street and select both the province and ward."
   },
   "join": {
     "usedTitle": "This invitation was already used",
@@ -521,6 +531,8 @@
     "pickFailed": "Could not open your photo library."
   },
   "calendar": {
+    "previewDraft": "Not saved",
+    "previewSaving": "Saving…",
     "newFor": "New appointment with {{name}}",
     "today": "Today",
     "noSlots": "No free times on this day. Try another day or team member.",
@@ -563,7 +575,7 @@
     },
     "findEarliest": "Find the earliest slot",
     "earliestTitle": "Earliest free times",
-    "dragUnavailable": "The time you drew isn't free.",
+    "dragUnavailable": "This time isn't offered in the usual schedule. Confirm the appointment to check it, or choose another time.",
     "overrideOn": "Book outside the rules",
     "overrideOff": "Back to free times",
     "overrideExplain": "Enter any time (after hours, short notice…) with a reason. It still can't overlap the staff member's other appointments. This action is logged.",
@@ -573,7 +585,15 @@
     "nextServiceHint": "Starts right after the previous service. “Anyone” prefers whoever does the previous one.",
     "chainTotal": "Total {{minutes}} min · {{price}}",
     "chainPlan": "{{time}} {{service}} · {{staff}}",
-    "chainSeparator": " → "
+    "chainSeparator": " → ",
+    "catalogService": "From service list",
+    "customService": "One-off service",
+    "customServiceName": "Service name",
+    "customServicePrice": "Price (VND)",
+    "customServiceHint": "Saved for this appointment only; your service list stays as it is.",
+    "durationLabel": "Appointment duration (minutes)",
+    "selectedDuration": "Selected range: {{minutes}} minutes. You can adjust it before saving.",
+    "durationInvalid": "Enter a duration from 5 to 1,440 minutes."
   },
   "booking": {
     "title": "Appointment {{code}}",
@@ -765,7 +785,16 @@
     "email": "Email (optional)",
     "emailHint": "Saved for your records only. GuGu never emails your clients.",
     "emailInvalid": "This email address doesn't look right.",
-    "emailSaved": "Email saved."
+    "emailSaved": "Email saved.",
+    "noResultsTitle": "No matching clients",
+    "noResultsBody": "Try another name or phone number, or clear the filters.",
+    "clearFilters": "Clear filters",
+    "loadMore": "Load more clients",
+    "loadedCount": "Showing {{shown}} of {{total}} clients",
+    "editName": "Edit client name",
+    "nameSaved": "Client name saved.",
+    "deleteNoteTitle": "Delete this note?",
+    "deleteNoteBody": "This note cannot be recovered after deletion."
   },
   "insights": {
     "subtitle": "Figures from your salon's appointments. Revenue is an estimate, not money received.",
@@ -802,6 +831,11 @@
     "vsPrevious": "vs previous period",
     "noPrevious": "No data for the previous period",
     "daily": "Appointments per day",
+    "dailyHint": "Select a bar or use the arrows to explore each day.",
+    "dailyEmpty": "No appointments in this period",
+    "dailyCount": "Appointments: {{count}}",
+    "dailyPrevious": "Previous day",
+    "dailyNext": "Next day",
     "services": "Popular services",
     "sources": "Booking sources",
     "staff": "By team member",
@@ -861,7 +895,8 @@
     "deleteTypeBody": "Its rooms/equipment are removed too. Past appointments stay as they are.",
     "deleteTypeInUse": "{{count}} services need this type. Remove the requirement from them first.",
     "deleteResource": "Delete {{name}}",
-    "active": "Turn {{name}} on/off"
+    "active": "Turn {{name}} on/off",
+    "deleteResourceBody": "This room or equipment will no longer be available for new appointments."
   },
   "myDay": {
     "total": "{{count}} today",
@@ -879,6 +914,7 @@
     "subtitle": "Your day, {{date}}"
   },
   "override": {
+    "rulesLabel": "Rules this confirmation may make an exception to:",
     "title": "Outside the booking rules — book anyway?",
     "confirm": "Book anyway",
     "body": "It still can't overlap other appointments. The reason is logged.",
@@ -1451,7 +1487,7 @@
     "services": {
       "title": "What services do you offer?",
       "body": "Pick whatever is quickest for you. Your list shows up right below.",
-      "aiTitle": "Snap or upload your price list",
+      "aiTitle": "Set up services with AI",
       "aiBody": "AI reads the photo and builds a list for you to check. Only the price list is needed, no client data.",
       "aiCta": "Choose price-list photos",
       "aiUnavailable": "AI import isn't switched on here yet. Pick from a template below; it takes less than a minute.",
@@ -1467,7 +1503,10 @@
       "added_other": "{{count}} services added",
       "listTitle": "Your services",
       "empty": "No services yet. Pick one of the options above.",
-      "editRow": "Edit"
+      "editRow": "Edit",
+      "tabAi": "Set up with AI",
+      "aiSteps": "Upload a price-list photo → review names, prices and durations → confirm your services.",
+      "aiStatusFailed": "Couldn't check AI availability. Try again or use a template below."
     },
     "team": {
       "title": "Who serves your clients?",

@@ -1,0 +1,223 @@
+{
+  "results": [
+    {
+      "route": "",
+      "body": "STUDIO\nGood evening, owner-mobile.audit ☕\nYour salon at a glance for Thursday, November 5, 2026\nMON\n2\nTUE\n3\nWED\n4\nTHU\n5\nFRI\n6\nSAT\n7\nSUN\n8\nUPCOMING APPOINTMENTS\n& live queue\nNo upcoming appointments.\nTODAY'S REVENUE\n—\nShows after your first completed appointment\nTHIS MONTH\n5 of 30 days\nSo far\n0đ\nUpcoming\n0đ\nEst. profit\n0đ\nEstimated\nPayroll\nDetails\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "calendar",
+      "body": "STUDIO\nCalendar\nToday\nThursday, November 5, 2026\nAll\nNguyễn Lan\nTrần Mai\nThursday, November 5, 2026\n10:00 AM\nVõ Thị Hồng\nGel polish · Nguyễn Lan\n150,000đ\nConfirmed\n11:00 AM\nTrần Bảo Vy\nWomen's haircut · Trần Mai\n200,000đ\nConfirmed\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "appointments",
+      "body": "STUDIO\nAppointments\nThursday, November 5, 2026\n10:00 AM\nVõ Thị Hồng\nGel polish · Nguyễn Lan\n150,000đ\nConfirmed\n11:00 AM\nTrần Bảo Vy\nWomen's haircut · Trần Mai\n200,000đ\nConfirmed\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "customers",
+      "body": "STUDIO\nCustomers\nVisit history, tags and internal notes for every client.\nAdd client\nAll\nNew\nReturning\nAt risk\nNo-shows\nShowing 2 of 2 clients\nTH\nVõ Thị Hồng\n+84977123456\n0 visits\nLast Visit: No Visits Yet\n0đ\nEstimated\nBV\nTrần Bảo Vy\n+84987000222\n0 visits\nLast Visit: No Visits Yet\n0đ\nEstimated\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": [
+          {
+            "label": "Search by name or phone",
+            "font": "16px"
+          }
+        ]
+      }
+    },
+    {
+      "route": "services",
+      "body": "STUDIO\nServices\nServices, options, add-ons and who performs them\nEffortless AI setup\nAI import is not enabled on this server. You can add services manually.\nSERVICES (2)\nAdd service\nOther\nGel polish\n60 min\n150,000đ\nNL\nTM\nWomen's haircut\n45 min\n200,000đ\nTM\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "team",
+      "body": "STUDIO\nTeam\nTeam members, roles, working hours and invitations\nTEAM (2)\nInvite by link\nAdd team member\nDo you also perform services yourself?\nAdd yourself to the team to take bookings with your own working hours.\nAdd myself\nNL\nNguyễn Lan\nNo account yet\n1 services\nMon–Sun · 08:00–22:00\nNo pay set · Set it now\nHours\nEdit\nInvite by link\nTM\nTrần Mai\nNo account yet\n2 services\nMon–Sun · 08:00–22:00\nNo pay set · Set it now\nHours\nEdit\nInvite by link\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "resources",
+      "body": "STUDIO\nResources\nRooms, beds, chairs and equipment shared by your services.\nOptional. Add them when some services need their own space — e.g. 2 massage beds means at most 2 massage clients at once.\nAdd type\nNo rooms or equipment yet\nAdd rooms, chairs or beds if some services need their own. Optional.\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "insights",
+      "body": "STUDIO\nInsights & reports\nFigures from your salon's appointments. Revenue is an estimate, not money received.\nOverview\nThis month\n7 days\n30 days\n90 days\nWednesday, October 7, 2026 – Thursday, November 5, 2026 (appointments starting in the period)\nAppointments in period\n2\nNo data for the previous period\nUpcoming appointments\n0\nFrom now on, independent of the period\nCompleted\n0\nNo data for the previous period\nNew clients\n0\nNo data for the previous period\nReturning clients\n0\nNo data for the previous period\nNo-show rate\n—\nNo data for the previous period\nCancellation rate\n0.0%\nNo data for the previous period\nEstimated revenue\n0đ\nNo data for the previous period\nEstimated\nRecorded at the salon\n0đ\nNo data for the previous period\nRecorded at salon\nEstimated gross margin\n0đ\nNo data for the previous period\nService price minus internal cost, over completed appointments whose services have a cost.\nEstimated\nAppointments per day\nSelect a bar or use the arrows to explore each day.\nNov 5, 2026\nAppointments: 2\n012\nOct 7, 2026\nOct 21, 2026\nNov 5, 2026\nPOPULAR SERVICES\nAppointments, new customers, no-show rate and estimated revenue appear after your first appointments.\nBOOKING SOURCES\nPhone\n2\nBY TEAM MEMBER\nNguyễn Lan\nAppointments: 1\nCompleted: 0\nNo-shows: 0\nEstimated revenue: 0đ\nTrần Mai\nAppointments: 1\nCompleted: 0\nNo-shows: 0\nEstimated revenue: 0đ\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "payroll",
+      "body": "STUDIO\nPay & commission\nBase pay, commission and adjustments per person, by month.\nMonthly payroll\nPay & commission rates\nNovember 2026\nOpen\nDownload\nOpen month: figures update with appointments. Close it when the month ends to freeze them; you can reopen it.\nClose payroll\nTo pay\n0đ\nFull-month base pay + commission earned (2 people)\nReal cost\n0đ\nNo taxes/insurance entered, so equal to gross pay\nNguyễn Lan\nPay not set\nPay not set\nTo pay\n0đ\nBase pay\n0đ\nCommission earned\n0đ\nReal cost\n0đ\nTrần Mai\nPay not set\nPay not set\nTo pay\n0đ\nBase pay\n0đ\nCommission earned\n0đ\nReal cost\n0đ\nTotal\nPay (gross)\n0đ\nReal cost\n0đ\nTo pay\n0đ\nThese are estimates before tax and social insurance. GuGu does not calculate income tax or social insurance and moves no money.\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "settings",
+      "body": "STUDIO\nSettings\nPlan\nTrial\nPro trial\nTrial ends\nThursday, November 19, 2026\nBasic is free through\nFriday, November 5, 2027\nDuring the trial your salon has every Pro feature, including the AI assistant, with a small AI allowance. Afterwards you continue on Basic, free for your first year.\nSalon details\nSalon name\nPhone number\nShort introduction\nShown on your salon page.\nStreet address\nProvince/City\nChoose\nWard/Commune\nChoose\nSave\nOpening hours\n9:00–21:00 every day\nMonday\nto\nTuesday\nto\nWednesday\nto\nThursday\nto\nFriday\nto\nSaturday\nto\nSunday\nto\nSave\nBooking and confirmation\nBooking confirmation\nAutomatic\nSalon confirms\nBookings are confirmed as soon as the client books.\nConfirm new clients\nBookings from first-time or unverified clients wait for salon confirmation.\nHide staff choice\nClients book without choosing a team member; the salon assigns one.\nMinimum notice (hours)\nClients can't book closer to the start than this.\nBook ahead up to (days)\nHow far ahead clients can book.\nCancel/reschedule until (hours)\nAfter this, clients contact the salon to cancel or reschedule.\nSave\nNotifications\nGuGu Studio never emails your customers. They only get messages from the salon's Zalo OA.\nTo customers (via Zalo)\nZalo OA is not connected, so customers don't get automatic messages.\nTo the team\nBell\nEmail\nNew booking added by someone else\nBooking moved by someone else\nBooking cancelled\nCustomer waiting for staff on Zalo\nSave\nClosed days and special hours\nE.g. Tết holidays, half days.\nFrom\nTo\nReason\nClosed all day\nSpecial hours\nAdd date\nPolicies\nBooking policy\nE.g. please arrive 5 minutes early.\nCancellation policy\nShown to clients when they book.\nSave\nZalo Official Account\nNot connected\nCustomers who message the salon's Zalo OA get help booking from an automatic assistant that always speaks as the salon. Staff can take over at any time.\nTest mode: using the Zalo emulator, no real messages are sent.\nConnect Zalo OA\nOpen chat emulator\nData and privacy\nExport all of your salon's client data (JSON and CSV). Files can be downloaded only here, for 24 hours; no link is sent by email.\nCreate export\nNo exports yet.\nRetention\nThe notification send log is deleted after 12 months. Raw Zalo events are deleted after 30 days. Expired sessions and sign-in links are cleaned up automatically.\nGuGu Studio is designed to support salons in handling clients' personal-data requests. This is not legal advice.\nAppearance\nApplies to the salon workspace only.\nSystem\nLight\nDark\nLanguage\nTiếng Việt\nEnglish\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": [
+          {
+            "label": "Salon name",
+            "font": "16px"
+          },
+          {
+            "label": "Phone number",
+            "font": "16px"
+          },
+          {
+            "label": "Street address",
+            "font": "16px"
+          },
+          {
+            "label": "Start",
+            "font": "16px"
+          },
+          {
+            "label": "End",
+            "font": "16px"
+          },
+          {
+            "label": "Start",
+            "font": "16px"
+          },
+          {
+            "label": "End",
+            "font": "16px"
+          },
+          {
+            "label": "Start",
+            "font": "16px"
+          },
+          {
+            "label": "End",
+            "font": "16px"
+          },
+          {
+            "label": "Start",
+            "font": "16px"
+          },
+          {
+            "label": "End",
+            "font": "16px"
+          },
+          {
+            "label": "Start",
+            "font": "16px"
+          },
+          {
+            "label": "End",
+            "font": "16px"
+          },
+          {
+            "label": "Start",
+            "font": "16px"
+          },
+          {
+            "label": "End",
+            "font": "16px"
+          },
+          {
+            "label": "Start",
+            "font": "16px"
+          },
+          {
+            "label": "End",
+            "font": "16px"
+          },
+          {
+            "label": "Minimum notice (hours)",
+            "font": "16px"
+          },
+          {
+            "label": "Book ahead up to (days)",
+            "font": "16px"
+          },
+          {
+            "label": "Cancel/reschedule until (hours)",
+            "font": "16px"
+          },
+          {
+            "label": "From",
+            "font": "16px"
+          },
+          {
+            "label": "To",
+            "font": "16px"
+          },
+          {
+            "label": "Reason",
+            "font": "16px"
+          }
+        ]
+      }
+    },
+    {
+      "route": "zalo",
+      "body": "STUDIO\nZalo messages\nNot connected\nConnect your Zalo OA in Settings to receive customer messages here.\nGo to Settings\nToday\nCalendar\nNew\nCustomers\nMore",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "setup",
+      "body": "All set! Your salon is ready for bookings\nHere's your salon's calendar for today. Add your first appointment to get going.\nToday's calendar\nNL\nNguyễn Lan\nTM\nTrần Mai\n08:0009:0010:0011:0012:0013:0014:0015:0016:0017:0018:0019:0020:0021:0022:0023:00\nAdd your first appointment\nGo to Today\nYou can do these later:\nConnect Zalo OA",
+      "layout": {
+        "width": 390,
+        "scroll": 390,
+        "smallTargets": [],
+        "inputs": []
+      }
+    }
+  ],
+  "errors": []
+}

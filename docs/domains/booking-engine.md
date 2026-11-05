@@ -138,3 +138,15 @@ Latency is queueing under the per-target advisory locks with the default pool (1
 - Resources/capacity units, availability cache, waitlist, recurring, group bookings, deposits not implemented.
 - `409 slot_taken` carries no alternative slots yet; clients refetch availability.
 - Public page has no bot check yet (Turnstile); rate limits and per-phone limit only.
+
+## CRM custom appointment terms (2026-11-05)
+
+Salon members can set `durationMinutes` (5–1440) for a single appointment. It replaces the full effective duration, including add-ons; catalog prices, resource requirements and before/after buffers still apply. Every read (`availability`, `availability/earliest`, `booking-check`) and transactional create uses the same duration. Rescheduling keeps the booked duration snapshot.
+
+An ad hoc appointment sends `customService: { name, priceMinor }` and `durationMinutes`, omitting `serviceId`. It cannot have a catalog variant, add-ons or additional service lines. The name and VND price are snapshotted in `booking_services`, whose `service_id` is nullable; no catalog entry is created. Active bookable salon staff remain subject to schedules, own-calendar scope, locks and exclusion constraints. An ad hoc appointment has no catalog resource requirements or buffers. Rescheduling reconstructs eligibility from the active salon team and retains all booked terms.
+
+The read query `customService` parameter is JSON encoded. Invalid mixed selections and missing ad hoc duration are rejected at the contract boundary. Custom terms are accepted by the salon-member write path only. Rule exceptions still require `bookings.override_rules`, a reason and an audit event; overlaps cannot be overridden.
+
+Ad hoc completed lines are included in revenue and payroll. They use the staff member's default commission percentage, have unknown execution cost, and are grouped by their snapshot name in the top-services chart. The assistant receives only the aggregate marker `ad_hoc`, never the custom name.
+
+Regression coverage: `apps/api/src/modules/bookings/custom-appointments.int.test.ts` verifies effective duration and buffers, snapshot/idempotency/reschedule, rule checks plus a concurrent occupancy race, input validation and foreign-salon staff rejection. See [ADR-0019](../adr/0019-crm-custom-appointment-terms.md).

@@ -8,8 +8,9 @@ import { DEFAULT_SALON_TIMEZONE, formatClock24 } from "@gugu/localization";
 
 import { useLocale } from "@/services/i18n/useLocale";
 
-import { minutesInZone } from "../data/dates";
+import { minutesInZone, salonDate } from "../data/dates";
 import type { BookingStatus, StaffMember, TimelineItem } from "../data/types";
+import type { AppointmentDraft } from "./AppointmentDraft";
 
 /** Grid snap for taps and drags (minutes). */
 const SNAP = 15;
@@ -50,6 +51,7 @@ type Props = {
   granularity?: number | undefined;
   /** Mouse: drag starts at once. Touch: long-press first so the page can still scroll. */
   pointer?: "mouse" | "touch" | undefined;
+  draft?: AppointmentDraft | null | undefined;
 };
 
 /**
@@ -71,6 +73,7 @@ export function Timeline({
   onCreateRange,
   granularity = SNAP,
   pointer = "mouse",
+  draft,
 }: Props) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
@@ -211,6 +214,66 @@ export function Timeline({
                           : undefined
                       }
                     />
+                  );
+                })}
+              {draft?.blocks
+                .filter((block) => block.staffId === s.id)
+                .map((block, index) => {
+                  const start = new Date(block.startsAt);
+                  const end = new Date(block.endsAt);
+                  const startDay = salonDate(start, timeZone);
+                  const endDay = salonDate(end, timeZone);
+                  if (startDay > draft.date || endDay < draft.date) return null;
+                  const startMinute = startDay < draft.date ? 0 : minutesInZone(start, timeZone);
+                  const endMinute = endDay > draft.date ? 1440 : minutesInZone(end, timeZone);
+                  const y0 = Math.max(0, (startMinute - startHour * 60) * pxPerMin);
+                  const y1 = Math.min(height, (endMinute - startHour * 60) * pxPerMin);
+                  if (y1 <= y0) return null;
+                  return (
+                    <View
+                      key={`${s.id}-${String(index)}`}
+                      testID="crm-appointment-preview"
+                      pointerEvents="none"
+                      accessible
+                      accessibilityLabel={`${formatClock24(start, locale, timeZone)}–${formatClock24(end, locale, timeZone)}, ${block.service}, ${t(draft.saving ? "calendar.previewSaving" : "calendar.previewDraft")}`}
+                      style={{
+                        position: "absolute",
+                        left: 4,
+                        right: 4,
+                        top: y0 + 8,
+                        height: Math.max(y1 - y0 - 4, 22),
+                        zIndex: 2,
+                        borderRadius: 8,
+                        borderWidth: 1.5,
+                        borderStyle: "dashed",
+                        borderColor: c.accent,
+                        backgroundColor: c.accentSoft,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        overflow: "hidden",
+                        gap: 2,
+                      }}
+                    >
+                      {y1 - y0 < 40 ? (
+                        <Text size={12} color={c.accent} numberOfLines={1}>
+                          {`${formatClock24(start, locale, timeZone)}–${formatClock24(end, locale, timeZone)} · ${block.service}`}
+                        </Text>
+                      ) : (
+                        <>
+                          <Text size={12} color={c.accent}>
+                            {`${formatClock24(start, locale, timeZone)}–${formatClock24(end, locale, timeZone)}`}
+                          </Text>
+                          <Text role="uiSemiBold" size={13} color={c.ink} numberOfLines={1}>
+                            {block.service}
+                          </Text>
+                        </>
+                      )}
+                      {y1 - y0 > 56 ? (
+                        <Text size={12} color={c.body}>
+                          {t(draft.saving ? "calendar.previewSaving" : "calendar.previewDraft")}
+                        </Text>
+                      ) : null}
+                    </View>
                   );
                 })}
             </View>

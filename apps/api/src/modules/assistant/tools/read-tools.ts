@@ -251,7 +251,9 @@ export class ReadTools {
           if (i.groupBy === "status") bump(b.status);
           else if (i.groupBy === "staff") bump(await ctx.vault.tokenFor("staff", b.staffId));
           else if (i.groupBy === "day") bump(this.q.localDate(b.startsAt, ctx.timeZone));
-          else for (const s of b.services) bump(await ctx.vault.tokenFor("service", s.serviceId));
+          else
+            for (const s of b.services)
+              bump(s.serviceId ? await ctx.vault.tokenFor("service", s.serviceId) : "ad_hoc");
         }
         const groups = [...counts.entries()]
           .map(([key, count]) => ({ key, count }))
@@ -431,7 +433,9 @@ export class ReadTools {
         for (const b of rows) {
           const services = [];
           for (const s of b.services)
-            services.push(await ctx.vault.tokenFor("service", s.serviceId));
+            services.push(
+              s.serviceId ? await ctx.vault.tokenFor("service", s.serviceId) : "ad_hoc",
+            );
           items.push({
             booking: await ctx.vault.tokenFor("booking", b.id),
             startsAt: localIso(b.startsAt, ctx.timeZone),

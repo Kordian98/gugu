@@ -160,7 +160,16 @@ export class BookingQueries {
   private async chain(
     ctx: SalonBookingContext,
     query: Chained<
-      Pick<AvailabilityQuery, "serviceId" | "variantId" | "addOnIds" | "staffId" | "nextServices">
+      Pick<
+        AvailabilityQuery,
+        | "serviceId"
+        | "variantId"
+        | "addOnIds"
+        | "staffId"
+        | "nextServices"
+        | "durationMinutes"
+        | "customService"
+      >
     >,
     only: string | null,
   ): Promise<ResolvedChain> {

@@ -69,12 +69,16 @@ export interface LocalizedName {
 }
 
 export interface ServiceSelection {
-  serviceId: string;
+  serviceId?: string | null | undefined;
   variantId: string | null;
   addOnIds: readonly string[];
+  /** CRM effective full duration, including selected add-ons. */
+  durationMinutes?: number | undefined;
+  customService?: { name: string; priceMinor: number } | undefined;
 }
 
 export interface ResolvedSelection extends ServiceSelection {
+  serviceId: string | null;
   name: LocalizedName;
   variantName: LocalizedName | null;
   currency: string;
@@ -168,6 +172,8 @@ export async function resolveSelection(
   salonId: string,
   selection: ServiceSelection,
 ): Promise<ResolvedSelection> {
+  if (selection.customService) return resolveCustomSelection(db, salonId, selection);
+  if (!selection.serviceId) throw unavailable();
   const addOnIds = [...new Set(selection.addOnIds)];
   const service = await db.service.findFirst({
     where: { id: selection.serviceId, salonId, isActive: true, deletedAt: null },
@@ -227,15 +233,18 @@ export async function resolveSelection(
   for (const [staffId, row] of assignment) {
     staffTerms.set(
       staffId,
-      resolveServiceTerms({
-        service: serviceSource,
-        variant: variantSource,
-        staffOverride: {
-          durationMinutes: row.durationOverrideMinutes,
-          priceMinor: num(row.priceOverrideMinor),
-        },
-        addOns,
-      }),
+      appointmentTerms(
+        resolveServiceTerms({
+          service: serviceSource,
+          variant: variantSource,
+          staffOverride: {
+            durationMinutes: row.durationOverrideMinutes,
+            priceMinor: num(row.priceOverrideMinor),
+          },
+          addOns,
+        }),
+        selection.durationMinutes,
+      ),
     );
     staffSortOrder.set(staffId, row.staff.sortOrder);
   }
@@ -247,7 +256,10 @@ export async function resolveSelection(
     name: asName(service.name),
     variantName: variant ? asName(variant.name) : null,
     currency: service.currency,
-    terms: resolveServiceTerms({ service: serviceSource, variant: variantSource, addOns }),
+    terms: appointmentTerms(
+      resolveServiceTerms({ service: serviceSource, variant: variantSource, addOns }),
+      selection.durationMinutes,
+    ),
     addOns,
     staffTerms,
     staffSortOrder,
@@ -260,6 +272,60 @@ export async function resolveSelection(
       salonId,
       service.resourceRequirements.map((r) => r.resourceTypeId),
     ),
+  };
+}
+
+/** The calendar selection overrides the full effective service duration, never its buffers. */
+function appointmentTerms(terms: ServiceTerms, durationMinutes?: number): ServiceTerms {
+  return durationMinutes === undefined ? terms : { ...terms, durationMinutes };
+}
+
+/** Ad hoc services have no catalog FK and use the salon's active bookable team. */
+async function resolveCustomSelection(
+  db: Db,
+  salonId: string,
+  selection: ServiceSelection,
+): Promise<ResolvedSelection> {
+  const custom = selection.customService;
+  if (
+    !custom ||
+    !selection.durationMinutes ||
+    selection.serviceId ||
+    selection.variantId ||
+    selection.addOnIds.length
+  )
+    throw unavailable();
+  const [salon, staff] = await Promise.all([
+    db.salon.findFirst({ where: { id: salonId, deletedAt: null }, select: { currency: true } }),
+    db.staffProfile.findMany({
+      where: { salonId, isBookable: true, deletedAt: null },
+      select: { id: true, sortOrder: true },
+    }),
+  ]);
+  if (!salon) throw unavailable();
+  const terms: ServiceTerms = {
+    baseDurationMinutes: selection.durationMinutes,
+    basePriceMinor: custom.priceMinor,
+    basePriceMaxMinor: null,
+    durationMinutes: selection.durationMinutes,
+    bufferBeforeMinutes: 0,
+    bufferAfterMinutes: 0,
+    priceMinor: custom.priceMinor,
+    priceMaxMinor: null,
+  };
+  return {
+    serviceId: null,
+    variantId: null,
+    addOnIds: [],
+    name: { vi: custom.name, en: custom.name },
+    variantName: null,
+    currency: salon.currency,
+    terms,
+    addOns: [],
+    staffTerms: new Map(staff.map((s) => [s.id, terms])),
+    staffSortOrder: new Map(staff.map((s) => [s.id, s.sortOrder])),
+    requirements: [],
+    units: [],
   };
 }
 

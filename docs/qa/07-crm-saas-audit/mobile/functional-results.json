@@ -1,0 +1,46 @@
+[
+  {
+    "engine": "chromium",
+    "locale": "vi",
+    "width": 360,
+    "serviceReadable": true,
+    "input16": true,
+    "inlineChoices": true,
+    "targets44": true,
+    "dark": true,
+    "calendarErrorRecovery": true
+  },
+  {
+    "engine": "chromium",
+    "locale": "en",
+    "width": 360,
+    "serviceReadable": true,
+    "input16": true,
+    "inlineChoices": true,
+    "targets44": true,
+    "dark": true,
+    "calendarErrorRecovery": true
+  },
+  {
+    "engine": "webkit",
+    "locale": "vi",
+    "width": 360,
+    "serviceReadable": true,
+    "input16": true,
+    "inlineChoices": true,
+    "targets44": true,
+    "dark": true,
+    "calendarErrorRecovery": true
+  },
+  {
+    "engine": "webkit",
+    "locale": "en",
+    "width": 360,
+    "serviceReadable": true,
+    "input16": true,
+    "inlineChoices": true,
+    "targets44": true,
+    "dark": true,
+    "calendarErrorRecovery": true
+  }
+]

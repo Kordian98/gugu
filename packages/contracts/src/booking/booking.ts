@@ -59,26 +59,70 @@ export const bookingParamsSchema = z.object({ salonId: uuidV7Schema, bookingId: 
 export const publicSalonParamsSchema = z.object({ slug: z.string().min(1).max(120) });
 export const publicBookingParamsSchema = z.object({ token: z.string().min(20).max(200) });
 
+/** CRM-only appointment terms; no catalog entry is created for an ad hoc service. */
+export const customBookingServiceSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  priceMinor: z.number().int().min(0).max(1_000_000_000),
+});
+const customServiceParam = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}, customBookingServiceSchema.optional());
+const appointmentDuration = z.coerce.number().int().min(5).max(1440);
+const appointmentTerms = {
+  durationMinutes: appointmentDuration.optional(),
+  customService: customBookingServiceSchema.optional(),
+};
+const appointmentQueryTerms = {
+  durationMinutes: appointmentDuration.optional(),
+  customService: customServiceParam,
+};
+const validAppointmentSelection = (v: {
+  serviceId?: string | undefined;
+  customService?: unknown;
+  durationMinutes?: number | undefined;
+  variantId?: string | null | undefined;
+  addOnIds: readonly string[];
+  nextServices?: readonly unknown[] | undefined;
+}) =>
+  v.customService !== undefined
+    ? !v.serviceId &&
+      !v.variantId &&
+      v.addOnIds.length === 0 &&
+      !v.nextServices?.length &&
+      v.durationMinutes !== undefined
+    : Boolean(v.serviceId) && !(v.durationMinutes !== undefined && v.nextServices?.length);
+
 // ─── Availability ───────────────────────────────────────────────────────────────────────────────
 
 export const availabilityQuerySchema = dateRangeChecks(
-  z.object({
-    serviceId: uuidV7Schema,
-    variantId: uuidV7Schema.optional(),
-    addOnIds: uuidListParam,
-    /** Omit for "any staff". */
-    staffId: uuidV7Schema.optional(),
-    /** Further services in sequence (JSON array, M6.8); omit for a single service. */
-    nextServices: nextServicesParam,
-    from: localDateSchema,
-    to: localDateSchema,
-  }),
+  z
+    .object({
+      serviceId: uuidV7Schema.optional(),
+      ...appointmentQueryTerms,
+      variantId: uuidV7Schema.optional(),
+      addOnIds: uuidListParam,
+      /** Omit for "any staff". */
+      staffId: uuidV7Schema.optional(),
+      /** Further services in sequence (JSON array, M6.8); omit for a single service. */
+      nextServices: nextServicesParam,
+      from: localDateSchema,
+      to: localDateSchema,
+    })
+    .refine(validAppointmentSelection, {
+      path: ["serviceId"],
+      message: "invalid_service_selection",
+    }),
 );
 export type AvailabilityQuery = z.infer<typeof availabilityQuerySchema>;
 
 /** Where one service of the appointment lands in the engine's best plan for a slot. */
 export const slotLineSchema = z.object({
-  serviceId: uuidV7Schema,
+  serviceId: uuidV7Schema.nullable(),
   startsAt: instantSchema,
   endsAt: instantSchema,
   /** Null when the salon hides staff choice. */
@@ -128,19 +172,22 @@ export type Availability = z.infer<typeof availabilitySchema>;
  * window (multi-service: at most 62 days), server-side in ≤ 31-day chunks, and returns the first `limit` start times, at most
  * `perDay` per day so the options span several days.
  */
-export const earliestSlotsQuerySchema = z.object({
-  serviceId: uuidV7Schema,
-  variantId: uuidV7Schema.optional(),
-  addOnIds: uuidListParam,
-  /** Omit for "any staff". */
-  staffId: uuidV7Schema.optional(),
-  /** Further services in sequence (JSON array, M6.8). */
-  nextServices: nextServicesParam,
-  /** Start searching on this day (default: today in the salon timezone). */
-  from: localDateSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(10).default(5),
-  perDay: z.coerce.number().int().min(1).max(10).default(2),
-});
+export const earliestSlotsQuerySchema = z
+  .object({
+    serviceId: uuidV7Schema.optional(),
+    ...appointmentQueryTerms,
+    variantId: uuidV7Schema.optional(),
+    addOnIds: uuidListParam,
+    /** Omit for "any staff". */
+    staffId: uuidV7Schema.optional(),
+    /** Further services in sequence (JSON array, M6.8). */
+    nextServices: nextServicesParam,
+    /** Start searching on this day (default: today in the salon timezone). */
+    from: localDateSchema.optional(),
+    limit: z.coerce.number().int().min(1).max(10).default(5),
+    perDay: z.coerce.number().int().min(1).max(10).default(2),
+  })
+  .refine(validAppointmentSelection, { path: ["serviceId"], message: "invalid_service_selection" });
 export type EarliestSlotsQuery = z.infer<typeof earliestSlotsQuerySchema>;
 
 export const earliestSlotsSchema = z.object({
@@ -204,6 +251,8 @@ export type RuleOverride = z.infer<typeof ruleOverrideSchema>;
 export const createSalonBookingInputSchema = z
   .object({
     ...serviceSelection,
+    serviceId: uuidV7Schema.optional(),
+    ...appointmentTerms,
     /** Further services in sequence (M6.8, needs `booking.multiService`). */
     nextServices: nextServicesList,
     source: z.enum(STAFF_ENTRY_SOURCE_VALUES).default("staff_created"),
@@ -214,6 +263,7 @@ export const createSalonBookingInputSchema = z
     overrides: z.array(ruleOverrideSchema).max(3).default([]),
     overrideReason: z.string().trim().min(3).max(500).nullish(),
   })
+  .refine(validAppointmentSelection, { path: ["serviceId"], message: "invalid_service_selection" })
   .refine((b) => b.customer !== null || b.source === "walk_in", {
     path: ["customer"],
     message: "customer_required",
@@ -248,7 +298,7 @@ export const bookedAddOnSchema = z.object({
 });
 
 export const bookedServiceSchema = z.object({
-  serviceId: uuidV7Schema,
+  serviceId: uuidV7Schema.nullable(),
   variantId: uuidV7Schema.nullable(),
   name: localizedNameSchema,
   variantName: localizedNameSchema.nullable(),
@@ -371,18 +421,21 @@ export const publicRescheduleInputSchema = z.object({ startsAt: instantSchema })
 
 // ─── Rule check for the CRM "book anyway?" prompt (q18) ─────────────────────────────────────────
 
-export const bookingCheckQuerySchema = z.object({
-  serviceId: uuidV7Schema,
-  variantId: uuidV7Schema.optional(),
-  addOnIds: uuidListParam,
-  /** Omit for any staff. */
-  staffId: uuidV7Schema.optional(),
-  /** Further services in sequence (JSON array, M6.8). */
-  nextServices: nextServicesParam,
-  startsAt: instantSchema,
-  /** Check a reschedule of this booking (its own time doesn't count as busy). */
-  bookingId: uuidV7Schema.optional(),
-});
+export const bookingCheckQuerySchema = z
+  .object({
+    serviceId: uuidV7Schema.optional(),
+    ...appointmentQueryTerms,
+    variantId: uuidV7Schema.optional(),
+    addOnIds: uuidListParam,
+    /** Omit for any staff. */
+    staffId: uuidV7Schema.optional(),
+    /** Further services in sequence (JSON array, M6.8). */
+    nextServices: nextServicesParam,
+    startsAt: instantSchema,
+    /** Check a reschedule of this booking (its own time doesn't count as busy). */
+    bookingId: uuidV7Schema.optional(),
+  })
+  .refine(validAppointmentSelection, { path: ["serviceId"], message: "invalid_service_selection" });
 export type BookingCheckQuery = z.infer<typeof bookingCheckQuerySchema>;
 
 export const bookingCheckSchema = z.object({

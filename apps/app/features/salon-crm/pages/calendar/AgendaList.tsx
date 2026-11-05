@@ -1,7 +1,7 @@
 import { Pressable, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Avatar, Pill, Text, useCalm } from "@gugu/design-system";
+import { Avatar, Pill, Text, typeScale, useCalm } from "@gugu/design-system";
 import type { BookingStatusValue, SalonBooking, StaffMember } from "@gugu/contracts";
 import { formatDateLong, formatTime, formatVND } from "@gugu/localization";
 
@@ -10,6 +10,7 @@ import { useLocale } from "@/services/i18n/useLocale";
 import { customerLabel, serviceLabel } from "../../data/bookings";
 import { salonDate } from "../../data/dates";
 import { EmptyState } from "../../ui/EmptyState";
+import { useBreakpoint } from "../../shell/useBreakpoint";
 
 /** Local calendar date → long label (noon UTC keeps the same calendar day everywhere). */
 const dayLabel = (ymd: string, locale: "vi" | "en") =>
@@ -43,6 +44,7 @@ export function AgendaList({
   const { t } = useTranslation("crm");
   const labels = { walkIn: t("booking.walkIn"), deleted: t("booking.deletedCustomer") };
   const locale = useLocale();
+  const mobile = useBreakpoint() === "mobile";
   if (!bookings.length) return <EmptyState compact icon="calendar" title={emptyTitle} />;
   const days = [...new Set(bookings.map((b) => salonDate(new Date(b.startsAt), tz)))].sort();
   return (
@@ -67,6 +69,7 @@ export function AgendaList({
                   }}
                   style={{
                     flexDirection: "row",
+                    flexWrap: mobile ? "wrap" : "nowrap",
                     alignItems: "center",
                     gap: 12,
                     padding: 12,
@@ -80,22 +83,35 @@ export function AgendaList({
                   <Text role="uiSemiBold" size={14} color={c.ink} style={{ width: 64 }}>
                     {formatTime(new Date(b.startsAt), locale, tz)}
                   </Text>
-                  <Avatar name={customerLabel(b, labels)} size={32} />
+                  {mobile ? null : <Avatar name={customerLabel(b, labels)} size={32} />}
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text
                       role="uiSemiBold"
-                      size={14}
+                      testID={`crm-agenda-client-${b.id}`}
+                      size={mobile ? typeScale.body : 14}
                       color={c.ink}
-                      numberOfLines={1}
+                      {...(mobile ? {} : { numberOfLines: 1 })}
                       style={cancelled ? { textDecorationLine: "line-through" } : undefined}
                     >
                       {customerLabel(b, labels)}
                     </Text>
-                    <Text size={12} color={c.body} numberOfLines={1}>
+                    <Text
+                      size={mobile ? typeScale.label : 12}
+                      color={c.body}
+                      {...(mobile ? {} : { numberOfLines: 1 })}
+                    >
                       {`${serviceLabel(b, locale)} · ${staff.find((s) => s.id === b.staffId)?.displayName ?? ""}`}
                     </Text>
                   </View>
-                  <View style={{ alignItems: "flex-end", gap: 4 }}>
+                  <View
+                    style={{
+                      width: mobile ? "100%" : undefined,
+                      flexDirection: mobile ? "row" : "column",
+                      justifyContent: mobile ? "space-between" : undefined,
+                      alignItems: mobile ? "center" : "flex-end",
+                      gap: 4,
+                    }}
+                  >
                     <Text role="uiMedium" size={13} color={c.ink}>
                       {formatVND(b.totalPriceMinor, locale)}
                     </Text>

@@ -6,7 +6,7 @@ import type { AddressInfo } from "node:net";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import request from "supertest";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { zaloConnectionSchema, zaloConversationListSchema, zaloStatsSchema } from "@gugu/contracts";
 import { createBookableSalon, type BookableSalonFixture } from "../../../test/factories/booking";
 import { bearerFor, createSalonFixture } from "../../../test/factories/identity";
@@ -384,6 +384,278 @@ describe("Zalo integration (emulator, end to end)", () => {
     const sent = (await store.outbox(oaId, userId)).slice(before);
     expect(sent).toHaveLength(1);
     expect(lastText(sent).text).toContain("đã hủy lịch hẹn");
+  });
+
+  it("confirms each salon reschedule once on Zalo, with the new local time", async () => {
+    await connect();
+    const bookingId = await bookViaBot();
+    const before = (await store.outbox(oaId, userId)).length;
+    const move = async (startsAt: string) => {
+      const response = await http()
+        .post(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/reschedule`)
+        .set("authorization", owner)
+        .set("idempotency-key", `move-${bookingId}-${startsAt}`)
+        .send({ startsAt })
+        .expect(200);
+      const row = await prisma.outboxEvent.findFirstOrThrow({
+        where: { aggregateId: bookingId, type: "booking.rescheduled" },
+        orderBy: { occurredAt: "desc" },
+      });
+      const event = {
+        id: row.id,
+        salonId: row.salonId,
+        aggregateType: row.aggregateType,
+        aggregateId: row.aggregateId,
+        type: row.type,
+        payload: row.payload as Record<string, unknown>,
+        occurredAt: row.occurredAt.toISOString(),
+      };
+      const handler = app.get(ZaloBookingEventsHandler);
+      await Promise.all([handler.handle(event), handler.handle(event)]);
+      await handler.handle({ ...event, id: `duplicate-${row.id}` });
+      await drain();
+      return { response, event };
+    };
+    const first = await move("2026-12-02T04:00:00.000Z"); // 11:00 at the salon
+    let sent = (await store.outbox(oaId, userId)).slice(before);
+    expect(sent).toHaveLength(1);
+    expect(lastText(sent).text).toContain("11:00");
+    expect(lastText(sent).text).toContain("Booking Salon");
+    expect(lastText(sent).text).toContain("Sơn gel");
+    expect(lastText(sent).text).not.toContain("04:00");
+    await move("2026-12-02T07:00:00.000Z"); // 14:00
+    sent = (await store.outbox(oaId, userId)).slice(before);
+    expect(sent).toHaveLength(2);
+    expect(lastText(sent).text).toContain("14:00");
+    // An out-of-order old event must not announce the old appointment time again.
+    await app.get(ZaloBookingEventsHandler).handle({ ...first.event, id: "delayed-old-move" });
+    await drain();
+    expect((await store.outbox(oaId, userId)).slice(before)).toHaveLength(2);
+  });
+
+  it("recovers a committed confirmation when the first queue add fails, without duplicate delivery", async () => {
+    await connect();
+    const bookingId = await bookViaBot();
+    const before = (await store.outbox(oaId, userId)).length;
+    await http()
+      .post(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/reschedule`)
+      .set("authorization", owner)
+      .set("idempotency-key", `queue-retry-${bookingId}`)
+      .send({ startsAt: "2026-12-02T04:00:00.000Z" })
+      .expect(200);
+    const row = await prisma.outboxEvent.findFirstOrThrow({
+      where: { aggregateId: bookingId, type: "booking.rescheduled" },
+    });
+    const event = {
+      id: row.id,
+      salonId: row.salonId,
+      aggregateType: row.aggregateType,
+      aggregateId: row.aggregateId,
+      type: row.type,
+      payload: row.payload as Record<string, unknown>,
+      occurredAt: row.occurredAt.toISOString(),
+    };
+    const handler = app.get(ZaloBookingEventsHandler);
+    const queues = app.get(QueueService);
+    const add = vi.spyOn(queues, "add").mockRejectedValueOnce(new Error("queue unavailable"));
+    try {
+      await expect(handler.handle(event)).rejects.toThrow("queue unavailable");
+    } finally {
+      add.mockRestore();
+    }
+    const log = await prisma.zaloSendLog.findFirstOrThrow({
+      where: { bookingId, purpose: "booking_rescheduled" },
+    });
+    expect(log.status).toBe("queued");
+    expect((await store.outbox(oaId, userId)).slice(before)).toHaveLength(0);
+    const jobId = `send-${log.id}`;
+    expect(await queues.queue(QUEUES.zalo).getJob(jobId)).toBeUndefined();
+    await handler.handle(event); // The outbox retries after Redis recovers.
+    await handler.handle(event); // A duplicate replay uses exactly the same job id.
+    expect((await queues.queue(QUEUES.zalo).getJob(jobId))?.data).toMatchObject({
+      salonId: s.salonId,
+      logIds: [log.id],
+    });
+    await drain();
+    expect((await store.outbox(oaId, userId)).slice(before)).toHaveLength(1);
+    expect(
+      await prisma.zaloSendLog.count({ where: { bookingId, purpose: "booking_rescheduled" } }),
+    ).toBe(1);
+    const afterSent = vi.spyOn(queues, "add");
+    try {
+      await handler.handle(event);
+      expect(afterSent).not.toHaveBeenCalled();
+    } finally {
+      afterSent.mockRestore();
+    }
+    expect((await store.outbox(oaId, userId)).slice(before)).toHaveLength(1);
+  });
+
+  it("reconfirms a reschedule with the confirmation template when the chat window is closed", async () => {
+    await connect();
+    const bookingId = await bookViaBot();
+    const conv = await prisma.zaloConversation.findFirstOrThrow({ where: { salonId: s.salonId } });
+    await prisma.zaloConversation.update({
+      where: { id: conv.id },
+      data: { lastUserInteractionAt: new Date(now.getTime() - 8 * 24 * HOUR) },
+    });
+    await http()
+      .patch(`${base()}/settings`)
+      .set("authorization", owner)
+      .send({ templateIds: { booking_confirmation: "tpl-move-confirmation" } })
+      .expect(204);
+    const before = (await store.outbox(oaId)).length;
+    await http()
+      .post(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/reschedule`)
+      .set("authorization", owner)
+      .set("idempotency-key", `closed-move-${bookingId}`)
+      .send({ startsAt: "2026-12-02T08:00:00.000Z" })
+      .expect(200);
+    const row = await prisma.outboxEvent.findFirstOrThrow({
+      where: { aggregateId: bookingId, type: "booking.rescheduled" },
+    });
+    await app.get(ZaloBookingEventsHandler).handle({
+      id: row.id,
+      salonId: row.salonId,
+      aggregateType: row.aggregateType,
+      aggregateId: row.aggregateId,
+      type: row.type,
+      payload: row.payload as Record<string, unknown>,
+      occurredAt: row.occurredAt.toISOString(),
+    });
+    await drain();
+    const log = await prisma.zaloSendLog.findFirstOrThrow({
+      where: { bookingId, purpose: "booking_rescheduled" },
+    });
+    expect(log).toMatchObject({ channel: "template", status: "sent", tier: "template" });
+    const sent = (await store.outbox(oaId)).slice(before);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      templateId: "tpl-move-confirmation",
+      data: { booking_time: "2/12 15:00", salon_name: "Booking Salon" },
+    });
+  });
+
+  it("drops superseded moves and rechecks queued confirmations after another move or cancellation", async () => {
+    await connect();
+    const bookingId = await bookViaBot();
+    const before = (await store.outbox(oaId, userId)).length;
+    const moveEvent = async (hour: number) => {
+      const startsAt = `2026-12-02T${String(hour).padStart(2, "0")}:00:00.000Z`;
+      await http()
+        .post(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/reschedule`)
+        .set("authorization", owner)
+        .set("idempotency-key", `stale-${bookingId}-${String(hour)}`)
+        .send({ startsAt })
+        .expect(200);
+      const row = await prisma.outboxEvent.findFirstOrThrow({
+        where: { aggregateId: bookingId, type: "booking.rescheduled" },
+        orderBy: { occurredAt: "desc" },
+      });
+      return {
+        id: row.id,
+        salonId: row.salonId,
+        aggregateType: row.aggregateType,
+        aggregateId: row.aggregateId,
+        type: row.type,
+        payload: row.payload as Record<string, unknown>,
+        occurredAt: row.occurredAt.toISOString(),
+      };
+    };
+    const handler = app.get(ZaloBookingEventsHandler);
+    const first = await moveEvent(4); // A (11:00 local); its event is delayed.
+    const second = await moveEvent(7); // B (14:00 local); queue this, but do not send yet.
+    await handler.handle(second);
+    // Move back to A with a fresh idempotency key: same target time, different revision.
+    await http()
+      .post(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/reschedule`)
+      .set("authorization", owner)
+      .set("idempotency-key", `return-${bookingId}`)
+      .send({ startsAt: "2026-12-02T04:00:00.000Z" })
+      .expect(200);
+    const latest = await prisma.outboxEvent.findFirstOrThrow({
+      where: { aggregateId: bookingId, type: "booking.rescheduled" },
+      orderBy: { occurredAt: "desc" },
+    });
+    await handler.handle(first);
+    await handler.handle({
+      ...first,
+      id: latest.id,
+      payload: latest.payload as Record<string, unknown>,
+    });
+    await drain();
+    expect((await store.outbox(oaId, userId)).slice(before)).toHaveLength(1);
+    expect(
+      await prisma.zaloSendLog.count({ where: { bookingId, purpose: "booking_rescheduled" } }),
+    ).toBe(2);
+    expect(
+      await prisma.zaloSendLog.count({ where: { bookingId, errorCode: "stale_booking" } }),
+    ).toBe(1);
+
+    const pending = await moveEvent(8);
+    await handler.handle(pending);
+    await http()
+      .post(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/transitions`)
+      .set("authorization", owner)
+      .set("idempotency-key", `cancel-stale-${bookingId}`)
+      .send({ to: "cancelled_by_salon", reason: "Khách hủy lịch" })
+      .expect(200);
+    const cancelled = await prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
+    // Even a current version number cannot announce a cancelled appointment.
+    await handler.handle({
+      ...pending,
+      payload: { ...pending.payload, version: cancelled.version },
+    });
+    await drain();
+    expect((await store.outbox(oaId, userId)).slice(before)).toHaveLength(1);
+    expect(
+      await prisma.zaloSendLog.count({ where: { bookingId, purpose: "booking_rescheduled" } }),
+    ).toBe(3);
+    expect(
+      await prisma.zaloSendLog.count({ where: { bookingId, errorCode: "stale_booking" } }),
+    ).toBe(2);
+  });
+
+  it("rejects legacy or malformed queued reschedule confirmations without a numeric revision", async () => {
+    await connect();
+    const bookingId = await bookViaBot();
+    const conv = await prisma.zaloConversation.findFirstOrThrow({ where: { salonId: s.salonId } });
+    const before = (await store.outbox(oaId, userId)).length;
+    const outbound = app.get(OutboundService);
+    const ids = await outbound.record(
+      s.salonId,
+      ["legacy", "malformed"].map((kind) => ({
+        channel: "cs" as const,
+        purpose: "booking_rescheduled",
+        conversationId: conv.id,
+        sender: "system" as const,
+        bookingId,
+        dedupKey: `${kind}-move-${bookingId}`,
+        message: { kind: "text" as const, text: "Old appointment time", buttons: [] },
+      })),
+    );
+    const invalidId = ids[1];
+    if (!invalidId) throw new Error("missing malformed send fixture");
+    const malformed = await prisma.zaloSendLog.findUniqueOrThrow({ where: { id: invalidId } });
+    await prisma.zaloSendLog.update({
+      where: { id: invalidId },
+      data: { request: { ...(malformed.request as Record<string, string>), bookingVersion: "2" } },
+    });
+    await http()
+      .post(`/api/v1/salons/${s.salonId}/bookings/${bookingId}/transitions`)
+      .set("authorization", owner)
+      .set("idempotency-key", `cancel-legacy-${bookingId}`)
+      .send({ to: "cancelled_by_salon", reason: "Khách hủy lịch" })
+      .expect(200);
+    await outbound.processBatch(s.salonId, ids, true);
+    expect((await store.outbox(oaId, userId)).slice(before)).toHaveLength(0);
+    const logs = await prisma.zaloSendLog.findMany({
+      where: { id: { in: ids }, salonId: s.salonId },
+    });
+    expect(logs).toHaveLength(2);
+    expect(
+      logs.every((log) => log.status === "rejected" && log.errorCode === "stale_booking"),
+    ).toBe(true);
   });
 
   it("hands off to staff, acknowledges once, lets staff reply and release back to the bot", async () => {

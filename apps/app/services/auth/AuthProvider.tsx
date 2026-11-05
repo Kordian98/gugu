@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   type AuthSession,
@@ -47,6 +48,7 @@ async function loadMe(): Promise<MeResponse | null> {
 
 /** Session state for the whole app (spec 05 §3.2). The API enforces access; this is UX only. */
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<Status>("loading");
   const [user, setUser] = useState<Me | null>(null);
 
@@ -88,14 +90,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signOut() {
         try {
           await apiFetch("/auth/sign-out", { method: "POST" });
-        } finally {
-          await tokenStore.clear();
-          setUser(null);
-          setStatus("signedOut");
+        } catch (e) {
+          // An expired session is already signed out. Other failures must allow a retry:
+          // dropping local state would leave a valid httpOnly cookie on shared devices.
+          if (!(e instanceof ApiError) || e.status !== 401) throw e;
         }
+        await tokenStore.clear();
+        await queryClient.cancelQueries();
+        queryClient.clear();
+        setUser(null);
+        setStatus("signedOut");
       },
     }),
-    [status, user, reload],
+    [status, user, reload, queryClient],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

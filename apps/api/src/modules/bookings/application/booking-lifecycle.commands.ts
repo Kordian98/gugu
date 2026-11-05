@@ -267,6 +267,15 @@ export class BookingLifecycleCommands {
           serviceId: line.serviceId,
           variantId: line.variantId,
           addOnIds: [],
+          ...(line.serviceId === null
+            ? {
+                customService: {
+                  name: (line.name as { vi?: string }).vi ?? "",
+                  priceMinor: Number(line.priceMinor),
+                },
+                durationMinutes: line.durationMinutes,
+              }
+            : {}),
         });
         const snapshot = snapshotTerms(line);
         for (const id of selection.staffTerms.keys()) selection.staffTerms.set(id, snapshot);

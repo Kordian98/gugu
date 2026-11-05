@@ -20,6 +20,8 @@ export const AREAS = [
   "multi",
   "basic",
   "payroll",
+  "flexible",
+  "usability",
 ] as const;
 export type Area = (typeof AREAS)[number];
 
@@ -73,6 +75,8 @@ const AREA_SPEC: Record<
   assistant: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
   mobile: { bookings: true, staffAccount: false, receptionist: false, locale: "vi" },
   en: { bookings: true, staffAccount: false, receptionist: false, locale: "en" },
+  usability: { bookings: true, staffAccount: false, receptionist: false, locale: "vi" },
+  flexible: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
   multi: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },
   /** X25: moved from the trial to Basic (free first year, no AI assistant) by global-setup. */
   basic: { bookings: false, staffAccount: false, receptionist: false, locale: "vi" },

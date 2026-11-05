@@ -19,7 +19,15 @@ type Stage =
  * reads them → owner reviews the rows → services are created. Lives at the top of Services and opens
  * straight into the picker when Today's setup card links here (`?import=1`).
  */
-export function AiImportPanel({ highlight, autoPick }: { highlight: boolean; autoPick: boolean }) {
+export function AiImportPanel({
+  highlight,
+  autoPick,
+  onConfirmed,
+}: {
+  highlight: boolean;
+  autoPick: boolean;
+  onConfirmed?: ((created: number) => void) | undefined;
+}) {
   const status = useAiImportStatus();
   const extract = useExtract();
   const [stage, setStage] = useState<Stage>({ kind: "idle" });
@@ -82,6 +90,7 @@ export function AiImportPanel({ highlight, autoPick }: { highlight: boolean; aut
         initialRows={toReviewRows(stage.result.items)}
         onDone={(created) => {
           setStage({ kind: "done", created });
+          if (created > 0) onConfirmed?.(created);
         }}
         onStartOver={reset}
       />

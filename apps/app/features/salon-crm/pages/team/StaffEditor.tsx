@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { CalmButton, Text, useCalm } from "@gugu/design-system";
+import { CalmButton, Text, typeScale, useCalm } from "@gugu/design-system";
 import { STAFF_COLORS, type Service, type StaffMember } from "@gugu/contracts";
 
 import { useLocale } from "@/services/i18n/useLocale";
@@ -36,13 +36,15 @@ export function StaffEditor({
   // New member: every active service preselected (the API does the same when none are sent).
   const [picked, setPicked] = useState<string[] | null>(staff?.serviceIds ?? null);
   const serviceIds = picked ?? services.filter((s) => s.isActive).map((s) => s.id);
+  const [confirmRemoval, setConfirmRemoval] = useState(false);
   const [touched, setTouched] = useState(false);
   const create = useCrmMutation(crmApi.createStaff, ["team", "services"]);
   const update = useCrmMutation(crmApi.updateStaff, ["team", "services"]);
   const remove = useCrmMutation(crmApi.removeStaff, ["team", "services"]);
-  const busy = create.isPending || update.isPending;
+  const busy = create.isPending || update.isPending || remove.isPending;
 
   const save = () => {
+    if (busy) return;
     setTouched(true);
     if (!name.trim()) return;
     const body = {
@@ -55,9 +57,48 @@ export function StaffEditor({
     else create.mutate(body, { onSuccess: onClose });
   };
 
+  if (confirmRemoval && staff)
+    return (
+      <Sheet
+        open={open}
+        dismissDisabled={busy}
+        onClose={() => {
+          setConfirmRemoval(false);
+        }}
+        closeLabel={t("common.cancel")}
+        title={t("team.removeTitle", { name: staff.displayName })}
+        footer={
+          <>
+            <CalmButton
+              label={t("common.cancel")}
+              variant="secondary"
+              disabled={busy}
+              onPress={() => {
+                setConfirmRemoval(false);
+              }}
+            />
+            <CalmButton
+              testID="crm-staff-remove-confirm"
+              label={t("team.remove")}
+              disabled={busy}
+              onPress={() => {
+                if (!busy) remove.mutate(staff.id, { onSuccess: onClose });
+              }}
+            />
+          </>
+        }
+      >
+        <ErrorBanner text={errorText(remove.error)} />
+        <Text size={typeScale.body} color={c.body}>
+          {t("team.removeBody")}
+        </Text>
+      </Sheet>
+    );
+
   return (
     <Sheet
       open={open}
+      dismissDisabled={busy}
       onClose={onClose}
       closeLabel={t("common.close")}
       title={staff ? t("team.editTitle") : t("team.newTitle")}
@@ -65,16 +106,24 @@ export function StaffEditor({
         <>
           {staff && staff.member?.role !== "owner" ? (
             <CalmButton
+              testID="crm-staff-remove"
+              disabled={busy}
               variant="ghost"
               icon="trash"
               label={t("team.remove")}
               onPress={() => {
-                remove.mutate(staff.id, { onSuccess: onClose });
+                setConfirmRemoval(true);
               }}
             />
           ) : null}
-          <CalmButton variant="secondary" label={t("common.cancel")} onPress={onClose} />
           <CalmButton
+            variant="secondary"
+            disabled={busy}
+            label={t("common.cancel")}
+            onPress={onClose}
+          />
+          <CalmButton
+            disabled={busy || !name.trim()}
             testID="crm-staff-save"
             label={busy ? t("common.saving") : t("common.save")}
             onPress={save}

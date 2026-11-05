@@ -41,7 +41,7 @@ export const insightsSchema = z.object({
   ),
   services: z.array(
     z.object({
-      serviceId: uuidV7Schema,
+      serviceId: uuidV7Schema.nullable(),
       name: z.object({ vi: z.string(), en: z.string() }),
       count: z.number().int(),
       estimatedRevenue: z.number().int(),

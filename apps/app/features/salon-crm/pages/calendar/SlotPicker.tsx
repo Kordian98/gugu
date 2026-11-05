@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { useTranslation } from "react-i18next";
 
-import { Text, useCalm } from "@gugu/design-system";
+import { MIN_TOUCH, Text, useCalm } from "@gugu/design-system";
 import type { SalonBooking, StaffMember } from "@gugu/contracts";
 import { formatTime } from "@gugu/localization";
 
@@ -118,7 +118,7 @@ export function SlotGrid({
             }}
             style={{
               minWidth: 72,
-              height: 38,
+              minHeight: MIN_TOUCH,
               paddingHorizontal: 10,
               borderRadius: 10,
               alignItems: "center",
@@ -157,19 +157,36 @@ export function RescheduleSlots({
   const [who, setWho] = useState<"same" | "any">("same");
   const reschedule = useReschedule();
   const availability = useAvailability({
-    serviceId: booking.service.serviceId,
+    ...(booking.service.serviceId
+      ? { serviceId: booking.service.serviceId }
+      : {
+          customService: { name: booking.service.name.vi, priceMinor: booking.service.priceMinor },
+        }),
+    ...(booking.services.length === 1
+      ? {
+          durationMinutes: Math.round(
+            (Date.parse(booking.endsAt) - Date.parse(booking.startsAt)) / 60_000,
+          ),
+        }
+      : {}),
     variantId: booking.service.variantId,
     addOnIds: booking.service.addOns.map((a) => a.addOnId),
     staffId: who === "same" ? booking.staffId : null,
     date,
     // The whole chain moves (06 M6.8). "Anyone" frees the lines the first staff member does;
     // lines done by someone else keep their staff, like the API's reschedule.
-    nextServices: booking.services.slice(1).map((l) => ({
-      serviceId: l.serviceId,
-      variantId: l.variantId,
-      addOnIds: l.addOns.map((a) => a.addOnId),
-      staffId: who === "any" && l.staffId === booking.staffId ? null : l.staffId,
-    })),
+    nextServices: booking.services.slice(1).flatMap((l) =>
+      l.serviceId === null
+        ? []
+        : [
+            {
+              serviceId: l.serviceId,
+              variantId: l.variantId,
+              addOnIds: l.addOns.map((a) => a.addOnId),
+              staffId: who === "any" && l.staffId === booking.staffId ? null : l.staffId,
+            },
+          ],
+    ),
   });
   const name = staff.find((s) => s.id === booking.staffId)?.displayName ?? t("booking.sameStaff");
   return (

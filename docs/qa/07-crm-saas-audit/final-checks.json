@@ -1,0 +1,38 @@
+[
+  {
+    "engine": "chromium",
+    "export": "gugu-payroll-2026-11.csv",
+    "bytes": 455
+  },
+  {
+    "engine": "chromium",
+    "export": "gugu-payroll-2026-11.xlsx",
+    "bytes": 2063
+  },
+  {
+    "engine": "chromium",
+    "desktopDarkSearch": true
+  },
+  {
+    "engine": "chromium",
+    "historyWidth": 128.515625
+  },
+  {
+    "engine": "webkit",
+    "export": "gugu-payroll-2026-11.csv",
+    "bytes": 455
+  },
+  {
+    "engine": "webkit",
+    "export": "gugu-payroll-2026-11.xlsx",
+    "bytes": 2063
+  },
+  {
+    "engine": "webkit",
+    "desktopDarkSearch": true
+  },
+  {
+    "engine": "webkit",
+    "historyWidth": 128.515625
+  }
+]

@@ -149,7 +149,7 @@ export function BookingSheet({
           <View testID="crm-booking-lines" style={{ gap: 8 }}>
             {booking.services.map((l, i) => (
               <View
-                key={`${l.serviceId}-${String(i)}`}
+                key={`${l.serviceId ?? "custom"}-${String(i)}`}
                 testID="crm-booking-line"
                 style={{ gap: 2 }}
               >

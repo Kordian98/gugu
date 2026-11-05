@@ -77,7 +77,7 @@ export class ProfitService {
     for (const l of c.lines) {
       const state = results.get(l.lineId)?.state ?? "none";
       if (state === "none") continue;
-      if (l.cost === null) withoutCost.add(l.serviceId);
+      if (l.cost === null) withoutCost.add(l.serviceId ?? l.lineId);
       if (state === "earned") {
         const b = earnedByBooking.get(l.bookingId) ?? { price: 0, recorded: l.recordedForBooking };
         b.price += l.price;

@@ -10,6 +10,7 @@ import { useThemePreference } from "../theme/CrmThemeProvider";
 import type { NavItem, NavSectionId } from "./nav";
 import { useCrmNav, useVisibleNav } from "./useCrmNav";
 import { useZaloAttention } from "../data/zalo";
+import { SignOutButton } from "./SignOutButton";
 
 /** Dark plum sidebar (ref crm-01): wordmark + STUDIO pill, grouped collapsible nav, user + salon. */
 export function Sidebar({ workspace, collapsed }: { workspace: Workspace; collapsed: boolean }) {
@@ -229,6 +230,7 @@ function SidebarFooter({ workspace, collapsed }: { workspace: Workspace; collaps
           <SalonSwitcher name={salonName} />
         </>
       )}
+      <SignOutButton collapsed={collapsed} />
     </View>
   );
 }

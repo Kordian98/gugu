@@ -63,16 +63,14 @@ export function KpiRow({
         }
         emptyCaption={t("kpi.emptyAppointments")}
       />
-      <StatCard
-        testID="crm-kpi-new"
-        label={t("kpi.newCustomers")}
-        value={n ? t("kpi.newCustomersValue", { count: n.count }) : null}
-        badge={
-          n ? <Pill label={pct(n.deltaPct)} tone={n.deltaPct >= 0 ? "up" : "down"} /> : undefined
-        }
-        caption={n ? t("kpi.thisMonth") : undefined}
-        visual={
-          n ? (
+      {n ? (
+        <StatCard
+          testID="crm-kpi-new"
+          label={t("kpi.newCustomers")}
+          value={t("kpi.newCustomersValue", { count: n.count })}
+          badge={<Pill label={pct(n.deltaPct)} tone={n.deltaPct >= 0 ? "up" : "down"} />}
+          caption={t("kpi.thisMonth")}
+          visual={
             <View style={{ flexDirection: "row" }}>
               {n.names.map((name, i) => (
                 <View key={name} style={{ marginLeft: i === 0 ? 0 : -8 }}>
@@ -80,24 +78,24 @@ export function KpiRow({
                 </View>
               ))}
             </View>
-          ) : undefined
-        }
-        emptyCaption={t("kpi.emptyNewCustomers")}
-      />
-      <StatCard
-        testID="crm-kpi-occupancy"
-        label={t("kpi.occupancy")}
-        value={o ? `${String(Math.round(o.rate * 100))}%` : null}
-        caption={
-          o ? (
+          }
+          emptyCaption={t("kpi.emptyNewCustomers")}
+        />
+      ) : null}
+      {o ? (
+        <StatCard
+          testID="crm-kpi-occupancy"
+          label={t("kpi.occupancy")}
+          value={`${String(Math.round(o.rate * 100))}%`}
+          caption={
             <Text size={13} color={c.body}>
               {t("kpi.vsPrevWeek")}
             </Text>
-          ) : undefined
-        }
-        visual={o ? <ProgressBar value={o.rate} width={72} /> : undefined}
-        emptyCaption={t("kpi.emptyOccupancy")}
-      />
+          }
+          visual={<ProgressBar value={o.rate} width={72} />}
+          emptyCaption={t("kpi.emptyOccupancy")}
+        />
+      ) : null}
     </View>
   );
 }

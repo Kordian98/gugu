@@ -57,6 +57,7 @@
     "attendanceConfirmed": "Cảm ơn bạn! Salon đã ghi nhận bạn sẽ đến.",
     "bookingNotFound": "Không tìm thấy lịch hẹn này. Bạn chọn một mục bên dưới nhé.",
     "updateConfirmed": "Salon đã xác nhận lịch hẹn {{ref}}: {{service}} lúc {{when}}. Hẹn gặp bạn tại {{salon}}!",
+    "updateRescheduled": "{{salon}} đã đổi lịch hẹn {{ref}} ({{service}}) sang {{when}}. Hẹn gặp bạn theo giờ mới!",
     "updateCancelled": "Rất tiếc, {{salon}} đã hủy lịch hẹn {{ref}} ({{service}}, {{when}}). Bạn nhắn “Đặt lịch” để chọn giờ khác nhé.",
     "bookAgain": "Đặt lịch lại",
     "limitReached": "Bạn đang có nhiều lịch hẹn sắp tới tại salon. Bạn xem hoặc đổi lịch hiện có nhé.",

@@ -27,15 +27,20 @@ export interface LineRequest extends ServiceSelection {
 /** First service (legacy top-level fields) + further services → ordered line requests. */
 export function lineRequests(
   first: {
-    serviceId: string;
+    serviceId?: string | null | undefined;
+    durationMinutes?: number | undefined;
+    customService?: { name: string; priceMinor: number } | undefined;
     variantId?: string | null | undefined;
     addOnIds: readonly string[];
     staffId?: string | null | undefined;
   },
   next: readonly NextService[] | undefined,
 ): LineRequest[] {
-  return [first, ...(next ?? [])].map((l) => ({
+  const lines: (typeof first)[] = [first, ...(next ?? [])];
+  return lines.map((l) => ({
     serviceId: l.serviceId,
+    durationMinutes: l.durationMinutes,
+    customService: l.customService,
     variantId: l.variantId ?? null,
     addOnIds: l.addOnIds,
     staffId: l.staffId ?? null,
@@ -85,9 +90,9 @@ export function slotLines(
   option: SlotOption,
   selections: readonly ResolvedSelection[],
   hideStaff: boolean,
-): { serviceId: string; startsAt: string; endsAt: string; staffId: string | null }[] {
+): { serviceId: string | null; startsAt: string; endsAt: string; staffId: string | null }[] {
   return option.lines.map((l, i) => ({
-    serviceId: selections[i]?.serviceId ?? "",
+    serviceId: selections[i]?.serviceId ?? null,
     startsAt: new Date(l.start).toISOString(),
     endsAt: new Date(l.end).toISOString(),
     staffId: hideStaff ? null : l.staffId,

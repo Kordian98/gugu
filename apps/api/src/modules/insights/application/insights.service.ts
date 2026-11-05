@@ -117,7 +117,7 @@ export class InsightsService {
           AND ${ownBooking(own)}
         GROUP BY 1 ORDER BY 1`,
       this.prisma.$queryRaw<
-        { service_id: string; name: unknown; count: bigint; revenue: bigint }[]
+        { service_id: string | null; name: unknown; count: bigint; revenue: bigint }[]
       >`
         SELECT bs.service_id, (array_agg(bs.name ORDER BY b.starts_at DESC))[1] AS name,
           count(*) AS count, coalesce(sum(bs.price_minor), 0) AS revenue
@@ -125,7 +125,7 @@ export class InsightsService {
         FROM bookings b JOIN booking_services bs ON bs.booking_id = b.id AND bs.salon_id = b.salon_id
         WHERE b.salon_id = ${ctx.salonId}::uuid AND b.starts_at >= ${start} AND b.starts_at < ${end}
           AND b.status = 'completed' AND ${ownLine(own)}
-        GROUP BY bs.service_id ORDER BY count DESC LIMIT 10`,
+        GROUP BY bs.service_id, CASE WHEN bs.service_id IS NULL THEN bs.name::text ELSE NULL END ORDER BY count DESC LIMIT 10`,
       this.prisma.$queryRaw<{ source: Insights["sources"][number]["source"]; count: bigint }[]>`
         SELECT b.source::text AS source, count(*) AS count FROM bookings b
         WHERE b.salon_id = ${ctx.salonId}::uuid AND b.starts_at >= ${start} AND b.starts_at < ${end}
@@ -238,7 +238,7 @@ export class InsightsService {
         -- booking_services.price_minor already includes the line's add-ons.
         (SELECT coalesce(sum(bs.price_minor - coalesce(v.cost_amount_minor, s.cost_amount_minor) - coalesce(ad.cost, 0)), 0)
           FROM lines bs
-          JOIN services s ON s.id = bs.service_id AND s.salon_id = bs.salon_id
+          LEFT JOIN services s ON s.id = bs.service_id AND s.salon_id = bs.salon_id
           LEFT JOIN service_variants v ON v.id = bs.variant_id AND v.salon_id = bs.salon_id
           LEFT JOIN LATERAL (
             SELECT sum(coalesce(a.extra_cost_amount_minor, 0)) AS cost

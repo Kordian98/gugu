@@ -125,6 +125,17 @@ export class CreateBookingCommand {
     const { salonId, settings } = ctx;
     if (actor.kind === "system") throw new Error("system actor cannot create bookings");
     this.checkOverrides(actor, req.overrides);
+    // Custom terms are a salon member operation, never a bot/customer capability.
+    if (
+      actor.kind !== "salon_member" &&
+      (req.selection.customService || req.selection.durationMinutes !== undefined)
+    ) {
+      throw new AppError(
+        403,
+        BOOKING_ERRORS.overrideNotAllowed,
+        "Custom appointment terms not allowed",
+      );
+    }
     const requests: LineRequest[] = [req.selection, ...(req.nextServices ?? [])];
     this.features.assertChainAllowed(requests);
     const selections = await resolveChain(tx, salonId, requests);

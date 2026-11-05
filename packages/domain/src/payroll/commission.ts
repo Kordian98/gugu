@@ -87,7 +87,7 @@ export function policyAt(
 /** Variant override → service override → the member's default percentage. */
 export function rateFor(
   version: PayVersion,
-  serviceId: string,
+  serviceId: string | null,
   variantId: string | null,
 ): CommissionRate {
   const variant =
@@ -135,7 +135,7 @@ export interface CommissionLineInput {
   lineId: string;
   bookingId: string;
   staffId: string;
-  serviceId: string;
+  serviceId: string | null;
   variantId: string | null;
   /** Salon-local date the line starts on. */
   date: LocalDate;

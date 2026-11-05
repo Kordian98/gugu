@@ -15,8 +15,10 @@ import { useSalon } from "../../data/SalonContext";
 import { useWorkspace } from "../../data/useWorkspace";
 import { PageHeader } from "../../shell/PageHeader";
 import { useBreakpoint } from "../../shell/useBreakpoint";
+import { QueryError } from "../../ui/QueryError";
 import { EmptyState } from "../../ui/EmptyState";
 import { Segmented } from "../../ui/form";
+import { DailyAppointmentsChart } from "./DailyAppointmentsChart";
 import { ProfitView } from "./ProfitView";
 import { ZaloInsightsCard } from "./ZaloInsightsCard";
 
@@ -70,6 +72,15 @@ export function InsightsScreen() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: mobile ? 16 : 28, gap: 16 }}>
+      {q.isError && q.data ? (
+        <QueryError
+          testID="crm-insights-refresh-error"
+          busy={q.isFetching}
+          onRetry={() => {
+            void q.refetch();
+          }}
+        />
+      ) : null}
       <PageHeader
         title={t("pages.insights.title")}
         subtitle={t("insights.subtitle")}
@@ -106,7 +117,15 @@ export function InsightsScreen() {
           </View>
           {q.isPending ? (
             <ActivityIndicator color={c.accent} />
-          ) : q.data?.forbidden ? (
+          ) : q.isError && !q.data ? (
+            <QueryError
+              testID="crm-insights-error"
+              busy={q.isFetching}
+              onRetry={() => {
+                void q.refetch();
+              }}
+            />
+          ) : q.data.forbidden ? (
             <EmptyState
               testID="crm-insights-forbidden"
               icon="chart"
@@ -131,7 +150,7 @@ export function InsightsScreen() {
                     : [];
                 })}
               </View>
-              <Daily data={d.daily} />
+              <DailyAppointmentsChart data={d.daily} from={d.range.from} to={d.range.to} />
               <ZaloInsightsCard from={from} to={to} />
               <View
                 style={{
@@ -145,7 +164,7 @@ export function InsightsScreen() {
                   {d.services.length === 0 ? <Muted text={t("pages.insights.emptyBody")} /> : null}
                   {d.services.slice(0, 8).map((s) => (
                     <Bar
-                      key={s.serviceId}
+                      key={s.serviceId ?? JSON.stringify(s.name)}
                       label={(locale === "en" && s.name.en) || s.name.vi}
                       value={s.count}
                       max={d.services[0]?.count ?? 1}
@@ -238,38 +257,6 @@ function MetricCard({
         </Text>
       ) : null}
       {m.revenueKind ? <Pill size={10} tone="accent" label={t(KIND_LABEL[m.revenueKind])} /> : null}
-    </CalmCard>
-  );
-}
-
-function Daily({ data }: { data: Insights["daily"] }) {
-  const { c } = useCalm();
-  const { t } = useTranslation("crm");
-  const max = Math.max(...data.map((x) => x.appointments), 1);
-  return (
-    <CalmCard style={{ gap: 10 }}>
-      <Title text={t("insights.daily")} />
-      {data.length === 0 ? (
-        <Muted text={t("pages.insights.emptyBody")} />
-      ) : (
-        <View
-          testID="crm-insights-daily"
-          style={{ flexDirection: "row", alignItems: "flex-end", gap: 3, height: 120 }}
-        >
-          {data.map((x) => (
-            <View
-              key={x.date}
-              accessibilityLabel={`${x.date}: ${String(x.appointments)}`}
-              style={{
-                flex: 1,
-                height: `${String(Math.max(4, (x.appointments / max) * 100))}%`,
-                borderRadius: 4,
-                backgroundColor: c.accentBg,
-              }}
-            />
-          ))}
-        </View>
-      )}
     </CalmCard>
   );
 }

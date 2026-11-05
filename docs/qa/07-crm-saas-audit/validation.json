@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-05",
+  "baselineCommit": "e935949",
+  "verify": {
+    "result": "pass",
+    "tasks": 21
+  },
+  "productionPlaywright": {
+    "passed": 12,
+    "failed": 0,
+    "engines": [
+      "chromium",
+      "webkit"
+    ],
+    "specs": [
+      "crm-usability",
+      "mobile-usability",
+      "function-audit",
+      "flexible-booking",
+      "payroll"
+    ]
+  },
+  "appUnitTests": 38,
+  "localizationTests": 15,
+  "profileContractTests": 3,
+  "profileIntegrationTests": 1,
+  "nativeDeviceVerified": false,
+  "review": "approve; design-localization-review.md",
+  "remaining": "README.md priorities"
+}

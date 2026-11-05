@@ -39,7 +39,10 @@ export function ServicesStep({
   onBack: () => void;
 }) {
   const { t } = useTranslation("crm");
-  const [tab, setTab] = useState<"template" | "manual">("template");
+  const status = useAiImportStatus();
+  const available = status.data?.configured === true && status.data.entitled;
+  const [selectedTab, setTab] = useState<"ai" | "template" | "manual" | null>(null);
+  const tab = selectedTab ?? (available ? "ai" : "template");
   const [method, setMethod] = useState<SetupMethod | null>(null);
   const active = services.filter((s) => s.isActive);
   return (
@@ -59,19 +62,22 @@ export function ServicesStep({
         />
       }
     >
-      <AiHero
-        onOpen={() => {
-          setMethod("ai_import");
-        }}
-      />
       <Segmented
         value={tab}
         onChange={setTab}
         options={[
+          { id: "ai", label: t("setupWizard.services.tabAi") },
           { id: "template", label: t("setupWizard.services.tabTemplate") },
           { id: "manual", label: t("setupWizard.services.tabManual") },
         ]}
       />
+      <View style={{ display: tab === "ai" || !available ? "flex" : "none" }}>
+        <AiHero
+          onConfirmed={() => {
+            setMethod("ai_import");
+          }}
+        />
+      </View>
       {tab === "template" ? (
         <TemplatePicker
           type={businessType ?? "mixed"}
@@ -80,28 +86,28 @@ export function ServicesStep({
             setMethod((m) => m ?? "template");
           }}
         />
-      ) : (
+      ) : tab === "manual" ? (
         <ManualAdd
           onAdded={() => {
             setMethod((m) => m ?? "manual");
           }}
         />
-      )}
+      ) : null}
       <ServiceList services={active} />
     </StepFrame>
   );
 }
 
-function AiHero({ onOpen }: { onOpen: () => void }) {
+function AiHero({ onConfirmed }: { onConfirmed: () => void }) {
   const { c } = useCalm();
   const { t } = useTranslation("crm");
   const status = useAiImportStatus();
-  const [open, setOpen] = useState(false);
   const available = status.data?.configured === true && status.data.entitled;
-  if (open && available) {
+  if (available) {
     return (
       <View testID="crm-setup-ai-panel">
-        <AiImportPanel highlight autoPick />
+        {/* Keep the picker on the upload button's user gesture, rather than a mount effect. */}
+        <AiImportPanel highlight autoPick={false} onConfirmed={onConfirmed} />
       </View>
     );
   }
@@ -113,14 +119,14 @@ function AiHero({ onOpen }: { onOpen: () => void }) {
         : null;
   return (
     <View
-      testID={available ? "crm-setup-ai" : "crm-setup-ai-unavailable"}
+      testID="crm-setup-ai-unavailable"
       style={{
         gap: 10,
         padding: 18,
         borderRadius: 20,
         borderWidth: 1.5,
-        borderStyle: available ? "dashed" : "solid",
-        borderColor: available ? c.accentBg : c.line,
+        borderStyle: "solid",
+        borderColor: c.line,
         backgroundColor: c.accentSoft,
       }}
     >
@@ -145,20 +151,32 @@ function AiHero({ onOpen }: { onOpen: () => void }) {
         <ActivityIndicator color={c.accent} style={{ alignSelf: "flex-start" }} />
       ) : (
         <Text size={14} color={c.body}>
-          {note ?? t("setupWizard.services.aiBody")}
+          {status.isError
+            ? t("setupWizard.services.aiStatusFailed")
+            : (note ?? t("setupWizard.services.aiBody"))}
         </Text>
       )}
-      {available ? (
+      <Text size={13} color={c.muted}>
+        {t("setupWizard.services.aiSteps")}
+      </Text>
+      {status.isError ? (
         <CalmButton
-          testID="crm-setup-ai-pick"
-          icon="upload"
-          label={t("setupWizard.services.aiCta")}
+          testID="crm-setup-ai-retry"
+          label={t("quickStart.retry")}
+          disabled={status.isFetching}
           onPress={() => {
-            setOpen(true);
-            onOpen();
+            void status.refetch();
           }}
         />
-      ) : null}
+      ) : (
+        <CalmButton
+          testID="crm-setup-ai-upload-disabled"
+          icon="upload"
+          label={t("setupWizard.services.aiCta")}
+          disabled
+          onPress={() => undefined}
+        />
+      )}
     </View>
   );
 }

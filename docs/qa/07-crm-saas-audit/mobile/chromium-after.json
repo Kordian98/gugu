@@ -1,0 +1,223 @@
+{
+  "results": [
+    {
+      "route": "",
+      "body": "STUDIO\nChào buổi tối, owner-mobile.audit ☕\nTổng quan salon của anh/chị hôm nay, Thứ Năm, 5 tháng 11, 2026\nTHỨ 2\n2\nTHỨ 3\n3\nTHỨ 4\n4\nTHỨ 5\n5\nTHỨ 6\n6\nTHỨ 7\n7\nCN\n8\nLỊCH HẸN SẮP TỚI\n& hàng chờ\nChưa có lịch hẹn sắp tới.\nDOANH THU HÔM NAY\n—\nHiện sau lịch hẹn hoàn thành đầu tiên\nTHÁNG NÀY\nĐã qua 5/30 ngày\nĐã có\n0đ\nSắp tới\n0đ\nLãi ước tính\n0đ\nƯớc tính\nBảng lương\nXem chi tiết\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "calendar",
+      "body": "STUDIO\nLịch\nHôm nay\nThứ Năm, 5 Tháng 11, 2026\nTất cả\nNguyễn Lan\nTrần Mai\nThứ Năm, 5 Tháng 11, 2026\n10:00\nVõ Thị Hồng\nSơn gel · Nguyễn Lan\n150.000đ\nĐã xác nhận\n11:00\nTrần Bảo Vy\nCắt tóc nữ · Trần Mai\n200.000đ\nĐã xác nhận\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "appointments",
+      "body": "STUDIO\nLịch hẹn\nThứ Năm, 5 Tháng 11, 2026\n10:00\nVõ Thị Hồng\nSơn gel · Nguyễn Lan\n150.000đ\nĐã xác nhận\n11:00\nTrần Bảo Vy\nCắt tóc nữ · Trần Mai\n200.000đ\nĐã xác nhận\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "customers",
+      "body": "STUDIO\nKhách hàng\nLịch sử ghé thăm, thẻ phân loại và ghi chú nội bộ của từng khách.\nThêm khách\nTất cả\nKhách mới\nKhách quen\nLâu chưa quay lại\nTừng vắng mặt\nĐang hiển thị 2 / 2 khách\nTH\nVõ Thị Hồng\n+84977123456\n0 lần\nLần Cuối: Chưa Ghé\n0đ\nƯớc tính\nBV\nTrần Bảo Vy\n+84987000222\n0 lần\nLần Cuối: Chưa Ghé\n0đ\nƯớc tính\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": [
+          {
+            "label": "Tìm theo tên hoặc số điện thoại",
+            "font": "16px"
+          }
+        ]
+      }
+    },
+    {
+      "route": "services",
+      "body": "STUDIO\nDịch vụ\nDịch vụ, tuỳ chọn, dịch vụ thêm và nhân viên thực hiện\nThiết lập bằng AI trong vài phút\nNhập bằng AI chưa được bật trên máy chủ này. Anh/chị có thể thêm dịch vụ thủ công.\nDỊCH VỤ (2)\nThêm dịch vụ\nKhác\nSơn gel\n60 phút\n150.000đ\nNL\nTM\nCắt tóc nữ\n45 phút\n200.000đ\nTM\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "team",
+      "body": "STUDIO\nNhân viên\nNhân viên, vai trò, giờ làm việc và lời mời\nĐỘI NGŨ (2)\nMời qua link\nThêm nhân viên\nAnh/chị cũng trực tiếp làm dịch vụ?\nThêm chính mình vào đội ngũ để nhận lịch hẹn và có giờ làm riêng.\nThêm chính tôi\nNL\nNguyễn Lan\nChưa có tài khoản\n1 dịch vụ\nThứ 2–CN · 08:00–22:00\nChưa cài lương · Cài ngay\nGiờ làm\nSửa\nMời qua link\nTM\nTrần Mai\nChưa có tài khoản\n2 dịch vụ\nThứ 2–CN · 08:00–22:00\nChưa cài lương · Cài ngay\nGiờ làm\nSửa\nMời qua link\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "resources",
+      "body": "STUDIO\nPhòng & thiết bị\nPhòng, giường, ghế và thiết bị dùng chung cho các dịch vụ.\nKhông bắt buộc. Thêm khi một số dịch vụ cần chỗ riêng — VD 2 giường massage thì chỉ nhận tối đa 2 khách massage cùng lúc.\nThêm loại\nChưa có phòng hoặc thiết bị\nThêm phòng, ghế hoặc giường nếu một số dịch vụ cần dùng riêng. Không bắt buộc.\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "insights",
+      "body": "STUDIO\nPhân tích & báo cáo\nSố liệu từ lịch hẹn của salon. Doanh thu là ước tính, không phải tiền đã thu.\nTổng quan\nTháng này\n7 ngày\n30 ngày\n90 ngày\nThứ Tư, 7 tháng 10, 2026 – Thứ Năm, 5 tháng 11, 2026 (lịch bắt đầu trong kỳ)\nLịch hẹn trong kỳ\n2\nKỳ trước chưa có số liệu\nLịch hẹn sắp tới\n0\nTừ bây giờ, không phụ thuộc kỳ đã chọn\nHoàn thành\n0\nKỳ trước chưa có số liệu\nKhách mới\n0\nKỳ trước chưa có số liệu\nKhách quay lại\n0\nKỳ trước chưa có số liệu\nTỷ lệ vắng mặt\n—\nKỳ trước chưa có số liệu\nTỷ lệ huỷ\n0.0%\nKỳ trước chưa có số liệu\nDoanh thu ước tính\n0đ\nKỳ trước chưa có số liệu\nƯớc tính\nĐã ghi nhận tại salon\n0đ\nKỳ trước chưa có số liệu\nĐã ghi nhận tại salon\nLợi nhuận gộp ước tính\n0đ\nKỳ trước chưa có số liệu\nGiá dịch vụ trừ chi phí nội bộ, tính trên lịch hẹn đã hoàn thành có nhập chi phí.\nƯớc tính\nLịch hẹn theo ngày\nChọn một cột hoặc dùng mũi tên để xem từng ngày.\n05/11/2026\nLịch hẹn: 2\n0\n1\n2\n07/10/2026\n21/10/2026\n05/11/2026\nDỊCH VỤ PHỔ BIẾN\nLịch hẹn, khách mới, tỷ lệ vắng mặt và doanh thu ước tính sẽ hiện sau những lịch hẹn đầu tiên.\nNGUỒN ĐẶT LỊCH\nĐiện thoại\n2\nTHEO NHÂN VIÊN\nNguyễn Lan\nLịch hẹn: 1\nHoàn thành: 0\nVắng: 0\nDoanh thu ước tính: 0đ\nTrần Mai\nLịch hẹn: 1\nHoàn thành: 0\nVắng: 0\nDoanh thu ước tính: 0đ\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "payroll",
+      "body": "STUDIO\nLương & hoa hồng\nLương cứng, hoa hồng và thưởng, trừ của từng người theo tháng.\nBảng lương tháng\nMức lương & hoa hồng\nTháng 11/2026\nĐang mở\nTải về\nTháng đang mở: số tự cập nhật theo lịch hẹn. Chốt khi hết tháng để giữ nguyên số liệu, vẫn mở lại được.\nChốt bảng lương\nCòn nhận\n0đ\nLương cứng cả tháng + hoa hồng đã kiếm (2 người)\nChi phí thực tế\n0đ\nChưa nhập thuế/BH nên bằng lương gross\nNguyễn Lan\nChưa cài lương\nChưa cài lương\nCòn nhận\n0đ\nLương cứng\n0đ\nHoa hồng đã kiếm\n0đ\nChi phí thực tế\n0đ\nTrần Mai\nChưa cài lương\nChưa cài lương\nCòn nhận\n0đ\nLương cứng\n0đ\nHoa hồng đã kiếm\n0đ\nChi phí thực tế\n0đ\nTổng cộng\nLương (gross)\n0đ\nChi phí thực tế\n0đ\nCòn nhận\n0đ\nĐây là số ước tính trước thuế và bảo hiểm. GuGu không tính thuế TNCN, BHXH và không chuyển tiền.\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "settings",
+      "body": "STUDIO\nCài đặt\nGói dịch vụ\nĐang dùng thử\nDùng thử Pro\nDùng thử kết thúc\nThứ Năm, 19 tháng 11, 2026\nBasic miễn phí đến hết ngày\nThứ Sáu, 5 tháng 11, 2027\nTrong thời gian dùng thử, salon có đủ tính năng Pro, kể cả trợ lý AI, với hạn mức AI nhỏ. Sau đó salon tiếp tục dùng gói Basic miễn phí trong năm đầu.\nThông tin salon\nTên salon\nSố điện thoại\nGiới thiệu ngắn\nHiển thị trên trang salon.\nSố nhà, tên đường\nTỉnh/Thành phố\nChọn\nPhường/Xã\nChọn\nLưu\nGiờ mở cửa\n9:00–21:00 cả tuần\nThứ Hai\nđến\nThứ Ba\nđến\nThứ Tư\nđến\nThứ Năm\nđến\nThứ Sáu\nđến\nThứ Bảy\nđến\nChủ Nhật\nđến\nLưu\nĐặt lịch và xác nhận\nXác nhận lịch hẹn\nTự động\nSalon xác nhận\nLịch hẹn được xác nhận ngay khi khách đặt.\nXác nhận khách mới\nLịch của khách lần đầu hoặc chưa xác minh sẽ chờ salon xác nhận.\nẨn chọn nhân viên\nKhách đặt lịch không chọn nhân viên, salon sẽ sắp xếp.\nĐặt trước tối thiểu (giờ)\nKhách không đặt được lịch sát giờ hơn mức này.\nĐặt trước tối đa (ngày)\nKhách đặt lịch xa nhất bao nhiêu ngày.\nHuỷ/đổi lịch trước (giờ)\nSau mốc này khách cần liên hệ salon để huỷ hoặc đổi.\nLưu\nThông báo\nGuGu Studio không gửi email cho khách. Khách chỉ nhận tin nhắn qua Zalo OA của salon.\nTin nhắn cho khách (qua Zalo)\nChưa kết nối Zalo OA nên khách không nhận được tin nhắn tự động.\nThông báo cho đội ngũ\nChuông\nEmail\nLịch hẹn mới do người khác thêm\nLịch hẹn được người khác đổi giờ\nLịch hẹn bị hủy\nKhách chờ nhân viên trên Zalo\nLưu\nNgày nghỉ và giờ đặc biệt\nVí dụ: nghỉ Tết, mở cửa nửa ngày.\nTừ ngày\nĐến ngày\nLý do\nNghỉ cả ngày\nGiờ đặc biệt\nThêm ngày\nChính sách\nChính sách đặt lịch\nVí dụ: vui lòng đến trước 5 phút.\nChính sách huỷ lịch\nHiển thị cho khách khi đặt lịch.\nLưu\nZalo Official Account\nChưa kết nối\nKhách nhắn tin cho Zalo OA của salon sẽ được trợ lý tự động giúp đặt lịch, luôn với danh nghĩa salon. Nhân viên có thể tiếp quản bất cứ lúc nào.\nChế độ thử nghiệm: đang dùng Zalo giả lập, chưa gửi tin thật.\nKết nối Zalo OA\nMở trình giả lập chat\nDữ liệu và quyền riêng tư\nXuất toàn bộ dữ liệu khách hàng của salon (JSON và CSV). Tệp chỉ tải được tại đây, trong 24 giờ; không có đường link gửi qua email.\nTạo bản xuất\nChưa có bản xuất nào.\nThời gian lưu\nNhật ký gửi thông báo được xoá sau 12 tháng. Sự kiện Zalo thô được xoá sau 30 ngày. Phiên đăng nhập và đường link đăng nhập hết hạn được dọn dẹp tự động.\nGuGu Studio được thiết kế để hỗ trợ salon xử lý yêu cầu dữ liệu cá nhân của khách. Đây không phải tư vấn pháp lý.\nGiao diện\nChỉ áp dụng cho khu vực quản lý salon.\nTheo hệ thống\nSáng\nTối\nNgôn ngữ\nTiếng Việt\nEnglish\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": [
+          {
+            "label": "Tên salon",
+            "font": "16px"
+          },
+          {
+            "label": "Số điện thoại",
+            "font": "16px"
+          },
+          {
+            "label": "Số nhà, tên đường",
+            "font": "16px"
+          },
+          {
+            "label": "Bắt đầu",
+            "font": "16px"
+          },
+          {
+            "label": "Kết thúc",
+            "font": "16px"
+          },
+          {
+            "label": "Bắt đầu",
+            "font": "16px"
+          },
+          {
+            "label": "Kết thúc",
+            "font": "16px"
+          },
+          {
+            "label": "Bắt đầu",
+            "font": "16px"
+          },
+          {
+            "label": "Kết thúc",
+            "font": "16px"
+          },
+          {
+            "label": "Bắt đầu",
+            "font": "16px"
+          },
+          {
+            "label": "Kết thúc",
+            "font": "16px"
+          },
+          {
+            "label": "Bắt đầu",
+            "font": "16px"
+          },
+          {
+            "label": "Kết thúc",
+            "font": "16px"
+          },
+          {
+            "label": "Bắt đầu",
+            "font": "16px"
+          },
+          {
+            "label": "Kết thúc",
+            "font": "16px"
+          },
+          {
+            "label": "Bắt đầu",
+            "font": "16px"
+          },
+          {
+            "label": "Kết thúc",
+            "font": "16px"
+          },
+          {
+            "label": "Đặt trước tối thiểu (giờ)",
+            "font": "16px"
+          },
+          {
+            "label": "Đặt trước tối đa (ngày)",
+            "font": "16px"
+          },
+          {
+            "label": "Huỷ/đổi lịch trước (giờ)",
+            "font": "16px"
+          },
+          {
+            "label": "Từ ngày",
+            "font": "16px"
+          },
+          {
+            "label": "Đến ngày",
+            "font": "16px"
+          },
+          {
+            "label": "Lý do",
+            "font": "16px"
+          }
+        ]
+      }
+    },
+    {
+      "route": "zalo",
+      "body": "STUDIO\nTin nhắn Zalo\nChưa kết nối\nKết nối Zalo OA trong Cài đặt để nhận tin nhắn của khách tại đây.\nĐến Cài đặt\nHôm nay\nLịch\nMới\nKhách hàng\nThêm",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    },
+    {
+      "route": "setup",
+      "body": "Xong rồi! Salon đã sẵn sàng nhận lịch\nĐây là lịch hôm nay của salon. Thêm lịch hẹn đầu tiên để bắt đầu nhé.\nLịch hôm nay\nNL\nNguyễn Lan\nTM\nTrần Mai\n08:00\n09:00\n10:00\n11:00\n12:00\n13:00\n14:00\n15:00\n16:00\n17:00\n18:00\n19:00\n20:00\n21:00\n22:00\n23:00\nThêm lịch hẹn đầu tiên\nVào trang Hôm nay\nCó thể làm sau:\nKết nối Zalo OA",
+      "layout": {
+        "width": 412,
+        "scroll": 412,
+        "smallTargets": [],
+        "inputs": []
+      }
+    }
+  ],
+  "errors": []
+}

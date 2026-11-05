@@ -211,6 +211,8 @@ export class SalonBookingsController {
         source: body.source,
         selection: {
           serviceId: body.serviceId,
+          durationMinutes: body.durationMinutes,
+          customService: body.customService,
           variantId: body.variantId ?? null,
           addOnIds: body.addOnIds,
           staffId: body.staffId ?? null,
