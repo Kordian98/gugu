@@ -48,11 +48,11 @@ export function StaticHero({
           arch. Gone for good after the first walk-in (intro once per visit). */}
       <div className="jr-plaque">
         <p>
-          <span className="k">{t("flow.hud.walkIn")}</span>
-          <span className="tc">{t("flow.hud.walkInTouch")}</span>
+          <span className="k">{t(desktop ? "flow.hud.walkIn" : "flow.m.demoHint")}</span>
+          <span className="tc">{t(desktop ? "flow.hud.walkInTouch" : "flow.m.demoHint")}</span>
         </p>
         <button type="button" className="jr-go" onClick={onStart}>
-          {t("flow.hud.startShort")}
+          {t(desktop ? "flow.hud.startShort" : "flow.m.viewDemo")}
           <i aria-hidden>{ARROW}</i>
         </button>
       </div>

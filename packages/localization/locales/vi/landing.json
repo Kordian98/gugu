@@ -565,7 +565,32 @@
       "monthH": "Tháng này lãi bao nhiêu, nhìn là biết.",
       "swTitle": "Chuyển sang GuGu Studio trong vài phút.",
       "monthB": "Đã có, sắp tới từ lịch hẹn và lãi ước tính sau lương và chi phí, tự cập nhật theo từng lịch hẹn.",
-      "demo": "Demo"
+      "demo": "Demo",
+      "heroLine1": "Lịch hẹn & Zalo.",
+      "heroLine2": "Cho salon của bạn.",
+      "heroSubtitle": "Lịch chung cho cả đội, thông tin khách và nhắc lịch — mọi thứ trong GuGu Studio.",
+      "heroNote": "Basic miễn phí năm đầu · Không cần thẻ",
+      "demoHint": "Bước vào salon và xem GuGu hoạt động",
+      "viewDemo": "Xem demo",
+      "ultraSoon": "Quản lý nhiều cơ sở đang được phát triển cho Ultra, chưa dùng được ngay. Bạn có thể bắt đầu với một salon trên Basic hoặc Pro.",
+      "caseAssumptions": "Xem cách tính và giả định",
+      "featureCalendar": "Mỗi lịch hẹn đều có chỗ.",
+      "featureAppointments": "Mọi lịch hẹn trong một danh sách.",
+      "featureServices": "Dịch vụ sẵn sàng để khách đặt.",
+      "afterH": "Đã đặt lịch. Đã hẹn nhắc. Cùng một lịch.",
+      "reminder": "Lịch hẹn đã được lưu. Nhắc lịch qua Zalo đã được lên lịch.",
+      "finish": "Xem gói miễn phí",
+      "walkDesk": "Bước vào salon của bạn",
+      "walkTreat": "Mỗi khách đều có chỗ",
+      "walkOffice": "Salon của bạn, nhìn là rõ",
+      "importH": "Từ ảnh bảng giá đến dịch vụ có thể đặt",
+      "cases": {
+        "nail": "Ba thợ, một lịch chung cho khách ghé tiệm và khách đặt qua Zalo.",
+        "hair": "Lịch của năm người và hoa hồng dịch vụ trong cùng một nơi.",
+        "spa": "Bốn giường, lịch không trùng và kết quả tháng nhìn là rõ.",
+        "lash": "Hai người vẫn nhận lịch và nhắc khách, kể cả khi đang bận làm."
+      },
+      "bookedH": "Đã lưu lịch hẹn"
     },
     "cases": {
       "eyebrow": "Ví dụ salon",

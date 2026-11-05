@@ -127,6 +127,7 @@ export const overlay = {
   paper94: "rgba(253,250,247,.94)",
   paper86: "rgba(253,250,247,.86)",
   paper78: "rgba(253,250,247,.78)",
+  paper10: "rgba(253,250,247,.10)",
   paper0: "rgba(253,250,247,0)",
   glass: "rgba(255,255,255,.97)",
   white35: "rgba(255,255,255,.35)",

@@ -1,0 +1,17 @@
+{
+  "appTypecheck": "pass",
+  "mobileCssPricingCasesTests": 17,
+  "localizationTests": 15,
+  "designReview": "approve",
+  "mobileJourney": "15 steps, WebKit vi/en 360x640 402x714 430x932: passed navigation, images, zoom, signup destination",
+  "extraInteractions": "groups, back and footer visibility passed 402x714 and844x390",
+  "safari": "iPhone17Pro iOS26.4 Safari26.4, all15 steps with normal motion visually inspected; snapshots final-safari-01..15",
+  "desktop": "13/13 WebKit1440x900 reduced-motion fixed-time snapshots pixel-identical",
+  "notVerified": [
+    "physical device",
+    "Zalo in-app browser",
+    "pinch gesture on actual device"
+  ],
+  "url": "http://localhost:8094/vi",
+  "branch": "design/02-glass"
+}

@@ -1,0 +1,8 @@
+{
+  "fit": "10 viewport/language combinations,15 pages each, all pass",
+  "gestures": "resize, rotate inside zoom, explicit zoom, screenshot-next, swipe+compatibility click, exit: pass",
+  "safari": "15 of15 pages exactly714px to714px visual viewport; normal-motion iPhone17Pro simulator Safari",
+  "desktop": "13 snapshots pixel-identical",
+  "source": "typecheck and4CSS isolation tests pass; ESLint no errors",
+  "note": "Synthetic touch fixture corrected to provide complete touches/changedTouches data for React Native responder; final run no pageerror."
+}

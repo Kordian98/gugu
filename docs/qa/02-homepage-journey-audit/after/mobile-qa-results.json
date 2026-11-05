@@ -1,0 +1,50 @@
+[
+  {
+    "locale": "vi",
+    "w": 360,
+    "h": 640,
+    "pages": 15,
+    "errors": [],
+    "cta": "http://localhost:8094/vi/business/join"
+  },
+  {
+    "locale": "en",
+    "w": 360,
+    "h": 640,
+    "pages": 15,
+    "errors": [],
+    "cta": "http://localhost:8094/en/business/join"
+  },
+  {
+    "locale": "vi",
+    "w": 402,
+    "h": 714,
+    "pages": 15,
+    "errors": [],
+    "cta": "http://localhost:8094/vi/business/join"
+  },
+  {
+    "locale": "en",
+    "w": 402,
+    "h": 714,
+    "pages": 15,
+    "errors": [],
+    "cta": "http://localhost:8094/en/business/join"
+  },
+  {
+    "locale": "vi",
+    "w": 430,
+    "h": 932,
+    "pages": 15,
+    "errors": [],
+    "cta": "http://localhost:8094/vi/business/join"
+  },
+  {
+    "locale": "en",
+    "w": 430,
+    "h": 932,
+    "pages": 15,
+    "errors": [],
+    "cta": "http://localhost:8094/en/business/join"
+  }
+]

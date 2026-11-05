@@ -180,3 +180,24 @@ the feel of Instagram stories, which is what ships:
 - One page sequence (`PAGES` in `timelines.ts`) is the single source for HUD, counter, keys and swipes.
 - The nav (top of the page) scrolls away the moment the intro jumps to the stage.
 - Not verified on a physical iPhone or iPad: the dock clamp writes `scrollTop` during iOS momentum.
+
+
+## Mobile journey refinement 2026-11-05
+
+The mobile homepage (<900 px) now preserves the visible salon scene and uses local caption surfaces rather than one full-height blurred panel. Desktop layout, text, timeline, motion tokens and assets remain unchanged by explicit owner request.
+
+- The story has 17 steps: eight salon/product views, five Zalo booking steps and all four AI examples (appointments, team workload, revenue and profit), restored at the owner’s request. Shared desktop perspective steps are unchanged. The separate mobile calculator and Insights pages are removed; pricing retains its savings explanation.
+- Before/after shows a real calendar crop and a saved-appointment/reminder card. Feature pages use a brief benefit heading, a large product crop and one relevant callout.
+- Walks retain the salon scene and a short location/benefit caption. The main caption arrives near the end of the walk; the product follows when the camera stops. Reduced motion shows the final scene directly.
+- Visible previous/next controls are restricted to the story, respect safe areas and finish at the free-year section. The engaged story fits the measured visual viewport and does not scroll vertically; Previous on its first step and Next on its last step release the lock. Hero and offer sections retain ordinary scrolling. Zoom opens only from its labelled button.
+- Mobile hero identifies appointments and Zalo, distinguishes View demo from signup, and states the free Basic year/no-card offer. Mobile salon examples show the product before the manual before/after diagram and put calculation assumptions in an expandable disclosure.
+- Mobile Ultra advice explicitly labels multi-location support as forthcoming. New copy lives under flow.m in vi/en; existing shared strings are unchanged.
+
+Implementation: apps/app/features/landing/flow/MobileJourney.tsx and mobile.css.ts, conditional mobile branches in StudioHero.tsx, StaticHero.tsx, cases and ResultCard.tsx.
+
+
+### Mobile viewport and gesture correction 2026-11-05
+
+The owner superseded the earlier freely scrolling mobile-story decision: every active story step must fit the usable phone viewport. Height follows visualViewport, the app scroller, browser chrome and orientation; screenshot crops use the space remaining after captions and controls. Closing zoom after rotation resynchronizes and docks the story. The outer scroll lock is restored on exit and unmount. Chat logs retain their own history scrolling.
+
+Screenshot taps now follow story navigation; only the contained 44 px Zoom control opens the viewer. Swipe compatibility clicks are suppressed, while fresh deliberate button taps remain responsive. The bottom navigation uses a 10% paper tint without blur, so the salon video stays visible beneath it; buttons retain opaque high-contrast fills. All changes remain mobile-only.

@@ -565,7 +565,32 @@
       "monthH": "This month's profit, at a glance.",
       "swTitle": "Switch to GuGu Studio in minutes.",
       "monthB": "Earned so far, upcoming from bookings and the estimated profit after pay and costs, updated with every booking.",
-      "demo": "Demo"
+      "demo": "Demo",
+      "heroLine1": "Bookings & Zalo.",
+      "heroLine2": "For your salon.",
+      "heroSubtitle": "One team calendar, customer details and reminders — together in GuGu Studio.",
+      "heroNote": "Basic free for the first year · No card needed",
+      "demoHint": "Step inside and see GuGu at work",
+      "viewDemo": "View demo",
+      "ultraSoon": "Multi-location management is being developed for Ultra and is not available yet. Start with one salon on Basic or Pro.",
+      "caseAssumptions": "View calculations and assumptions",
+      "featureCalendar": "A place for every appointment.",
+      "featureAppointments": "Every booking in one list.",
+      "featureServices": "Your services, ready to book.",
+      "afterH": "Booked. Reminder scheduled.",
+      "reminder": "The appointment is saved. A Zalo reminder is scheduled.",
+      "finish": "See the free plan",
+      "walkDesk": "Step inside your salon",
+      "walkTreat": "A place for every client",
+      "walkOffice": "Your salon, at a glance",
+      "importH": "Turn your price list into bookable services",
+      "cases": {
+        "nail": "Three nail artists. One calendar for walk-ins and Zalo bookings.",
+        "hair": "Five people’s schedules and service commissions, together.",
+        "spa": "Four beds, no overlapping bookings, and a clear monthly overview.",
+        "lash": "Two people can take bookings and remind clients, even while busy."
+      },
+      "bookedH": "Appointment saved"
     },
     "cases": {
       "eyebrow": "Salon examples",

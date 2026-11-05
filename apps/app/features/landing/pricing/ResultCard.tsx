@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { Animated, View } from "react-native";
+import { Animated, View, useWindowDimensions } from "react-native";
 import { useTranslation } from "react-i18next";
 
 import { PUBLIC_PLANS, type BillingInterval, type PublicPlanCode } from "@gugu/contracts";
-import { Icon, Text, color, radius, elevation, space } from "@gugu/design-system";
+import { Icon, Text, color, radius, elevation, space, breakpoint } from "@gugu/design-system";
 
 import { Segmented } from "./Choice";
 import type { Advice } from "./model";
@@ -60,7 +60,9 @@ export function ResultCard({
   const { scale, check } = usePop(plan, reduce);
   const glow = usePulse(pulse, reduce);
   const name = t(`pricing.plan.${plan}.name`);
-  const summary = useSummary(advice, interval, name, why, plan !== recommended);
+  const { width } = useWindowDimensions();
+  const visibleWhy = width < breakpoint.desktop && plan === "ultra" ? t("flow.m.ultraSoon") : why;
+  const summary = useSummary(advice, interval, name, visibleWhy, plan !== recommended);
   const links = (
     <>
       <LinkChip
@@ -160,7 +162,7 @@ export function ResultCard({
           lineHeight={desktop ? 21 : 18}
           color={color.body}
         >
-          {why}
+          {visibleWhy}
         </Text>
       </View>
 

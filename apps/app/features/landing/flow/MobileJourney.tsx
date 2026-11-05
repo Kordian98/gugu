@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Asset } from "expo-asset";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import { motion } from "@gugu/design-system";
@@ -11,7 +12,6 @@ import type { LandingNavActions } from "../useLandingNav";
 import { MobileChat } from "./MobileChat";
 import { MOBILE_CSS, QA_CSS, SW_ROWS, WALK_MS } from "./mobile.css";
 import { AI_STEPS, AiViz, CLIENT_STEPS } from "./Perspectives";
-import { EarningsCard } from "./Rooms";
 import { WalkPlayer, frameUrl, type Segment } from "./sequence";
 import { StaticHero } from "./StaticHero";
 import { CUTS } from "./cuts";
@@ -19,19 +19,16 @@ import { scrollParent } from "./timelines";
 import { openZoom } from "./zoom";
 
 const CHECK = "✓";
-const CROSS = "✕";
 const PIN = "●";
 const Z = "Z";
 const SEP = " · ";
 const ARROW_R = "→";
 const SPARK = "✦";
 const CENTER = "\u2195";
-const NOTES = ["n1", "n2", "n3", "n4"] as const;
+/** Ignore delayed clicks after a touch gesture or a page turn (including clicks retargeted at a new page). */
+let suppressStoryClickUntil = 0;
+const NOTES = ["n1", "n2"] as const;
 const BEFORE = ["b1", "b2", "b3", "b4"] as const;
-const GAINS = ["g1", "g2", "g3"] as const;
-const INS = ["i1", "i3", "i5"] as const;
-const PAY = ["p1", "p3", "p5"] as const;
-const SW_STEPS = ["st1", "st2", "st3", "st4"] as const;
 
 /** Portrait stills (aligned with the walk frames; ≤ 1.15× of their pixels on any phone). */
 const M = {
@@ -69,14 +66,15 @@ const GROUPS = [
 type Ch = (typeof GROUPS)[number]["k"];
 
 /** Salon demo pages (only pages that show the product working); client + AI chats follow. */
-const SALON = 10;
+const MOBILE_AI_STEPS = AI_STEPS;
+const SALON = 8; // before, after, three CRM screens, month, payroll, import
 const CLIENT0 = SALON;
 const AI0 = SALON + CLIENT_STEPS.length;
-const UNITS = AI0 + AI_STEPS.length;
+const UNITS = AI0 + MOBILE_AI_STEPS.length;
 const COUNT: Record<Ch, number> = {
   demo: SALON,
   client: CLIENT_STEPS.length,
-  ai: AI_STEPS.length,
+  ai: MOBILE_AI_STEPS.length,
 };
 
 /** Walks played when their section is reached (once per visit), and the still they end on. */
@@ -122,7 +120,7 @@ const FACTS: readonly Facts[] = [
 
 /**
  * One real CRM crop taken at a phone viewport (scripts/landing-screens.mjs `m-*`), shown at about 1:1
- * and cut on a whole row; a tap on it (or its Zoom pill) opens the zoom viewer (pinch / double-tap).
+ * and cut on a whole row; its explicit Zoom button opens the viewer (pinch / double-tap).
  */
 function MShot({
   name,
@@ -131,6 +129,7 @@ function MShot({
   call,
   reduce,
   h,
+  minHeight = 300,
 }: {
   name: ScreenName;
   name2x: ScreenName;
@@ -138,6 +137,7 @@ function MShot({
   call?: string;
   reduce: boolean;
   h?: string;
+  minHeight?: number;
 }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
@@ -146,26 +146,40 @@ function MShot({
   const { w, h: ph } = screenSize(locale, name);
   const srcSet = `${src2x} ${String(Math.round((w * 2) / 3))}w, ${src} ${String(w)}w`;
   const box = useRef<HTMLSpanElement>(null);
-  // The crop ends on a whole row (CUTS): the tallest row boundary that fits max(300 px, h svh).
+  // Fit the available measured page budget, ending on a whole product row whenever possible.
   useLayoutEffect(() => {
     const el = box.current;
     const cuts = CUTS[locale][name];
     if (!el) return;
-    let lastW = -1;
     const fit = () => {
-      // react to width changes only (setting max-height must not re-trigger the observer)
-      if (el.clientWidth === lastW) return;
-      lastW = el.clientWidth;
+      const figure = el.closest<HTMLElement>(".mj-shot");
+      const more = figure?.parentElement;
+      if (!figure || !more || !el.clientWidth) return;
       const natural = (el.clientWidth * ph) / w;
-      const svh = h ? Number.parseFloat(h) : 44;
-      const max = Math.max(300, (window.innerHeight * svh) / 100);
-      if (natural <= max) {
-        el.style.maxHeight = "none";
-        return;
-      }
+      const caption = figure.querySelector<HTMLElement>(".cap")?.offsetHeight ?? 0;
+      const siblings = Array.from(more.children)
+        .filter((e) => e !== figure)
+        .reduce((sum, e) => {
+          const style = getComputedStyle(e);
+          return (
+            sum +
+            e.getBoundingClientRect().height +
+            parseFloat(style.marginTop) +
+            parseFloat(style.marginBottom)
+          );
+        }, 0);
+      const margin = parseFloat(getComputedStyle(figure).marginTop);
+      const budget = Math.max(0, more.clientHeight - siblings - caption - margin - 2);
+      const preferred = Math.max(
+        minHeight,
+        ((window.visualViewport?.height ?? window.innerHeight) * (h ? parseFloat(h) : 44)) / 100,
+      );
+      const max = Math.min(budget, preferred, natural);
       const end = [...(cuts ?? [])].reverse().find((c) => c * natural <= max);
-      el.style.maxHeight = `${String(Math.round(end ? end * natural : max))}px`;
-      el.classList.toggle("row", end !== undefined);
+      const height = Math.max(0, Math.round(end ? end * natural : max));
+      el.style.height = `${String(height)}px`;
+      el.style.maxHeight = `${String(height)}px`;
+      el.classList.toggle("row", end !== undefined || natural <= max);
     };
     fit();
     let raf = 0;
@@ -174,12 +188,18 @@ function MShot({
       raf = requestAnimationFrame(fit);
     });
     ro.observe(el);
+    const more = el.closest(".mj-more");
+    if (more) ro.observe(more);
+    window.visualViewport?.addEventListener("resize", fit);
+    window.addEventListener("resize", fit);
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      window.visualViewport?.removeEventListener("resize", fit);
+      window.removeEventListener("resize", fit);
     };
-  }, [locale, name, ph, w, h]);
-  // A tap on the picture opens the zoom viewer (as its Zoom pill does); pages turn from the text.
+  }, [locale, name, ph, w, h, minHeight]);
+  // Only the contained Zoom button opens the viewer; the picture follows story navigation.
   return (
     <figure className="mj-shot mj-in" style={h ? { ["--shot-h" as string]: h } : undefined}>
       <figcaption className="cap">
@@ -201,6 +221,9 @@ function MShot({
           className="mj-zbtn2"
           aria-label={`${t("flow.m.zoom")}: ${caption}`}
           onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (performance.now() < suppressStoryClickUntil) return;
             openZoom(
               src,
               srcSet,
@@ -225,12 +248,12 @@ function MShot({
   );
 }
 
-/** The glass panel: always shows its content (no folding; owner, 2026-11-05). */
+/** A local readable caption followed by the product, with the salon visible around both. */
 function Card({ children, head }: { children?: React.ReactNode; head: React.ReactNode }) {
   return (
     <div className="mj-card">
       <div className="mj-body">
-        {head}
+        <div className="mj-caption">{head}</div>
         <div className="mj-more">{children}</div>
       </div>
     </div>
@@ -252,16 +275,6 @@ function DeskBefore({ onAfter, replica = false }: { onAfter: () => void; replica
         </>
       }
     >
-      <div className="mj-stat">
-        <b>
-          {t("flow.pain.statNum")}
-          <small>{t("flow.pain.statUnit")}</small>
-        </b>
-        <span>
-          <em>{t("flow.pain.pre")}</em>
-          {t("flow.pain.statLabel")}
-        </span>
-      </div>
       <div className="mj-ping" aria-hidden>
         <span className="z">{Z}</span>
         <span className="n">
@@ -290,7 +303,7 @@ function DeskBefore({ onAfter, replica = false }: { onAfter: () => void; replica
  * The story on phones (≤ 899 px; ADR-0014 "Mobile") as Instagram-style stories: only the current page
  * is in the layout; tap right = next, tap left = back (also swipe, ← / →); vertical scrolling is ordinary
  * page scrolling. Pages: front desk (the walk-in plays once as the intro), the before → after reveal, the
- * treatment room and its three facts, the office (overview, earnings, Insights, payroll), switching, then
+ * treatment room and its three product screens, the office (month, payroll), service import, then
  * the client's and the AI's chats, one page per step. A sticky chapter bar fills page by page; a tap on a
  * chapter opens it. Desktop never renders this.
  */
@@ -308,10 +321,9 @@ export function MobileJourney({
   const locale = useLocale();
   const root = useRef<HTMLDivElement>(null);
   const heroBlock = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLElement>(null);
   const [page, setPage] = useState(0);
   const [live, setLive] = useState(false);
-  /** first-view tap hint: shown when the story first appears, gone after the first page turn */
-  const [hint, setHint] = useState<"off" | "on" | "done">("off");
   const goRef = useRef<(i: number) => void>(() => undefined);
   /** first page of each chapter (from the DOM, set by the controller) */
   const firstOf = useRef<number[]>([]);
@@ -336,6 +348,46 @@ export function MobileJourney({
     const groups = Array.from(el.querySelectorAll<HTMLButtonElement>(".mj-grp"));
     const sr = el.querySelector<HTMLElement>(".mj-sr");
     const bar = el.querySelector<HTMLElement>(".mj-bar");
+    const controls = controlsRef.current;
+    let usableHeight = window.innerHeight;
+    let usableTop = 0;
+    let engaged = false;
+    let canEngage = true;
+    const oldOverflow = scroller?.style.overflowY ?? "";
+    const syncViewport = () => {
+      const vv = window.visualViewport;
+      const sr = scroller?.getBoundingClientRect();
+      usableTop = Math.max(sr?.top ?? 0, vv?.offsetTop ?? 0);
+      const bottom = Math.min(
+        sr?.bottom ?? window.innerHeight,
+        (vv?.offsetTop ?? 0) + (vv?.height ?? window.innerHeight),
+      );
+      usableHeight = Math.max(1, bottom - usableTop);
+      el.style.setProperty("--mj-vh", `${String(usableHeight)}px`);
+      el.style.setProperty(
+        "--mj-scene-gap",
+        `${String(Math.min(64, Math.max(8, (usableHeight - 560) * 0.25)))}px`,
+      );
+      if (controls) controls.style.bottom = `${String(Math.max(0, window.innerHeight - bottom))}px`;
+      el.classList.toggle("compact", usableHeight < 700);
+      el.classList.toggle("short", usableHeight < 580);
+    };
+    syncViewport();
+    const setEngaged = (on: boolean) => {
+      engaged = on;
+      el.classList.toggle("engaged", on);
+      if (scroller) scroller.style.overflowY = on ? "hidden" : oldOverflow;
+    };
+    const leaveStory = () => {
+      canEngage = false;
+      setEngaged(false);
+    };
+    const preventStoryScroll = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      if (engaged && !target?.closest(".mj-zoom,.mc-log")) e.preventDefault();
+    };
+    scroller?.addEventListener("touchmove", preventStoryScroll, { passive: false });
+    scroller?.addEventListener("wheel", preventStoryScroll, { passive: false });
 
     // Hero door: the arch shows the first walk frame (same as the stage at time 0 on desktop).
     /** the arch (hero coordinates) and the media offset that centres the doors in it */
@@ -396,7 +448,7 @@ export function MobileJourney({
       if (!walking) return;
       players.get(walking.seg)?.set(walking.seg, 1);
       played.add(walking.seg);
-      walking.sec.classList.remove("walking");
+      walking.sec.classList.remove("walking", "arriving");
       walking.sec.classList.add("on");
       if (walking.seg === "w1") {
         hb?.classList.add("done");
@@ -425,6 +477,7 @@ export function MobileJourney({
         const k = Math.min(1, (now - t0) / WALK_MS);
         const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
         p.set(seg, e);
+        sec.classList.toggle("arriving", k >= 0.75);
         if (k < 1) walkRaf = requestAnimationFrame(tick);
         else endWalk();
       };
@@ -439,12 +492,13 @@ export function MobileJourney({
       ready();
     };
 
-    const vh = () => scroller?.clientHeight ?? window.innerHeight;
+    const vh = () => usableHeight;
     const trackTop = () =>
       scroller && track
         ? track.getBoundingClientRect().top -
           scroller.getBoundingClientRect().top +
-          scroller.scrollTop
+          scroller.scrollTop -
+          (usableTop - scroller.getBoundingClientRect().top)
         : 0;
     // Show page i (Instagram stories): only that page is in the layout; a long page simply scrolls.
     let cur = -1;
@@ -503,7 +557,6 @@ export function MobileJourney({
         if (vis && !shown && introState !== "playing") {
           shown = true;
           show(cur, false);
-          setHint((h) => (h === "off" ? "on" : h));
         }
       },
       { root: scroller, threshold: 0.55 },
@@ -524,8 +577,8 @@ export function MobileJourney({
     const step = (d: 1 | -1, viaKeys = false) => {
       if (introState === "playing") return; // no input while the intro plays
       shown = true;
-      setHint("done");
       if (d > 0 && cur >= els.length - 1) {
+        leaveStory();
         const f = document.getElementById("fl-free");
         if (scroller && f)
           scrollY(
@@ -538,9 +591,11 @@ export function MobileJourney({
         return;
       }
       if (d < 0 && cur <= 0) {
+        leaveStory();
         if (scroller) scrollY(scroller, 0, !reduce);
         return;
       }
+      suppressStoryClickUntil = performance.now() + 450;
       show(cur + d, true);
       if (viaKeys) focusHeading();
     };
@@ -561,15 +616,13 @@ export function MobileJourney({
         return x > r.left - 8 && x < r.right + 8 && y > r.top - 8 && y < r.bottom + 8;
       });
     const onClick = (e: MouseEvent) => {
-      if (introState === "playing") return;
-      const target = e.target as HTMLElement | null;
-      if (!target || target.closest(INTERACTIVE) || nearSlider(e.clientX, e.clientY)) return;
-      // a tap on a screenshot opens it in the zoom viewer
-      const pic = target.closest(".mj-shot .img");
-      if (pic) {
-        pic.querySelector<HTMLButtonElement>(".mj-zbtn2")?.click();
+      if (introState === "playing" || performance.now() < suppressStoryClickUntil) {
+        e.preventDefault();
+        e.stopPropagation();
         return;
       }
+      const target = e.target as HTMLElement | null;
+      if (!target || target.closest(INTERACTIVE) || nearSlider(e.clientX, e.clientY)) return;
       const back = !target.closest("[data-advance]") && e.clientX < window.innerWidth / 3;
       if (fx && !reduce) {
         fx.className = `mj-tapfx ${back ? "l" : "r"}`;
@@ -581,7 +634,11 @@ export function MobileJourney({
     // a clear horizontal swipe also turns the page (← next, → back)
     let sx = 0;
     let sy = 0;
+    const onPointerDown = () => {
+      suppressStoryClickUntil = 0;
+    };
     const onTs = (e: TouchEvent) => {
+      suppressStoryClickUntil = 0;
       sx = e.touches[0]?.clientX ?? 0;
       sy = e.touches[0]?.clientY ?? 0;
     };
@@ -591,7 +648,15 @@ export function MobileJourney({
       const dx = t0.clientX - sx;
       const dy = t0.clientY - sy;
       const target = e.target as HTMLElement | null;
-      if (target?.closest(INTERACTIVE) || nearSlider(sx, sy)) return;
+      if (target?.closest(INTERACTIVE) || nearSlider(sx, sy)) {
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10)
+          suppressStoryClickUntil = performance.now() + 600;
+        return;
+      }
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        suppressStoryClickUntil = performance.now() + 600;
+        if (e.cancelable) e.preventDefault();
+      }
       if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.6) step(dx < 0 ? 1 : -1);
     };
     // ← / → while the story is on screen
@@ -602,6 +667,14 @@ export function MobileJourney({
       if (!track || document.querySelector(".mj-zoom")) return;
       const r = track.getBoundingClientRect();
       if (r.bottom < vh() * 0.4 || r.top > vh() * 0.6) return;
+      if (
+        engaged &&
+        !tg?.closest("button,a,input,select,textarea,[role=button],[role=link]") &&
+        ["ArrowUp", "ArrowDown", "PageUp", "PageDown", " ", "Home", "End"].includes(e.key)
+      ) {
+        e.preventDefault();
+        return;
+      }
       if (e.key === "ArrowRight") {
         e.preventDefault();
         step(1, true);
@@ -610,9 +683,10 @@ export function MobileJourney({
         step(-1, true);
       }
     };
+    track?.addEventListener("pointerdown", onPointerDown);
     track?.addEventListener("click", onClick);
     track?.addEventListener("touchstart", onTs, { passive: true });
-    track?.addEventListener("touchend", onTe, { passive: true });
+    track?.addEventListener("touchend", onTe, { passive: false });
     window.addEventListener("keydown", onKey);
 
     // "Center view" (as desktop): while the story is partly out of the viewport, a glass pill in the
@@ -645,6 +719,7 @@ export function MobileJourney({
     const CONTENT = [
       ".mj-u.cur :is(h1,h2,h3,p,li,button,a,img,.mj-tag,.mj-eye,.mj-stat,.mj-ping,.mj-gain,.mj-toast,.calc-sl,.calc-out,.calc-year,.mc-msg,.mc-input)",
       ".mj-bar",
+      ".mj-controls:not(.off)",
       ".jr-static :is(h1,p,button,a,.jr-plaque)",
       "#fl-free :is(.fl-eye,h2,p,button)",
       "[data-testid='pricing-section'] :is([dir='auto'],[role='button'],[role='radio'])",
@@ -680,8 +755,22 @@ export function MobileJourney({
         const visible = Math.max(0, Math.min(r.bottom, sr.bottom) - Math.max(r.top, sr.top));
         // the story is "the main thing on screen" while ≥ 30 % of it (or of the screen) is in view;
         // below that its chrome (chapter bar, center pill) leaves, and comes back on the way in
+        if (visible < H * 0.2) canEngage = true;
+        if (
+          canEngage &&
+          shown &&
+          introState !== "playing" &&
+          Math.abs(r.top - usableTop) < 8 &&
+          visible >= H * 0.9
+        )
+          setEngaged(true);
         const main = introState !== "playing" && visible >= Math.min(r.height, H) * CHROME_MIN;
         bar?.classList.toggle("off", !main);
+        // Bottom navigation belongs to the story, never to the hero or following offer.
+        controls?.classList.toggle(
+          "off",
+          !shown || !main || r.top > usableTop + 8 || visible < H * 0.5,
+        );
         const show = shown && main && !document.querySelector(".mj-zoom") && visible < H * 0.97;
         if (!show) {
           centerBtn.hidden = true;
@@ -720,13 +809,25 @@ export function MobileJourney({
     scroller?.addEventListener("scroll", placeCenter, { passive: true });
 
     const onResize = () => {
+      if (document.querySelector(".mj-zoom")) return;
+      syncViewport();
+      if (engaged && scroller) scrollY(scroller, trackTop(), false);
       placeCenter();
       syncHero();
       players.forEach((p) => {
         p.resize();
       });
     };
+    let zoomWasOpen = false;
+    const zoomObserver = new MutationObserver(() => {
+      const zoomOpen = !!document.querySelector(".mj-zoom");
+      if (zoomWasOpen && !zoomOpen) onResize();
+      zoomWasOpen = zoomOpen;
+    });
+    zoomObserver.observe(document.body, { childList: true });
     window.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("scroll", onResize);
     void document.fonts.ready.then(onResize);
 
     // The intro (owner, 2026-11-05; as desktop): the first small scroll or swipe down at the hero
@@ -738,6 +839,8 @@ export function MobileJourney({
       if (introState === "playing") e.preventDefault();
     };
     const lockInput = (on: boolean) => {
+      el.classList.toggle("intro-playing", on);
+      if (on) controls?.classList.add("off");
       if (scroller) scroller.style.overflowY = on ? "hidden" : "";
       if (on) {
         window.addEventListener("touchmove", preventInput, { passive: false });
@@ -751,7 +854,7 @@ export function MobileJourney({
       if (introState !== "playing") return;
       introState = "done";
       lockInput(false);
-      setHint((h) => (h === "off" ? "on" : h));
+      setEngaged(true);
       placeCenter();
     }
     let doorsRaf = 0;
@@ -847,12 +950,19 @@ export function MobileJourney({
       // opening a page directly (a group tap) spends the intro: a later scroll at the hero just scrolls
       if (introState === "todo") introState = "done";
       shown = true;
+      canEngage = true;
+      setEngaged(true);
+      suppressStoryClickUntil = performance.now() + 450;
       show(i, true);
       if (scroller) scrollY(scroller, trackTop(), false);
     };
     startRef.current = () => {
       if (introState === "todo") commitIntro();
-      else if (scroller) scrollY(scroller, trackTop(), !reduce);
+      else if (scroller) {
+        canEngage = true;
+        setEngaged(true);
+        scrollY(scroller, trackTop(), false);
+      }
     };
     let devGo = 0;
     if (__DEV__) {
@@ -889,6 +999,9 @@ export function MobileJourney({
         clearDoors();
       }
       lockInput(false);
+      setEngaged(false);
+      scroller?.removeEventListener("touchmove", preventStoryScroll);
+      scroller?.removeEventListener("wheel", preventStoryScroll);
       scroller?.removeEventListener("scroll", onIntroScroll);
       window.removeEventListener("touchstart", onIntroTs);
       window.removeEventListener("touchmove", onIntroTm);
@@ -898,11 +1011,15 @@ export function MobileJourney({
       window.clearTimeout(settle);
       scroller?.removeEventListener("scroll", placeCenter);
       centerBtn.remove();
+      track?.removeEventListener("pointerdown", onPointerDown);
       track?.removeEventListener("click", onClick);
       track?.removeEventListener("touchstart", onTs);
       track?.removeEventListener("touchend", onTe);
       window.removeEventListener("keydown", onKey);
+      zoomObserver.disconnect();
       window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("scroll", onResize);
       players.forEach((p) => {
         p.destroy();
       });
@@ -917,11 +1034,11 @@ export function MobileJourney({
   };
   const sh = (k: string) => t(k);
   const clientStep = Math.max(0, Math.min(CLIENT_STEPS.length - 1, page - CLIENT0));
-  const aiStep = Math.max(0, Math.min(AI_STEPS.length - 1, page - AI0));
+  const aiStep = Math.max(0, Math.min(MOBILE_AI_STEPS.length - 1, page - AI0));
   // the handwritten price list, first lines, dots squeezed for the narrow note
   const swList = t("flow.switch.list")
     .split("\n")
-    .slice(0, 4)
+    .slice(0, 2)
     .map((l) => l.replace(/\s*\.{2,}\s*/, " "));
 
   return (
@@ -965,41 +1082,16 @@ export function MobileJourney({
                 </button>
               ))}
             </div>
-            {/* keyboard / screen reader: the tap zones as real buttons (visible on focus) */}
-            <button
-              type="button"
-              className="mj-kb prev"
-              onClick={() => {
-                stepBy(-1);
-              }}
-            >
-              {t("flow.hud.prev")}
-            </button>
-            <button
-              type="button"
-              className="mj-kb next"
-              onClick={() => {
-                stepBy(1);
-              }}
-            >
-              {t("flow.hud.next")}
-            </button>
             <span className="mj-sr" aria-live="polite" />
           </nav>
         </div>
         <span className="mj-tapfx" aria-hidden />
-        {hint === "on" ? (
-          <div className="mj-taphint" aria-hidden>
-            <span>{t("flow.m.tapBack")}</span>
-            <span>{t("flow.m.tapNext")}</span>
-          </div>
-        ) : null}
-
         {/* 1 · front desk, before (the walk-in plays here once: the intro) */}
         <section className="mj-s mj-u" data-ch="demo" data-sec="desk" aria-labelledby="mj-h-desk">
           <div className="mj-bg">
             <canvas data-walk="w1" aria-hidden />
           </div>
+          <div className="mj-walk-caption">{t("flow.m.walkDesk")}</div>
           <DeskBefore
             onAfter={() => {
               stepBy(1);
@@ -1029,29 +1121,29 @@ export function MobileJourney({
               head={
                 <>
                   <span className="mj-tag a">{t("flow.pain.after")}</span>
-                  <div className="mj-eye">{t("flow.pain.calmEyebrow")}</div>
                   <h2 className="mj-h" id="mj-h-after">
-                    {t("flow.pain.calmTitle")}
+                    {t("flow.m.afterH")}
                   </h2>
                 </>
               }
             >
-              <p className="mj-p">{t("flow.pain.calmSub")}</p>
-              <div className="mj-gains">
-                {GAINS.map((k) => (
-                  <div key={k} className="mj-gain">
-                    <b>{t(`flow.pain.${k}n`)}</b>
-                    <span>{t(`flow.pain.${k}l`)}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="mj-small">{t("flow.pain.src")}</p>
-              <div className="mj-toast later" role="status">
-                <i aria-hidden>{CHECK}</i>
-                <span>
-                  <small>{t("flow.pain.zalo")}</small>
-                  {t("flow.ba.booked")}
+              <MShot
+                name="mCalendar"
+                name2x="mCalendar2x"
+                caption={sh("flow.features.shotCal")}
+                reduce={reduce}
+                h="34svh"
+                minHeight={240}
+              />
+              <div className="mj-reminder" role="status">
+                <span className="z" aria-hidden>
+                  {Z}
                 </span>
+                <span>
+                  <b>{t("flow.m.bookedH")}</b>
+                  <small>{t("flow.m.reminder")}</small>
+                </span>
+                <i aria-hidden>{CHECK}</i>
               </div>
             </Card>
           </div>
@@ -1070,33 +1162,27 @@ export function MobileJourney({
             <div className="mj-bg">
               {f.k === "r1" ? <canvas data-walk="w2" aria-hidden /> : <Still k="treat" />}
             </div>
+            {f.k === "r1" ? <div className="mj-walk-caption">{t("flow.m.walkTreat")}</div> : null}
             <Card
               head={
-                <>
-                  <div className="mj-n mj-in">{t(`flow.features.${f.k}n`)}</div>
-                  <h3 className="mj-k mj-in" id={`mj-h-${f.k}`} style={{ ["--i" as string]: 1 }}>
-                    {t(`flow.features.${f.k}k`)}
-                  </h3>
-                </>
+                <h3 className="mj-h" id={`mj-h-${f.k}`}>
+                  {t(
+                    f.k === "r1"
+                      ? "flow.m.featureCalendar"
+                      : f.k === "r2"
+                        ? "flow.m.featureAppointments"
+                        : "flow.m.featureServices",
+                  )}
+                </h3>
               }
             >
-              <p className="mj-p mj-in" style={{ ["--i" as string]: 2 }}>
-                {t(`flow.features.${f.k}g`)}
-              </p>
-              <p className="mj-pain mj-in" style={{ ["--i" as string]: 3 }}>
-                <i aria-hidden>{CROSS}</i>
-                <span>
-                  <em>{t("flow.features.today")}</em>
-                  {t(`flow.features.${f.k}p`)}
-                </span>
-              </p>
               <MShot
                 name={f.shot}
                 name2x={f.shot2x}
                 caption={sh(`flow.features.${f.label}`)}
                 call={sh(`flow.features.${f.call}`)}
                 reduce={reduce}
-                h="42svh"
+                h="52svh"
               />
             </Card>
           </section>
@@ -1112,6 +1198,7 @@ export function MobileJourney({
           <div className="mj-bg">
             <canvas data-walk="w3" aria-hidden />
           </div>
+          <div className="mj-walk-caption">{t("flow.m.walkOffice")}</div>
           <Card
             head={
               <>
@@ -1122,9 +1209,6 @@ export function MobileJourney({
               </>
             }
           >
-            <p className="mj-p mj-in" style={{ ["--i" as string]: 2 }}>
-              {t("flow.m.monthB")}
-            </p>
             <MShot
               name="mMonth"
               name2x="mMonth2x"
@@ -1135,62 +1219,7 @@ export function MobileJourney({
           </Card>
         </section>
 
-        {/* 7 · earnings estimate (big sliders) */}
-        <section
-          className="mj-s mj-u plain"
-          data-ch="demo"
-          data-sec="calc"
-          aria-label={t("flow.calc.t")}
-        >
-          <div className="mj-bg">
-            <Still k="office" />
-          </div>
-          <Card head={null}>
-            <div className="mj-in">
-              <EarningsCard mobile />
-            </div>
-          </Card>
-        </section>
-
-        {/* 8 · Insights */}
-        <section
-          className="mj-s mj-u plain"
-          data-ch="demo"
-          data-sec="ins"
-          aria-labelledby="mj-h-ins"
-        >
-          <div className="mj-bg">
-            <Still k="office" />
-          </div>
-          <Card
-            head={
-              <>
-                <div className="mj-eye mj-in">{t("flow.insights.eyebrow")}</div>
-                <h2 className="mj-h mj-in" id="mj-h-ins" style={{ ["--i" as string]: 1 }}>
-                  {t("flow.insights.title")}
-                </h2>
-              </>
-            }
-          >
-            <ul className="mj-list mj-in" style={{ ["--i" as string]: 2 }}>
-              {INS.map((k) => (
-                <li key={k}>
-                  <i aria-hidden>{CHECK}</i>
-                  {t(`flow.insights.${k}`)}
-                </li>
-              ))}
-            </ul>
-            <MShot
-              name="mInsights"
-              name2x="mInsights2x"
-              caption={t("flow.insights.shot")}
-              reduce={reduce}
-              h="40svh"
-            />
-          </Card>
-        </section>
-
-        {/* 9 · payroll */}
+        {/* 7 · payroll */}
         <section
           className="mj-s mj-u plain"
           data-ch="demo"
@@ -1210,15 +1239,6 @@ export function MobileJourney({
               </>
             }
           >
-            <ul className="mj-list mj-in" style={{ ["--i" as string]: 2 }}>
-              {PAY.map((k) => (
-                <li key={k}>
-                  <i aria-hidden>{CHECK}</i>
-                  {t(`flow.payroll.${k}`)}
-                </li>
-              ))}
-            </ul>
-            <p className="mj-small">{t("flow.payroll.note")}</p>
             <MShot
               name="mPayroll"
               name2x="mPayroll2x"
@@ -1229,7 +1249,7 @@ export function MobileJourney({
           </Card>
         </section>
 
-        {/* 10 · switching */}
+        {/* 8 · switching */}
         <section className="mj-s mj-u plain" data-ch="demo" data-sec="sw" aria-labelledby="mj-h-sw">
           <div className="mj-bg">
             <Still k="office" />
@@ -1239,7 +1259,7 @@ export function MobileJourney({
               <>
                 <div className="mj-eye">{t("flow.switch.eyebrow")}</div>
                 <h2 className="mj-h" id="mj-h-sw">
-                  {t("flow.m.swTitle")}
+                  {t("flow.m.importH")}
                 </h2>
               </>
             }
@@ -1291,18 +1311,10 @@ export function MobileJourney({
                 </div>
               </div>
             </div>
-            <ol className="mj-steps">
-              {SW_STEPS.map((k, i) => (
-                <li key={k}>
-                  <b>{String(i + 1)}</b>
-                  <span>{t(`flow.switch.${k}`)}</span>
-                </li>
-              ))}
-            </ol>
           </Card>
         </section>
 
-        {/* 11–15 · the client's perspective (Zalo chat, one page per step) */}
+        {/* 9–13 · the client's perspective (Zalo chat, one page per step) */}
         <section
           className="mc-track mc-client mj-u"
           data-ch="client"
@@ -1320,17 +1332,17 @@ export function MobileJourney({
           />
         </section>
 
-        {/* 16–19 · the AI assistant (Pro) */}
+        {/* 14–17 · the AI assistant (Pro) */}
         <section
           className="mc-track mc-ai mj-u"
           data-ch="ai"
-          data-n={AI_STEPS.length}
+          data-n={MOBILE_AI_STEPS.length}
           aria-labelledby="mj-h-ai"
         >
           <MobileChat
             ns="views.ai"
             kind="ai"
-            steps={AI_STEPS}
+            steps={MOBILE_AI_STEPS}
             step={aiStep}
             live={live && page >= AI0}
             reduce={reduce}
@@ -1338,6 +1350,53 @@ export function MobileJourney({
             chapterId="mj-h-ai"
           />
         </section>
+        {typeof document !== "undefined"
+          ? createPortal(
+              <nav
+                ref={controlsRef}
+                className="mj-controls off"
+                onPointerDownCapture={() => {
+                  suppressStoryClickUntil = 0;
+                }}
+                onTouchStartCapture={() => {
+                  suppressStoryClickUntil = 0;
+                }}
+                onKeyDownCapture={() => {
+                  suppressStoryClickUntil = 0;
+                }}
+                aria-label={t("flow.hud.label")}
+                data-notap
+              >
+                <button
+                  type="button"
+                  className="mj-kb prev"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (performance.now() < suppressStoryClickUntil) return;
+                    suppressStoryClickUntil = performance.now() + 450;
+                    stepBy(-1);
+                  }}
+                >
+                  {t("flow.hud.prev")}
+                </button>
+                <button
+                  type="button"
+                  className="mj-kb next"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (performance.now() < suppressStoryClickUntil) return;
+                    suppressStoryClickUntil = performance.now() + 450;
+                    stepBy(1);
+                  }}
+                >
+                  {t(page === UNITS - 1 ? "flow.m.finish" : "flow.hud.next")}
+                </button>
+              </nav>,
+              document.body,
+            )
+          : null}
       </div>
     </div>
   );

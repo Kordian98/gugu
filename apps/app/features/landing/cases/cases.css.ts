@@ -179,6 +179,9 @@ export const CASES_CSS = `
 .cx.m .cx-outs .n{display:none}
 .cx.m .cx-stackfig{margin-top:${S(6)}}
 .cx.m .cx-assume{margin:${S(3)} 0 0}
+.cx.m .cx-assume-details{margin-top:${S(3)};font-family:${font.ui};color:${color.ink2}}
+.cx.m .cx-assume-details summary{min-height:${px(space[10] + space[1])};display:list-item;align-content:center;font-size:${px(ty.label)};cursor:pointer}
+.cx.m .cx-assume-details summary:focus-visible{outline:2px solid ${color.lilac500};outline-offset:2px}
 .cx-pg{display:flex;align-items:center;justify-content:center;gap:${S(4)};margin-top:${S(6)};padding:0 ${S(4)}}
 .cx-pg button{width:48px;height:48px;border-radius:${px(radius.pill)};border:1px solid ${color.lineStrong};background:${color.white};color:${color.ink};font-family:${font.uiSemiBold};font-size:${px(ty.lead)};line-height:1;cursor:pointer}
 .cx-pg button:disabled{opacity:.4;cursor:default}

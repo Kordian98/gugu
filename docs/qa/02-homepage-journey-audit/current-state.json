@@ -1,0 +1,11 @@
+{
+  "updatedAt": "2026-11-05T09:58:13.920153+00:00",
+  "url": "http://localhost:8094/vi",
+  "pages": 17,
+  "aiSteps": 4,
+  "footerOpacity": 0.1,
+  "footerBlur": "none",
+  "desktop": "unchanged;13 pixel comparisons passed before final additive mobile-only tuning",
+  "checks": "TypeScript and4CSS tests pass; vi/en all4AI steps navigate to offer; prior10-size/language fit matrix and gesture tests passed",
+  "status": "Ready for commit; no Git remote configured"
+}

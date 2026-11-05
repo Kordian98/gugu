@@ -109,13 +109,14 @@ export function HeroCopy({
   width: number;
   /** Break all three headline beats onto their own lines (narrow column). */
   stacked?: boolean;
-  /** Phone door hero: smaller type, one CTA, no note (the arch needs the lower half). */
+  /** Phone door hero: shorter product copy, one CTA and a compact first-year note. */
   compact?: boolean;
   /** Web story hero: the walk-in plaque at the arch is the journey CTA, so no "how it works" button. */
   journey?: boolean;
 }) {
   const { t } = useTranslation("landing");
   const locale = useLocale();
+  const phoneJourney = !desktop && compact && journey;
   const size = desktop
     ? Math.min(92, Math.max(64, width * 0.054)) * (locale === "vi" ? 0.86 : 1)
     : Math.min(compact ? 40 : 50, width * (compact ? 0.1 : 0.125)) * (locale === "vi" ? 0.86 : 1);
@@ -125,14 +126,18 @@ export function HeroCopy({
       <View accessibilityRole="header">
         <Text role="display" size={size} lineHeight={size * 1.02}>
           <GradientText colors={G1} style={style}>
-            {t("hero.line1")}
+            {t(phoneJourney ? "flow.m.heroLine1" : "hero.line1")}
           </GradientText>
           {desktop && !stacked ? " " : "\n"}
-          {t("hero.line2")}
-          {"\n"}
-          <GradientText colors={G2} style={style}>
-            {t("hero.line3")}
-          </GradientText>
+          {t(phoneJourney ? "flow.m.heroLine2" : "hero.line2")}
+          {phoneJourney ? null : (
+            <>
+              {"\n"}
+              <GradientText colors={G2} style={style}>
+                {t("hero.line3")}
+              </GradientText>
+            </>
+          )}
         </Text>
       </View>
       <Text
@@ -141,7 +146,7 @@ export function HeroCopy({
         color={color.ink2}
         style={{ maxWidth: 560 }}
       >
-        {t("hero.subtitle")}
+        {t(phoneJourney ? "flow.m.heroSubtitle" : "hero.subtitle")}
       </Text>
       <View className="gap-3 min-[900px]:flex-row min-[900px]:items-center min-[900px]:gap-4">
         <Button
@@ -165,9 +170,9 @@ export function HeroCopy({
           />
         )}
       </View>
-      {compact ? null : (
+      {compact && !phoneJourney ? null : (
         <Text size={13.5} color={color.muted}>
-          {t("hero.note")}
+          {t(phoneJourney ? "flow.m.heroNote" : "hero.note")}
         </Text>
       )}
     </View>

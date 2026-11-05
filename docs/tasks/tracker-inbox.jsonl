@@ -1,0 +1,1 @@
+{"collection": "log", "doc_id": "2026-11-05T09:58:13.920153+00:00-codex-push", "op": "set", "data": {"at": "2026-11-05T09:58:13.920153+00:00", "actor": "codex", "kind": "status", "ref": "02-MOBILE-JOURNEY-REFINEMENT", "text": "Preparing user-requested commit on design/02-glass. Push destination missing: git remote is empty."}, "actor": "codex"}

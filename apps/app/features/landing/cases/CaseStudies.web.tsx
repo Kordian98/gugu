@@ -61,6 +61,21 @@ function Story({
   const [after, setAfter] = useState(false);
   // desktop: inactive panels; phones: the slides off screen once the snap has settled
   const hidden = !active;
+  const assumptions = (
+    <p className="cx-assume">
+      {t("flow.cases.assume", {
+        weekly: formatNumber(c.weekly, locale),
+        price: formatVND(c.price, locale),
+        staff: formatNumber(c.staff, locale),
+        minutes: formatNumber(ASSUMPTIONS.minutesPerBooking, locale),
+        noShow: formatPercentPoints(ASSUMPTIONS.noShowRate * 100, locale),
+        cut: formatPercentPoints(ASSUMPTIONS.reminderCut * 100, locale),
+        commission: formatNumber(ASSUMPTIONS.commissionMinutesPerStaff, locale),
+        payroll: formatNumber(ASSUMPTIONS.payrollMinutesPerStaff, locale),
+        profit: formatNumber(ASSUMPTIONS.profitTallyMinutes, locale),
+      })}
+    </p>
+  );
   return (
     <article
       id={`cx-${c.k}`}
@@ -83,28 +98,24 @@ function Story({
       <div className="cx-text">
         <span className="cx-type">{t(`flow.cases.${c.k}.type`)}</span>
         <h3 className="cx-name">{t(`flow.cases.${c.k}.name`)}</h3>
-        <p className="cx-setup">{t(`flow.cases.${c.k}.setup`)}</p>
-        <CaseMap c={c} after={after} setAfter={setAfter} mobile={mobile} />
+        <p className="cx-setup">{t(mobile ? `flow.m.cases.${c.k}` : `flow.cases.${c.k}.setup`)}</p>
+        {mobile ? null : <CaseMap c={c} after={after} setAfter={setAfter} mobile={mobile} />}
       </div>
       <Stack c={c} active={active} mobile={mobile} reduce={reduce} />
+      {mobile ? <CaseMap c={c} after={after} setAfter={setAfter} mobile={mobile} /> : null}
       <ul className="cx-outs">
         {c.outcomes.map((m, k) => (
           <Outcome key={m} c={c} m={m} i={k} />
         ))}
       </ul>
-      <p className="cx-assume">
-        {t("flow.cases.assume", {
-          weekly: formatNumber(c.weekly, locale),
-          price: formatVND(c.price, locale),
-          staff: formatNumber(c.staff, locale),
-          minutes: formatNumber(ASSUMPTIONS.minutesPerBooking, locale),
-          noShow: formatPercentPoints(ASSUMPTIONS.noShowRate * 100, locale),
-          cut: formatPercentPoints(ASSUMPTIONS.reminderCut * 100, locale),
-          commission: formatNumber(ASSUMPTIONS.commissionMinutesPerStaff, locale),
-          payroll: formatNumber(ASSUMPTIONS.payrollMinutesPerStaff, locale),
-          profit: formatNumber(ASSUMPTIONS.profitTallyMinutes, locale),
-        })}
-      </p>
+      {mobile ? (
+        <details className="cx-assume-details">
+          <summary>{t("flow.m.caseAssumptions")}</summary>
+          {assumptions}
+        </details>
+      ) : (
+        assumptions
+      )}
     </article>
   );
 }
